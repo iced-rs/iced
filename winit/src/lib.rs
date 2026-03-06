@@ -3041,6 +3041,13 @@ fn run_action<'a, P, C>(
                                     }
                                 }
                             }
+                            popup::Action::Reposition {
+                                id: _,
+                                positioner: _,
+                            } => {
+                                // Reposition is only supported on Wayland via xdg_popup.reposition
+                                // Not applicable for winit popup manager
+                            }
                         },
                     }
                 }

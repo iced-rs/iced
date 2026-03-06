@@ -689,6 +689,7 @@ pub mod wayland {
         //!             ..Default::default()
         //!         },
         //!         grab: false,
+        //!         input_passthrough: false,
         //!     })
         //! }
         //! ```

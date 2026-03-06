@@ -95,6 +95,9 @@ pub struct PopupSettings {
     pub positioner: Positioner,
     /// Whether to grab keyboard and pointer input
     pub grab: bool,
+    /// When true, the popup surface will have an empty input region so
+    /// pointer events pass through to the surface below. Useful for tooltips.
+    pub input_passthrough: bool,
 }
 
 impl Hash for PopupSettings {
@@ -206,6 +209,17 @@ pub enum Action {
         /// New height
         height: u32,
     },
+    /// Reposition a popup surface using xdg_popup.reposition (v3).
+    ///
+    /// Updates the popup's positioner and asks the compositor to
+    /// reposition it accordingly. Useful for tooltips that follow
+    /// the cursor or need to adjust position dynamically.
+    Reposition {
+        /// ID of the popup to reposition
+        id: Id,
+        /// New positioner configuration
+        positioner: Positioner,
+    },
 }
 
 impl fmt::Debug for Action {
@@ -221,6 +235,11 @@ impl fmt::Debug for Action {
                 .field("id", id)
                 .field("width", width)
                 .field("height", height)
+                .finish(),
+            Action::Reposition { id, positioner } => f
+                .debug_struct("Action::Reposition")
+                .field("id", id)
+                .field("positioner", positioner)
                 .finish(),
         }
     }
@@ -258,6 +277,19 @@ pub fn resize<Message>(id: Id, width: u32, height: u32) -> Task<Message> {
             id,
             width,
             height,
+        })),
+    ))
+}
+
+/// Reposition a popup surface.
+///
+/// Uses xdg_popup.reposition (protocol v3) to update the popup's
+/// position without destroying and recreating it.
+pub fn reposition<Message>(id: Id, positioner: Positioner) -> Task<Message> {
+    task::effect(crate::Action::PlatformSpecific(
+        platform_specific::Action::Wayland(super::Action::Popup(Action::Reposition {
+            id,
+            positioner,
         })),
     ))
 }
