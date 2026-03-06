@@ -690,6 +690,9 @@ pub mod wayland {
         //!         },
         //!         grab: false,
         //!         input_passthrough: false,
+        //!         tooltip_offset: None,
+        //!         tooltip_anchor: None,
+        //!         tooltip_delay_ms: None,
         //!     })
         //! }
         //! ```

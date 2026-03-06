@@ -1,0 +1,14 @@
+[package]
+name = "compositor_tooltip"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+default = ["wayland"]
+wayland = ["iced/wayland"]
+
+[dependencies]
+iced.workspace = true
+iced.features = ["debug"]
+env_logger = "0.11"

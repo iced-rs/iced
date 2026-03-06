@@ -486,6 +486,9 @@ where
                                 constraint_adjustment,
                                 grab,
                                 window_geometry,
+                                tooltip_offset,
+                                tooltip_anchor,
+                                tooltip_delay_ms,
                             } => {
                                 use winit::platform::wayland::ActiveEventLoopExtWayland;
                                 use winit::platform::wayland::{
@@ -502,6 +505,9 @@ where
                                     constraint_adjustment,
                                     grab,
                                     window_geometry,
+                                    tooltip_offset,
+                                    tooltip_anchor,
+                                    tooltip_delay_ms,
                                 };
 
                                 if let Some(winit_popup_id) = event_loop.create_popup(settings) {
@@ -682,6 +688,9 @@ enum Control {
         constraint_adjustment: u32,
         grab: bool,
         window_geometry: Option<(i32, i32, i32, i32)>,
+        tooltip_offset: Option<(i32, i32)>,
+        tooltip_anchor: Option<u32>,
+        tooltip_delay_ms: Option<u32>,
     },
     #[cfg(all(
         unix,
@@ -975,6 +984,7 @@ async fn run_instance<P>(
                 // Configure the popup with the compositor surface
                 if let Some(comp) = compositor.as_mut() {
                     let popup_id = popup::PopupId(winit_popup_id);
+
                     let _ = popup_manager.configure(
                         popup_id,
                         winit_popup_id,
@@ -983,6 +993,15 @@ async fn run_instance<P>(
                         popup_surface,
                         comp,
                     );
+
+                    // Request a redraw on the parent window so the popup
+                    // gets rendered on the next frame.
+                    if let Some(popup) = popup_manager.get(popup_id) {
+                        let parent_id = popup.parent_id;
+                        if let Some(parent_window) = window_manager.get_mut(parent_id) {
+                            parent_window.raw.request_redraw();
+                        }
+                    }
                 }
             }
             #[cfg(all(
@@ -2999,6 +3018,9 @@ fn run_action<'a, P, C>(
                                             .constraint_adjustment,
                                         grab: settings.grab,
                                         window_geometry,
+                                        tooltip_offset: settings.tooltip_offset,
+                                        tooltip_anchor: settings.tooltip_anchor,
+                                        tooltip_delay_ms: settings.tooltip_delay_ms,
                                     })
                                     .expect("Send control action");
 
