@@ -20,6 +20,7 @@ pub mod widget;
 pub mod window;
 
 pub use iced_core as core;
+use iced_core::Font;
 pub use iced_futures as futures;
 
 pub use task::Task;
@@ -44,6 +45,9 @@ pub enum Action<T> {
         /// The channel to send back the load result.
         channel: oneshot::Sender<Result<(), font::Error>>,
     },
+
+    /// Set a default font
+    SetDefaultFont(Font),
 
     /// Run a widget operation.
     Widget(Box<dyn core::widget::Operation>),
@@ -100,6 +104,7 @@ impl<T> Action<T> {
             Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
+            Action::SetDefaultFont(font) => Err(Action::SetDefaultFont(font)),
         }
     }
 }
@@ -130,6 +135,7 @@ where
             Action::Tick => write!(f, "Action::Tick"),
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),
+            Action::SetDefaultFont(_) => write!(f, "Action::SetDefaultFont"),
         }
     }
 }

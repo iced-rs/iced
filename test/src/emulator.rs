@@ -175,6 +175,9 @@ impl<P: Program + 'static> Emulator<P> {
                 runtime::Action::LoadFont { .. } => {
                     // TODO
                 }
+                runtime::Action::SetDefaultFont(_) => {
+                    // TODO
+                }
                 runtime::Action::Widget(operation) => {
                     let mut user_interface = UserInterface::build(
                         program.view(&self.state, self.window),

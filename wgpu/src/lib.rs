@@ -689,6 +689,10 @@ impl core::Renderer for Renderer {
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
     }
+
+    fn set_default_font(&mut self, font: Font) {
+        self.default_font = font;
+    }
 }
 
 impl core::text::Renderer for Renderer {

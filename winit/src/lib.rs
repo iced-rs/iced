@@ -1220,7 +1220,6 @@ where
     while !messages.is_empty() {
         for message in messages.drain(..) {
             let task = runtime.enter(|| program.update(message));
-
             if let Some(mut stream) = runtime::task::into_stream(task) {
                 let waker = futures::task::noop_waker_ref();
                 let mut context = futures::task::Context::from_waker(waker);
@@ -1694,6 +1693,11 @@ fn run_action<'a, P, C>(
             control_sender
                 .start_send(Control::Exit)
                 .expect("Send control action");
+        }
+        Action::SetDefaultFont(font) => {
+            for (_id, window) in window_manager.iter_mut() {
+                window.renderer.set_default_font(font);
+            }
         }
     }
 }
