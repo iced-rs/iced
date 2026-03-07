@@ -606,9 +606,4 @@ impl<P: Program> Instance<P> {
     pub fn scale_factor(&self, window: window::Id) -> f32 {
         self.program.scale_factor(&self.state, window)
     }
-
-    /// Returns the settings of the [`Instance`].
-    pub fn settings(&self) -> Settings {
-        self.program.settings()
-    }
 }
