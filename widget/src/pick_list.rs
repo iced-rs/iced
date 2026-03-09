@@ -635,7 +635,9 @@ where
             Handle::None => None,
         };
 
-        if let Some((font, code_point, size, line_height, shaping)) = handle {
+        // Track the width reserved for the handle icon so we can
+        // prevent the label text from overlapping it.
+        let handle_width = if let Some((font, code_point, size, line_height, shaping)) = handle {
             let size = size.unwrap_or_else(|| renderer.default_size());
 
             renderer.fill_text(
@@ -659,7 +661,11 @@ where
                 style.handle_color,
                 *viewport,
             );
-        }
+
+            size.0
+        } else {
+            0.0
+        };
 
         let label = selected.map(&self.to_string);
 
@@ -673,7 +679,7 @@ where
                     line_height: self.line_height,
                     font,
                     bounds: Size::new(
-                        bounds.width - self.padding.x(),
+                        bounds.width - self.padding.x() - handle_width,
                         f32::from(self.line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,
