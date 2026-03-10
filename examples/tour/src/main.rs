@@ -540,17 +540,17 @@ impl Screen {
 }
 
 fn ferris<'a>(width: u32, filter_method: image::FilterMethod) -> Container<'a, Message> {
-    static FERRIS: std::sync::LazyLock<image::Handle> = std::sync::LazyLock::new(|| {
+    center_x(
         // This should go away once we unify resource loading on native
         // platforms
-        image::Handle::from_path(if cfg!(target_arch = "wasm32") {
-            "tour/images/ferris.png"
+        if cfg!(target_arch = "wasm32") {
+            image("tour/images/ferris.png")
         } else {
-            concat!(env!("CARGO_MANIFEST_DIR"), "/images/ferris.png")
-        })
-    });
-
-    center_x(image(&FERRIS).filter_method(filter_method).width(width))
+            image(concat!(env!("CARGO_MANIFEST_DIR"), "/images/ferris.png"))
+        }
+        .filter_method(filter_method)
+        .width(width),
+    )
 }
 
 fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {

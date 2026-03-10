@@ -12,11 +12,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     use std::sync::LazyLock;
-//!
-//!     static IMAGE: LazyLock<image::Handle> = LazyLock::new(|| image::Handle::from_path("ferris.png"));
-//!
-//!     image(&IMAGE).into()
+//!     image("ferris.png").into()
 //! }
 //! ```
 //! <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -36,7 +32,7 @@ use crate::core::{
 pub use image::{FilterMethod, Handle};
 
 /// Creates a new [`Viewer`] with the given image `Handle`.
-pub fn viewer<'a>(handle: &'a Handle) -> Viewer<'a, Handle> {
+pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
     Viewer::new(handle)
 }
 
@@ -54,16 +50,12 @@ pub fn viewer<'a>(handle: &'a Handle) -> Viewer<'a, Handle> {
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     use std::sync::LazyLock;
-///
-///     static IMAGE: LazyLock<image::Handle> = LazyLock::new(|| image::Handle::from_path("ferris.png"));
-///
-///     image(&IMAGE).into()
+///     image("ferris.png").into()
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-pub struct Image<'a, Handle = image::Handle> {
-    handle: &'a Handle,
+pub struct Image<Handle = image::Handle> {
+    handle: Handle,
     width: Length,
     height: Length,
     crop: Option<Rectangle<u32>>,
@@ -76,11 +68,11 @@ pub struct Image<'a, Handle = image::Handle> {
     expand: bool,
 }
 
-impl<'a, Handle> Image<'a, Handle> {
+impl<Handle> Image<Handle> {
     /// Creates a new [`Image`] with the given path.
-    pub fn new(handle: &'a Handle) -> Self {
+    pub fn new(handle: impl Into<Handle>) -> Self {
         Image {
-            handle,
+            handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
             crop: None,
@@ -344,7 +336,7 @@ pub fn draw<Renderer, Handle>(
     );
 }
 
-impl<'a, Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<'a, Handle>
+impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -365,7 +357,7 @@ where
         layout(
             renderer,
             limits,
-            self.handle,
+            &self.handle,
             self.width,
             self.height,
             self.crop,
@@ -388,7 +380,7 @@ where
         draw(
             renderer,
             layout,
-            self.handle,
+            &self.handle,
             self.crop,
             self.border_radius,
             self.content_fit,
@@ -400,13 +392,13 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer, Handle> From<Image<'a, Handle>>
+impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + 'a,
 {
-    fn from(image: Image<'a, Handle>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(image)
     }
 }

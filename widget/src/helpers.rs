@@ -1768,17 +1768,13 @@ where
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     use std::sync::LazyLock;
-///
-///     static IMAGE: LazyLock<image::Handle> = LazyLock::new(|| image::Handle::from_path("ferris.png"));
-///
-///     image(&IMAGE).into()
+///     image("ferris.png").into()
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
 #[cfg(feature = "image")]
-pub fn image<'a>(handle: &'a crate::image::Handle) -> crate::Image<'a, crate::image::Handle> {
-    crate::Image::new(handle)
+pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
+    crate::Image::new(handle.into())
 }
 
 /// Creates a new [`Svg`] widget from the given [`Handle`].

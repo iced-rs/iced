@@ -2,9 +2,11 @@
 use crate::border;
 use crate::{Bytes, Radians, Rectangle, Size};
 
-use std::hash::Hash;
+use rustc_hash::FxHasher;
+
+use std::hash::{Hash, Hasher};
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 
 /// A raster image that can be drawn.
@@ -109,7 +111,7 @@ impl Handle {
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         let path = path.into();
 
-        Self::Path(Id::unique(), path)
+        Self::Path(Id::path(&path), path)
     }
 
     /// Creates an image [`Handle`] containing the encoded image data directly.
@@ -177,7 +179,13 @@ impl std::fmt::Debug for Handle {
 
 /// The unique identifier of some [`Handle`] data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Id(u64);
+pub struct Id(_Id);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum _Id {
+    Unique(u64),
+    Hash(u64),
+}
 
 impl Id {
     fn unique() -> Self {
@@ -185,7 +193,18 @@ impl Id {
 
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
-        Self(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed))
+        Self(_Id::Unique(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)))
+    }
+
+    fn path(path: impl AsRef<Path>) -> Self {
+        let hash = {
+            let mut hasher = FxHasher::default();
+            path.as_ref().hash(&mut hasher);
+
+            hasher.finish()
+        };
+
+        Self(_Id::Hash(hash))
     }
 }
 

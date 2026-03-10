@@ -83,21 +83,17 @@ impl Image {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        static FERRIS: std::sync::LazyLock<image::Handle> = std::sync::LazyLock::new(|| {
-            image::Handle::from_path(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/../tour/images/ferris.png",
-            ))
-        });
-
         let i_am_ferris = column![
             "Hello!",
             Element::from(
-                image(&FERRIS)
-                    .width(self.width)
-                    .content_fit(self.content_fit)
-                    .rotation(self.rotation)
-                    .opacity(self.opacity)
+                image(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/../tour/images/ferris.png",
+                ))
+                .width(self.width)
+                .content_fit(self.content_fit)
+                .rotation(self.rotation)
+                .opacity(self.opacity)
             )
             .explain(Color::WHITE),
             "I am Ferris!"
