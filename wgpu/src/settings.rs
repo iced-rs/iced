@@ -27,6 +27,12 @@ pub struct Settings {
     ///
     /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
+
+    /// The maximum number of bind groups that can be used simultaneously
+    /// in a shader pipeline.
+    ///
+    /// By default, it is set to `4`.
+    pub max_bind_groups: u32,
 }
 
 impl Default for Settings {
@@ -37,6 +43,7 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: None,
+            max_bind_groups: 4,
         }
     }
 }
@@ -52,6 +59,7 @@ impl From<graphics::Settings> for Settings {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             antialiasing: settings.antialiasing,
+            max_bind_groups: settings.max_bind_groups,
             ..Settings::default()
         }
     }
