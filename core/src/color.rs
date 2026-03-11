@@ -1,3 +1,5 @@
+use crate::animation::Interpolable;
+
 /// A color in the `sRGB` color space.
 ///
 /// # String Representation
@@ -301,7 +303,7 @@ impl std::fmt::Display for Color {
     }
 }
 
-impl lilt::Interpolable for Color {
+impl Interpolable for Color {
     /// Interpolates the color. Equivalent to [`Color::mix`].
     fn interpolated(&self, other: Self, ratio: f32) -> Self {
         self.mix(other, ratio)
