@@ -46,17 +46,17 @@ impl Font {
     }
 
     /// Sets the [`Weight`] of the [`Font`].
-    pub fn weight(self, weight: Weight) -> Self {
+    pub const fn weight(self, weight: Weight) -> Self {
         Self { weight, ..self }
     }
 
     /// Sets the [`Stretch`] of the [`Font`].
-    pub fn stretch(self, stretch: Stretch) -> Self {
+    pub const fn stretch(self, stretch: Stretch) -> Self {
         Self { stretch, ..self }
     }
 
     /// Sets the [`Style`] of the [`Font`].
-    pub fn style(self, style: Style) -> Self {
+    pub const fn style(self, style: Style) -> Self {
         Self { style, ..self }
     }
 }
