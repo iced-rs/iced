@@ -103,6 +103,15 @@ pub enum Family {
 }
 
 impl Family {
+    /// A list of all the different standalone family variants.
+    pub const VARIANTS: &[Self] = &[
+        Self::Serif,
+        Self::SansSerif,
+        Self::Cursive,
+        Self::Fantasy,
+        Self::Monospace,
+    ];
+
     /// Creates a [`Family::Name`] from the given string.
     ///
     /// The name is interned in a global cache and never freed.
@@ -128,6 +137,19 @@ impl Family {
 impl From<&str> for Family {
     fn from(name: &str) -> Self {
         Family::name(name)
+    }
+}
+
+impl std::fmt::Display for Family {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Family::Name(name) => name,
+            Family::Serif => "Serif",
+            Family::SansSerif => "Sans-serif",
+            Family::Cursive => "Cursive",
+            Family::Fantasy => "Fantasy",
+            Family::Monospace => "Monospace",
+        })
     }
 }
 
