@@ -434,41 +434,41 @@ pub fn default(_theme: &Theme) -> Style {
 /// Text with the default base color.
 pub fn base(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().text),
+        color: Some(theme.seed().text),
     }
 }
 
 /// Text conveying some important information, like an action.
 pub fn primary(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().primary),
+        color: Some(theme.seed().primary),
     }
 }
 
 /// Text conveying some secondary information, like a footnote.
 pub fn secondary(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.extended_palette().secondary.base.color),
+        color: Some(theme.palette().secondary.base.color),
     }
 }
 
 /// Text conveying some positive information, like a successful event.
 pub fn success(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().success),
+        color: Some(theme.seed().success),
     }
 }
 
 /// Text conveying some mildly negative information, like a warning.
 pub fn warning(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().warning),
+        color: Some(theme.seed().warning),
     }
 }
 
 /// Text conveying some negative information, like an error.
 pub fn danger(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().danger),
+        color: Some(theme.seed().danger),
     }
 }

@@ -624,7 +624,7 @@ impl Catalog for Theme {
 
 /// The default style of the list of a [`Menu`].
 pub fn default(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         background: palette.background.weak.color.into(),

@@ -638,7 +638,7 @@ async fn run_instance<P>(
 
                 debug::theme_changed(|| {
                     if is_first {
-                        theme::Base::palette(window.state.theme())
+                        theme::Base::seed(window.state.theme())
                     } else {
                         None
                     }
@@ -1722,7 +1722,7 @@ where
     debug::theme_changed(|| {
         window_manager
             .first()
-            .and_then(|window| theme::Base::palette(window.state.theme()))
+            .and_then(|window| theme::Base::seed(window.state.theme()))
     });
 
     cached_user_interfaces

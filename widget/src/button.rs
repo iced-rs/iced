@@ -577,7 +577,7 @@ impl Catalog for Theme {
 
 /// A primary button; denoting a main action.
 pub fn primary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let base = styled(palette.primary.base);
 
     match status {
@@ -592,7 +592,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
 
 /// A secondary button; denoting a complementary action.
 pub fn secondary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let base = styled(palette.secondary.base);
 
     match status {
@@ -607,7 +607,7 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
 
 /// A success button; denoting a good outcome.
 pub fn success(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let base = styled(palette.success.base);
 
     match status {
@@ -622,7 +622,7 @@ pub fn success(theme: &Theme, status: Status) -> Style {
 
 /// A warning button; denoting a risky action.
 pub fn warning(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let base = styled(palette.warning.base);
 
     match status {
@@ -637,7 +637,7 @@ pub fn warning(theme: &Theme, status: Status) -> Style {
 
 /// A danger button; denoting a destructive action.
 pub fn danger(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let base = styled(palette.danger.base);
 
     match status {
@@ -652,7 +652,7 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 
 /// A text button; useful for links.
 pub fn text(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let base = Style {
         text_color: palette.background.base.text,
@@ -671,7 +671,7 @@ pub fn text(theme: &Theme, status: Status) -> Style {
 
 /// A button using background shades.
 pub fn background(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let base = styled(palette.background.base);
 
     match status {
@@ -690,7 +690,7 @@ pub fn background(theme: &Theme, status: Status) -> Style {
 
 /// A subtle button using weak background shades.
 pub fn subtle(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let base = styled(palette.background.weakest);
 
     match status {

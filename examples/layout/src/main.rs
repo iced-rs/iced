@@ -96,7 +96,7 @@ impl Layout {
             self.example.view()
         })
         .style(|theme| {
-            let palette = theme.extended_palette();
+            let palette = theme.palette();
 
             container::Style::default()
                 .border(border::color(palette.background.strong.color).width(4))
@@ -261,7 +261,7 @@ fn application<'a>() -> Element<'a, Message> {
         .align_y(Center),
     )
     .style(|theme| {
-        let palette = theme.extended_palette();
+        let palette = theme.palette();
 
         container::Style::default().border(border::color(palette.background.strong.color).width(1))
     });
@@ -392,7 +392,7 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
         ) -> Vec<canvas::Geometry> {
             let mut frame = canvas::Frame::new(renderer, bounds.size());
 
-            let palette = theme.extended_palette();
+            let palette = theme.palette();
 
             frame.fill_rectangle(
                 Point::ORIGIN,

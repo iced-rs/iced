@@ -650,7 +650,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Slider`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let color = match status {
         Status::Active => palette.primary.base.color,

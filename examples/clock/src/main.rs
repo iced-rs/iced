@@ -77,8 +77,7 @@ impl<Message> canvas::Program<Message> for Clock {
         use chrono::Timelike;
 
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
-            let palette = theme.extended_palette();
-
+            let palette = theme.palette();
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 2.0;
 

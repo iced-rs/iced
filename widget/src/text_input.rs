@@ -1657,7 +1657,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`TextInput`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let active = Style {
         background: Background::Color(palette.background.base.color),

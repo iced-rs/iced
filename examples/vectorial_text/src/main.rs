@@ -124,7 +124,7 @@ impl<Message> canvas::Program<Message> for State {
         _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
-            let palette = theme.palette();
+            let palette = theme.seed();
             let center = bounds.center();
 
             frame.translate(Vector::new(center.x, center.y));

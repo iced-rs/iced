@@ -482,7 +482,7 @@ fn find_text(
 
 fn highlight(theme: &impl theme::Base) -> Color {
     theme
-        .palette()
-        .map(|palette| palette.primary)
+        .seed()
+        .map(|seed| seed.primary)
         .unwrap_or(Color::from_rgb(0.0, 0.0, 1.0))
 }

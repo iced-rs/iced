@@ -315,7 +315,7 @@ mod style {
     use iced::{Border, Theme};
 
     pub fn title_bar_active(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
+        let palette = theme.palette();
 
         container::Style {
             text_color: Some(palette.background.strong.text),
@@ -325,7 +325,7 @@ mod style {
     }
 
     pub fn title_bar_focused(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
+        let palette = theme.palette();
 
         container::Style {
             text_color: Some(palette.primary.strong.text),
@@ -335,7 +335,7 @@ mod style {
     }
 
     pub fn pane_active(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
+        let palette = theme.palette();
 
         container::Style {
             background: Some(palette.background.weak.color.into()),
@@ -349,7 +349,7 @@ mod style {
     }
 
     pub fn pane_focused(theme: &Theme) -> container::Style {
-        let palette = theme.extended_palette();
+        let palette = theme.palette();
 
         container::Style {
             background: Some(palette.background.weak.color.into()),

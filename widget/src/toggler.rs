@@ -564,7 +564,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Toggler`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let background = match status {
         Status::Active { is_toggled } | Status::Hovered { is_toggled } => {

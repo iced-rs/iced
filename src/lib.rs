@@ -254,7 +254,7 @@
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     button("I am a styled button!").style(|theme: &Theme, status| {
-//!         let palette = theme.extended_palette();
+//!         let palette = theme.palette();
 //!
 //!         match status {
 //!             button::Status::Active => {
@@ -271,15 +271,13 @@
 //! Widgets that can be in multiple different states will also provide the closure
 //! with some [`Status`], allowing you to use a different style for each state.
 //!
-//! You can extract the [`Palette`] colors of a [`Theme`] with the [`palette`] or
-//! [`extended_palette`] methods.
+//! You can extract the [`Palette`] colors of a [`Theme`] with the [`palette`] method.
 //!
 //! Most widgets provide styling functions for your convenience in their respective modules;
 //! like [`container::rounded_box`], [`button::primary`], or [`text::danger`].
 //!
 //! [`Status`]: widget::button::Status
 //! [`palette`]: Theme::palette
-//! [`extended_palette`]: Theme::extended_palette
 //! [`container::rounded_box`]: widget::container::rounded_box
 //! [`button::primary`]: widget::button::primary
 //! [`text::danger`]: widget::text::danger

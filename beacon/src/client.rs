@@ -1,7 +1,7 @@
 use crate::Error;
+use crate::core::theme::palette;
 use crate::core::time::{Duration, SystemTime};
 use crate::span;
-use crate::theme;
 
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -28,7 +28,7 @@ pub enum Message {
         at: SystemTime,
         name: String,
         version: Version,
-        theme: Option<theme::Palette>,
+        theme: Option<palette::Seed>,
         can_time_travel: bool,
     },
     EventLogged {
@@ -42,7 +42,7 @@ pub enum Message {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Event {
-    ThemeChanged(theme::Palette),
+    ThemeChanged(palette::Seed),
     SpanStarted(span::Stage),
     SpanFinished(span::Stage, Duration),
     MessageLogged { number: usize, message: String },
@@ -80,7 +80,7 @@ impl Client {
 #[derive(Debug, Clone, Default)]
 pub struct Metadata {
     pub name: &'static str,
-    pub theme: Option<theme::Palette>,
+    pub theme: Option<palette::Seed>,
     pub can_time_travel: bool,
 }
 

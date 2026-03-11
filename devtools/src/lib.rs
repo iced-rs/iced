@@ -309,8 +309,8 @@ where
             program
                 .theme(state, window)
                 .as_ref()
-                .and_then(theme::Base::palette)
-                .map(|palette| Theme::custom("iced devtools", palette))
+                .and_then(theme::Base::seed)
+                .map(|seed| Theme::custom("iced devtools", seed))
         };
 
         let setup = if let Mode::Setup(setup) = &self.mode {

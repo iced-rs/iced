@@ -903,7 +903,7 @@ impl Catalog for Theme {
 
 /// The default style of the field of a [`PickList`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let active = Style {
         text_color: palette.background.weak.text,

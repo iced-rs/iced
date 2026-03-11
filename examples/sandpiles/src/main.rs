@@ -212,7 +212,7 @@ impl canvas::Program<Message> for Viewer<'_> {
         cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry<Renderer>> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
-            let palette = theme.extended_palette();
+            let palette = theme.palette();
 
             let cells_x = (frame.width() / Self::CELL_SIZE).ceil() as isize;
             let cells_y = (frame.height() / Self::CELL_SIZE).ceil() as isize;
@@ -270,7 +270,7 @@ impl canvas::Program<Message> for Viewer<'_> {
                         (position.y / Self::CELL_SIZE).round() * Self::CELL_SIZE,
                     ),
                     Size::new(Self::CELL_SIZE, Self::CELL_SIZE),
-                    theme.palette().primary,
+                    theme.seed().primary,
                 );
             }
 

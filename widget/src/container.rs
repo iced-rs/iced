@@ -556,7 +556,7 @@ pub fn background(background: impl Into<Background>) -> Style {
 
 /// A rounded [`Container`] with a background.
 pub fn rounded_box(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         background: Some(palette.background.weak.color.into()),
@@ -568,7 +568,7 @@ pub fn rounded_box(theme: &Theme) -> Style {
 
 /// A bordered [`Container`] with a background.
 pub fn bordered_box(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         background: Some(palette.background.weakest.color.into()),
@@ -592,35 +592,35 @@ pub fn dark(_theme: &Theme) -> Style {
 
 /// A [`Container`] with a primary background color.
 pub fn primary(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     style(palette.primary.base)
 }
 
 /// A [`Container`] with a secondary background color.
 pub fn secondary(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     style(palette.secondary.base)
 }
 
 /// A [`Container`] with a success background color.
 pub fn success(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     style(palette.success.base)
 }
 
 /// A [`Container`] with a warning background color.
 pub fn warning(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     style(palette.warning.base)
 }
 
 /// A [`Container`] with a danger background color.
 pub fn danger(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     style(palette.danger.base)
 }

@@ -2138,7 +2138,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Scrollable`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let scrollbar = Rail {
         background: Some(palette.background.weak.color.into()),

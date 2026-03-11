@@ -87,76 +87,76 @@ impl Theme {
         Self::Ferra,
     ];
 
-    /// Creates a new custom [`Theme`] from the given [`Palette`].
-    pub fn custom(name: impl Into<Cow<'static, str>>, palette: Palette) -> Self {
-        Self::custom_with_fn(name, palette, palette::Extended::generate)
+    /// Creates a new custom [`Theme`] from the given [`Seed`](palette::Seed).
+    pub fn custom(name: impl Into<Cow<'static, str>>, seed: palette::Seed) -> Self {
+        Self::custom_with_fn(name, seed, Palette::generate)
     }
 
-    /// Creates a new custom [`Theme`] from the given [`Palette`], with
-    /// a custom generator of a [`palette::Extended`].
+    /// Creates a new custom [`Theme`] from the given [`Seed`](palette::Seed), with
+    /// a custom generator of a [`Palette`].
     pub fn custom_with_fn(
         name: impl Into<Cow<'static, str>>,
-        palette: Palette,
-        generate: impl FnOnce(Palette) -> palette::Extended,
+        palette: palette::Seed,
+        generate: impl FnOnce(palette::Seed) -> Palette,
     ) -> Self {
         Self::Custom(Arc::new(Custom::with_fn(name, palette, generate)))
     }
 
     /// Returns the [`Palette`] of the [`Theme`].
-    pub fn palette(&self) -> Palette {
+    pub fn palette(&self) -> &palette::Palette {
         match self {
-            Self::Light => Palette::LIGHT,
-            Self::Dark => Palette::DARK,
-            Self::Dracula => Palette::DRACULA,
-            Self::Nord => Palette::NORD,
-            Self::SolarizedLight => Palette::SOLARIZED_LIGHT,
-            Self::SolarizedDark => Palette::SOLARIZED_DARK,
-            Self::GruvboxLight => Palette::GRUVBOX_LIGHT,
-            Self::GruvboxDark => Palette::GRUVBOX_DARK,
-            Self::CatppuccinLatte => Palette::CATPPUCCIN_LATTE,
-            Self::CatppuccinFrappe => Palette::CATPPUCCIN_FRAPPE,
-            Self::CatppuccinMacchiato => Palette::CATPPUCCIN_MACCHIATO,
-            Self::CatppuccinMocha => Palette::CATPPUCCIN_MOCHA,
-            Self::TokyoNight => Palette::TOKYO_NIGHT,
-            Self::TokyoNightStorm => Palette::TOKYO_NIGHT_STORM,
-            Self::TokyoNightLight => Palette::TOKYO_NIGHT_LIGHT,
-            Self::KanagawaWave => Palette::KANAGAWA_WAVE,
-            Self::KanagawaDragon => Palette::KANAGAWA_DRAGON,
-            Self::KanagawaLotus => Palette::KANAGAWA_LOTUS,
-            Self::Moonfly => Palette::MOONFLY,
-            Self::Nightfly => Palette::NIGHTFLY,
-            Self::Oxocarbon => Palette::OXOCARBON,
-            Self::Ferra => Palette::FERRA,
-            Self::Custom(custom) => custom.palette,
+            Self::Light => &palette::LIGHT,
+            Self::Dark => &palette::DARK,
+            Self::Dracula => &palette::DRACULA,
+            Self::Nord => &palette::NORD,
+            Self::SolarizedLight => &palette::SOLARIZED_LIGHT,
+            Self::SolarizedDark => &palette::SOLARIZED_DARK,
+            Self::GruvboxLight => &palette::GRUVBOX_LIGHT,
+            Self::GruvboxDark => &palette::GRUVBOX_DARK,
+            Self::CatppuccinLatte => &palette::CATPPUCCIN_LATTE,
+            Self::CatppuccinFrappe => &palette::CATPPUCCIN_FRAPPE,
+            Self::CatppuccinMacchiato => &palette::CATPPUCCIN_MACCHIATO,
+            Self::CatppuccinMocha => &palette::CATPPUCCIN_MOCHA,
+            Self::TokyoNight => &palette::TOKYO_NIGHT,
+            Self::TokyoNightStorm => &palette::TOKYO_NIGHT_STORM,
+            Self::TokyoNightLight => &palette::TOKYO_NIGHT_LIGHT,
+            Self::KanagawaWave => &palette::KANAGAWA_WAVE,
+            Self::KanagawaDragon => &palette::KANAGAWA_DRAGON,
+            Self::KanagawaLotus => &palette::KANAGAWA_LOTUS,
+            Self::Moonfly => &palette::MOONFLY,
+            Self::Nightfly => &palette::NIGHTFLY,
+            Self::Oxocarbon => &palette::OXOCARBON,
+            Self::Ferra => &palette::FERRA,
+            Self::Custom(custom) => &custom.palette,
         }
     }
 
-    /// Returns the [`palette::Extended`] of the [`Theme`].
-    pub fn extended_palette(&self) -> &palette::Extended {
+    /// Returns the [`Seed`](palette::Seed) of the [`Theme`].
+    pub fn seed(&self) -> palette::Seed {
         match self {
-            Self::Light => &palette::EXTENDED_LIGHT,
-            Self::Dark => &palette::EXTENDED_DARK,
-            Self::Dracula => &palette::EXTENDED_DRACULA,
-            Self::Nord => &palette::EXTENDED_NORD,
-            Self::SolarizedLight => &palette::EXTENDED_SOLARIZED_LIGHT,
-            Self::SolarizedDark => &palette::EXTENDED_SOLARIZED_DARK,
-            Self::GruvboxLight => &palette::EXTENDED_GRUVBOX_LIGHT,
-            Self::GruvboxDark => &palette::EXTENDED_GRUVBOX_DARK,
-            Self::CatppuccinLatte => &palette::EXTENDED_CATPPUCCIN_LATTE,
-            Self::CatppuccinFrappe => &palette::EXTENDED_CATPPUCCIN_FRAPPE,
-            Self::CatppuccinMacchiato => &palette::EXTENDED_CATPPUCCIN_MACCHIATO,
-            Self::CatppuccinMocha => &palette::EXTENDED_CATPPUCCIN_MOCHA,
-            Self::TokyoNight => &palette::EXTENDED_TOKYO_NIGHT,
-            Self::TokyoNightStorm => &palette::EXTENDED_TOKYO_NIGHT_STORM,
-            Self::TokyoNightLight => &palette::EXTENDED_TOKYO_NIGHT_LIGHT,
-            Self::KanagawaWave => &palette::EXTENDED_KANAGAWA_WAVE,
-            Self::KanagawaDragon => &palette::EXTENDED_KANAGAWA_DRAGON,
-            Self::KanagawaLotus => &palette::EXTENDED_KANAGAWA_LOTUS,
-            Self::Moonfly => &palette::EXTENDED_MOONFLY,
-            Self::Nightfly => &palette::EXTENDED_NIGHTFLY,
-            Self::Oxocarbon => &palette::EXTENDED_OXOCARBON,
-            Self::Ferra => &palette::EXTENDED_FERRA,
-            Self::Custom(custom) => &custom.extended,
+            Self::Light => palette::Seed::LIGHT,
+            Self::Dark => palette::Seed::DARK,
+            Self::Dracula => palette::Seed::DRACULA,
+            Self::Nord => palette::Seed::NORD,
+            Self::SolarizedLight => palette::Seed::SOLARIZED_LIGHT,
+            Self::SolarizedDark => palette::Seed::SOLARIZED_DARK,
+            Self::GruvboxLight => palette::Seed::GRUVBOX_LIGHT,
+            Self::GruvboxDark => palette::Seed::GRUVBOX_DARK,
+            Self::CatppuccinLatte => palette::Seed::CATPPUCCIN_LATTE,
+            Self::CatppuccinFrappe => palette::Seed::CATPPUCCIN_FRAPPE,
+            Self::CatppuccinMacchiato => palette::Seed::CATPPUCCIN_MACCHIATO,
+            Self::CatppuccinMocha => palette::Seed::CATPPUCCIN_MOCHA,
+            Self::TokyoNight => palette::Seed::TOKYO_NIGHT,
+            Self::TokyoNightStorm => palette::Seed::TOKYO_NIGHT_STORM,
+            Self::TokyoNightLight => palette::Seed::TOKYO_NIGHT_LIGHT,
+            Self::KanagawaWave => palette::Seed::KANAGAWA_WAVE,
+            Self::KanagawaDragon => palette::Seed::KANAGAWA_DRAGON,
+            Self::KanagawaLotus => palette::Seed::KANAGAWA_LOTUS,
+            Self::Moonfly => palette::Seed::MOONFLY,
+            Self::Nightfly => palette::Seed::NIGHTFLY,
+            Self::Oxocarbon => palette::Seed::OXOCARBON,
+            Self::Ferra => palette::Seed::FERRA,
+            Self::Custom(custom) => custom.seed,
         }
     }
 }
@@ -171,27 +171,27 @@ impl fmt::Display for Theme {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Custom {
     name: Cow<'static, str>,
+    seed: palette::Seed,
     palette: Palette,
-    extended: palette::Extended,
 }
 
 impl Custom {
-    /// Creates a [`Custom`] theme from the given [`Palette`].
-    pub fn new(name: String, palette: Palette) -> Self {
-        Self::with_fn(name, palette, palette::Extended::generate)
+    /// Creates a [`Custom`] theme from the given [`Seed`](palette::Seed).
+    pub fn new(name: String, seed: palette::Seed) -> Self {
+        Self::with_fn(name, seed, Palette::generate)
     }
 
-    /// Creates a [`Custom`] theme from the given [`Palette`] with
-    /// a custom generator of a [`palette::Extended`].
+    /// Creates a [`Custom`] theme from the given [`Seed`](palette::Seed) with
+    /// a custom generator of a [`Palette`].
     pub fn with_fn(
         name: impl Into<Cow<'static, str>>,
-        palette: Palette,
-        generate: impl FnOnce(Palette) -> palette::Extended,
+        seed: palette::Seed,
+        generate: impl FnOnce(palette::Seed) -> Palette,
     ) -> Self {
         Self {
             name: name.into(),
-            palette,
-            extended: generate(palette),
+            seed,
+            palette: generate(seed),
         }
     }
 }
@@ -235,12 +235,11 @@ pub trait Base {
     /// Returns the default base [`Style`] of the theme.
     fn base(&self) -> Style;
 
-    /// Returns the color [`Palette`] of the theme.
+    /// Returns the [`Seed`](palette::Seed) of the theme.
     ///
-    /// This [`Palette`] may be used by the runtime for
-    /// debugging purposes; like displaying performance
-    /// metrics or devtools.
-    fn palette(&self) -> Option<Palette>;
+    /// This may be used by the runtime to recreate a [`Theme`] for
+    /// debugging purposes; like displaying performance metrics or devtools.
+    fn seed(&self) -> Option<palette::Seed>;
 
     /// Returns the unique name of the theme.
     ///
@@ -276,7 +275,7 @@ impl Base for Theme {
     }
 
     fn mode(&self) -> Mode {
-        if self.extended_palette().is_dark {
+        if self.palette().is_dark {
             Mode::Dark
         } else {
             Mode::Light
@@ -287,8 +286,8 @@ impl Base for Theme {
         default(self)
     }
 
-    fn palette(&self) -> Option<Palette> {
-        Some(self.palette())
+    fn seed(&self) -> Option<palette::Seed> {
+        Some(self.seed())
     }
 
     fn name(&self) -> &str {
@@ -322,7 +321,7 @@ impl Base for Theme {
 
 /// The default [`Style`] of a built-in [`Theme`].
 pub fn default(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         background_color: palette.background.base.color,
