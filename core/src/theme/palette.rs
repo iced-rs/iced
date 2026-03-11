@@ -289,15 +289,15 @@ pub struct Extended {
     /// The set of background colors.
     pub background: Background,
     /// The set of primary colors.
-    pub primary: Primary,
+    pub primary: Swatch,
     /// The set of secondary colors.
-    pub secondary: Secondary,
+    pub secondary: Swatch,
     /// The set of success colors.
-    pub success: Success,
+    pub success: Swatch,
     /// The set of warning colors.
-    pub warning: Warning,
+    pub warning: Swatch,
     /// The set of danger colors.
-    pub danger: Danger,
+    pub danger: Swatch,
     /// Whether the palette is dark or not.
     pub is_dark: bool,
 }
@@ -393,11 +393,11 @@ impl Extended {
     pub fn generate(palette: Palette) -> Self {
         Self {
             background: Background::new(palette.background, palette.text),
-            primary: Primary::generate(palette.primary, palette.background, palette.text),
-            secondary: Secondary::generate(palette.background, palette.text),
-            success: Success::generate(palette.success, palette.background, palette.text),
-            warning: Warning::generate(palette.warning, palette.background, palette.text),
-            danger: Danger::generate(palette.danger, palette.background, palette.text),
+            primary: Swatch::generate(palette.primary, palette.background, palette.text),
+            secondary: Swatch::derive(palette.background, palette.text),
+            success: Swatch::generate(palette.success, palette.background, palette.text),
+            warning: Swatch::generate(palette.warning, palette.background, palette.text),
+            danger: Swatch::generate(palette.danger, palette.background, palette.text),
             is_dark: is_dark(palette.background),
         }
     }
@@ -472,19 +472,19 @@ impl Background {
     }
 }
 
-/// A set of primary colors.
+/// A color sample in a palette of colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Primary {
-    /// The base primary color.
+pub struct Swatch {
+    /// The base color.
     pub base: Pair,
-    /// A weaker version of the base primary color.
+    /// A weaker version of the base color.
     pub weak: Pair,
-    /// A stronger version of the base primary color.
+    /// A stronger version of the base color.
     pub strong: Pair,
 }
 
-impl Primary {
-    /// Generates a set of [`Primary`] colors from the base, background, and text colors.
+impl Swatch {
+    /// Generates a [`Swatch`] from a base, background and text color.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
@@ -495,102 +495,14 @@ impl Primary {
             strong: Pair::new(strong, text),
         }
     }
-}
 
-/// A set of secondary colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Secondary {
-    /// The base secondary color.
-    pub base: Pair,
-    /// A weaker version of the base secondary color.
-    pub weak: Pair,
-    /// A stronger version of the base secondary color.
-    pub strong: Pair,
-}
-
-impl Secondary {
-    /// Generates a set of [`Secondary`] colors from the base and text colors.
-    pub fn generate(base: Color, text: Color) -> Self {
+    /// Derives a [`Swatch`] from a base color and text color.
+    pub fn derive(base: Color, text: Color) -> Self {
         let factor = if is_dark(base) { 0.2 } else { 0.4 };
 
         let weak = deviate(base, 0.1).mix(text, factor);
         let strong = deviate(base, 0.3).mix(text, factor);
         let base = deviate(base, 0.2).mix(text, factor);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-/// A set of success colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Success {
-    /// The base success color.
-    pub base: Pair,
-    /// A weaker version of the base success color.
-    pub weak: Pair,
-    /// A stronger version of the base success color.
-    pub strong: Pair,
-}
-
-impl Success {
-    /// Generates a set of [`Success`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = base.mix(background, 0.4);
-        let strong = deviate(base, 0.1);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-/// A set of warning colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Warning {
-    /// The base warning color.
-    pub base: Pair,
-    /// A weaker version of the base warning color.
-    pub weak: Pair,
-    /// A stronger version of the base warning color.
-    pub strong: Pair,
-}
-
-impl Warning {
-    /// Generates a set of [`Warning`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = base.mix(background, 0.4);
-        let strong = deviate(base, 0.1);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-/// A set of danger colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Danger {
-    /// The base danger color.
-    pub base: Pair,
-    /// A weaker version of the base danger color.
-    pub weak: Pair,
-    /// A stronger version of the base danger color.
-    pub strong: Pair,
-}
-
-impl Danger {
-    /// Generates a set of [`Danger`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = base.mix(background, 0.4);
-        let strong = deviate(base, 0.1);
 
         Self {
             base: Pair::new(base, text),
