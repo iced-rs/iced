@@ -486,7 +486,7 @@ pub struct Primary {
 impl Primary {
     /// Generates a set of [`Primary`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -513,9 +513,9 @@ impl Secondary {
     pub fn generate(base: Color, text: Color) -> Self {
         let factor = if is_dark(base) { 0.2 } else { 0.4 };
 
-        let weak = mix(deviate(base, 0.1), text, factor);
-        let strong = mix(deviate(base, 0.3), text, factor);
-        let base = mix(deviate(base, 0.2), text, factor);
+        let weak = deviate(base, 0.1).mix(text, factor);
+        let strong = deviate(base, 0.3).mix(text, factor);
+        let base = deviate(base, 0.2).mix(text, factor);
 
         Self {
             base: Pair::new(base, text),
@@ -539,7 +539,7 @@ pub struct Success {
 impl Success {
     /// Generates a set of [`Success`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -564,7 +564,7 @@ pub struct Warning {
 impl Warning {
     /// Generates a set of [`Warning`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -589,7 +589,7 @@ pub struct Danger {
 impl Danger {
     /// Generates a set of [`Danger`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
+        let weak = base.mix(background, 0.4);
         let strong = deviate(base, 0.1);
 
         Self {
@@ -653,22 +653,6 @@ pub fn deviate(color: Color, amount: f32) -> Color {
     }
 }
 
-/// Mixes two colors by the given factor.
-pub fn mix(a: Color, b: Color, factor: f32) -> Color {
-    let b_amount = factor.clamp(0.0, 1.0);
-    let a_amount = 1.0 - b_amount;
-
-    let a_linear = a.into_linear().map(|c| c * a_amount);
-    let b_linear = b.into_linear().map(|c| c * b_amount);
-
-    Color::from_linear_rgba(
-        a_linear[0] + b_linear[0],
-        a_linear[1] + b_linear[1],
-        a_linear[2] + b_linear[2],
-        a_linear[3] + b_linear[3],
-    )
-}
-
 /// Computes a [`Color`] from the given text color that is
 /// readable on top of the given background color.
 pub fn readable(background: Color, text: Color) -> Color {
@@ -695,9 +679,9 @@ pub fn readable(background: Color, text: Color) -> Color {
     let black_contrast = background.relative_contrast(Color::BLACK);
 
     if white_contrast >= black_contrast {
-        mix(Color::WHITE, background, 0.05)
+        Color::WHITE.mix(background, 0.05)
     } else {
-        mix(Color::BLACK, background, 0.05)
+        Color::BLACK.mix(background, 0.05)
     }
 }
 
