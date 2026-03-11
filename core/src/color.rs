@@ -148,7 +148,7 @@ impl Color {
         }
     }
 
-    /// Mixes the current [`Color`] with the another one by the given factor.
+    /// Mixes the current [`Color`] with another one by the given factor.
     pub fn mix(self, b: Color, factor: f32) -> Color {
         let b_amount = factor.clamp(0.0, 1.0);
         let a_amount = 1.0 - b_amount;
