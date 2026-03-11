@@ -263,15 +263,15 @@ where
                 } else if cursor_position.x >= bounds.x + bounds.width {
                     Some(*self.range.end())
                 } else {
-                    let step: f64 = if state.keyboard_modifiers.shift() {
+                    let step = if state.keyboard_modifiers.shift() {
                         self.shift_step.unwrap_or(self.step)
                     } else {
                         self.step
                     }
                     .as_();
 
-                    let start: f64 = (*self.range.start()).as_();
-                    let end: f64 = (*self.range.end()).as_();
+                    let start = (*self.range.start()).as_();
+                    let end = (*self.range.end()).as_();
 
                     let percent = f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
 
@@ -283,7 +283,7 @@ where
             };
 
             let increment = |value: T| -> Option<T> {
-                let step: f64 = if state.keyboard_modifiers.shift() {
+                let step = if state.keyboard_modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
@@ -301,7 +301,7 @@ where
             };
 
             let decrement = |value: T| -> Option<T> {
-                let step: f64 = if state.keyboard_modifiers.shift() {
+                let step = if state.keyboard_modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step

@@ -262,7 +262,7 @@ where
             } else if cursor_position.y <= bounds.y {
                 Some(*self.range.end())
             } else {
-                let step: f64 = if state.keyboard_modifiers.shift() {
+                let step = if state.keyboard_modifiers.shift() {
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
@@ -283,7 +283,7 @@ where
         };
 
         let increment = |value: T| -> Option<T> {
-            let step: f64 = if state.keyboard_modifiers.shift() {
+            let step = if state.keyboard_modifiers.shift() {
                 self.shift_step.unwrap_or(self.step)
             } else {
                 self.step
@@ -301,7 +301,7 @@ where
         };
 
         let decrement = |value: T| -> Option<T> {
-            let step: f64 = if state.keyboard_modifiers.shift() {
+            let step = if state.keyboard_modifiers.shift() {
                 self.shift_step.unwrap_or(self.step)
             } else {
                 self.step
