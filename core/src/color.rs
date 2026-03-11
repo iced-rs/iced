@@ -1,7 +1,3 @@
-use lilt::Interpolable;
-
-use crate::theme::palette;
-
 /// A color in the `sRGB` color space.
 ///
 /// # String Representation
@@ -150,6 +146,22 @@ impl Color {
         }
     }
 
+    /// Mixes the current [`Color`] with the another one by the given factor.
+    pub fn mix(self, b: Color, factor: f32) -> Color {
+        let b_amount = factor.clamp(0.0, 1.0);
+        let a_amount = 1.0 - b_amount;
+
+        let a_linear = self.into_linear().map(|c| c * a_amount);
+        let b_linear = b.into_linear().map(|c| c * b_amount);
+
+        Color::from_linear_rgba(
+            a_linear[0] + b_linear[0],
+            a_linear[1] + b_linear[1],
+            a_linear[2] + b_linear[2],
+            a_linear[3] + b_linear[3],
+        )
+    }
+
     /// Returns the relative luminance of the [`Color`].
     /// <https://www.w3.org/TR/WCAG21/#dfn-relative-luminance>
     #[must_use]
@@ -289,10 +301,10 @@ impl std::fmt::Display for Color {
     }
 }
 
-impl Interpolable for Color {
-    /// Mixes the color. Equivalent to [`palette::mix`]
+impl lilt::Interpolable for Color {
+    /// Interpolates the color. Equivalent to [`Color::mix`].
     fn interpolated(&self, other: Self, ratio: f32) -> Self {
-        palette::mix(*self, other, ratio)
+        self.mix(other, ratio)
     }
 }
 
