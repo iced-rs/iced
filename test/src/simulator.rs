@@ -57,7 +57,7 @@ where
         let size = size.into();
 
         let default_font = match settings.default_font {
-            Font::DEFAULT => Font::with_name("Fira Sans"),
+            Font::DEFAULT => Font::new("Fira Sans"),
             _ => settings.default_font,
         };
 
