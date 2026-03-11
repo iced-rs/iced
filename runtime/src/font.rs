@@ -1,6 +1,6 @@
 //! Load and use fonts.
 use crate::Action;
-use crate::core::font::Error;
+use crate::core::font::{Error, Family};
 use crate::task::{self, Task};
 
 use std::borrow::Cow;
@@ -14,6 +14,6 @@ pub fn load(bytes: impl Into<Cow<'static, [u8]>>) -> Task<Result<(), Error>> {
 }
 
 /// Lists all the available font families in the system.
-pub fn list() -> Task<Result<Vec<String>, Error>> {
+pub fn list() -> Task<Result<Vec<Family>, Error>> {
     task::oneshot(|channel| Action::ListFonts { channel })
 }

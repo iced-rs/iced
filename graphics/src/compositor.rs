@@ -73,7 +73,7 @@ pub trait Compositor: Sized {
     }
 
     /// Lists all the available font families.
-    fn list_fonts(&mut self) -> Result<Vec<String>, font::Error> {
+    fn list_fonts(&mut self) -> Result<Vec<font::Family>, font::Error> {
         use std::collections::BTreeSet;
 
         let font_system = crate::text::font_system()
@@ -82,7 +82,7 @@ pub trait Compositor: Sized {
 
         let families = BTreeSet::from_iter(font_system.families());
 
-        Ok(families.into_iter().map(str::to_owned).collect())
+        Ok(families.into_iter().map(font::Family::name).collect())
     }
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
@@ -192,7 +192,7 @@ impl Compositor for () {
         Ok(())
     }
 
-    fn list_fonts(&mut self) -> Result<Vec<String>, font::Error> {
+    fn list_fonts(&mut self) -> Result<Vec<font::Family>, font::Error> {
         Ok(Vec::new())
     }
 

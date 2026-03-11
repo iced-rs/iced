@@ -48,7 +48,7 @@ pub enum Action<T> {
     /// Lists all system font families.
     ListFonts {
         /// The channel to send back the list result.
-        channel: oneshot::Sender<Result<Vec<String>, core::font::Error>>,
+        channel: oneshot::Sender<Result<Vec<core::font::Family>, core::font::Error>>,
     },
 
     /// Run a widget operation.

@@ -357,7 +357,7 @@ where
         delegate!(self, compositor, compositor.load_font(font))
     }
 
-    fn list_fonts(&mut self) -> Result<Vec<String>, font::Error> {
+    fn list_fonts(&mut self) -> Result<Vec<font::Family>, font::Error> {
         delegate!(self, compositor, compositor.list_fonts())
     }
 
