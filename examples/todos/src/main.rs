@@ -5,8 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Application, Center, Element, Fill, Font, Function, Preset, Program, Subscription,
-    Task as Command, Theme,
+    Application, Center, Element, Fill, Function, Preset, Program, Subscription, Task as Command,
+    Theme,
 };
 
 use serde::{Deserialize, Serialize};
@@ -440,7 +440,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
-        .font(Font::with_name("Iced-Todos-Icons"))
+        .font("Iced-Todos-Icons")
         .width(20)
         .align_x(Center)
         .shaping(text::Shaping::Basic)

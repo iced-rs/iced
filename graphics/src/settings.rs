@@ -40,7 +40,7 @@ impl From<core::Settings> for Settings {
             default_font: if cfg!(all(target_arch = "wasm32", feature = "fira-sans"))
                 && settings.default_font == Font::default()
             {
-                Font::with_name("Fira Sans")
+                Font::new("Fira Sans")
             } else {
                 settings.default_font
             },

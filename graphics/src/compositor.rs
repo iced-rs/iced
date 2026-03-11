@@ -1,6 +1,7 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
 use crate::core::Color;
+use crate::core::font;
 use crate::futures::{MaybeSend, MaybeSync};
 use crate::{Error, Settings, Shell, Viewport};
 
@@ -61,11 +62,27 @@ pub trait Compositor: Sized {
     fn information(&self) -> Information;
 
     /// Loads a font from its bytes.
-    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+    fn load_font(&mut self, font: Cow<'static, [u8]>) -> Result<(), font::Error> {
         crate::text::font_system()
             .write()
             .expect("Write to font system")
             .load_font(font);
+
+        // TODO: Error handling
+        Ok(())
+    }
+
+    /// Lists all the available font families.
+    fn list_fonts(&mut self) -> Result<Vec<font::Family>, font::Error> {
+        use std::collections::BTreeSet;
+
+        let font_system = crate::text::font_system()
+            .read()
+            .expect("Read from font system");
+
+        let families = BTreeSet::from_iter(font_system.families());
+
+        Ok(families.into_iter().map(font::Family::name).collect())
     }
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
@@ -171,7 +188,13 @@ impl Compositor for () {
 
     fn configure_surface(&mut self, _surface: &mut Self::Surface, _width: u32, _height: u32) {}
 
-    fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
+    fn load_font(&mut self, _font: Cow<'static, [u8]>) -> Result<(), font::Error> {
+        Ok(())
+    }
+
+    fn list_fonts(&mut self) -> Result<Vec<font::Family>, font::Error> {
+        Ok(Vec::new())
+    }
 
     fn information(&self) -> Information {
         Information {
