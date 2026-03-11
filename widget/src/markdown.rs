@@ -1340,7 +1340,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    let digits = (start + bullets.len() as u64).max(1).ilog10();
+    let digits = (start + bullets.len() as u64).max(1).ilog10() + 1;
 
     column(bullets.iter().enumerate().map(|(i, bullet)| {
         row![
