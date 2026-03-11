@@ -653,7 +653,7 @@ pub fn deviate(color: Color, amount: f32) -> Color {
     }
 }
 
-/// Mixes two colors by the given factor.
+/// Mixes two colors by the given factor. Equivalent to [`Interpolable::interpolated`](`crate::animation::Interpolable::interpolated`)
 pub fn mix(a: Color, b: Color, factor: f32) -> Color {
     let b_amount = factor.clamp(0.0, 1.0);
     let a_amount = 1.0 - b_amount;

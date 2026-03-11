@@ -1,5 +1,7 @@
 use lilt::Interpolable;
 
+use crate::theme::palette;
+
 /// A color in the `sRGB` color space.
 ///
 /// # String Representation
@@ -288,15 +290,9 @@ impl std::fmt::Display for Color {
 }
 
 impl Interpolable for Color {
+    /// Mixes the color. Equivalent to [`palette::mix`]
     fn interpolated(&self, other: Self, ratio: f32) -> Self {
-        let start = self.into_linear();
-        let other = other.into_linear();
-        Self::from_linear_rgba(
-            start[0].interpolated(other[0], ratio),
-            start[1].interpolated(other[1], ratio),
-            start[2].interpolated(other[2], ratio),
-            start[3].interpolated(other[3], ratio),
-        )
+        palette::mix(*self, other, ratio)
     }
 }
 
