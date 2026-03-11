@@ -3,7 +3,7 @@ use crate::{Color, color};
 
 use std::sync::LazyLock;
 
-/// An extended set of colors generated from a [`Palette`].
+/// An extended set of colors generated from a [`Seed`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Palette {
     /// The set of background colors.
