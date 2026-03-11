@@ -1,11 +1,9 @@
 //! Load and use fonts.
 use crate::Action;
+use crate::core::font::Error;
 use crate::task::{self, Task};
-use std::borrow::Cow;
 
-/// An error while loading a font.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Error {}
+use std::borrow::Cow;
 
 /// Load a font from its bytes.
 pub fn load(bytes: impl Into<Cow<'static, [u8]>>) -> Task<Result<(), Error>> {
@@ -13,4 +11,9 @@ pub fn load(bytes: impl Into<Cow<'static, [u8]>>) -> Task<Result<(), Error>> {
         bytes: bytes.into(),
         channel,
     })
+}
+
+/// Lists all the available font families in the system.
+pub fn list() -> Task<Result<Vec<String>, Error>> {
+    task::oneshot(|channel| Action::ListFonts { channel })
 }

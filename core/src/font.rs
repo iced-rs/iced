@@ -172,3 +172,7 @@ pub enum Style {
     Italic,
     Oblique,
 }
+
+/// A font error.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Error {}

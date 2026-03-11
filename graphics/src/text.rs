@@ -169,6 +169,16 @@ impl FontSystem {
         self.version = Version(self.version.0 + 1);
     }
 
+    /// Returns an iterator over the family names of all font faces
+    /// in the font database.
+    pub fn families(&self) -> impl Iterator<Item = &str> {
+        self.raw
+            .db()
+            .faces()
+            .filter_map(|face| face.families.first())
+            .map(|(name, _)| name.as_str())
+    }
+
     /// Returns the current [`Version`] of the [`FontSystem`].
     ///
     /// Loading a font will increase the version of a [`FontSystem`].

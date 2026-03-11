@@ -1,4 +1,5 @@
 //! Compose existing renderers and create type-safe fallback strategies.
+use crate::core::font;
 use crate::core::image;
 use crate::core::renderer;
 use crate::core::svg;
@@ -352,8 +353,12 @@ where
         }
     }
 
-    fn load_font(&mut self, font: Cow<'static, [u8]>) {
-        delegate!(self, compositor, compositor.load_font(font));
+    fn load_font(&mut self, font: Cow<'static, [u8]>) -> Result<(), font::Error> {
+        delegate!(self, compositor, compositor.load_font(font))
+    }
+
+    fn list_fonts(&mut self) -> Result<Vec<String>, font::Error> {
+        delegate!(self, compositor, compositor.list_fonts())
     }
 
     fn information(&self) -> compositor::Information {
