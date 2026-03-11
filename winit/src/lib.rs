@@ -1170,11 +1170,32 @@ async fn run_instance<P>(
                                 .insert(id, ui.relayout(logical_size, &mut window.renderer));
                             layout_span.finish();
 
-                            current_compositor.configure_surface(
-                                &mut window.surface,
-                                physical_size.width,
-                                physical_size.height,
-                            );
+                            // Wrap in catch_unwind to handle Wayland broken pipe
+                            // errors (EPIPE / os error 32) during rapid resize or
+                            // maximize/unmaximize transitions (e.g. F11).
+                            let configure_result =
+                                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                    current_compositor.configure_surface(
+                                        &mut window.surface,
+                                        physical_size.width,
+                                        physical_size.height,
+                                    );
+                                }));
+
+                            if let Err(e) = configure_result {
+                                let msg = if let Some(s) = e.downcast_ref::<String>() {
+                                    s.as_str()
+                                } else if let Some(s) = e.downcast_ref::<&str>() {
+                                    s
+                                } else {
+                                    "unknown panic"
+                                };
+                                log::error!(
+                                    "Surface configure failed during resize: {msg}. Will retry next frame."
+                                );
+                                window.raw.request_redraw();
+                                continue;
+                            }
 
                             window.surface_version = window.state.surface_version();
                         }
@@ -1565,20 +1586,39 @@ async fn run_instance<P>(
                                 | compositor::SurfaceError::Lost => {
                                     present_span.finish();
 
-                                    // Reconfigure surface and try redrawing
+                                    // Reconfigure surface and try redrawing.
+                                    // Use catch_unwind to handle Wayland broken pipe errors
+                                    // that can occur during rapid maximize/unmaximize.
                                     let physical_size = window.state.physical_size();
 
-                                    if error == compositor::SurfaceError::Lost {
-                                        window.surface = current_compositor.create_surface(
-                                            window.raw.clone(),
-                                            physical_size.width,
-                                            physical_size.height,
-                                        );
-                                    } else {
-                                        current_compositor.configure_surface(
-                                            &mut window.surface,
-                                            physical_size.width,
-                                            physical_size.height,
+                                    let recovered = std::panic::catch_unwind(
+                                        std::panic::AssertUnwindSafe(|| {
+                                            if error == compositor::SurfaceError::Lost {
+                                                window.surface = current_compositor.create_surface(
+                                                    window.raw.clone(),
+                                                    physical_size.width,
+                                                    physical_size.height,
+                                                );
+                                            } else {
+                                                current_compositor.configure_surface(
+                                                    &mut window.surface,
+                                                    physical_size.width,
+                                                    physical_size.height,
+                                                );
+                                            }
+                                        }),
+                                    );
+
+                                    if let Err(e) = recovered {
+                                        let msg = if let Some(s) = e.downcast_ref::<String>() {
+                                            s.as_str()
+                                        } else if let Some(s) = e.downcast_ref::<&str>() {
+                                            s
+                                        } else {
+                                            "unknown panic"
+                                        };
+                                        log::error!(
+                                            "Surface recovery failed after {error:?}: {msg}. Will retry next frame."
                                         );
                                     }
 

@@ -108,7 +108,6 @@ impl Compositor {
                     wgpu::TextureFormat::Rgb10a2Uint,
                 ];
 
-
                 let formats = formats.filter(|format| {
                     format.required_features() == wgpu::Features::empty()
                         && !BLACKLIST.contains(format)
@@ -262,34 +261,54 @@ pub fn present(
     background_color: Color,
     on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
-    match surface.get_current_texture() {
-        Ok(frame) => {
-            let view = &frame
-                .texture
-                .create_view(&wgpu::TextureViewDescriptor::default());
+    // Wrap the entire present flow in catch_unwind to handle Wayland
+    // broken pipe panics (EPIPE / os error 32) that surface operations
+    // can trigger during rapid maximize/unmaximize transitions.
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        match surface.get_current_texture() {
+            Ok(frame) => {
+                let view = &frame
+                    .texture
+                    .create_view(&wgpu::TextureViewDescriptor::default());
 
-            // Use present_with_texture to enable backdrop blur effects
-            let _submission = renderer.present_with_texture(
-                Some(background_color),
-                frame.texture.format(),
-                view,
-                &frame.texture,
-                viewport,
-            );
+                // Use present_with_texture to enable backdrop blur effects
+                let _submission = renderer.present_with_texture(
+                    Some(background_color),
+                    frame.texture.format(),
+                    view,
+                    &frame.texture,
+                    viewport,
+                );
 
-            // Present the frame
-            on_pre_present();
-            frame.present();
+                // Present the frame
+                on_pre_present();
+                frame.present();
 
-            Ok(())
+                Ok(())
+            }
+            Err(error) => match error {
+                wgpu::SurfaceError::Timeout => Err(compositor::SurfaceError::Timeout),
+                wgpu::SurfaceError::Outdated => Err(compositor::SurfaceError::Outdated),
+                wgpu::SurfaceError::Lost => Err(compositor::SurfaceError::Lost),
+                wgpu::SurfaceError::OutOfMemory => Err(compositor::SurfaceError::OutOfMemory),
+                wgpu::SurfaceError::Other => Err(compositor::SurfaceError::Other),
+            },
         }
-        Err(error) => match error {
-            wgpu::SurfaceError::Timeout => Err(compositor::SurfaceError::Timeout),
-            wgpu::SurfaceError::Outdated => Err(compositor::SurfaceError::Outdated),
-            wgpu::SurfaceError::Lost => Err(compositor::SurfaceError::Lost),
-            wgpu::SurfaceError::OutOfMemory => Err(compositor::SurfaceError::OutOfMemory),
-            wgpu::SurfaceError::Other => Err(compositor::SurfaceError::Other),
-        },
+    }));
+
+    match result {
+        Ok(inner) => inner,
+        Err(e) => {
+            let msg = if let Some(s) = e.downcast_ref::<String>() {
+                s.clone()
+            } else if let Some(s) = e.downcast_ref::<&str>() {
+                s.to_string()
+            } else {
+                "unknown panic".to_string()
+            };
+            log::error!("Present panicked (treating as surface lost): {msg}");
+            Err(compositor::SurfaceError::Lost)
+        }
     }
 }
 
@@ -335,16 +354,28 @@ impl graphics::Compositor for Compositor {
         )
     }
 
-    fn create_surface<W: compositor::Window>(
+    fn create_surface<W: compositor::Window + Clone>(
         &mut self,
         window: W,
         width: u32,
         height: u32,
     ) -> Self::Surface {
-        let mut surface = self
-            .instance
-            .create_surface(window)
-            .expect("Create surface");
+        let mut surface = match self.instance.create_surface(window.clone()) {
+            Ok(s) => s,
+            Err(e) => {
+                // On Wayland, create_surface can fail with a broken pipe
+                // during rapid maximize/unmaximize transitions.
+                // Retry once after a brief yield, then panic if still failing.
+                log::warn!("Surface creation failed: {e}. Retrying...");
+                match self.instance.create_surface(window) {
+                    Ok(s) => s,
+                    Err(e2) => {
+                        log::error!("Surface creation retry also failed: {e2}");
+                        panic!("Cannot recover from surface creation failure: {e2}");
+                    }
+                }
+            }
+        };
 
         if width > 0 && height > 0 {
             self.configure_surface(&mut surface, width, height);
@@ -363,25 +394,39 @@ impl graphics::Compositor for Compositor {
             if caps.usages.contains(wgpu::TextureUsages::COPY_SRC) {
                 usage |= wgpu::TextureUsages::COPY_SRC;
             } else {
-                log::warn!(
-                    "Surface does not support COPY_SRC; backdrop blur will be unavailable"
-                );
+                log::warn!("Surface does not support COPY_SRC; backdrop blur will be unavailable");
             }
         }
 
-        surface.configure(
-            &self.engine.device,
-            &wgpu::SurfaceConfiguration {
-                usage,
-                format: self.format,
-                present_mode: self.settings.present_mode,
-                width,
-                height,
-                alpha_mode: self.alpha_mode,
-                view_formats: vec![],
-                desired_maximum_frame_latency: 1,
-            },
-        );
+        let config = wgpu::SurfaceConfiguration {
+            usage,
+            format: self.format,
+            present_mode: self.settings.present_mode,
+            width,
+            height,
+            alpha_mode: self.alpha_mode,
+            view_formats: vec![],
+            desired_maximum_frame_latency: 1,
+        };
+
+        // Wrap surface.configure in catch_unwind to handle Wayland broken pipe
+        // errors (EPIPE / os error 32) that can occur during rapid window
+        // resize or maximize/unmaximize transitions.
+        let device = &self.engine.device;
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            surface.configure(device, &config);
+        }));
+
+        if let Err(e) = result {
+            let msg = if let Some(s) = e.downcast_ref::<String>() {
+                s.clone()
+            } else if let Some(s) = e.downcast_ref::<&str>() {
+                s.to_string()
+            } else {
+                "unknown panic".to_string()
+            };
+            log::error!("Surface configure failed (will retry next frame): {msg}");
+        }
     }
 
     fn information(&self) -> compositor::Information {
