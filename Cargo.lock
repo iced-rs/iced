@@ -2357,6 +2357,7 @@ dependencies = [
 name = "iced_core"
 version = "0.15.0-dev"
 dependencies = [
+ "arrayvec",
  "bitflags 2.11.0",
  "bytes",
  "glam",

@@ -100,7 +100,7 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_text(
             font_system.raw(),
             text.content,
-            &text::to_attributes(text.font),
+            &text::to_attributes(&text.font),
             text::to_shaping(text.shaping, text.content),
             None,
         );
@@ -156,7 +156,7 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_rich_text(
             font_system.raw(),
             text.content.iter().enumerate().map(|(i, span)| {
-                let attrs = text::to_attributes(span.font.unwrap_or(text.font));
+                let attrs = text::to_attributes(span.font.as_ref().unwrap_or(&text.font));
 
                 let attrs = match (span.size, span.line_height) {
                     (None, None) => attrs,
@@ -182,7 +182,7 @@ impl core::text::Paragraph for Paragraph {
 
                 (span.text.as_ref(), attrs.metadata(i))
             }),
-            &text::to_attributes(text.font),
+            &text::to_attributes(&text.font),
             cosmic_text::Shaping::Advanced,
             None,
         );

@@ -259,17 +259,20 @@ pub fn align(
 }
 
 /// Returns the attributes of the given [`Font`].
-pub fn to_attributes(font: Font) -> cosmic_text::Attrs<'static> {
+pub fn to_attributes<'a>(font: &'a Font) -> cosmic_text::Attrs<'a> {
     cosmic_text::Attrs::new()
-        .family(to_family(font.family))
+        .family(to_family(&font.family))
         .weight(to_weight(font.weight))
         .stretch(to_stretch(font.stretch))
         .style(to_style(font.style))
 }
 
-fn to_family(family: font::Family) -> cosmic_text::Family<'static> {
+fn to_family<'a>(family: &'a font::Family) -> cosmic_text::Family<'a> {
     match family {
-        font::Family::Name(name) => cosmic_text::Family::Name(name),
+        font::Family::Name(name) => cosmic_text::Family::Name(match name {
+            font::Name::Static(str) => str,
+            font::Name::Array(array_string) => array_string.as_str(),
+        }),
         font::Family::SansSerif => cosmic_text::Family::SansSerif,
         font::Family::Serif => cosmic_text::Family::Serif,
         font::Family::Cursive => cosmic_text::Family::Cursive,

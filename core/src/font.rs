@@ -1,6 +1,8 @@
 //! Load and use fonts.
 use std::hash::Hash;
 
+pub use arrayvec::ArrayString;
+
 /// A font.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Font {
@@ -29,11 +31,20 @@ impl Font {
         ..Self::DEFAULT
     };
 
-    /// Creates a non-monospaced [`Font`] with the given [`Family::Name`] and
+    /// Creates a non-monospaced [`Font`] with the given [`Name`] and
     /// normal [`Weight`].
     pub const fn with_name(name: &'static str) -> Self {
         Font {
-            family: Family::Name(name),
+            family: Family::Name(Name::Static(name)),
+            ..Self::DEFAULT
+        }
+    }
+
+    /// Creates a non-monospaced [`Font`] with the given [`Name`] and
+    /// normal [`Weight`].
+    pub fn with_array_name(name: ArrayString<128>) -> Self {
+        Font {
+            family: Family::Name(Name::Array(name)),
             ..Self::DEFAULT
         }
     }
@@ -43,7 +54,7 @@ impl Font {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Family {
     /// The name of a font family of choice.
-    Name(&'static str),
+    Name(Name),
 
     /// Serif fonts represent the formal text style for a script.
     Serif,
@@ -66,6 +77,15 @@ pub enum Family {
     /// The sole criterion of a monospace font is that all glyphs have the same
     /// fixed width.
     Monospace,
+}
+
+/// Font name
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Name {
+    /// A static reference
+    Static(&'static str),
+    /// A string of at most 128 chars. Use this when youfor example have configurable font
+    Array(ArrayString<128>),
 }
 
 /// The weight of some text.

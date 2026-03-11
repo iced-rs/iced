@@ -31,6 +31,7 @@ rustc-hash.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
 web-time.workspace = true
+arrayvec.workspace = true
 
 serde.workspace = true
 serde.optional = true

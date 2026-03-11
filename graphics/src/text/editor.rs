@@ -529,7 +529,7 @@ impl editor::Editor for Editor {
 
                 for line in buffer.lines.iter_mut() {
                     let _ = line.set_attrs_list(cosmic_text::AttrsList::new(&text::to_attributes(
-                        new_font,
+                        &new_font,
                     )));
                 }
 
@@ -653,7 +653,7 @@ impl editor::Editor for Editor {
 
         let mut font_system = text::font_system().write().expect("Write font system");
 
-        let attributes = text::to_attributes(font);
+        let attributes = text::to_attributes(&font);
 
         for line in &mut buffer_mut_from_editor(&mut internal.editor).lines
             [current_line..=last_visible_line]
@@ -668,7 +668,7 @@ impl editor::Editor for Editor {
                         range,
                         &cosmic_text::Attrs {
                             color_opt: format.color.map(text::to_color),
-                            ..if let Some(font) = format.font {
+                            ..if let Some(font) = &format.font {
                                 text::to_attributes(font)
                             } else {
                                 attributes.clone()
