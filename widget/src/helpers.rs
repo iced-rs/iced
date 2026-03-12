@@ -7,7 +7,7 @@ use crate::core;
 use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Size, Widget};
+use crate::core::{Element, Length, Pixels, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
@@ -23,6 +23,7 @@ use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
+use crate::virtual_list::VirtualList;
 use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
 
 use std::borrow::Borrow;
@@ -1023,6 +1024,24 @@ where
     Renderer: core::text::Renderer,
 {
     Scrollable::new(content)
+}
+
+/// Creates a new [`VirtualList`] with the given item count, item height, and
+/// view function.
+///
+/// Only items within the visible viewport are instantiated, making this
+/// suitable for lists with thousands of items.
+///
+/// Place inside a [`Scrollable`] for scroll support.
+pub fn virtual_list<'a, Message, Theme, Renderer>(
+    item_count: usize,
+    item_height: impl Into<Pixels>,
+    view_item: impl Fn(usize) -> Element<'a, Message, Theme, Renderer> + 'a,
+) -> VirtualList<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    VirtualList::new(item_count, item_height, view_item)
 }
 
 /// Creates a new [`Button`] with the provided content.

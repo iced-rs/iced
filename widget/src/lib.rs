@@ -45,6 +45,7 @@ pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
 pub mod vertical_slider;
+pub mod virtual_list;
 
 mod helpers;
 
@@ -118,6 +119,8 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 #[doc(no_inline)]
 pub use vertical_slider::VerticalSlider;
+#[doc(no_inline)]
+pub use virtual_list::VirtualList;
 
 #[cfg(feature = "wgpu")]
 pub mod shader;
