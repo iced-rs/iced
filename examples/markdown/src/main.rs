@@ -70,7 +70,7 @@ enum Message {
 impl Markdown {
     fn new() -> (Self, Task<Message>) {
         const INITIAL_CONTENT: &str = include_str!("../overview.md");
-        
+
         let content = markdown::Content::parse(INITIAL_CONTENT);
         let element_count = markdown::count_selectable_elements(content.items());
 

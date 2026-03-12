@@ -9,10 +9,9 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, clipboard, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    self, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector,
+    Widget, clipboard,
 };
-
 
 /// A bunch of [`Rich`] text.
 pub struct Rich<'a, Link, Message, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -187,10 +186,7 @@ where
 
     /// Sets callback for when selection starts (mouse pressed).
     /// Used for cross-paragraph selection coordination.
-    pub fn on_selection_start(
-        mut self,
-        callback: impl Fn(usize) -> Message + 'a,
-    ) -> Self {
+    pub fn on_selection_start(mut self, callback: impl Fn(usize) -> Message + 'a) -> Self {
         self.on_selection_start = Some(Box::new(callback));
         self.selectable = true;
         self
@@ -198,10 +194,7 @@ where
 
     /// Sets callback for when selection is dragged (mouse moved while selecting).
     /// Used for cross-paragraph selection coordination.
-    pub fn on_selection_drag(
-        mut self,
-        callback: impl Fn(usize) -> Message + 'a,
-    ) -> Self {
+    pub fn on_selection_drag(mut self, callback: impl Fn(usize) -> Message + 'a) -> Self {
         self.on_selection_drag = Some(Box::new(callback));
         self.selectable = true;
         self
@@ -209,10 +202,7 @@ where
 
     /// Sets callback for when selection ends (mouse released).
     /// Used for cross-paragraph selection coordination.
-    pub fn on_selection_end(
-        mut self,
-        callback: impl Fn() -> Message + 'a,
-    ) -> Self {
+    pub fn on_selection_end(mut self, callback: impl Fn() -> Message + 'a) -> Self {
         self.on_selection_end = Some(Box::new(callback));
         self
     }
@@ -277,7 +267,6 @@ where
         self.class = class.into();
         self
     }
-
 }
 
 impl<'a, Link, Message, Theme, Renderer> Default for Rich<'a, Link, Message, Theme, Renderer>
@@ -454,11 +443,11 @@ where
         if let Some((start, end)) = self.selection {
             let start = start.min(end);
             let end = start.max(end);
-            
-            let selection_color = self.selection_color.unwrap_or(
-                Color::from_rgba(0.3, 0.5, 0.9, 0.35)
-            );
-            
+
+            let selection_color = self
+                .selection_color
+                .unwrap_or(Color::from_rgba(0.3, 0.5, 0.9, 0.35));
+
             // Use the same anchor calculation as text::draw to account for alignment
             let anchor = layout.bounds().anchor(
                 state.paragraph.min_bounds(),
@@ -466,7 +455,7 @@ where
                 state.paragraph.align_y(),
             );
             let selection_bounds = state.paragraph.selection_bounds(start, end);
-            
+
             for bounds in selection_bounds {
                 renderer.fill_quad(
                     renderer::Quad {
@@ -502,7 +491,9 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_mut::<State<Link, Renderer::Paragraph>>();
+        let state = tree
+            .state
+            .downcast_mut::<State<Link, Renderer::Paragraph>>();
         let bounds = layout.bounds();
 
         // Handle link hovering
@@ -533,77 +524,77 @@ where
                 }
 
                 // Handle selection start
-                if self.selectable {
-                    if let Some(position) = cursor.position_in(bounds) {
-                        let click_obj = click::Click::new(
-                            position,
-                            mouse::Button::Left,
-                            state.last_click,
-                        );
+                if self.selectable
+                    && let Some(position) = cursor.position_in(bounds)
+                {
+                    let click_obj =
+                        click::Click::new(position, mouse::Button::Left, state.last_click);
 
-                        let total_len: usize = self.spans.as_ref().as_ref()
-                            .iter()
-                            .map(|s| s.text.len())
-                            .sum();
+                    let total_len: usize = self
+                        .spans
+                        .as_ref()
+                        .as_ref()
+                        .iter()
+                        .map(|s| s.text.len())
+                        .sum();
 
-                        if let Some(Hit::CharOffset(offset)) = state.paragraph.hit_test(position) {
-                            match click_obj.kind() {
-                                click::Kind::Single => {
-                                    // Single click: start selection at cursor
-                                    state.selection_anchor = Some(offset);
-                                    state.is_selecting = true;
+                    if let Some(Hit::CharOffset(offset)) = state.paragraph.hit_test(position) {
+                        match click_obj.kind() {
+                            click::Kind::Single => {
+                                // Single click: start selection at cursor
+                                state.selection_anchor = Some(offset);
+                                state.is_selecting = true;
 
-                                    if let Some(on_start) = &self.on_selection_start {
-                                        shell.publish(on_start(offset));
-                                    }
-                                    if let Some(on_change) = &self.on_selection_change {
-                                        shell.publish(on_change(Some((offset, offset))));
-                                    }
+                                if let Some(on_start) = &self.on_selection_start {
+                                    shell.publish(on_start(offset));
                                 }
-                                click::Kind::Double => {
-                                    // Double click: select word
-                                    let spans = self.spans.as_ref().as_ref();
-                                    let (start, end) = find_word_bounds_in_spans(spans, offset);
-                                    state.selection_anchor = Some(start);
-                                    state.is_selecting = false; // Word selected, not dragging
-
-                                    if let Some(on_start) = &self.on_selection_start {
-                                        shell.publish(on_start(start));
-                                    }
-                                    if let Some(on_drag) = &self.on_selection_drag {
-                                        shell.publish(on_drag(end));
-                                    }
-                                    if let Some(on_end) = &self.on_selection_end {
-                                        shell.publish(on_end());
-                                    }
-                                    if let Some(on_change) = &self.on_selection_change {
-                                        shell.publish(on_change(Some((start, end))));
-                                    }
-                                }
-                                click::Kind::Triple => {
-                                    // Triple click: select entire paragraph
-                                    state.selection_anchor = Some(0);
-                                    state.is_selecting = false;
-
-                                    if let Some(on_start) = &self.on_selection_start {
-                                        shell.publish(on_start(0));
-                                    }
-                                    if let Some(on_drag) = &self.on_selection_drag {
-                                        shell.publish(on_drag(total_len));
-                                    }
-                                    if let Some(on_end) = &self.on_selection_end {
-                                        shell.publish(on_end());
-                                    }
-                                    if let Some(on_change) = &self.on_selection_change {
-                                        shell.publish(on_change(Some((0, total_len))));
-                                    }
+                                if let Some(on_change) = &self.on_selection_change {
+                                    shell.publish(on_change(Some((offset, offset))));
                                 }
                             }
-                            shell.capture_event();
-                        }
+                            click::Kind::Double => {
+                                // Double click: select word
+                                let spans = self.spans.as_ref().as_ref();
+                                let (start, end) = find_word_bounds_in_spans(spans, offset);
+                                state.selection_anchor = Some(start);
+                                state.is_selecting = false; // Word selected, not dragging
 
-                        state.last_click = Some(click_obj);
+                                if let Some(on_start) = &self.on_selection_start {
+                                    shell.publish(on_start(start));
+                                }
+                                if let Some(on_drag) = &self.on_selection_drag {
+                                    shell.publish(on_drag(end));
+                                }
+                                if let Some(on_end) = &self.on_selection_end {
+                                    shell.publish(on_end());
+                                }
+                                if let Some(on_change) = &self.on_selection_change {
+                                    shell.publish(on_change(Some((start, end))));
+                                }
+                            }
+                            click::Kind::Triple => {
+                                // Triple click: select entire paragraph
+                                state.selection_anchor = Some(0);
+                                state.is_selecting = false;
+
+                                if let Some(on_start) = &self.on_selection_start {
+                                    shell.publish(on_start(0));
+                                }
+                                if let Some(on_drag) = &self.on_selection_drag {
+                                    shell.publish(on_drag(total_len));
+                                }
+                                if let Some(on_end) = &self.on_selection_end {
+                                    shell.publish(on_end());
+                                }
+                                if let Some(on_change) = &self.on_selection_change {
+                                    shell.publish(on_change(Some((0, total_len))));
+                                }
+                            }
+                        }
+                        shell.capture_event();
                     }
+
+                    state.last_click = Some(click_obj);
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -612,28 +603,32 @@ where
                     return;
                 }
 
-                let total_len: usize = self.spans.as_ref().as_ref()
+                let total_len: usize = self
+                    .spans
+                    .as_ref()
+                    .as_ref()
                     .iter()
                     .map(|s| s.text.len())
                     .sum();
 
                 // Expand detection bounds to include spacing around paragraph
                 const VERTICAL_PADDING: f32 = 20.0; // Generous padding for gap detection
-                
+
                 let mouse_in_bounds = cursor.position_in(bounds).is_some();
-                
+
                 // Check if mouse is in expanded vertical range (same X, expanded Y)
                 let mouse_in_expanded = if let Some(pos) = cursor.position() {
-                    pos.x >= bounds.x 
+                    pos.x >= bounds.x
                         && pos.x <= bounds.x + bounds.width
                         && pos.y >= bounds.y - VERTICAL_PADDING
                         && pos.y <= bounds.y + bounds.height + VERTICAL_PADDING
                 } else {
                     false
                 };
-                
+
                 // Check if this is first or last paragraph (for edge handling)
-                let (is_first, is_last) = self.paragraph_info
+                let (is_first, is_last) = self
+                    .paragraph_info
                     .map(|(idx, total)| (idx == 0, idx + 1 >= total))
                     .unwrap_or((false, false));
 
@@ -645,8 +640,9 @@ where
                     let should_respond = if mouse_in_expanded {
                         true
                     } else if let Some(cursor_pos) = cursor.position() {
-                        (is_first && cursor_pos.y < bounds.y - VERTICAL_PADDING) ||
-                        (is_last && cursor_pos.y > bounds.y + bounds.height + VERTICAL_PADDING)
+                        (is_first && cursor_pos.y < bounds.y - VERTICAL_PADDING)
+                            || (is_last
+                                && cursor_pos.y > bounds.y + bounds.height + VERTICAL_PADDING)
                     } else {
                         false
                     };
@@ -658,7 +654,11 @@ where
                                 off
                             } else {
                                 let para_bounds = state.paragraph.min_bounds();
-                                if position.x > para_bounds.width { total_len } else { 0 }
+                                if position.x > para_bounds.width {
+                                    total_len
+                                } else {
+                                    0
+                                }
                             }
                         } else if let Some(cursor_pos) = cursor.position() {
                             // Mouse in expanded bounds but not actual - clamp to edge
@@ -674,14 +674,14 @@ where
                         } else {
                             0
                         };
-                        
+
                         if let Some(on_drag) = &self.on_selection_drag {
                             shell.publish(on_drag(offset));
                         }
                         shell.request_redraw();
                     }
                 }
-                
+
                 // If this widget owns the selection, handle edge cases when mouse leaves
                 // BUT only if global_selecting is false OR mouse is still in our bounds
                 // (otherwise another paragraph will handle it)
@@ -691,41 +691,47 @@ where
                     if self.global_selecting && !mouse_in_bounds {
                         // Only emit if we're first/last paragraph and mouse is outside ALL paragraphs
                         let cursor_pos = cursor.position();
-                        let should_handle_edge = cursor_pos.map(|pos| {
-                            (is_first && pos.y < bounds.y) || 
-                            (is_last && pos.y > bounds.y + bounds.height)
-                        }).unwrap_or(false);
-                        
+                        let should_handle_edge = cursor_pos
+                            .map(|pos| {
+                                (is_first && pos.y < bounds.y)
+                                    || (is_last && pos.y > bounds.y + bounds.height)
+                            })
+                            .unwrap_or(false);
+
                         if !should_handle_edge {
                             return; // Let another paragraph handle it
                         }
                     }
-                    
+
                     let offset = if let Some(position) = cursor.position_in(bounds) {
                         if let Some(Hit::CharOffset(off)) = state.paragraph.hit_test(position) {
                             Some(off)
                         } else {
                             let para_bounds = state.paragraph.min_bounds();
-                            Some(if position.x > para_bounds.width { total_len } else { 0 })
+                            Some(if position.x > para_bounds.width {
+                                total_len
+                            } else {
+                                0
+                            })
                         }
-                    } else if let Some(cursor_pos) = cursor.position() {
-                        Some(if cursor_pos.y < bounds.y || cursor_pos.x < bounds.x {
-                            0
-                        } else {
-                            total_len
-                        })
                     } else {
-                        None
+                        cursor.position().map(|cursor_pos| {
+                            if cursor_pos.y < bounds.y || cursor_pos.x < bounds.x {
+                                0
+                            } else {
+                                total_len
+                            }
+                        })
                     };
 
                     if let Some(offset) = offset {
                         if let Some(on_drag) = &self.on_selection_drag {
                             shell.publish(on_drag(offset));
                         }
-                        if let Some(anchor) = state.selection_anchor {
-                            if let Some(on_change) = &self.on_selection_change {
-                                shell.publish(on_change(Some((anchor, offset))));
-                            }
+                        if let Some(anchor) = state.selection_anchor
+                            && let Some(on_change) = &self.on_selection_change
+                        {
+                            shell.publish(on_change(Some((anchor, offset))));
                         }
                         shell.request_redraw();
                     }
@@ -733,20 +739,17 @@ where
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 // Handle link release
-                if let Some(span) = state.span_pressed.take() {
-                    if Some(span) == self.hovered_link {
-                        if let Some(on_link_clicked) = &self.on_link_click {
-                            if let Some(link) = self
-                                .spans
-                                .as_ref()
-                                .as_ref()
-                                .get(span)
-                                .and_then(|span| span.link.clone())
-                            {
-                                shell.publish(on_link_clicked(link));
-                            }
-                        }
-                    }
+                if let Some(span) = state.span_pressed.take()
+                    && Some(span) == self.hovered_link
+                    && let Some(on_link_clicked) = &self.on_link_click
+                    && let Some(link) = self
+                        .spans
+                        .as_ref()
+                        .as_ref()
+                        .get(span)
+                        .and_then(|span| span.link.clone())
+                {
+                    shell.publish(on_link_clicked(link));
                 }
 
                 // End selection drag - handle both local and global selection
@@ -909,7 +912,11 @@ where
 }
 
 /// Extract text content from spans within a given byte range.
-fn extract_text_from_spans<Link, Font>(spans: &[Span<'_, Link, Font>], start: usize, end: usize) -> String {
+fn extract_text_from_spans<Link, Font>(
+    spans: &[Span<'_, Link, Font>],
+    start: usize,
+    end: usize,
+) -> String {
     let mut result = String::new();
     let mut offset = 0usize;
 
@@ -940,10 +947,13 @@ fn extract_text_from_spans<Link, Font>(spans: &[Span<'_, Link, Font>], start: us
 
 /// Find word boundaries around a given character offset in spans.
 /// Returns (start, end) byte offsets of the word.
-fn find_word_bounds_in_spans<Link, Font>(spans: &[Span<'_, Link, Font>], offset: usize) -> (usize, usize) {
+fn find_word_bounds_in_spans<Link, Font>(
+    spans: &[Span<'_, Link, Font>],
+    offset: usize,
+) -> (usize, usize) {
     // Build combined text and find boundaries
     let text: String = spans.iter().map(|s| s.text.as_ref()).collect();
-    
+
     if text.is_empty() {
         return (0, 0);
     }

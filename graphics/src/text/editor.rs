@@ -391,7 +391,10 @@ impl editor::Editor for Editor {
                             editor.action(font_system.raw(), cosmic_text::Action::Insert(c));
                         }
                         Edit::Paste(text) => {
-                            editor.action(font_system.raw(), cosmic_text::Action::Paste((*text).clone()));
+                            editor.action(
+                                font_system.raw(),
+                                cosmic_text::Action::Paste((*text).clone()),
+                            );
                         }
                         Edit::Indent => {
                             editor.action(font_system.raw(), cosmic_text::Action::Indent);

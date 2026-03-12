@@ -108,7 +108,6 @@ impl Compositor {
                     wgpu::TextureFormat::Rgb10a2Uint,
                 ];
 
-
                 let formats = formats.filter(|format| {
                     format.required_features() == wgpu::Features::empty()
                         && !BLACKLIST.contains(format)
@@ -363,9 +362,7 @@ impl graphics::Compositor for Compositor {
             if caps.usages.contains(wgpu::TextureUsages::COPY_SRC) {
                 usage |= wgpu::TextureUsages::COPY_SRC;
             } else {
-                log::warn!(
-                    "Surface does not support COPY_SRC; backdrop blur will be unavailable"
-                );
+                log::warn!("Surface does not support COPY_SRC; backdrop blur will be unavailable");
             }
         }
 

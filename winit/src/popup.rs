@@ -20,6 +20,7 @@ pub struct PopupId(pub u64);
 
 impl PopupId {
     /// Generate a new unique popup ID.
+    #[allow(dead_code)]
     pub fn unique() -> Self {
         use std::sync::atomic::{AtomicU64, Ordering};
         static COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -86,6 +87,7 @@ where
     C: Compositor,
 {
     /// The popup's iced ID.
+    #[allow(dead_code)]
     pub id: PopupId,
     /// The popup's iced window ID (used for view lookup).
     pub iced_id: window::Id,
@@ -199,11 +201,13 @@ where
     }
 
     /// Get a popup by ID.
+    #[allow(dead_code)]
     pub fn get(&self, id: PopupId) -> Option<&Popup<C>> {
         self.entries.get(&id)
     }
 
     /// Get a mutable reference to a popup.
+    #[allow(dead_code)]
     pub fn get_mut(&mut self, id: PopupId) -> Option<&mut Popup<C>> {
         self.entries.get_mut(&id)
     }
@@ -241,10 +245,7 @@ where
         height: u32,
         compositor: &mut C,
     ) -> Option<(u64, window::Id)> {
-        let popup = self
-            .entries
-            .values_mut()
-            .find(|p| p.iced_id == iced_id)?;
+        let popup = self.entries.values_mut().find(|p| p.iced_id == iced_id)?;
 
         let scale = popup.scale_factor;
         let physical_w = (width as f32 * scale).ceil() as u32;
@@ -265,6 +266,7 @@ where
     }
 
     /// Check if manager is empty.
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
@@ -280,6 +282,7 @@ where
     }
 
     /// Get all configured popups that are ready for rendering.
+    #[allow(dead_code)]
     pub fn configured_popups(&mut self) -> impl Iterator<Item = &mut Popup<C>> {
         self.entries.values_mut().filter(|p| p.configured)
     }

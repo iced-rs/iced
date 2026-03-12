@@ -2570,10 +2570,14 @@ where
         let _url = url;
         let _title = title;
 
-        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click).wrapping(settings.wrapping))
-            .padding(settings.spacing.0)
-            .class(Theme::code_block())
-            .into()
+        container(
+            rich_text(alt.spans(settings.style))
+                .on_link_click(Self::on_link_click)
+                .wrapping(settings.wrapping),
+        )
+        .padding(settings.spacing.0)
+        .class(Theme::code_block())
+        .into()
     }
 
     /// Displays a heading.

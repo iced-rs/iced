@@ -363,7 +363,13 @@ impl App {
         let content = column![
             title,
             row![static_section, animation_section,].spacing(60),
-            row![nested_section, image_section, shadow_section, overlapping_section].spacing(60),
+            row![
+                nested_section,
+                image_section,
+                shadow_section,
+                overlapping_section
+            ]
+            .spacing(60),
         ]
         .padding(30)
         .spacing(30);
