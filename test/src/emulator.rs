@@ -90,11 +90,7 @@ impl<P: Program + 'static> Emulator<P> {
         let executor = P::Executor::new().expect("Create emulator executor");
 
         let renderer = executor
-            .block_on(P::Renderer::new(
-                settings.default_font,
-                settings.default_text_size,
-                None,
-            ))
+            .block_on(P::Renderer::new(renderer::Settings::from(&settings), None))
             .expect("Create emulator renderer");
 
         let runtime = Runtime::new(executor, sender);
@@ -172,12 +168,6 @@ impl<P: Program + 'static> Emulator<P> {
                 runtime::Action::Output(message) => {
                     self.update(program, message);
                 }
-                runtime::Action::LoadFont { .. } => {
-                    // TODO
-                }
-                iced_runtime::Action::ListFonts { .. } => {
-                    // TODO
-                }
                 runtime::Action::Widget(operation) => {
                     let mut user_interface = UserInterface::build(
                         program.view(&self.state, self.window),
@@ -254,6 +244,10 @@ impl<P: Program + 'static> Emulator<P> {
                     }
                 }
                 runtime::Action::System(action) => {
+                    // TODO
+                    dbg!(action);
+                }
+                runtime::Action::Font(action) => {
                     // TODO
                     dbg!(action);
                 }

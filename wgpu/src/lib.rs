@@ -24,7 +24,6 @@
 #![allow(missing_docs)]
 pub mod layer;
 pub mod primitive;
-pub mod settings;
 pub mod window;
 
 #[cfg(feature = "geometry")]
@@ -56,7 +55,6 @@ pub use wgpu;
 pub use engine::Engine;
 pub use layer::Layer;
 pub use primitive::Primitive;
-pub use settings::Settings;
 
 #[cfg(feature = "geometry")]
 pub use geometry::Geometry;
@@ -73,9 +71,8 @@ use crate::graphics::{Shell, Viewport};
 /// [`iced`]: https://github.com/iced-rs/iced
 pub struct Renderer {
     engine: Engine,
+    settings: renderer::Settings,
 
-    default_font: Font,
-    default_text_size: Pixels,
     layers: layer::Stack,
     scale_factor: Option<f32>,
 
@@ -95,10 +92,9 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(engine: Engine, default_font: Font, default_text_size: Pixels) -> Self {
+    pub fn new(engine: Engine, settings: renderer::Settings) -> Self {
         Self {
-            default_font,
-            default_text_size,
+            settings,
             layers: layer::Stack::new(),
             scale_factor: None,
 
@@ -706,11 +702,11 @@ impl core::text::Renderer for Renderer {
     const SCROLL_RIGHT_ICON: char = '\u{e805}';
 
     fn default_font(&self) -> Self::Font {
-        self.default_font
+        self.settings.default_font
     }
 
     fn default_size(&self) -> Pixels {
-        self.default_text_size
+        self.settings.default_text_size
     }
 
     fn fill_paragraph(
@@ -869,11 +865,7 @@ impl graphics::compositor::Default for crate::Renderer {
 }
 
 impl renderer::Headless for Renderer {
-    async fn new(
-        default_font: Font,
-        default_text_size: Pixels,
-        backend: Option<&str>,
-    ) -> Option<Self> {
+    async fn new(settings: renderer::Settings, backend: Option<&str>) -> Option<Self> {
         if backend.is_some_and(|backend| backend != "wgpu") {
             return None;
         }
@@ -921,7 +913,7 @@ impl renderer::Headless for Renderer {
             Shell::headless(),
         );
 
-        Some(Self::new(engine, default_font, default_text_size))
+        Some(Self::new(engine, settings))
     }
 
     fn name(&self) -> String {

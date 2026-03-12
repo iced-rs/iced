@@ -120,16 +120,22 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
     static FONT_SYSTEM: OnceLock<RwLock<FontSystem>> = OnceLock::new();
 
     FONT_SYSTEM.get_or_init(|| {
+        #[allow(unused_mut)]
+        let mut raw = cosmic_text::FontSystem::new_with_fonts([
+            cosmic_text::fontdb::Source::Binary(Arc::new(
+                include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+            )),
+            #[cfg(feature = "fira-sans")]
+            cosmic_text::fontdb::Source::Binary(Arc::new(
+                include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
+            )),
+        ]);
+
+        #[cfg(feature = "fira-sans")]
+        raw.db_mut().set_sans_serif_family("Fira Sans");
+
         RwLock::new(FontSystem {
-            raw: cosmic_text::FontSystem::new_with_fonts([
-                cosmic_text::fontdb::Source::Binary(Arc::new(
-                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
-                )),
-                #[cfg(feature = "fira-sans")]
-                cosmic_text::fontdb::Source::Binary(Arc::new(
-                    include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
-                )),
-            ]),
+            raw,
             loaded_fonts: HashSet::new(),
             version: Version::default(),
         })

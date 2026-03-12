@@ -5,7 +5,6 @@ pub mod window;
 mod engine;
 mod layer;
 mod primitive;
-mod settings;
 mod text;
 
 #[cfg(feature = "image")]
@@ -23,7 +22,6 @@ pub use iced_graphics::core;
 
 pub use layer::Layer;
 pub use primitive::Primitive;
-pub use settings::Settings;
 
 #[cfg(feature = "geometry")]
 pub use geometry::Geometry;
@@ -41,17 +39,15 @@ use crate::graphics::text::{Editor, Paragraph};
 /// [`iced`]: https://github.com/iced-rs/iced
 #[derive(Debug)]
 pub struct Renderer {
-    default_font: Font,
-    default_text_size: Pixels,
+    settings: renderer::Settings,
     layers: layer::Stack,
     engine: Engine, // TODO: Shared engine
 }
 
 impl Renderer {
-    pub fn new(default_font: Font, default_text_size: Pixels) -> Self {
+    pub fn new(settings: renderer::Settings) -> Self {
         Self {
-            default_font,
-            default_text_size,
+            settings,
             layers: layer::Stack::new(),
             engine: Engine::new(),
         }
@@ -255,11 +251,11 @@ impl core::text::Renderer for Renderer {
     const SCROLL_RIGHT_ICON: char = '\u{e805}';
 
     fn default_font(&self) -> Self::Font {
-        self.default_font
+        self.settings.default_font
     }
 
     fn default_size(&self) -> Pixels {
-        self.default_text_size
+        self.settings.default_text_size
     }
 
     fn fill_paragraph(
@@ -392,16 +388,12 @@ impl compositor::Default for Renderer {
 }
 
 impl renderer::Headless for Renderer {
-    async fn new(
-        default_font: Font,
-        default_text_size: Pixels,
-        backend: Option<&str>,
-    ) -> Option<Self> {
+    async fn new(settings: renderer::Settings, backend: Option<&str>) -> Option<Self> {
         if backend.is_some_and(|backend| !["tiny-skia", "tiny_skia"].contains(&backend)) {
             return None;
         }
 
-        Some(Self::new(default_font, default_text_size))
+        Some(Self::new(settings))
     }
 
     fn name(&self) -> String {

@@ -11,7 +11,7 @@ use iced_winit::core::mouse;
 use iced_winit::core::renderer;
 use iced_winit::core::time::Instant;
 use iced_winit::core::window;
-use iced_winit::core::{Event, Font, Pixels, Size, Theme};
+use iced_winit::core::{Event, Size, Theme};
 use iced_winit::futures;
 use iced_winit::runtime::user_interface::{self, UserInterface};
 use iced_winit::winit;
@@ -145,7 +145,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                         Shell::headless(),
                     );
 
-                    Renderer::new(engine, Font::default(), Pixels::from(16))
+                    Renderer::new(engine, renderer::Settings::default())
                 };
 
                 // You should change this if you want to render continuously

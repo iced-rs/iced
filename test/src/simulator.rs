@@ -7,7 +7,7 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Font, Point, Settings, Size, SmolStr};
+use crate::core::{Element, Event, Point, Settings, Size, SmolStr};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -56,11 +56,6 @@ where
     ) -> Self {
         let size = size.into();
 
-        let default_font = match settings.default_font {
-            Font::DEFAULT => Font::new("Fira Sans"),
-            _ => settings.default_font,
-        };
-
         for font in settings.fonts {
             load_font(font).expect("Font must be valid");
         }
@@ -69,8 +64,10 @@ where
             let backend = env::var("ICED_TEST_BACKEND").ok();
 
             crate::futures::futures::executor::block_on(Renderer::new(
-                default_font,
-                settings.default_text_size,
+                core::renderer::Settings {
+                    default_font: settings.default_font,
+                    default_text_size: settings.default_text_size,
+                },
                 backend.as_deref(),
             ))
             .expect("Create new headless renderer")
