@@ -351,16 +351,15 @@ impl State {
                         layer_transformation * *transformation,
                     );
 
-                    match result {
-                        Ok(()) => {
-                            self.prepare_layer += 1;
-                        }
-                        Err(cryoglyph::PrepareError::AtlasFull) => {
-                            // If the atlas cannot grow, then all bets are off.
-                            // Instead of panicking, we will just pray that the result
-                            // will be somewhat readable...
-                        }
+                    if let Err(cryoglyph::PrepareError::AtlasFull) = result {
+                        // If the atlas cannot grow, then all bets are off.
+                        // Instead of panicking, we will just pray that the result
+                        // will be somewhat readable...
                     }
+
+                    // Always increment even on AtlasFull — the renderer at this
+                    // slot exists and render() indexes into it unconditionally.
+                    self.prepare_layer += 1;
                 }
                 Item::Cached {
                     transformation,
@@ -399,7 +398,17 @@ impl State {
         for item in batch {
             match item {
                 Item::Group { .. } => {
-                    let renderer = &self.renderers[start + layer_count];
+                    let idx = start + layer_count;
+                    if idx >= self.renderers.len() {
+                        log::warn!(
+                            "Text render: index {} out of bounds (len={}), skipping",
+                            idx,
+                            self.renderers.len()
+                        );
+                        layer_count += 1;
+                        continue;
+                    }
+                    let renderer = &self.renderers[idx];
 
                     renderer
                         .render(&atlas, &viewport.0, render_pass)

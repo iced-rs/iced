@@ -541,19 +541,26 @@ impl Renderer {
             // Check if this layer is in a gradient fade region - if so, skip it here
             // It will be rendered separately in apply_gradient_fades
             if self.gradient_fade.is_layer_in_fade_region(layer_index) {
-                // Still need to count primitives so offsets are correct
-                if !layer.quads.is_empty() {
-                    quad_layer += 1;
-                }
-                // Count actual text groups, not just non-empty batches
-                text_layer += layer
-                    .text
-                    .iter()
-                    .filter(|item| matches!(item, text::Item::Group { .. }))
-                    .count();
-                #[cfg(any(feature = "svg", feature = "image"))]
-                if !layer.images.is_empty() {
-                    image_layer += 1;
+                // Still need to count primitives so offsets are correct,
+                // but only if prepare() actually processed this layer
+                // (prepare skips layers with no physical bounds intersection)
+                if physical_bounds
+                    .intersection(&(layer.bounds * scale_factor))
+                    .and_then(Rectangle::snap)
+                    .is_some()
+                {
+                    if !layer.quads.is_empty() {
+                        quad_layer += 1;
+                    }
+                    text_layer += layer
+                        .text
+                        .iter()
+                        .filter(|item| matches!(item, text::Item::Group { .. }))
+                        .count();
+                    #[cfg(any(feature = "svg", feature = "image"))]
+                    if !layer.images.is_empty() {
+                        image_layer += 1;
+                    }
                 }
                 continue;
             }
@@ -565,18 +572,25 @@ impl Renderer {
                     "SKIPPING layer {} in main render - is post-blur content",
                     layer_index
                 );
-                // Still need to count primitives so offsets are correct
-                if !layer.quads.is_empty() {
-                    quad_layer += 1;
-                }
-                text_layer += layer
-                    .text
-                    .iter()
-                    .filter(|item| matches!(item, text::Item::Group { .. }))
-                    .count();
-                #[cfg(any(feature = "svg", feature = "image"))]
-                if !layer.images.is_empty() {
-                    image_layer += 1;
+                // Still need to count primitives so offsets are correct,
+                // but only if prepare() actually processed this layer
+                if physical_bounds
+                    .intersection(&(layer.bounds * scale_factor))
+                    .and_then(Rectangle::snap)
+                    .is_some()
+                {
+                    if !layer.quads.is_empty() {
+                        quad_layer += 1;
+                    }
+                    text_layer += layer
+                        .text
+                        .iter()
+                        .filter(|item| matches!(item, text::Item::Group { .. }))
+                        .count();
+                    #[cfg(any(feature = "svg", feature = "image"))]
+                    if !layer.images.is_empty() {
+                        image_layer += 1;
+                    }
                 }
                 continue;
             }
@@ -1036,18 +1050,25 @@ impl Renderer {
             });
 
             if !is_post_blur {
-                // Still count the layers for offset tracking
-                if !layer.quads.is_empty() {
-                    quad_layer += 1;
-                }
-                text_layer += layer
-                    .text
-                    .iter()
-                    .filter(|item| matches!(item, text::Item::Group { .. }))
-                    .count();
-                #[cfg(any(feature = "svg", feature = "image"))]
-                if !layer.images.is_empty() {
-                    image_layer += 1;
+                // Still count the layers for offset tracking,
+                // but only if prepare() actually processed this layer
+                if physical_bounds
+                    .intersection(&(layer.bounds * scale_factor))
+                    .and_then(Rectangle::snap)
+                    .is_some()
+                {
+                    if !layer.quads.is_empty() {
+                        quad_layer += 1;
+                    }
+                    text_layer += layer
+                        .text
+                        .iter()
+                        .filter(|item| matches!(item, text::Item::Group { .. }))
+                        .count();
+                    #[cfg(any(feature = "svg", feature = "image"))]
+                    if !layer.images.is_empty() {
+                        image_layer += 1;
+                    }
                 }
                 continue;
             }
@@ -1253,10 +1274,17 @@ impl Renderer {
                 let mut image_offset = 0usize;
 
                 for layer in &layers_slice[..start_idx] {
+                    // Only count if prepare() actually processed this layer
+                    if physical_bounds
+                        .intersection(&(layer.bounds * scale_factor))
+                        .and_then(Rectangle::snap)
+                        .is_none()
+                    {
+                        continue;
+                    }
                     if !layer.quads.is_empty() {
                         quad_offset += 1;
                     }
-                    // Count actual text groups, not just non-empty batches
                     text_offset += layer
                         .text
                         .iter()
