@@ -306,8 +306,12 @@ pub fn present(
             } else {
                 "unknown panic".to_string()
             };
-            log::error!("Present panicked (treating as surface lost): {msg}");
-            Err(compositor::SurfaceError::Lost)
+            // Treat as Outdated (reconfigure) rather than Lost (recreate).
+            // Recreating the surface on Wayland can trigger a fatal protocol
+            // error ("surface already has a syncobj_surface") when the
+            // underlying surface is still valid.
+            log::error!("Present panicked (treating as outdated): {msg}");
+            Err(compositor::SurfaceError::Outdated)
         }
     }
 }
