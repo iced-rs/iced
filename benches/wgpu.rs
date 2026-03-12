@@ -80,6 +80,7 @@ fn benchmark<'a>(
     use iced_wgpu::graphics::{Antialiasing, Shell};
     use iced_wgpu::wgpu;
     use iced_winit::core;
+    use iced_winit::core::renderer;
     use iced_winit::runtime;
 
     let format = wgpu::TextureFormat::Bgra8UnormSrgb;
@@ -93,7 +94,7 @@ fn benchmark<'a>(
         Shell::headless(),
     );
 
-    let mut renderer = Renderer::new(engine, Font::DEFAULT, Pixels::from(16));
+    let mut renderer = Renderer::new(engine, renderer::Settings::default());
 
     let viewport = graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);
 

@@ -1,4 +1,5 @@
 //! Configure your application.
+use crate::renderer;
 use crate::{Font, Pixels};
 
 use std::borrow::Cow;
@@ -44,13 +45,24 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
+        let renderer = renderer::Settings::default();
+
         Self {
             id: None,
             fonts: Vec::new(),
-            default_font: Font::default(),
-            default_text_size: Pixels(16.0),
+            default_font: renderer.default_font,
+            default_text_size: renderer.default_text_size,
             antialiasing: true,
             vsync: true,
+        }
+    }
+}
+
+impl From<&Settings> for renderer::Settings {
+    fn from(settings: &Settings) -> Self {
+        Self {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
         }
     }
 }

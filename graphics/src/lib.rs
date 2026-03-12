@@ -9,7 +9,6 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
-mod settings;
 mod viewport;
 
 pub mod cache;
@@ -35,7 +34,6 @@ pub use gradient::Gradient;
 pub use image::Image;
 pub use layer::Layer;
 pub use mesh::Mesh;
-pub use settings::Settings;
 pub use shell::Shell;
 pub use text::Text;
 pub use viewport::Viewport;
