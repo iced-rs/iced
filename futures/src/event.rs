@@ -8,7 +8,10 @@ use crate::subscription::{self, Subscription};
 ///
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
-pub fn listen() -> Subscription<Event> {
+pub fn listen<Custom>() -> Subscription<Event, Custom>
+where
+    Custom: 'static + Send,
+{
     listen_with(|event, status, _window| match status {
         event::Status::Ignored => Some(event),
         event::Status::Captured => None,
@@ -23,11 +26,12 @@ pub fn listen() -> Subscription<Event> {
 ///
 /// - Returns `None`, the [`Event`] will be discarded.
 /// - Returns `Some` message, the `Message` will be produced.
-pub fn listen_with<Message>(
+pub fn listen_with<Message, Custom>(
     f: fn(Event, event::Status, window::Id) -> Option<Message>,
-) -> Subscription<Message>
+) -> Subscription<Message, Custom>
 where
     Message: 'static + MaybeSend,
+    Custom: 'static + Send,
 {
     #[derive(Hash)]
     struct EventsWith;
@@ -52,11 +56,12 @@ where
 ///
 /// **Warning:** This [`Subscription`], if unfiltered, may produce messages in
 /// an infinite loop.
-pub fn listen_raw<Message>(
+pub fn listen_raw<Message, Custom>(
     f: fn(Event, event::Status, window::Id) -> Option<Message>,
-) -> Subscription<Message>
+) -> Subscription<Message, Custom>
 where
     Message: 'static + MaybeSend,
+    Custom: 'static + Send,
 {
     #[derive(Hash)]
     struct RawEvents;
@@ -73,20 +78,19 @@ where
     })
 }
 
-/// Creates a [`Subscription`] that notifies of custom application URL
-/// received from the system.
-///
-/// _**Note:** Currently, it only triggers on macOS and the executable needs to be properly [bundled]!_
-///
-/// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
-pub fn listen_url() -> Subscription<String> {
+/// Creates a [`Subscription`] to listen on others platform specific events, like wayland events
+/// For some unique platform
+pub fn listen_platform_events<Message, Custom>(
+    f: fn(Custom) -> Option<Message>,
+) -> Subscription<Message, Custom>
+where
+    Message: 'static + MaybeSend,
+    Custom: 'static + Send,
+{
     #[derive(Hash)]
-    struct ListenUrl;
-
-    subscription::filter_map(ListenUrl, move |event| match event {
-        subscription::Event::PlatformSpecific(subscription::PlatformSpecific::MacOS(
-            subscription::MacOS::ReceivedUrl(url),
-        )) => Some(url),
+    struct EventsWith;
+    subscription::filter_map((EventsWith, f), move |event| match event {
+        subscription::Event::PlatformSpecific(custom) => f(custom),
         _ => None,
     })
 }
