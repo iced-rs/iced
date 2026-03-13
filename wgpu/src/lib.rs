@@ -182,12 +182,15 @@ impl Renderer {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            // Native path: render to swapchain, copy, blur
+            // Native path: render to swapchain, apply gradient fades, then blur
             self.render(&mut encoder, target, clear_color, viewport);
+            self.apply_gradient_fades(&mut encoder, target, viewport);
             self.apply_backdrop_blurs(&mut encoder, target, target_texture, viewport);
         }
 
-        // Process gradient fade regions after main render
+        // Process gradient fade regions after main render (WASM no-blur path only;
+        // blur path handles gradient fades inside draw_with_offscreen_blur)
+        #[cfg(target_arch = "wasm32")]
         self.apply_gradient_fades(&mut encoder, target, viewport);
 
         self.quad.trim();
@@ -569,8 +572,12 @@ impl Renderer {
             // It will be rendered after blur is applied
             if self.blur_state.is_layer_in_post_blur(layer_index) {
                 log::trace!(
-                    "SKIPPING layer {} in main render - is post-blur content",
-                    layer_index
+                    "render: SKIPPING layer {} (post-blur content), bounds=({:.1},{:.1},{:.1},{:.1})",
+                    layer_index,
+                    layer.bounds.x,
+                    layer.bounds.y,
+                    layer.bounds.width,
+                    layer.bounds.height
                 );
                 // Still need to count primitives so offsets are correct,
                 // but only if prepare() actually processed this layer
@@ -837,6 +844,10 @@ impl Renderer {
             physical_size,
         );
 
+        // Apply gradient fades to swapchain before blur so faded content
+        // is included in the blurred regions
+        self.apply_gradient_fades(encoder, target, viewport);
+
         // Apply blur for each region
         for region in &regions {
             // Ensure textures exist (get_blur_textures creates them if needed)
@@ -898,7 +909,7 @@ impl Renderer {
             return;
         }
 
-        log::trace!(
+        log::debug!(
             "apply_backdrop_blurs: processing {} blur regions",
             regions.len()
         );
@@ -929,7 +940,7 @@ impl Renderer {
         // Since we skipped post-blur content in the main render, this contains only the background
         if let Some(texture) = target_texture {
             log::trace!(
-                "apply_backdrop_blurs: copying scene texture {}x{} (background only)",
+                "apply_backdrop_blurs: copying scene texture {}x{} (background + gradient_fades)",
                 physical_size.width,
                 physical_size.height
             );
@@ -969,7 +980,16 @@ impl Renderer {
         );
 
         // Process each blur region - this blurs the background and writes to target
-        for region in &regions {
+        for (i, region) in regions.iter().enumerate() {
+            log::trace!(
+                "apply_backdrop_blurs: rendering blur region {} - bounds=({:.1},{:.1},{:.1},{:.1}), radius={:.1}",
+                i,
+                region.blur.bounds.x,
+                region.blur.bounds.y,
+                region.blur.bounds.width,
+                region.blur.bounds.height,
+                region.blur.radius
+            );
             self.engine.blur_pipeline.render(
                 &self.engine.device,
                 encoder,
@@ -1527,12 +1547,21 @@ impl core::Renderer for Renderer {
         let _ = self.gradient_fade.end(layer_count);
     }
 
-    fn draw_backdrop_blur(&mut self, bounds: Rectangle, radius: f32, border_radius: [f32; 4]) {
+    fn draw_backdrop_blur(
+        &mut self,
+        bounds: Rectangle,
+        radius: f32,
+        border_radius: [f32; 4],
+        fade_start: f32,
+    ) {
         log::trace!(
-            "draw_backdrop_blur called: bounds={:?}, radius={}, border_radius={:?}",
-            bounds,
+            "draw_backdrop_blur: bounds=({:.1},{:.1},{:.1},{:.1}), radius={:.1}, layer_count={}",
+            bounds.x,
+            bounds.y,
+            bounds.width,
+            bounds.height,
             radius,
-            border_radius
+            self.layers.active_count()
         );
 
         // Flush current layer to ensure all prior content is committed
@@ -1540,21 +1569,25 @@ impl core::Renderer for Renderer {
         let layer_count = self.layers.active_count();
 
         // Record this blur region with the current layer index
-        let blur = blur::BackdropBlur::with_border_radius(bounds, radius, border_radius);
+        let blur =
+            blur::BackdropBlur::with_border_radius(bounds, radius, border_radius, fade_start);
         self.blur_state.add_region(blur, layer_count);
 
         log::trace!(
-            "draw_backdrop_blur: added region, total regions now: {}",
-            if self.blur_state.has_regions() {
-                "some"
-            } else {
-                "none"
-            }
+            "draw_backdrop_blur: region added at layer_index={}, has_regions={}",
+            layer_count,
+            self.blur_state.has_regions()
         );
     }
 
     fn start_post_blur_layer(&mut self, bounds: Rectangle) {
-        log::trace!("start_post_blur_layer called: bounds={:?}", bounds);
+        log::trace!(
+            "start_post_blur_layer: bounds=({:.1},{:.1},{:.1},{:.1})",
+            bounds.x,
+            bounds.y,
+            bounds.width,
+            bounds.height
+        );
 
         // Expand bounds to accommodate shadows that extend beyond the blur region.
         // We use a generous margin since we don't know the actual shadow size here.
@@ -1574,8 +1607,9 @@ impl core::Renderer for Renderer {
         self.layers.push_clip(expanded_bounds);
         let layer_count = self.layers.active_count();
         log::trace!(
-            "start_post_blur_layer: pushed layer, now have {} layers",
-            layer_count
+            "start_post_blur_layer: pushed layer, now have {} layers, recording from layer {}",
+            layer_count,
+            layer_count - 1
         );
 
         // Start recording post-blur content - use the new layer's index
@@ -1584,10 +1618,12 @@ impl core::Renderer for Renderer {
     }
 
     fn end_post_blur_layer(&mut self) {
-        log::trace!("end_post_blur_layer called");
-
-        // Get the current layer index BEFORE popping (this is the layer with our content)
         let current_layer = self.layers.active_count() - 1;
+        log::trace!(
+            "end_post_blur_layer: current_layer={}, will record end_layer={}",
+            current_layer,
+            current_layer + 1
+        );
 
         // Pop the clipping layer we pushed in start_post_blur_layer
         self.layers.pop_clip();

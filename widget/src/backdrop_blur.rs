@@ -53,6 +53,10 @@ pub struct BackdropBlur<'a, Message, Theme = crate::Theme, Renderer = crate::Ren
     blur_radius: f32,
     /// Border radius [top_left, top_right, bottom_right, bottom_left] in logical pixels
     border_radius: [f32; 4],
+    /// Vertical fade start as fraction (0.0–1.0) of bounds height.
+    /// Full blur above this point, linearly fading to 0 at the bottom.
+    /// 1.0 = no fade (default).
+    fade_start: f32,
     width: Length,
     height: Length,
 }
@@ -66,6 +70,7 @@ impl<'a, Message, Theme, Renderer> BackdropBlur<'a, Message, Theme, Renderer> {
             content: content.into(),
             blur_radius: 10.0,
             border_radius: [0.0; 4],
+            fade_start: 1.0,
             width: Length::Shrink,
             height: Length::Shrink,
         }
@@ -102,6 +107,18 @@ impl<'a, Message, Theme, Renderer> BackdropBlur<'a, Message, Theme, Renderer> {
     /// Sets the height of the widget.
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
+        self
+    }
+
+    /// Sets the vertical fade start point.
+    ///
+    /// The blur is at full intensity from the top to this fraction of the height,
+    /// then linearly fades to 0 at the bottom.
+    /// - `1.0` = no fade (default)
+    /// - `0.5` = full blur in top half, fading in bottom half
+    /// - `0.0` = fading across entire height
+    pub fn fade_start(mut self, start: f32) -> Self {
+        self.fade_start = start.clamp(0.0, 1.0);
         self
     }
 }
@@ -220,7 +237,12 @@ where
         if self.blur_radius >= 3.0 {
             // Draw the backdrop blur effect at this location
             // This blurs whatever was rendered before this widget
-            renderer.draw_backdrop_blur(bounds, self.blur_radius, self.border_radius);
+            renderer.draw_backdrop_blur(
+                bounds,
+                self.blur_radius,
+                self.border_radius,
+                self.fade_start,
+            );
 
             // Draw the content in a post-blur layer so it appears ON TOP of the blur
             // This ensures the blur widget's children are rendered after the blur effect is applied

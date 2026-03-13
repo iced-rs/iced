@@ -126,7 +126,14 @@ pub trait Renderer {
     /// * `bounds` - The area where the blur effect applies
     /// * `radius` - The blur radius in logical pixels
     /// * `border_radius` - Border radius [top_left, top_right, bottom_right, bottom_left] in logical pixels
-    fn draw_backdrop_blur(&mut self, _bounds: Rectangle, _radius: f32, _border_radius: [f32; 4]) {}
+    fn draw_backdrop_blur(
+        &mut self,
+        _bounds: Rectangle,
+        _radius: f32,
+        _border_radius: [f32; 4],
+        _fade_start: f32,
+    ) {
+    }
 
     /// Begins recording content that should be rendered AFTER backdrop blur effects.
     ///

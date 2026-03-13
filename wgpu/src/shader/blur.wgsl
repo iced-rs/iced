@@ -8,6 +8,8 @@ struct Uniforms {
     params: vec4<f32>,
     // border_radius = (top_left, top_right, bottom_right, bottom_left) in pixels
     border_radius: vec4<f32>,
+    // fade_params.x = fade_start (0.0–1.0 fraction of bounds height)
+    fade_params: vec4<f32>,
 }
 
 @group(0) @binding(1)
@@ -92,6 +94,51 @@ fn fs_main(
     let radius = u_uniforms.params.x;
     let direction = u_uniforms.params.y; // 0 = horizontal, 1 = vertical
 
+    // Compute SDF alpha for clip_bounds (original widget bounds).
+    let has_border_radius = u_uniforms.border_radius.x > 0.0 || u_uniforms.border_radius.y > 0.0 ||
+                            u_uniforms.border_radius.z > 0.0 || u_uniforms.border_radius.w > 0.0;
+
+    let bounds_px = vec4<f32>(
+        u_uniforms.clip_bounds.x * tex_width,
+        u_uniforms.clip_bounds.y * tex_height,
+        u_uniforms.clip_bounds.z * tex_width,
+        u_uniforms.clip_bounds.w * tex_height
+    );
+
+    let rect_center = vec2<f32>(
+        bounds_px.x + bounds_px.z * 0.5,
+        bounds_px.y + bounds_px.w * 0.5
+    );
+    let half_size = vec2<f32>(bounds_px.z * 0.5, bounds_px.w * 0.5);
+    let pos = vec2<f32>(frag_pos.x, frag_pos.y) - rect_center;
+
+    let corner_radius = select(0.0, get_corner_radius(pos, half_size, u_uniforms.border_radius), has_border_radius);
+    let dist = rounded_rect_sdf(pos, half_size, corner_radius);
+    var sdf_alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
+
+    // Apply vertical fade: full opacity above fade_start, linear fade to 0 at bottom.
+    let fade_start = u_uniforms.fade_params.x;
+    if (fade_start < 1.0) {
+        let bounds_top_px = u_uniforms.clip_bounds.y * tex_height;
+        let bounds_height_px = u_uniforms.clip_bounds.w * tex_height;
+        let local_y = (frag_pos.y - bounds_top_px) / bounds_height_px;
+        var fade_alpha = 1.0 - smoothstep(fade_start, 1.0, local_y);
+        // Invert fade for restore pass: output (1-fade)*sdf to additively
+        // blend the original scene back in the fade region.
+        if (u_uniforms.fade_params.y > 0.5) {
+            fade_alpha = 1.0 - fade_alpha;
+        }
+        sdf_alpha = sdf_alpha * fade_alpha;
+    }
+
+    // Erase mode (radius < 0): output pure SDF alpha for destination-out blending.
+    // The erase pipeline uses blend: src*0 + dst*(1-src_alpha), so only alpha matters.
+    // This clears the target content inside the SDF bounds, preventing sharp
+    // unblurred content from bleeding through the subsequent blur draw pass.
+    if (radius < 0.0) {
+        return vec4<f32>(0.0, 0.0, 0.0, sdf_alpha);
+    }
+
     // Convert framebuffer pixel → normalized UV
     let uv = vec2<f32>(
         frag_pos.x / tex_width,
@@ -136,119 +183,12 @@ fn fs_main(
         total_weight += 1.0;
     }
     
-    var final_color = color / total_weight;
-    
-    // Apply border radius clipping (only on final pass, when border_radius is non-zero)
-    let has_border_radius = u_uniforms.border_radius.x > 0.0 || u_uniforms.border_radius.y > 0.0 ||
-                            u_uniforms.border_radius.z > 0.0 || u_uniforms.border_radius.w > 0.0;
-    
-    if (has_border_radius) {
-        // Use clip_bounds (original widget bounds) for SDF clipping
-        let bounds_px = vec4<f32>(
-            u_uniforms.clip_bounds.x * tex_width,
-            u_uniforms.clip_bounds.y * tex_height,
-            u_uniforms.clip_bounds.z * tex_width,
-            u_uniforms.clip_bounds.w * tex_height
-        );
-        
-        let rect_center = vec2<f32>(
-            bounds_px.x + bounds_px.z * 0.5,
-            bounds_px.y + bounds_px.w * 0.5
-        );
-        let half_size = vec2<f32>(bounds_px.z * 0.5, bounds_px.w * 0.5);
-        let pos = vec2<f32>(frag_pos.x, frag_pos.y) - rect_center;
-        
-        let corner_radius = get_corner_radius(pos, half_size, u_uniforms.border_radius);
-        let dist = rounded_rect_sdf(pos, half_size, corner_radius);
-        let alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
-        
-        final_color.a = alpha;
-    }
-    
-    return final_color;
+    let final_color = color / total_weight;
 
-    /*
-    // Texture dimensions from uniforms (textures are exact-match with framebuffer)
-    let tex_width = u_uniforms.params.z;
-    let tex_height = u_uniforms.params.w;
-
-    // Convert framebuffer pixel → normalized UV
-    let uv = vec2<f32>(
-        frag_pos.x / tex_width,
-        frag_pos.y / tex_height
-    );
-
-    let radius = u_uniforms.params.x;
-    let direction = u_uniforms.params.y;
-
-    // If radius is 0 or very small, just sample directly (passthrough)
-    if (radius < 1.0) {
-        return textureSample(u_texture, u_sampler, uv);
-    }
-
-    let pixel_size = vec2<f32>(1.0 / tex_width, 1.0 / tex_height);
-    
-    // Direction vector: horizontal (1,0) or vertical (0,1)
-    let dir = select(vec2<f32>(0.0, 1.0), vec2<f32>(1.0, 0.0), direction < 0.5);
-    
-    // Sigma is typically radius/3 for a good Gaussian falloff
-    let sigma = max(radius / 3.0, 1.0);
-    
-    // Sample every pixel within the radius for smooth results
-    // We limit samples to avoid excessive GPU load
-    let max_samples = 64;
-    let sample_count = min(i32(ceil(radius)), max_samples);
-    
-    // Accumulate weighted samples
-    var color = vec4<f32>(0.0);
-    var total_weight = 0.0;
-    
-    // Center sample
-    let center_weight = gaussian(0.0, sigma);
-    color += textureSample(u_texture, u_sampler, uv) * center_weight;
-    total_weight += center_weight;
-    
-    // Symmetric samples on both sides
-    for (var i = 1; i <= sample_count; i++) {
-        let offset_pixels = f32(i);
-        let weight = gaussian(offset_pixels, sigma);
-        let offset = dir * pixel_size * offset_pixels;
-        
-        color += textureSample(u_texture, u_sampler, uv + offset) * weight;
-        color += textureSample(u_texture, u_sampler, uv - offset) * weight;
-        total_weight += weight * 2.0;
-    }
-    
-    // Normalize
-    var final_color = color / total_weight;
-    
-    // Apply border radius clipping
-    // Convert bounds from normalized to pixel coordinates
-    let bounds_px = vec4<f32>(
-        u_uniforms.bounds.x * tex_width,
-        u_uniforms.bounds.y * tex_height,
-        u_uniforms.bounds.z * tex_width,
-        u_uniforms.bounds.w * tex_height
-    );
-    
-    // Calculate position relative to rectangle center
-    let rect_center = vec2<f32>(
-        bounds_px.x + bounds_px.z * 0.5,
-        bounds_px.y + bounds_px.w * 0.5
-    );
-    let half_size = vec2<f32>(bounds_px.z * 0.5, bounds_px.w * 0.5);
-    let pos = vec2<f32>(frag_pos.x, frag_pos.y) - rect_center;
-    
-    // Get the appropriate corner radius and compute SDF
-    let corner_radius = get_corner_radius(pos, half_size, u_uniforms.border_radius);
-    let dist = rounded_rect_sdf(pos, half_size, corner_radius);
-    
-    // Smooth edge (anti-aliasing)
-    let alpha = 1.0 - smoothstep(-0.5, 0.5, dist);
-    
-    // Apply alpha for rounded corners
-    final_color.a *= alpha;
-    
-    return final_color;
-    */
+    // Scale the premultiplied blur result by SDF alpha.
+    // The erase pass already cleared the target, so premultiplied alpha blending
+    // writes the blur result directly: src + dst*(1-src_alpha) = src + 0 = src.
+    // Where content was opaque, blur_alpha ≈ 1 → compositor sees opaque blurred content.
+    // Where content was transparent, blur_alpha ≈ 0 → compositor blur shows through.
+    return final_color * sdf_alpha;
 }

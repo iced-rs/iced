@@ -88,11 +88,17 @@ where
         delegate!(self, renderer, renderer.end_gradient_fade());
     }
 
-    fn draw_backdrop_blur(&mut self, bounds: Rectangle, radius: f32, border_radius: [f32; 4]) {
+    fn draw_backdrop_blur(
+        &mut self,
+        bounds: Rectangle,
+        radius: f32,
+        border_radius: [f32; 4],
+        fade_start: f32,
+    ) {
         delegate!(
             self,
             renderer,
-            renderer.draw_backdrop_blur(bounds, radius, border_radius)
+            renderer.draw_backdrop_blur(bounds, radius, border_radius, fade_start)
         );
     }
 

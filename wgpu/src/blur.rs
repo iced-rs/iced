@@ -20,6 +20,10 @@ pub struct BackdropBlur {
     pub radius: f32,
     /// Border radius [top_left, top_right, bottom_right, bottom_left] in logical pixels
     pub border_radius: [f32; 4],
+    /// Vertical fade start as fraction (0.0–1.0) of bounds height.
+    /// Full blur above this point, linearly fading to 0 at the bottom.
+    /// 0.0 = fade across entire height, 1.0 = no fade (default).
+    pub fade_start: f32,
 }
 
 /// A backdrop blur region with layer indices for tracking which layers to render.
@@ -38,15 +42,22 @@ impl BackdropBlur {
             bounds,
             radius: radius.max(0.0),
             border_radius: [0.0; 4],
+            fade_start: 1.0,
         }
     }
 
     /// Creates a new backdrop blur with the given bounds, radius, and border radius.
-    pub fn with_border_radius(bounds: Rectangle, radius: f32, border_radius: [f32; 4]) -> Self {
+    pub fn with_border_radius(
+        bounds: Rectangle,
+        radius: f32,
+        border_radius: [f32; 4],
+        fade_start: f32,
+    ) -> Self {
         Self {
             bounds,
             radius: radius.max(0.0),
             border_radius,
+            fade_start: fade_start.clamp(0.0, 1.0),
         }
     }
 }
@@ -64,6 +75,20 @@ struct BlurUniforms {
     params: [f32; 4],
     /// Border radius [top_left, top_right, bottom_right, bottom_left] in pixels
     border_radius: [f32; 4],
+    /// fade_params.x = fade_start (0.0–1.0 fraction of bounds height)
+    /// fade_params.y/z/w = reserved
+    fade_params: [f32; 4],
+}
+
+/// Which pipeline/blend mode to use for a blur pass.
+#[derive(Debug, Clone, Copy)]
+enum BlurPassMode {
+    /// No blending — intermediate ping-pong passes and blits
+    Intermediate,
+    /// Destination-out blending — erase pass before final draw
+    Erase,
+    /// Additive blending (One + One) — for crossfade restore and final blur draw
+    Additive,
 }
 
 /// Pipeline for rendering blur effects.
@@ -71,8 +96,10 @@ struct BlurUniforms {
 pub struct Pipeline {
     /// Pipeline without blending (for intermediate passes)
     pipeline: wgpu::RenderPipeline,
-    /// Pipeline with alpha blending (for final pass with border radius)
-    pipeline_blend: wgpu::RenderPipeline,
+    /// Pipeline with destination-out blending (erases target content using src alpha)
+    pipeline_erase: wgpu::RenderPipeline,
+    /// Pipeline with additive blending (src + dst) for crossfade compositing
+    pipeline_additive: wgpu::RenderPipeline,
     constant_layout: wgpu::BindGroupLayout,
     texture_layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
@@ -167,9 +194,12 @@ impl Pipeline {
             cache: None,
         });
 
-        // Pipeline with alpha blending for final pass (border radius clipping)
-        let pipeline_blend = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("iced_wgpu.blur.pipeline_blend"),
+        // Pipeline with destination-out blending for erasing the target region.
+        // Blend: src * 0 + dst * (1 - src_alpha)
+        // This erases the target content within the SDF-clipped region,
+        // so the subsequent blur pass can write without sharp content bleeding through.
+        let pipeline_erase = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("iced_wgpu.blur.pipeline_erase"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
                 module: &shader,
@@ -182,7 +212,64 @@ impl Pipeline {
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format,
-                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::Zero,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::Zero,
+                            dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                front_face: wgpu::FrontFace::Cw,
+                ..wgpu::PrimitiveState::default()
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: None,
+            cache: None,
+        });
+
+        // Pipeline with additive blending (src + dst) for crossfade compositing.
+        // Used for the restore pass (original * (1-fade) * sdf) and the final
+        // blur draw pass (blurred * fade * sdf). The sum gives a perfect crossfade
+        // without the alpha deficit that premultiplied blending causes on
+        // semi-transparent content.
+        let pipeline_additive = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("iced_wgpu.blur.pipeline_additive"),
+            layout: Some(&pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("vs_main"),
+                buffers: &[],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format,
+                    blend: Some(wgpu::BlendState {
+                        color: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::One,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                        alpha: wgpu::BlendComponent {
+                            src_factor: wgpu::BlendFactor::One,
+                            dst_factor: wgpu::BlendFactor::One,
+                            operation: wgpu::BlendOperation::Add,
+                        },
+                    }),
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -200,7 +287,8 @@ impl Pipeline {
 
         Self {
             pipeline,
-            pipeline_blend,
+            pipeline_erase,
+            pipeline_additive,
             constant_layout,
             texture_layout,
             sampler,
@@ -221,13 +309,16 @@ impl Pipeline {
         target_width: f32,
         target_height: f32,
         border_radius: [f32; 4],
-        use_blend: bool, // Use blending pipeline for final pass with border radius
+        fade_start: f32,
+        invert_fade: bool,
+        mode: BlurPassMode,
     ) {
         let uniforms = BlurUniforms {
             quad_bounds: *quad_bounds,
             clip_bounds: *clip_bounds,
             params: [radius, direction as f32, target_width, target_height],
             border_radius,
+            fade_params: [fade_start, if invert_fade { 1.0 } else { 0.0 }, 0.0, 0.0],
         };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -280,11 +371,11 @@ impl Pipeline {
         // Set viewport to match actual content size (textures may be larger due to grow-only policy)
         pass.set_viewport(0.0, 0.0, target_width, target_height, 0.0, 1.0);
 
-        // Use blending pipeline for final pass (border radius needs alpha blending)
-        let pipeline = if use_blend {
-            &self.pipeline_blend
-        } else {
-            &self.pipeline
+        // Select pipeline based on mode
+        let pipeline = match mode {
+            BlurPassMode::Intermediate => &self.pipeline,
+            BlurPassMode::Erase => &self.pipeline_erase,
+            BlurPassMode::Additive => &self.pipeline_additive,
         };
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &constant_bind_group, &[]);
@@ -362,23 +453,73 @@ impl Pipeline {
             blur.border_radius[3] * scale_factor,
         ];
 
-        // W3C spec recommends three successive box-blurs to approximate Gaussian:
-        // "Three successive box-blurs build a piece-wise quadratic convolution kernel,
-        //  which approximates the Gaussian kernel to within roughly 3%."
+        // Additive crossfade approach for semi-transparent windows:
         //
-        // Each box blur is separable (H+V), so we do 6 total passes:
-        // Pass 1: H blur (source -> intermediate)
-        // Pass 2: V blur (intermediate -> source) - reuse source as temp
-        // Pass 3: H blur (source -> intermediate)
-        // Pass 4: V blur (intermediate -> source)
-        // Pass 5: H blur (source -> intermediate)
-        // Pass 6: V blur (intermediate -> target) with border radius
+        // The problem: premultiplied alpha blending can't perfectly crossfade
+        // between two semi-transparent contents. With window bg alpha=0.6,
+        // erase + premultiplied-blend creates an alpha deficit (dark band).
+        //
+        // Solution: erase to transparent, then ADDITIVELY blend both the
+        // original (with inverted fade) and the blurred content (with fade).
+        // The sum original*(1-fade)*sdf + blurred*fade*sdf gives a perfect
+        // crossfade with no alpha loss.
+        //
+        // Pass order:
+        //   1. Erase target region to transparent
+        //   2. Restore original scene additively with (1-fade)*sdf
+        //      (must happen before blur passes destroy source_texture)
+        //   3. Blur passes 1-5: ping-pong source ↔ intermediate
+        //   4. Pass 6: V blur intermediate → target additively with fade*sdf
 
-        // Check if we need blending (has border radius)
-        let has_border_radius = scaled_border_radius.iter().any(|&r| r > 0.0);
+        let fade = blur.fade_start;
 
-        // For 3 box blur passes, we ping-pong between source and intermediate
-        // Note: source_texture must be both RENDER_ATTACHMENT and TEXTURE_BINDING capable
+        // Erase pass: clear target content in the blur region.
+        self.blur_pass(
+            device,
+            encoder,
+            intermediate_texture, // source doesn't matter for erase
+            target,
+            &clip_bounds,
+            &clip_bounds,
+            -1.0, // negative radius = erase mode in shader
+            0,
+            tex_width,
+            tex_height,
+            scaled_border_radius,
+            1.0, // no fade — always fully clear inside SDF bounds
+            false,
+            BlurPassMode::Erase,
+        );
+
+        // Restore pass: additively blend the original scene back with (1-fade)*sdf.
+        // This must happen before blur passes 1-5 which destroy source_texture.
+        // When fade_start=1.0 (no fade), (1-fade)=0 everywhere, so skip this pass.
+        if fade < 1.0 {
+            self.blur_pass(
+                device,
+                encoder,
+                source_texture,
+                target,
+                &clip_bounds, // no expansion needed — just copying with SDF mask
+                &clip_bounds,
+                0.0, // radius=0 = copy (no blur)
+                0,
+                tex_width,
+                tex_height,
+                scaled_border_radius,
+                fade,
+                true, // invert fade: output (1-fade)*sdf
+                BlurPassMode::Additive,
+            );
+        }
+
+        // Blur passes 1-5: ping-pong between source and intermediate.
+        // NOTE: These destroy source_texture content (passes 2,4 write to it).
+        // The restore pass above already captured the original.
+
+        // Intermediate passes use quad_bounds as clip bounds so the SDF covers
+        // the full expanded area. This prevents the blur from averaging in zeros
+        // from outside the widget bounds, which would darken edges.
 
         // Pass 1: H blur (source -> intermediate)
         self.blur_pass(
@@ -387,13 +528,15 @@ impl Pipeline {
             source_texture,
             intermediate_texture,
             &quad_bounds,
-            &clip_bounds,
+            &quad_bounds,
             total_radius,
             0, // horizontal
             tex_width,
             tex_height,
             [0.0; 4],
+            1.0,
             false,
+            BlurPassMode::Intermediate,
         );
 
         // Pass 2: V blur (intermediate -> source)
@@ -403,13 +546,15 @@ impl Pipeline {
             intermediate_texture,
             source_texture,
             &quad_bounds,
-            &clip_bounds,
+            &quad_bounds,
             total_radius,
             1, // vertical
             tex_width,
             tex_height,
             [0.0; 4],
+            1.0,
             false,
+            BlurPassMode::Intermediate,
         );
 
         // Pass 3: H blur (source -> intermediate)
@@ -419,13 +564,15 @@ impl Pipeline {
             source_texture,
             intermediate_texture,
             &quad_bounds,
-            &clip_bounds,
+            &quad_bounds,
             total_radius,
             0, // horizontal
             tex_width,
             tex_height,
             [0.0; 4],
+            1.0,
             false,
+            BlurPassMode::Intermediate,
         );
 
         // Pass 4: V blur (intermediate -> source)
@@ -435,13 +582,15 @@ impl Pipeline {
             intermediate_texture,
             source_texture,
             &quad_bounds,
-            &clip_bounds,
+            &quad_bounds,
             total_radius,
             1, // vertical
             tex_width,
             tex_height,
             [0.0; 4],
+            1.0,
             false,
+            BlurPassMode::Intermediate,
         );
 
         // Pass 5: H blur (source -> intermediate)
@@ -451,16 +600,20 @@ impl Pipeline {
             source_texture,
             intermediate_texture,
             &quad_bounds,
-            &clip_bounds,
+            &quad_bounds,
             total_radius,
             0, // horizontal
             tex_width,
             tex_height,
             [0.0; 4],
+            1.0,
             false,
+            BlurPassMode::Intermediate,
         );
 
-        // Pass 6: V blur (intermediate -> target) with border radius
+        // Pass 6: V blur (intermediate -> target) with additive blending
+        // Adds blurred*fade*sdf to the target (which already has original*(1-fade)*sdf
+        // from the restore pass). The sum is a perfect crossfade.
         self.blur_pass(
             device,
             encoder,
@@ -473,7 +626,9 @@ impl Pipeline {
             tex_width,
             tex_height,
             scaled_border_radius,
-            has_border_radius,
+            fade,
+            false,
+            BlurPassMode::Additive,
         );
     }
 
@@ -519,8 +674,10 @@ impl Pipeline {
             0,            // direction doesn't matter for radius=0
             tex_width,
             tex_height,
-            [0.0; 4], // No border radius for full blit
-            false,    // No blending for blit
+            [0.0; 4],                   // No border radius for full blit
+            1.0,                        // No fade for blit
+            false,
+            BlurPassMode::Intermediate, // No blending for blit
         );
     }
 
@@ -570,8 +727,10 @@ impl Pipeline {
             0,                  // direction doesn't matter for radius=0
             tex_width,
             tex_height,
-            [0.0; 4], // No border radius for region blit
-            false,    // No blending for blit
+            [0.0; 4],                   // No border radius for region blit
+            1.0,                        // No fade for blit
+            false,
+            BlurPassMode::Intermediate, // No blending for blit
         );
     }
 }
