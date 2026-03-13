@@ -44,7 +44,7 @@ pub enum Event {
     /// The orb has detached from this window.
     OrbDetached,
     /// Voice input is about to stop. Client must respond with ack_stop.
-    /// 
+    ///
     /// The serial must be echoed back in the ack_stop call along with
     /// whether to freeze the orb (transcription processing) or proceed with hiding.
     WillStop {

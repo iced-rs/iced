@@ -831,7 +831,11 @@ pub fn set_corner_radius<T>(
     bottom_left: u32,
 ) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetCornerRadius(
-        id, top_left, top_right, bottom_right, bottom_left,
+        id,
+        top_left,
+        top_right,
+        bottom_right,
+        bottom_left,
     )))
 }
 
@@ -844,7 +848,9 @@ pub fn set_corner_radius<T>(
 /// - **COSMIC/Wayland:** Uses `backdrop_color_manager_v1` protocol.
 /// - **Other platforms:** No effect.
 pub fn set_backdrop_color<T>(id: Id, r: u32, g: u32, b: u32, a: u32) -> Task<T> {
-    task::effect(crate::Action::Window(Action::SetBackdropColor(id, r, g, b, a)))
+    task::effect(crate::Action::Window(Action::SetBackdropColor(
+        id, r, g, b, a,
+    )))
 }
 
 /// Registers the window to receive voice mode events from the compositor.
@@ -900,7 +906,9 @@ pub fn set_voice_audio_level<T>(level: u32) -> Task<T> {
 /// - **COSMIC/Wayland:** Uses `zcosmic_voice_mode_v1` protocol's `ack_stop` request.
 /// - **Other platforms:** No effect.
 pub fn voice_ack_stop<T>(id: Id, serial: u32, freeze: bool) -> Task<T> {
-    task::effect(crate::Action::Window(Action::VoiceAckStop(id, serial, freeze)))
+    task::effect(crate::Action::Window(Action::VoiceAckStop(
+        id, serial, freeze,
+    )))
 }
 
 /// Dismisses the frozen voice orb.

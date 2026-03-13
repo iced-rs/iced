@@ -1542,7 +1542,7 @@ async fn run_instance<P>(
                                             );
 
                                             // Draw the popup
-                                            let _ = popup_ui.draw(
+                                            popup_ui.draw(
                                                 renderer,
                                                 window.state.theme(),
                                                 &renderer::Style {
@@ -2798,9 +2798,8 @@ fn run_action<'a, P, C>(
                 {
                     use winit::platform::wayland::WindowExtWayland;
                     // Send audio level to first registered window (audio level is global)
-                    for (_id, window) in window_manager.iter_mut() {
+                    if let Some((_id, window)) = window_manager.iter_mut().next() {
                         let _ = window.raw.set_voice_audio_level(level);
-                        break;
                     }
                 }
             }
@@ -3087,19 +3086,18 @@ fn run_action<'a, P, C>(
                                 }
                             }
                             popup::Action::Resize { id, width, height } => {
-                                if let Some(comp) = compositor.as_mut() {
-                                    if let Some((winit_id, parent_id)) =
+                                if let Some(comp) = compositor.as_mut()
+                                    && let Some((winit_id, parent_id)) =
                                         popup_manager.resize(id, width, height, comp)
-                                    {
-                                        let _ = control_sender.start_send(Control::ResizePopup {
-                                            winit_popup_id: winit_id,
-                                            width,
-                                            height,
-                                        });
+                                {
+                                    let _ = control_sender.start_send(Control::ResizePopup {
+                                        winit_popup_id: winit_id,
+                                        width,
+                                        height,
+                                    });
 
-                                        if let Some(parent) = window_manager.get_mut(parent_id) {
-                                            parent.raw.request_redraw();
-                                        }
+                                    if let Some(parent) = window_manager.get_mut(parent_id) {
+                                        parent.raw.request_redraw();
                                     }
                                 }
                             }
@@ -3253,9 +3251,8 @@ fn resolve_dnd_icon_elements<P, C>(
             let needs_render = matches!(icon, Some(core::dnd::DndIcon::Element(_)));
             if needs_render {
                 // Take the Element icon out of the request.
-                let elem_icon = match icon.take() {
-                    Some(core::dnd::DndIcon::Element(surface)) => surface,
-                    _ => unreachable!(),
+                let Some(core::dnd::DndIcon::Element(elem_icon)) = icon.take() else {
+                    unreachable!()
                 };
 
                 // Downcast to the program's concrete types.
@@ -3308,7 +3305,7 @@ fn resolve_dnd_icon_elements<P, C>(
                         user_interface::Cache::default(),
                         &mut icon_renderer,
                     );
-                    let _ = ui.draw(
+                    ui.draw(
                         &mut icon_renderer,
                         theme,
                         &renderer::Style { text_color },

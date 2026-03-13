@@ -663,8 +663,9 @@ pub mod surface_visibility {
     ))
 ))]
 pub mod wayland {
-    /// Popup surface support.
     pub mod popup {
+        //! Popup surface support.
+        //!
         //! Types and actions for Wayland xdg_popup surfaces.
         //!
         //! Popup surfaces are transient windows that appear relative to a parent

@@ -417,10 +417,9 @@ impl core::text::Paragraph for Paragraph {
                 let y = line_top + glyph.y;
                 let glyph_height = glyph.line_height_opt.unwrap_or(line_height);
 
-                let new_rect = Rectangle::new(
-                    Point::new(glyph.x, y),
-                    Size::new(glyph.w, glyph_height),
-                ) * (1.0 / self.0.hint_factor);
+                let new_rect =
+                    Rectangle::new(Point::new(glyph.x, y), Size::new(glyph.w, glyph_height))
+                        * (1.0 / self.0.hint_factor);
 
                 match current_bounds.as_mut() {
                     None => {

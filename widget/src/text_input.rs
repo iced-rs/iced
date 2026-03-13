@@ -1503,17 +1503,19 @@ where
 
         // Emit unfocus callback if focus was just lost
         let state = state::<Renderer>(tree);
-        if was_focused && !state.is_focused() {
-            if let Some(on_unfocus) = self.on_unfocus.clone() {
-                shell.publish(on_unfocus);
-            }
+        if was_focused
+            && !state.is_focused()
+            && let Some(on_unfocus) = self.on_unfocus.clone()
+        {
+            shell.publish(on_unfocus);
         }
 
         // Emit focus callback if focus was just gained
-        if !was_focused && state.is_focused() {
-            if let Some(on_focus) = self.on_focus.clone() {
-                shell.publish(on_focus);
-            }
+        if !was_focused
+            && state.is_focused()
+            && let Some(on_focus) = self.on_focus.clone()
+        {
+            shell.publish(on_focus);
         }
 
         let is_disabled = self.on_input.is_none();

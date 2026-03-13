@@ -106,7 +106,7 @@ where
             total_fixed += amount;
         }
     }
-    
+
     // Reserve space for fixed items
     available -= total_fixed;
 
@@ -114,10 +114,10 @@ where
     for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
         let child_size = child.as_widget().size();
         let (main_length, cross_length) = axis.pack(child_size.width, child_size.height);
-        
+
         if let Length::Fixed(amount) = main_length {
             let fill_cross_factor = cross_length.fill_factor();
-            
+
             let (max_width, max_height) = axis.pack(
                 amount, // Use the fixed amount
                 if fill_cross_factor == 0 {
@@ -127,11 +127,8 @@ where
                 },
             );
 
-            let child_limits = Limits::with_compression(
-                Size::ZERO,
-                Size::new(max_width, max_height),
-                compression,
-            );
+            let child_limits =
+                Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
 
             let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
             let size = layout.size();
@@ -154,7 +151,7 @@ where
 
         let child_size = child.as_widget().size();
         let main_length = axis.pack(child_size.width, child_size.height).0;
-        
+
         // Skip Fixed items (already laid out in pass 0)
         if matches!(main_length, Length::Fixed(_)) {
             continue;

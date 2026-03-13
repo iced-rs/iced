@@ -152,14 +152,20 @@ impl std::fmt::Debug for DndIcon {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Pixels {
-                width, height, scale, ..
+                width,
+                height,
+                scale,
+                ..
             } => f
                 .debug_struct("DndIcon::Pixels")
                 .field("width", width)
                 .field("height", height)
                 .field("scale", scale)
                 .finish(),
-            Self::Element(_) => f.debug_tuple("DndIcon::Element").field(&"<opaque>").finish(),
+            Self::Element(_) => f
+                .debug_tuple("DndIcon::Element")
+                .field(&"<opaque>")
+                .finish(),
         }
     }
 }
@@ -290,9 +296,10 @@ impl std::fmt::Debug for Request {
                 .field("actions", actions)
                 .field("preferred", preferred)
                 .finish(),
-            Self::RequestData { mime_type } => {
-                f.debug_struct("RequestData").field("mime_type", mime_type).finish()
-            }
+            Self::RequestData { mime_type } => f
+                .debug_struct("RequestData")
+                .field("mime_type", mime_type)
+                .finish(),
             Self::FinishDnd => write!(f, "FinishDnd"),
             Self::EndDnd => write!(f, "EndDnd"),
         }

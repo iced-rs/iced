@@ -309,9 +309,7 @@ pub fn window_event(
         WindowEvent::VoiceMode(voice_event) => {
             Some(Event::VoiceMode(voice_mode_event(voice_event)))
         }
-        WindowEvent::Dnd(dnd_event) => {
-            Some(Event::Dnd(dnd_window_event(dnd_event)))
-        }
+        WindowEvent::Dnd(dnd_event) => Some(Event::Dnd(dnd_window_event(dnd_event))),
         _ => None,
     }
 }
@@ -1166,14 +1164,24 @@ fn voice_mode_event(event: winit::event::VoiceModeWindowEvent) -> voice_mode::Ev
                 winit::event::VoiceModeOrbState::Floating => voice_mode::OrbState::Floating,
                 winit::event::VoiceModeOrbState::Attached => voice_mode::OrbState::Attached,
                 winit::event::VoiceModeOrbState::Frozen => voice_mode::OrbState::Frozen,
-                winit::event::VoiceModeOrbState::Transitioning => voice_mode::OrbState::Transitioning,
+                winit::event::VoiceModeOrbState::Transitioning => {
+                    voice_mode::OrbState::Transitioning
+                }
             },
         },
         VoiceModeWindowEvent::Stop => voice_mode::Event::Stopped,
         VoiceModeWindowEvent::Cancel => voice_mode::Event::Cancelled,
-        VoiceModeWindowEvent::OrbAttached { x, y, width, height } => {
-            voice_mode::Event::OrbAttached { x, y, width, height }
-        }
+        VoiceModeWindowEvent::OrbAttached {
+            x,
+            y,
+            width,
+            height,
+        } => voice_mode::Event::OrbAttached {
+            x,
+            y,
+            width,
+            height,
+        },
         VoiceModeWindowEvent::OrbDetached => voice_mode::Event::OrbDetached,
         VoiceModeWindowEvent::WillStop { serial } => voice_mode::Event::WillStop { serial },
         VoiceModeWindowEvent::FocusInput => voice_mode::Event::FocusInput,
@@ -1197,9 +1205,7 @@ fn dnd_window_event(event: winit::event::DndWindowEvent) -> crate::core::dnd::Ev
             DndEvent::SelectedAction(DndAction::from_bits_truncate(bits))
         }
         DndWindowEvent::SourceCancelled => DndEvent::SourceEvent(SourceEvent::Cancelled),
-        DndWindowEvent::SourceDropPerformed => {
-            DndEvent::SourceEvent(SourceEvent::DropPerformed)
-        }
+        DndWindowEvent::SourceDropPerformed => DndEvent::SourceEvent(SourceEvent::DropPerformed),
         DndWindowEvent::SourceFinished => DndEvent::SourceEvent(SourceEvent::Finished),
         DndWindowEvent::SourceAction(bits) => {
             DndEvent::SourceEvent(SourceEvent::Action(DndAction::from_bits_truncate(bits)))
