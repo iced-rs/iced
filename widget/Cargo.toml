@@ -20,6 +20,7 @@ all-features = true
 [features]
 lazy = ["ouroboros"]
 image = ["iced_renderer/image"]
+image-without-codecs = ["iced_renderer/image-without-codecs"]
 svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "dep:qrcode"]
