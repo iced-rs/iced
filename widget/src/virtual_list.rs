@@ -28,8 +28,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -161,18 +161,16 @@ where
 
         // Reconcile the widget tree with the new set of children.
         tree.diff_children(
-            &self.visible_children
+            &self
+                .visible_children
                 .iter()
-                .map(|e| e.as_widget())
+                .map(Element::as_widget)
                 .collect::<Vec<_>>(),
         );
 
         // Layout each visible child with constrained height.
         let max_width = limits.max().width;
-        let child_limits = layout::Limits::new(
-            Size::ZERO,
-            Size::new(max_width, self.item_height),
-        );
+        let child_limits = layout::Limits::new(Size::ZERO, Size::new(max_width, self.item_height));
 
         let mut child_nodes = Vec::with_capacity(self.visible_children.len());
         for (i, (child, child_tree)) in self
@@ -181,7 +179,9 @@ where
             .zip(tree.children.iter_mut())
             .enumerate()
         {
-            let mut node = child.as_widget_mut().layout(child_tree, renderer, &child_limits);
+            let mut node = child
+                .as_widget_mut()
+                .layout(child_tree, renderer, &child_limits);
 
             // Position the child at its absolute y offset within the virtual
             // content area.
@@ -194,12 +194,11 @@ where
         // The node's total height is the full virtual height so the parent
         // scrollable can compute the correct scrollbar.
         let total_height = self.item_count as f32 * self.item_height;
-        let width = limits.resolve(self.width, Length::Shrink, Size::new(max_width, 0.0)).width;
+        let width = limits
+            .resolve(self.width, Length::Shrink, Size::new(max_width, 0.0))
+            .width;
 
-        layout::Node::with_children(
-            Size::new(width, total_height),
-            child_nodes,
-        )
+        layout::Node::with_children(Size::new(width, total_height), child_nodes)
     }
 
     fn update(

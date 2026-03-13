@@ -674,8 +674,8 @@ impl Pipeline {
             0,            // direction doesn't matter for radius=0
             tex_width,
             tex_height,
-            [0.0; 4],                   // No border radius for full blit
-            1.0,                        // No fade for blit
+            [0.0; 4], // No border radius for full blit
+            1.0,      // No fade for blit
             false,
             BlurPassMode::Intermediate, // No blending for blit
         );
@@ -727,8 +727,8 @@ impl Pipeline {
             0,                  // direction doesn't matter for radius=0
             tex_width,
             tex_height,
-            [0.0; 4],                   // No border radius for region blit
-            1.0,                        // No fade for blit
+            [0.0; 4], // No border radius for region blit
+            1.0,      // No fade for blit
             false,
             BlurPassMode::Intermediate, // No blending for blit
         );

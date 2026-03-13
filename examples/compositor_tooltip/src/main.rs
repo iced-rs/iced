@@ -325,23 +325,19 @@ impl App {
     }
 
     fn view_immediate_tooltip(&self) -> Element<'_, Message> {
-        container(
-            text("Follows cursor!")
-                .size(14)
-                .color(Color::WHITE),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(8)
-        .style(|_theme: &iced::Theme| container::Style {
-            background: Some(iced::Background::Color(Color::from_rgb(0.2, 0.2, 0.2))),
-            border: iced::Border {
-                radius: 6.0.into(),
+        container(text("Follows cursor!").size(14).color(Color::WHITE))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .padding(8)
+            .style(|_theme: &iced::Theme| container::Style {
+                background: Some(iced::Background::Color(Color::from_rgb(0.2, 0.2, 0.2))),
+                border: iced::Border {
+                    radius: 6.0.into(),
+                    ..Default::default()
+                },
                 ..Default::default()
-            },
-            ..Default::default()
-        })
-        .into()
+            })
+            .into()
     }
 
     fn view_delayed_tooltip(&self) -> Element<'_, Message> {
