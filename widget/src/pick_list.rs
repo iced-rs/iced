@@ -375,6 +375,7 @@ where
             wrapping: text::Wrapping::None,
             ellipsis: self.ellipsis,
             hint_factor: renderer.scale_factor(),
+            letter_spacing: None,
         };
 
         if let Some(placeholder) = &self.placeholder {
@@ -653,6 +654,7 @@ where
                     wrapping: text::Wrapping::None,
                     ellipsis: text::Ellipsis::None,
                     hint_factor: None,
+                    letter_spacing: None,
                 },
                 Point::new(
                     bounds.x + bounds.width - self.padding.right,
@@ -688,6 +690,7 @@ where
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
+                    letter_spacing: None,
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if selected.is_some() {

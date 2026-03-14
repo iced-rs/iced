@@ -301,6 +301,7 @@ where
                             shaping: self.text_shaping,
                             wrapping: self.wrapping,
                             ellipsis: text::Ellipsis::None,
+                            letter_spacing: None,
                         },
                     )
                 } else {

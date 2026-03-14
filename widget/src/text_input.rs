@@ -342,6 +342,7 @@ where
             wrapping: text::Wrapping::None,
             ellipsis: text::Ellipsis::None,
             hint_factor: renderer.scale_factor(),
+            letter_spacing: None,
         };
 
         let _ = state.placeholder.update(placeholder_text);
@@ -369,6 +370,7 @@ where
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
                 hint_factor: renderer.scale_factor(),
+                letter_spacing: None,
             };
 
             let _ = state.icon.update(icon_text);
@@ -1911,6 +1913,7 @@ fn replace_paragraph<Renderer>(
         wrapping: text::Wrapping::None,
         ellipsis: text::Ellipsis::None,
         hint_factor: renderer.scale_factor(),
+        letter_spacing: None,
     });
 }
 

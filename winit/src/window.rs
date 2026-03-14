@@ -379,6 +379,7 @@ where
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
                 hint_factor: renderer.scale_factor(),
+                letter_spacing: None,
             });
 
             self.spans.clear();

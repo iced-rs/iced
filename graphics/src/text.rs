@@ -267,6 +267,22 @@ pub fn to_attributes(font: Font) -> cosmic_text::Attrs<'static> {
         .style(to_style(font.style))
 }
 
+/// Returns the attributes of the given [`Font`] with optional letter spacing.
+///
+/// Letter spacing is specified in pixels and will be converted to EM units
+/// (relative to font size) for the underlying text engine.
+pub fn to_attributes_with_spacing(
+    font: Font,
+    letter_spacing_px: Option<f32>,
+    font_size: f32,
+) -> cosmic_text::Attrs<'static> {
+    let attrs = to_attributes(font);
+    match letter_spacing_px {
+        Some(px) if font_size > 0.0 => attrs.letter_spacing(px / font_size),
+        _ => attrs,
+    }
+}
+
 fn to_family(family: font::Family) -> cosmic_text::Family<'static> {
     match family {
         font::Family::Name(name) => cosmic_text::Family::Name(name),

@@ -311,6 +311,7 @@ where
                         shaping: self.shaping,
                         wrapping: self.wrapping,
                         ellipsis: text::Ellipsis::default(),
+                        letter_spacing: None,
                     },
                 )
             },

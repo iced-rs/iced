@@ -546,6 +546,7 @@ where
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
+                    letter_spacing: None,
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {

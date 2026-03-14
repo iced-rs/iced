@@ -26,6 +26,7 @@ struct Internal {
     version: text::Version,
     hint: bool,
     hint_factor: f32,
+    letter_spacing: Option<f32>,
 }
 
 impl Paragraph {
@@ -100,7 +101,7 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_text(
             font_system.raw(),
             text.content,
-            &text::to_attributes(text.font),
+            &text::to_attributes_with_spacing(text.font, text.letter_spacing, f32::from(text.size)),
             text::to_shaping(text.shaping, text.content),
             None,
         );
@@ -120,6 +121,7 @@ impl core::text::Paragraph for Paragraph {
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
+            letter_spacing: text.letter_spacing,
         }))
     }
 
@@ -156,7 +158,14 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_rich_text(
             font_system.raw(),
             text.content.iter().enumerate().map(|(i, span)| {
-                let attrs = text::to_attributes(span.font.unwrap_or(text.font));
+                let span_font = span.font.unwrap_or(text.font);
+                let span_size = span.size.unwrap_or(text.size);
+                let span_letter_spacing = span.letter_spacing.or(text.letter_spacing);
+                let attrs = text::to_attributes_with_spacing(
+                    span_font,
+                    span_letter_spacing,
+                    f32::from(span_size),
+                );
 
                 let attrs = match (span.size, span.line_height) {
                     (None, None) => attrs,
@@ -182,7 +191,7 @@ impl core::text::Paragraph for Paragraph {
 
                 (span.text.as_ref(), attrs.metadata(i))
             }),
-            &text::to_attributes(text.font),
+            &text::to_attributes_with_spacing(text.font, text.letter_spacing, f32::from(text.size)),
             text::to_shaping_for_spans(text.shaping, text.content),
             None,
         );
@@ -202,6 +211,7 @@ impl core::text::Paragraph for Paragraph {
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
+            letter_spacing: text.letter_spacing,
         }))
     }
 
@@ -238,6 +248,7 @@ impl core::text::Paragraph for Paragraph {
             || paragraph.ellipsis != text.ellipsis
             || paragraph.align_x != text.align_x
             || paragraph.align_y != text.align_y
+            || paragraph.letter_spacing != text.letter_spacing
             || paragraph.hint.then_some(paragraph.hint_factor)
                 != text::hint_factor(text.size, text.hint_factor)
         {
@@ -512,6 +523,7 @@ impl PartialEq for Internal {
             && self.align_y == other.align_y
             && self.bounds == other.bounds
             && self.min_bounds == other.min_bounds
+            && self.letter_spacing == other.letter_spacing
             && self.buffer.metrics() == other.buffer.metrics()
     }
 }
@@ -534,6 +546,7 @@ impl Default for Internal {
             version: text::Version::default(),
             hint: false,
             hint_factor: 1.0,
+            letter_spacing: None,
         }
     }
 }

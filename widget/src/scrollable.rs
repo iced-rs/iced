@@ -1357,6 +1357,7 @@ where
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
                 hint_factor: None,
+                letter_spacing: None,
             };
 
             if self.vertical {

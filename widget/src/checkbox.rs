@@ -300,6 +300,7 @@ where
                             shaping: self.shaping,
                             wrapping: self.wrapping,
                             ellipsis: text::Ellipsis::None,
+                            letter_spacing: None,
                         },
                     )
                 } else {
@@ -426,6 +427,7 @@ where
                         wrapping: text::Wrapping::default(),
                         ellipsis: text::Ellipsis::default(),
                         hint_factor: None,
+                        letter_spacing: None,
                     },
                     bounds.center(),
                     style.icon_color,

@@ -62,6 +62,7 @@ impl Text {
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
             hint_factor: None,
+            letter_spacing: None,
         });
 
         let translation_x = match self.align_x {

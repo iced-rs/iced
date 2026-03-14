@@ -850,6 +850,7 @@ where
             wrapping,
             ellipsis,
             hint_factor: renderer.scale_factor(),
+            letter_spacing: None,
         };
 
         if state.spans != spans {
@@ -868,6 +869,7 @@ where
                 wrapping,
                 ellipsis,
                 hint_factor: renderer.scale_factor(),
+                letter_spacing: None,
             }) {
                 core::text::Difference::None => {}
                 core::text::Difference::Bounds => {

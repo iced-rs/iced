@@ -977,6 +977,7 @@ where
                         wrapping: self.wrapping,
                         ellipsis: text::Ellipsis::None,
                         hint_factor: renderer.scale_factor(),
+                        letter_spacing: None,
                     },
                     text_bounds.position(),
                     style.placeholder,

@@ -179,6 +179,7 @@ impl<P: Paragraph> Plain<P> {
             wrapping: self.raw.wrapping(),
             ellipsis: self.raw.ellipsis(),
             hint_factor: self.raw.hint_factor(),
+            letter_spacing: None,
         }
     }
 }

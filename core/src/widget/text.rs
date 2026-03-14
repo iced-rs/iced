@@ -154,6 +154,14 @@ where
         self
     }
 
+    /// Sets the letter spacing of the [`Text`] in pixels.
+    ///
+    /// Extra horizontal space added between each character glyph.
+    pub fn letter_spacing(mut self, letter_spacing: f32) -> Self {
+        self.format.letter_spacing = Some(letter_spacing);
+        self
+    }
+
     /// Sets the style of the [`Text`].
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
     where
@@ -278,6 +286,7 @@ pub struct Format<Font> {
     pub shaping: Shaping,
     pub wrapping: Wrapping,
     pub ellipsis: Ellipsis,
+    pub letter_spacing: Option<f32>,
 }
 
 impl<Font> Default for Format<Font> {
@@ -293,6 +302,7 @@ impl<Font> Default for Format<Font> {
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
+            letter_spacing: None,
         }
     }
 }
@@ -326,6 +336,7 @@ where
             wrapping: format.wrapping,
             ellipsis: format.ellipsis,
             hint_factor: renderer.scale_factor(),
+            letter_spacing: format.letter_spacing,
         });
 
         paragraph.min_bounds()
