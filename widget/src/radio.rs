@@ -141,6 +141,7 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
     shaping: text::Shaping,
     wrapping: text::Wrapping,
@@ -182,6 +183,7 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
+            letter_spacing: None,
             line_height: text::LineHeight::default(),
             shaping: text::Shaping::default(),
             wrapping: text::Wrapping::default(),
@@ -212,6 +214,12 @@ where
     /// Sets the text size of the [`Radio`] button.
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into());
+        self
+    }
+
+    /// Sets the letter spacing of the text of the [`Radio`] button.
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Pixels>) -> Self {
+        self.letter_spacing = Some(letter_spacing.into());
         self
     }
 
@@ -311,7 +319,7 @@ where
                         shaping: self.shaping,
                         wrapping: self.wrapping,
                         ellipsis: text::Ellipsis::default(),
-                        letter_spacing: None,
+                        letter_spacing: self.letter_spacing.map(|p| p.0),
                     },
                 )
             },

@@ -101,6 +101,10 @@ impl text::Paragraph for () {
         None
     }
 
+    fn letter_spacing(&self) -> Option<f32> {
+        None
+    }
+
     fn size(&self) -> Pixels {
         Pixels(16.0)
     }

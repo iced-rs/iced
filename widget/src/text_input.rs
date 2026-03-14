@@ -106,6 +106,7 @@ where
     width: Length,
     padding: Padding,
     size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
     alignment: alignment::Horizontal,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
@@ -140,6 +141,7 @@ where
             width: Length::Fill,
             padding: DEFAULT_PADDING,
             size: None,
+            letter_spacing: None,
             line_height: text::LineHeight::default(),
             alignment: alignment::Horizontal::Left,
             on_input: None,
@@ -280,6 +282,12 @@ where
         self
     }
 
+    /// Sets the letter spacing of the [`TextInput`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Pixels>) -> Self {
+        self.letter_spacing = Some(letter_spacing.into());
+        self
+    }
+
     /// Sets the [`text::LineHeight`] of the [`TextInput`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.line_height = line_height.into();
@@ -342,7 +350,7 @@ where
             wrapping: text::Wrapping::None,
             ellipsis: text::Ellipsis::None,
             hint_factor: renderer.scale_factor(),
-            letter_spacing: None,
+            letter_spacing: self.letter_spacing.map(|p| p.0),
         };
 
         let _ = state.placeholder.update(placeholder_text);
@@ -706,6 +714,7 @@ where
                 value,
                 self.font,
                 self.size,
+                self.letter_spacing,
                 self.line_height,
             );
         };
@@ -1891,6 +1900,7 @@ fn replace_paragraph<Renderer>(
     value: &Value,
     font: Option<Renderer::Font>,
     text_size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
 ) where
     Renderer: text::Renderer,
@@ -1913,7 +1923,7 @@ fn replace_paragraph<Renderer>(
         wrapping: text::Wrapping::None,
         ellipsis: text::Ellipsis::None,
         hint_factor: renderer.scale_factor(),
-        letter_spacing: None,
+        letter_spacing: letter_spacing.map(|p| p.0),
     });
 }
 

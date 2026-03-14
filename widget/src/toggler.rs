@@ -88,6 +88,7 @@ where
     width: Length,
     size: f32,
     text_size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
     alignment: text::Alignment,
     text_shaping: text::Shaping,
@@ -122,6 +123,7 @@ where
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
+            letter_spacing: None,
             line_height: text::LineHeight::default(),
             alignment: text::Alignment::Default,
             text_shaping: text::Shaping::default(),
@@ -172,6 +174,12 @@ where
     /// Sets the text size o the [`Toggler`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into());
+        self
+    }
+
+    /// Sets the letter spacing of the text of the [`Toggler`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Pixels>) -> Self {
+        self.letter_spacing = Some(letter_spacing.into());
         self
     }
 
@@ -301,7 +309,7 @@ where
                             shaping: self.text_shaping,
                             wrapping: self.wrapping,
                             ellipsis: text::Ellipsis::None,
-                            letter_spacing: None,
+                            letter_spacing: self.letter_spacing.map(|p| p.0),
                         },
                     )
                 } else {

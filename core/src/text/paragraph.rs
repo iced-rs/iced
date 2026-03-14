@@ -29,6 +29,9 @@ pub trait Paragraph: Sized + Default {
     /// Returns the hint factor of the [`Paragraph`].
     fn hint_factor(&self) -> Option<f32>;
 
+    /// Returns the letter spacing of the [`Paragraph`], if any.
+    fn letter_spacing(&self) -> Option<f32>;
+
     /// Returns the font of the [`Paragraph`].
     fn font(&self) -> Self::Font;
 
@@ -179,7 +182,7 @@ impl<P: Paragraph> Plain<P> {
             wrapping: self.raw.wrapping(),
             ellipsis: self.raw.ellipsis(),
             hint_factor: self.raw.hint_factor(),
-            letter_spacing: None,
+            letter_spacing: self.raw.letter_spacing(),
         }
     }
 }

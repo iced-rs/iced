@@ -44,6 +44,8 @@ pub struct Text {
     pub wrapping: Wrapping,
     /// The ellipsis strategy of the text.
     pub ellipsis: Ellipsis,
+    /// The letter spacing of the text in pixels.
+    pub letter_spacing: Option<f32>,
 }
 
 impl Text {
@@ -62,7 +64,7 @@ impl Text {
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
             hint_factor: None,
-            letter_spacing: None,
+            letter_spacing: self.letter_spacing,
         });
 
         let translation_x = match self.align_x {
@@ -171,6 +173,7 @@ impl Default for Text {
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
+            letter_spacing: None,
         }
     }
 }

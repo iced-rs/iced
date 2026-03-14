@@ -162,6 +162,12 @@ where
         self
     }
 
+    /// Optionally sets the letter spacing of the [`Text`].
+    pub fn letter_spacing_maybe(mut self, letter_spacing: Option<impl Into<Pixels>>) -> Self {
+        self.format.letter_spacing = letter_spacing.map(|s| s.into().0);
+        self
+    }
+
     /// Sets the style of the [`Text`].
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
     where

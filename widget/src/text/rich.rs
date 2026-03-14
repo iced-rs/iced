@@ -52,6 +52,8 @@ where
     global_selecting: bool,
     /// For edge handling: (paragraph_index, total_paragraphs)
     paragraph_info: Option<(usize, usize)>,
+    /// Letter spacing in pixels (applied to all spans)
+    letter_spacing: Option<Pixels>,
 }
 
 impl<'a, Link, Message, Theme, Renderer> Rich<'a, Link, Message, Theme, Renderer>
@@ -86,6 +88,7 @@ where
             selectable: false,
             global_selecting: false,
             paragraph_info: None,
+            letter_spacing: None,
         }
     }
 
@@ -221,6 +224,18 @@ where
         self
     }
 
+    /// Sets the letter spacing of the [`Rich`] text in pixels.
+    pub fn letter_spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.letter_spacing = Some(spacing.into());
+        self
+    }
+
+    /// Optionally sets the letter spacing of the [`Rich`] text.
+    pub fn letter_spacing_maybe(mut self, spacing: Option<Pixels>) -> Self {
+        self.letter_spacing = spacing;
+        self
+    }
+
     /// Sets the message that will be produced when a link of the [`Rich`] text
     /// is clicked.
     ///
@@ -343,6 +358,7 @@ where
             self.align_y,
             self.wrapping,
             self.ellipsis,
+            self.letter_spacing,
         )
     }
 
@@ -820,6 +836,7 @@ fn layout<Link, Renderer>(
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     ellipsis: Ellipsis,
+    letter_spacing: Option<Pixels>,
 ) -> layout::Node
 where
     Link: Clone,
@@ -850,7 +867,7 @@ where
             wrapping,
             ellipsis,
             hint_factor: renderer.scale_factor(),
-            letter_spacing: None,
+            letter_spacing: letter_spacing.map(|p| p.0),
         };
 
         if state.spans != spans {
@@ -869,7 +886,7 @@ where
                 wrapping,
                 ellipsis,
                 hint_factor: renderer.scale_factor(),
-                letter_spacing: None,
+                letter_spacing: letter_spacing.map(|p| p.0),
             }) {
                 core::text::Difference::None => {}
                 core::text::Difference::Bounds => {

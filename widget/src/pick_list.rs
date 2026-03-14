@@ -162,6 +162,7 @@ where
     width: Length,
     padding: Padding,
     text_size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
@@ -196,6 +197,7 @@ where
             width: Length::Shrink,
             padding: crate::button::DEFAULT_PADDING,
             text_size: None,
+            letter_spacing: None,
             line_height: text::LineHeight::default(),
             shaping: text::Shaping::default(),
             ellipsis: text::Ellipsis::End,
@@ -235,6 +237,12 @@ where
     /// Sets the text size of the [`PickList`].
     pub fn text_size(mut self, size: impl Into<Pixels>) -> Self {
         self.text_size = Some(size.into());
+        self
+    }
+
+    /// Sets the letter spacing of the text of the [`PickList`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Pixels>) -> Self {
+        self.letter_spacing = Some(letter_spacing.into());
         self
     }
 
@@ -375,7 +383,7 @@ where
             wrapping: text::Wrapping::None,
             ellipsis: self.ellipsis,
             hint_factor: renderer.scale_factor(),
-            letter_spacing: None,
+            letter_spacing: self.letter_spacing.map(|p| p.0),
         };
 
         if let Some(placeholder) = &self.placeholder {
@@ -690,7 +698,7 @@ where
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
-                    letter_spacing: None,
+                    letter_spacing: self.letter_spacing.map(|p| p.0),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if selected.is_some() {
@@ -742,6 +750,10 @@ where
 
             if let Some(text_size) = self.text_size {
                 menu = menu.text_size(text_size);
+            }
+
+            if let Some(letter_spacing) = self.letter_spacing {
+                menu = menu.letter_spacing(letter_spacing);
             }
 
             Some(menu.overlay(

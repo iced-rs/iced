@@ -32,6 +32,7 @@ where
     width: f32,
     padding: Padding,
     text_size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
@@ -68,6 +69,7 @@ where
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
+            letter_spacing: None,
             line_height: text::LineHeight::default(),
             shaping: text::Shaping::default(),
             ellipsis: text::Ellipsis::default(),
@@ -91,6 +93,12 @@ where
     /// Sets the text size of the [`Menu`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into());
+        self
+    }
+
+    /// Sets the letter spacing of the text of the [`Menu`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Pixels>) -> Self {
+        self.letter_spacing = Some(letter_spacing.into());
         self
     }
 
@@ -204,6 +212,7 @@ where
             padding,
             font,
             text_size,
+            letter_spacing,
             line_height,
             shaping,
             ellipsis,
@@ -218,6 +227,7 @@ where
             on_option_hovered,
             font,
             text_size,
+            letter_spacing,
             line_height,
             shaping,
             ellipsis,
@@ -337,6 +347,7 @@ where
     on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     padding: Padding,
     text_size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
@@ -546,7 +557,7 @@ where
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
-                    letter_spacing: None,
+                    letter_spacing: self.letter_spacing.map(|p| p.0),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {

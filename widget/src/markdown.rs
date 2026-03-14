@@ -1034,6 +1034,10 @@ pub struct Settings {
     ///
     /// Defaults to [`Wrapping::WordOrGlyph`].
     pub wrapping: Wrapping,
+    /// The letter spacing in pixels to apply to text elements.
+    ///
+    /// Defaults to `None` (no extra spacing).
+    pub letter_spacing: Option<Pixels>,
 }
 
 impl Settings {
@@ -1063,6 +1067,7 @@ impl Settings {
             style: style.into(),
             width: Length::Fill,
             wrapping: Wrapping::WordOrGlyph,
+            letter_spacing: None,
         }
     }
 }
@@ -1452,6 +1457,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(settings.text_size)
+                    .letter_spacing_maybe(settings.letter_spacing)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1482,6 +1488,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(size)
+                    .letter_spacing_maybe(settings.letter_spacing)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1536,6 +1543,7 @@ where
                         rich_text(alt.spans(settings.style))
                             .font(settings.style.font)
                             .size(settings.text_size)
+                            .letter_spacing_maybe(settings.letter_spacing)
                             .wrapping(settings.wrapping),
                     )
                     .padding(settings.spacing)
@@ -1623,6 +1631,7 @@ where
                     .on_link_click(V::on_link_click)
                     .font(settings.style.font)
                     .size(settings.text_size)
+                    .letter_spacing_maybe(settings.letter_spacing)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1654,6 +1663,7 @@ where
                     .on_link_click(V::on_link_click)
                     .font(settings.style.font)
                     .size(size)
+                    .letter_spacing_maybe(settings.letter_spacing)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1772,6 +1782,7 @@ where
             rich_text(line.spans(settings.style))
                 .font(Font::MONOSPACE)
                 .size(settings.code_size)
+                .letter_spacing_maybe(settings.letter_spacing)
                 .wrapping(settings.wrapping)
                 .width(settings.width)
                 .selection(selection)
@@ -1829,6 +1840,7 @@ where
                     let number = start + i as u64;
                     crate::text(format!("{number:>width$}.", width = digits as usize))
                         .size(settings.text_size)
+                        .letter_spacing_maybe(settings.letter_spacing)
                         .into()
                 }
             };
@@ -1850,6 +1862,7 @@ where
                             rich_text(text.spans(settings.style))
                                 .font(settings.style.font)
                                 .size(settings.text_size)
+                                .letter_spacing_maybe(settings.letter_spacing)
                                 .wrapping(settings.wrapping)
                                 .selection(selection)
                                 .selection_color(settings.style.selection_color)
@@ -1931,6 +1944,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(settings.text_size)
+                    .letter_spacing_maybe(settings.letter_spacing)
                     .wrapping(settings.wrapping)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -1959,6 +1973,7 @@ where
                 rich_text(text.spans(settings.style))
                     .font(settings.style.font)
                     .size(size)
+                    .letter_spacing_maybe(settings.letter_spacing)
                     .wrapping(settings.wrapping)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -2202,6 +2217,7 @@ where
             rich_text(text.spans(settings.style))
                 .font(settings.style.font)
                 .size(settings.text_size)
+                .letter_spacing_maybe(settings.letter_spacing)
                 .wrapping(settings.wrapping)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
@@ -2223,6 +2239,7 @@ where
             rich_text(text.spans(settings.style))
                 .font(settings.style.font)
                 .size(size)
+                .letter_spacing_maybe(settings.letter_spacing)
                 .wrapping(settings.wrapping)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
@@ -2307,6 +2324,7 @@ where
                 pulldown_cmark::HeadingLevel::H5 => h5_size,
                 pulldown_cmark::HeadingLevel::H6 => h6_size,
             })
+            .letter_spacing_maybe(settings.letter_spacing)
             .wrapping(settings.wrapping),
     )
     .padding(padding::top(if index > 0 {
@@ -2330,6 +2348,7 @@ where
 {
     rich_text(text.spans(settings.style))
         .size(settings.text_size)
+        .letter_spacing_maybe(settings.letter_spacing)
         .wrapping(settings.wrapping)
         .on_link_click(on_link_click)
         .into()
@@ -2398,6 +2417,7 @@ where
         row![
             text!("{}.", i as u64 + start)
                 .size(settings.text_size)
+                .letter_spacing_maybe(settings.letter_spacing)
                 .align_x(alignment::Horizontal::Right)
                 .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
             view_with(
@@ -2434,6 +2454,7 @@ where
                     .on_link_click(on_link_click.clone())
                     .font(settings.style.code_block_font)
                     .size(settings.code_size)
+                    .letter_spacing_maybe(settings.letter_spacing)
                     .wrapping(settings.wrapping)
                     .into()
             })))
@@ -2580,6 +2601,7 @@ where
         container(
             rich_text(alt.spans(settings.style))
                 .on_link_click(Self::on_link_click)
+                .letter_spacing_maybe(settings.letter_spacing)
                 .wrapping(settings.wrapping),
         )
         .padding(settings.spacing.0)

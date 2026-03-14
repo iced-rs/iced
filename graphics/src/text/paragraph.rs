@@ -264,6 +264,10 @@ impl core::text::Paragraph for Paragraph {
         self.0.hint.then_some(self.0.hint_factor)
     }
 
+    fn letter_spacing(&self) -> Option<f32> {
+        self.0.letter_spacing
+    }
+
     fn size(&self) -> Pixels {
         Pixels(self.0.buffer.metrics().font_size / self.0.hint_factor)
     }

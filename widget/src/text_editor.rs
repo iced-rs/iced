@@ -105,6 +105,7 @@ where
     placeholder: Option<text::Fragment<'a>>,
     font: Option<Renderer::Font>,
     text_size: Option<Pixels>,
+    letter_spacing: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
     height: Length,
@@ -133,6 +134,7 @@ where
             placeholder: None,
             font: None,
             text_size: None,
+            letter_spacing: None,
             line_height: LineHeight::default(),
             width: Length::Fill,
             height: Length::Shrink,
@@ -216,6 +218,12 @@ where
         self
     }
 
+    /// Sets the letter spacing of the [`TextEditor`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Pixels>) -> Self {
+        self.letter_spacing = Some(letter_spacing.into());
+        self
+    }
+
     /// Sets the [`text::LineHeight`] of the [`TextEditor`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
         self.line_height = line_height.into();
@@ -266,6 +274,7 @@ where
             placeholder: self.placeholder,
             font: self.font,
             text_size: self.text_size,
+            letter_spacing: self.letter_spacing,
             line_height: self.line_height,
             width: self.width,
             height: self.height,
@@ -977,7 +986,7 @@ where
                         wrapping: self.wrapping,
                         ellipsis: text::Ellipsis::None,
                         hint_factor: renderer.scale_factor(),
-                        letter_spacing: None,
+                        letter_spacing: self.letter_spacing.map(|p| p.0),
                     },
                     text_bounds.position(),
                     style.placeholder,
