@@ -5,7 +5,7 @@ mod find;
 mod target;
 
 pub use find::{Find, FindAll};
-pub use target::{Bounded, Candidate, Target, Text};
+pub use target::{AccessibleMatch, Bounded, Candidate, Target, Text};
 
 use crate::core::Point;
 use crate::core::widget;
@@ -147,6 +147,81 @@ pub fn id(id: impl Into<widget::Id>) -> impl Selector<Output = Target> {
     id.into()
 }
 
+/// Returns a [`Selector`] that matches widgets with the given accessible
+/// [`Role`](widget::operation::accessible::Role).
+pub fn by_role(
+    role: widget::operation::accessible::Role,
+) -> impl Selector<Output = AccessibleMatch> {
+    struct ByRole(widget::operation::accessible::Role);
+
+    impl Selector for ByRole {
+        type Output = AccessibleMatch;
+
+        fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+            if let Candidate::Accessible {
+                id,
+                bounds,
+                visible_bounds,
+                accessible,
+            } = candidate
+                && accessible.role == self.0
+            {
+                return Some(AccessibleMatch {
+                    id: id.cloned(),
+                    bounds,
+                    visible_bounds,
+                    role: accessible.role,
+                    label: accessible.label.map(str::to_owned),
+                    description: accessible.description.map(str::to_owned),
+                });
+            }
+            None
+        }
+
+        fn description(&self) -> String {
+            format!("role == {:?}", self.0)
+        }
+    }
+
+    ByRole(role)
+}
+
+/// Returns a [`Selector`] that matches widgets with the given accessible label (exact match).
+pub fn by_label(label: &str) -> impl Selector<Output = AccessibleMatch> + '_ {
+    struct ByLabel<'a>(&'a str);
+
+    impl Selector for ByLabel<'_> {
+        type Output = AccessibleMatch;
+
+        fn select(&mut self, candidate: Candidate<'_>) -> Option<Self::Output> {
+            if let Candidate::Accessible {
+                id,
+                bounds,
+                visible_bounds,
+                accessible,
+            } = candidate
+                && accessible.label == Some(self.0)
+            {
+                return Some(AccessibleMatch {
+                    id: id.cloned(),
+                    bounds,
+                    visible_bounds,
+                    role: accessible.role,
+                    label: accessible.label.map(str::to_owned),
+                    description: accessible.description.map(str::to_owned),
+                });
+            }
+            None
+        }
+
+        fn description(&self) -> String {
+            format!("label == {:?}", self.0)
+        }
+    }
+
+    ByLabel(label)
+}
+
 /// Returns a [`Selector`] that matches widgets that are currently focused.
 pub fn is_focused() -> impl Selector<Output = Target> {
     struct IsFocused;
@@ -170,4 +245,110 @@ pub fn is_focused() -> impl Selector<Output = Target> {
     }
 
     IsFocused
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::Rectangle;
+    use crate::core::widget::operation::accessible::{Accessible, Role as IcedRole};
+    use crate::target::Candidate;
+
+    const UNIT: Rectangle = Rectangle {
+        x: 0.0,
+        y: 0.0,
+        width: 100.0,
+        height: 50.0,
+    };
+
+    fn make_accessible_candidate(
+        role: IcedRole,
+        label: Option<&str>,
+    ) -> (Accessible<'_>, Rectangle) {
+        (
+            Accessible {
+                role,
+                label,
+                ..Accessible::default()
+            },
+            UNIT,
+        )
+    }
+
+    #[test]
+    fn by_role_matches_accessible_candidate() {
+        let (accessible, bounds) = make_accessible_candidate(IcedRole::Button, None);
+        let candidate = Candidate::Accessible {
+            id: None,
+            bounds,
+            visible_bounds: Some(bounds),
+            accessible: &accessible,
+        };
+
+        let mut selector = by_role(IcedRole::Button);
+        let result = selector.select(candidate);
+
+        assert!(
+            result.is_some(),
+            "by_role(Button) should match a Button candidate"
+        );
+        let m = result.unwrap();
+        assert_eq!(m.role, IcedRole::Button);
+    }
+
+    #[test]
+    fn by_role_skips_wrong_role() {
+        let (accessible, bounds) = make_accessible_candidate(IcedRole::Button, None);
+        let candidate = Candidate::Accessible {
+            id: None,
+            bounds,
+            visible_bounds: Some(bounds),
+            accessible: &accessible,
+        };
+
+        let mut selector = by_role(IcedRole::Slider);
+        let result = selector.select(candidate);
+
+        assert!(
+            result.is_none(),
+            "by_role(Slider) should not match a Button candidate"
+        );
+    }
+
+    #[test]
+    fn by_label_matches_accessible_label() {
+        let (accessible, bounds) = make_accessible_candidate(IcedRole::Button, Some("Submit"));
+        let candidate = Candidate::Accessible {
+            id: None,
+            bounds,
+            visible_bounds: Some(bounds),
+            accessible: &accessible,
+        };
+
+        let mut selector = by_label("Submit");
+        let result = selector.select(candidate);
+
+        assert!(result.is_some(), "by_label(\"Submit\") should match");
+        let m = result.unwrap();
+        assert_eq!(m.label.as_deref(), Some("Submit"));
+    }
+
+    #[test]
+    fn by_label_skips_wrong_label() {
+        let (accessible, bounds) = make_accessible_candidate(IcedRole::Button, Some("Submit"));
+        let candidate = Candidate::Accessible {
+            id: None,
+            bounds,
+            visible_bounds: Some(bounds),
+            accessible: &accessible,
+        };
+
+        let mut selector = by_label("Cancel");
+        let result = selector.select(candidate);
+
+        assert!(
+            result.is_none(),
+            "by_label(\"Cancel\") should not match \"Submit\""
+        );
+    }
 }
