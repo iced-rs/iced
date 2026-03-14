@@ -795,3 +795,1812 @@ impl Operation for TreeBuilder {
         crate::core::widget::operation::Outcome::None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use accesskit::Action;
+
+    #[test]
+    fn initial_tree_has_window_root() {
+        let active = Arc::new(AtomicBool::new(false));
+        let mut handler = IcedActivationHandler {
+            active: Arc::clone(&active),
+            title: "Test Window".to_owned(),
+        };
+        let tree = handler.request_initial_tree();
+        let update = tree.expect("activation handler returns a tree");
+
+        assert!(
+            active.load(Ordering::Acquire),
+            "activation sets active flag"
+        );
+        assert_eq!(update.nodes.len(), 1);
+
+        let (id, node) = &update.nodes[0];
+        assert_eq!(*id, ROOT_ID);
+        assert_eq!(node.role(), Role::Window);
+
+        let tree = update.tree.expect("initial update includes tree");
+        assert_eq!(tree.root, ROOT_ID);
+        assert_eq!(update.focus, ROOT_ID);
+    }
+
+    #[test]
+    fn action_handler_queues_requests() {
+        let queue = Arc::new(Mutex::new(Vec::new()));
+        let window_id = window::Id::unique();
+
+        let mut handler = IcedActionHandler {
+            window_id,
+            queue: Arc::clone(&queue),
+        };
+
+        let request = ActionRequest {
+            action: Action::Focus,
+            target_tree: TreeId::ROOT,
+            target_node: NodeId(1),
+            data: None,
+        };
+
+        handler.do_action(request);
+
+        let pending = queue.lock().unwrap();
+        assert_eq!(pending.len(), 1);
+        assert_eq!(pending[0].window_id, window_id);
+        assert_eq!(pending[0].request.action, Action::Focus);
+        assert_eq!(pending[0].request.target_node, NodeId(1));
+    }
+
+    #[test]
+    fn take_clears_pending_actions() {
+        let queue = Arc::new(Mutex::new(Vec::new()));
+
+        let mut handler = IcedActionHandler {
+            window_id: window::Id::unique(),
+            queue: Arc::clone(&queue),
+        };
+
+        handler.do_action(ActionRequest {
+            action: Action::Click,
+            target_tree: TreeId::ROOT,
+            target_node: ROOT_ID,
+            data: None,
+        });
+
+        // First take returns pending actions
+        let first = {
+            let mut q = queue.lock().unwrap();
+            std::mem::take(&mut *q)
+        };
+        assert!(!first.is_empty());
+
+        // Second take returns nothing
+        let second = {
+            let mut q = queue.lock().unwrap();
+            std::mem::take(&mut *q)
+        };
+        assert!(second.is_empty());
+    }
+
+    // --- Integration tests below require a Wayland compositor ---
+    // Run with: WAYLAND_DISPLAY=... cargo test --features a11y
+    // Or use headless weston: weston --backend=headless
+
+    /// Runs a closure inside a winit event loop with access to
+    /// [`ActiveEventLoop`]. Requires a running Wayland compositor
+    /// (e.g. headless weston via `WAYLAND_DISPLAY`).
+    fn with_event_loop(f: impl FnOnce(&ActiveEventLoop) + 'static) {
+        use winit::application::ApplicationHandler;
+        use winit::event_loop::EventLoop;
+        use winit::platform::wayland::EventLoopBuilderExtWayland;
+
+        struct TestApp<F: FnOnce(&ActiveEventLoop)>(Option<F>);
+
+        impl<F: FnOnce(&ActiveEventLoop)> ApplicationHandler for TestApp<F> {
+            fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+                if let Some(f) = self.0.take() {
+                    f(event_loop);
+                }
+                event_loop.exit();
+            }
+
+            fn window_event(
+                &mut self,
+                _: &ActiveEventLoop,
+                _: winit::window::WindowId,
+                _: winit::event::WindowEvent,
+            ) {
+            }
+        }
+
+        let event_loop = EventLoop::builder()
+            .with_any_thread(true)
+            .build()
+            .expect("create event loop (is WAYLAND_DISPLAY set?)");
+
+        let _ = event_loop.run_app(&mut TestApp(Some(f)));
+    }
+
+    /// Returns true if a Wayland compositor is available for
+    /// integration tests.
+    fn has_wayland() -> bool {
+        std::env::var_os("WAYLAND_DISPLAY").is_some()
+    }
+
+    /// Integration test for the full adapter lifecycle. Combined into
+    /// a single test because winit only allows one event loop per
+    /// process.
+    ///
+    /// Requires `WAYLAND_DISPLAY` to be set (e.g. headless weston).
+    #[test]
+    fn adapter_lifecycle() {
+        if !has_wayland() {
+            eprintln!("skipping adapter_lifecycle: WAYLAND_DISPLAY not set");
+            return;
+        }
+
+        with_event_loop(|event_loop| {
+            // -- Creation --
+            let attrs = Window::default_attributes().with_visible(false);
+            let window = Arc::new(event_loop.create_window(attrs).expect("create window"));
+            let id = window::Id::unique();
+
+            let mut adapter = A11yAdapter::new(event_loop, window, id, "Test Window");
+            assert!(adapter.drain_action_requests().is_empty());
+
+            // -- process_event with the events accesskit handles --
+            adapter.process_event(&winit::event::WindowEvent::Focused(true));
+            adapter.process_event(&winit::event::WindowEvent::Focused(false));
+            adapter.process_event(&winit::event::WindowEvent::Resized(
+                winit::dpi::PhysicalSize::new(800, 600),
+            ));
+
+            // -- process_event with one it ignores --
+            adapter.process_event(&winit::event::WindowEvent::RedrawRequested);
+
+            // -- update_if_active (no AT connected, closure not called) --
+            let mut called = false;
+            adapter.update_if_active(|| {
+                called = true;
+                TreeUpdate {
+                    nodes: vec![],
+                    tree: None,
+                    tree_id: TreeId::ROOT,
+                    focus: ROOT_ID,
+                }
+            });
+            assert!(!called, "update closure should not fire without AT");
+
+            // -- Drop cleans up without panic --
+            drop(adapter);
+        });
+    }
+
+    #[test]
+    fn concurrent_action_handler() {
+        let queue = Arc::new(Mutex::new(Vec::new()));
+        let window_id = window::Id::unique();
+        let n_threads = 8;
+        let n_actions = 100;
+
+        let threads: Vec<_> = (0..n_threads)
+            .map(|_| {
+                let mut handler = IcedActionHandler {
+                    window_id,
+                    queue: Arc::clone(&queue),
+                };
+
+                std::thread::spawn(move || {
+                    for i in 0..n_actions {
+                        handler.do_action(ActionRequest {
+                            action: Action::Focus,
+                            target_tree: TreeId::ROOT,
+                            target_node: NodeId(i as u64),
+                            data: None,
+                        });
+                    }
+                })
+            })
+            .collect();
+
+        for t in threads {
+            t.join().expect("thread should not panic");
+        }
+
+        let total = queue.lock().unwrap().len();
+        assert_eq!(total, n_threads * n_actions);
+    }
+
+    #[test]
+    fn separate_adapters_have_independent_queues() {
+        let queue_a = Arc::new(Mutex::new(Vec::new()));
+        let queue_b = Arc::new(Mutex::new(Vec::new()));
+
+        let id_a = window::Id::unique();
+        let id_b = window::Id::unique();
+
+        let mut handler_a = IcedActionHandler {
+            window_id: id_a,
+            queue: Arc::clone(&queue_a),
+        };
+        let mut handler_b = IcedActionHandler {
+            window_id: id_b,
+            queue: Arc::clone(&queue_b),
+        };
+
+        handler_a.do_action(ActionRequest {
+            action: Action::Focus,
+            target_tree: TreeId::ROOT,
+            target_node: ROOT_ID,
+            data: None,
+        });
+        handler_b.do_action(ActionRequest {
+            action: Action::Click,
+            target_tree: TreeId::ROOT,
+            target_node: ROOT_ID,
+            data: None,
+        });
+        handler_b.do_action(ActionRequest {
+            action: Action::Focus,
+            target_tree: TreeId::ROOT,
+            target_node: NodeId(1),
+            data: None,
+        });
+
+        let a_requests = queue_a.lock().unwrap();
+        let b_requests = queue_b.lock().unwrap();
+
+        assert_eq!(a_requests.len(), 1);
+        assert_eq!(a_requests[0].window_id, id_a);
+
+        assert_eq!(b_requests.len(), 2);
+        assert_eq!(b_requests[0].window_id, id_b);
+        assert_eq!(b_requests[1].window_id, id_b);
+    }
+
+    #[test]
+    fn poisoned_lock_returns_empty() {
+        let queue = Arc::new(Mutex::new(Vec::<A11yActionRequest>::new()));
+
+        // Poison the lock by panicking while holding it
+        let queue_clone = Arc::clone(&queue);
+        let _ = std::thread::spawn(move || {
+            let _guard = queue_clone.lock().unwrap();
+            panic!("intentional poison");
+        })
+        .join();
+
+        assert!(queue.lock().is_err(), "lock should be poisoned");
+
+        // Action handler should not panic on poisoned lock
+        let mut handler = IcedActionHandler {
+            window_id: window::Id::unique(),
+            queue: Arc::clone(&queue),
+        };
+        handler.do_action(ActionRequest {
+            action: Action::Focus,
+            target_tree: TreeId::ROOT,
+            target_node: ROOT_ID,
+            data: None,
+        });
+
+        // drain_action_requests equivalent should return empty
+        let result = if let Ok(mut q) = queue.lock() {
+            std::mem::take(&mut *q)
+        } else {
+            Vec::new()
+        };
+        assert!(result.is_empty());
+    }
+
+    // --- TreeBuilder tests ---
+
+    /// Convenience bounds for tests that don't care about geometry.
+    const UNIT: Rectangle = Rectangle {
+        x: 0.0,
+        y: 0.0,
+        width: 100.0,
+        height: 50.0,
+    };
+
+    #[test]
+    fn empty_tree_has_only_root() {
+        let tree = TreeBuilder::new("Test Window").build();
+
+        assert_eq!(tree.update.nodes.len(), 1);
+        assert_eq!(tree.update.nodes[0].1.role(), Role::Window);
+        assert_eq!(tree.update.focus, NodeId(0));
+    }
+
+    #[test]
+    fn accessible_creates_child_of_root() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                label: Some("OK"),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+
+        assert_eq!(tree.update.nodes.len(), 2);
+        let button_id = tree.update.nodes[1].0;
+        assert_eq!(tree.update.nodes[0].1.children(), &[button_id]);
+        assert_eq!(tree.update.nodes[1].1.role(), Role::Button);
+        assert_eq!(tree.update.nodes[1].1.label(), Some("OK"));
+    }
+
+    #[test]
+    fn traverse_nests_children_under_parent() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Group,
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            op.accessible(
+                None,
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    ..Accessible::default()
+                },
+            );
+        });
+
+        let tree = builder.build();
+
+        let group_id = tree.update.nodes[1].0;
+        let button_id = tree.update.nodes[2].0;
+        assert_eq!(tree.update.nodes[0].1.children(), &[group_id]);
+        assert_eq!(tree.update.nodes[1].1.children(), &[button_id]);
+        assert_eq!(tree.update.nodes[2].1.role(), Role::Button);
+    }
+
+    #[test]
+    fn button_gets_label_from_descendant() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        // button { Text("Save") } -- accesskit's consumer derives
+        // the button's name from the descendant Label node.
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            op.text(None, UNIT, "Save");
+        });
+
+        let tree = builder.build();
+
+        // Button has no direct label -- a Label child carries the text
+        assert_eq!(tree.update.nodes.len(), 3);
+        assert!(tree.update.nodes[1].1.label().is_none());
+        assert_eq!(tree.update.nodes[1].1.role(), Role::Button);
+
+        // The Label child stores text in `value` (accesskit convention)
+        assert_eq!(tree.update.nodes[2].1.role(), Role::Label);
+        assert_eq!(tree.update.nodes[2].1.value(), Some("Save"));
+
+        // Label is a child of the button
+        assert!(
+            tree.update.nodes[1]
+                .1
+                .children()
+                .contains(&tree.update.nodes[2].0)
+        );
+    }
+
+    #[test]
+    fn announcements_appear_as_assertive_labels() {
+        let tree = TreeBuilder::new("Test Window")
+            .with_announcements(&["File saved".to_owned()])
+            .build();
+
+        assert_eq!(tree.update.nodes.len(), 2);
+        assert_eq!(tree.update.nodes[1].1.role(), Role::Label);
+        assert_eq!(tree.update.nodes[1].1.value(), Some("File saved"));
+        assert_eq!(tree.update.nodes[1].1.live(), Some(Live::Assertive));
+    }
+
+    // --- Comprehensive TreeBuilder edge cases ---
+
+    struct MockFocusable(bool);
+
+    impl Focusable for MockFocusable {
+        fn is_focused(&self) -> bool {
+            self.0
+        }
+        fn focus(&mut self) {
+            self.0 = true;
+        }
+        fn unfocus(&mut self) {
+            self.0 = false;
+        }
+    }
+
+    #[test]
+    fn accessible_maps_all_properties() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::CheckBox,
+                label: Some("Accept terms"),
+                description: Some("You must accept to continue"),
+                toggled: Some(true),
+                disabled: true,
+                selected: Some(false),
+                expanded: Some(true),
+                live: Some(IcedLive::Polite),
+                value: Some(IcedValue::Text("checked")),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node = &tree.update.nodes[1].1;
+
+        assert_eq!(node.role(), Role::CheckBox);
+        assert_eq!(node.label(), Some("Accept terms"));
+        assert_eq!(node.description(), Some("You must accept to continue"));
+        assert_eq!(node.toggled(), Some(Toggled::True));
+        assert!(node.is_disabled());
+        assert_eq!(node.is_selected(), Some(false));
+        assert_eq!(node.is_expanded(), Some(true));
+        assert_eq!(node.live(), Some(Live::Polite));
+        assert_eq!(node.value(), Some("checked"));
+    }
+
+    #[test]
+    fn accessible_maps_numeric_value() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Slider,
+                value: Some(IcedValue::Numeric {
+                    current: 50.0,
+                    min: 0.0,
+                    max: 100.0,
+                    step: Some(1.0),
+                }),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node = &tree.update.nodes[1].1;
+
+        assert_eq!(node.numeric_value(), Some(50.0));
+        assert_eq!(node.min_numeric_value(), Some(0.0));
+        assert_eq!(node.max_numeric_value(), Some(100.0));
+        assert_eq!(node.numeric_value_step(), Some(1.0));
+    }
+
+    #[test]
+    fn numeric_value_without_step() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::ProgressIndicator,
+                value: Some(IcedValue::Numeric {
+                    current: 75.0,
+                    min: 0.0,
+                    max: 100.0,
+                    step: None,
+                }),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node = &tree.update.nodes[1].1;
+
+        assert_eq!(node.numeric_value(), Some(75.0));
+        assert!(node.numeric_value_step().is_none());
+    }
+
+    #[test]
+    fn toggled_false_maps_correctly() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Switch,
+                toggled: Some(false),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        assert_eq!(tree.update.nodes[1].1.toggled(), Some(Toggled::False));
+    }
+
+    #[test]
+    fn explicit_label_preserved_with_different_text_child() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                label: Some("Submit"),
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            op.text(None, UNIT, "Send");
+        });
+
+        let tree = builder.build();
+        // Explicit label is preserved on the button
+        assert_eq!(tree.update.nodes[1].1.label(), Some("Submit"));
+        // The text child becomes a standalone Label node (different text)
+        assert_eq!(tree.update.nodes.len(), 3);
+        assert_eq!(tree.update.nodes[2].1.role(), Role::Label);
+        assert_eq!(tree.update.nodes[2].1.value(), Some("Send"));
+    }
+
+    #[test]
+    fn text_at_root_creates_standalone_label() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.text(None, UNIT, "Hello world");
+
+        let tree = builder.build();
+
+        assert_eq!(tree.update.nodes.len(), 2);
+        assert_eq!(tree.update.nodes[1].1.role(), Role::Label);
+        assert_eq!(tree.update.nodes[1].1.value(), Some("Hello world"));
+    }
+
+    #[test]
+    fn text_skips_redundant_label() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        // Checkbox pattern: widget sets both Accessible.label and
+        // calls text() with the same string.
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::CheckBox,
+                label: Some("Accept terms"),
+                ..Accessible::default()
+            },
+        );
+        builder.text(None, UNIT, "Accept terms");
+
+        let tree = builder.build();
+
+        // No redundant Label child -- the checkbox already carries the text
+        assert_eq!(tree.update.nodes.len(), 2);
+        assert_eq!(tree.update.nodes[1].1.label(), Some("Accept terms"));
+    }
+
+    #[test]
+    fn actions_added_to_clickable_roles() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+
+        assert!(
+            tree.update.nodes[1]
+                .1
+                .supports_action(accesskit::Action::Click),
+            "Button should support Click action"
+        );
+    }
+
+    #[test]
+    fn actions_added_to_numeric_values() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Slider,
+                value: Some(IcedValue::Numeric {
+                    current: 50.0,
+                    min: 0.0,
+                    max: 100.0,
+                    step: Some(1.0),
+                }),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node = &tree.update.nodes[1].1;
+
+        assert!(
+            node.supports_action(accesskit::Action::Increment),
+            "Slider with step should support Increment"
+        );
+        assert!(
+            node.supports_action(accesskit::Action::Decrement),
+            "Slider with step should support Decrement"
+        );
+    }
+
+    #[test]
+    fn focusable_adds_focus_action() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::TextInput,
+                ..Accessible::default()
+            },
+        );
+        builder.focusable(None, UNIT, &mut MockFocusable(false));
+
+        let tree = builder.build();
+
+        assert!(
+            tree.update.nodes[1]
+                .1
+                .supports_action(accesskit::Action::Focus),
+            "Focusable widget should support Focus action"
+        );
+    }
+
+    #[test]
+    fn focusable_tracks_focused_node() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::TextInput,
+                ..Accessible::default()
+            },
+        );
+        builder.focusable(None, UNIT, &mut MockFocusable(true));
+
+        let tree = builder.build();
+        let input_id = tree.update.nodes[1].0;
+
+        assert_eq!(tree.focused, Some(input_id));
+        assert_eq!(tree.update.focus, input_id);
+    }
+
+    #[test]
+    fn focusable_unfocused_leaves_focus_at_root() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::TextInput,
+                ..Accessible::default()
+            },
+        );
+        builder.focusable(None, UNIT, &mut MockFocusable(false));
+
+        let tree = builder.build();
+
+        assert!(tree.focused.is_none());
+        assert_eq!(tree.update.focus, NodeId(0));
+    }
+
+    #[test]
+    fn container_creates_generic_container_when_no_accessible() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.container(None, UNIT);
+        builder.traverse(&mut |op| {
+            op.accessible(
+                None,
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    ..Accessible::default()
+                },
+            );
+        });
+
+        let tree = builder.build();
+
+        assert_eq!(tree.update.nodes.len(), 3);
+        assert_eq!(tree.update.nodes[1].1.role(), Role::GenericContainer);
+        assert_eq!(tree.update.nodes[2].1.role(), Role::Button);
+    }
+
+    #[test]
+    fn container_is_noop_after_accessible() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                ..Accessible::default()
+            },
+        );
+        builder.container(None, UNIT);
+
+        let tree = builder.build();
+
+        assert_eq!(tree.update.nodes.len(), 2);
+        assert_eq!(tree.update.nodes[1].1.role(), Role::Button);
+    }
+
+    #[test]
+    fn role_conversion_covers_all_variants() {
+        assert_eq!(convert_role(IcedRole::Button), Role::Button);
+        assert_eq!(convert_role(IcedRole::CheckBox), Role::CheckBox);
+        assert_eq!(convert_role(IcedRole::RadioButton), Role::RadioButton);
+        assert_eq!(convert_role(IcedRole::Switch), Role::Switch);
+        assert_eq!(convert_role(IcedRole::Slider), Role::Slider);
+        assert_eq!(
+            convert_role(IcedRole::ProgressIndicator),
+            Role::ProgressIndicator
+        );
+        assert_eq!(convert_role(IcedRole::TextInput), Role::TextInput);
+        assert_eq!(convert_role(IcedRole::Group), Role::Group);
+        assert_eq!(convert_role(IcedRole::ScrollView), Role::ScrollView);
+        assert_eq!(convert_role(IcedRole::StaticText), Role::Label);
+        assert_eq!(convert_role(IcedRole::ComboBox), Role::ComboBox);
+        assert_eq!(convert_role(IcedRole::Image), Role::Image);
+        assert_eq!(convert_role(IcedRole::Link), Role::Link);
+        assert_eq!(convert_role(IcedRole::Separator), Role::GenericContainer);
+    }
+
+    #[test]
+    fn node_map_records_widget_ids_and_bounds() {
+        let widget_id = widget::Id::unique();
+        let bounds = Rectangle {
+            x: 10.0,
+            y: 20.0,
+            width: 200.0,
+            height: 40.0,
+        };
+
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            Some(&widget_id),
+            bounds,
+            &Accessible {
+                role: IcedRole::TextInput,
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node_id = tree.update.nodes[1].0;
+        let (stored_id, stored_bounds) =
+            tree.node_map.get(&node_id).expect("node should be in map");
+
+        assert_eq!(stored_id.as_ref(), Some(&widget_id));
+        assert_eq!(*stored_bounds, bounds);
+    }
+
+    #[test]
+    fn deeply_nested_tree_preserves_hierarchy() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::ScrollView,
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            op.accessible(
+                None,
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Group,
+                    ..Accessible::default()
+                },
+            );
+            op.traverse(&mut |op| {
+                op.accessible(
+                    None,
+                    UNIT,
+                    &Accessible {
+                        role: IcedRole::Button,
+                        label: Some("Deep"),
+                        ..Accessible::default()
+                    },
+                );
+            });
+        });
+
+        let tree = builder.build();
+
+        assert_eq!(tree.update.nodes.len(), 4);
+        // Each level has exactly one child
+        assert_eq!(tree.update.nodes[0].1.children().len(), 1);
+        assert_eq!(tree.update.nodes[1].1.children().len(), 1);
+        assert_eq!(tree.update.nodes[2].1.children().len(), 1);
+        assert!(tree.update.nodes[3].1.children().is_empty());
+    }
+
+    #[test]
+    fn siblings_share_same_parent() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Group,
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            op.accessible(
+                None,
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    label: Some("A"),
+                    ..Accessible::default()
+                },
+            );
+            op.accessible(
+                None,
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    label: Some("B"),
+                    ..Accessible::default()
+                },
+            );
+        });
+
+        let tree = builder.build();
+
+        let group = &tree.update.nodes[1].1;
+        assert_eq!(group.children().len(), 2);
+    }
+
+    #[test]
+    fn multiple_announcements_all_added() {
+        let tree = TreeBuilder::new("Test Window")
+            .with_announcements(&["First".to_owned(), "Second".to_owned()])
+            .build();
+
+        assert_eq!(tree.update.nodes.len(), 3);
+        assert_eq!(tree.update.nodes[1].1.value(), Some("First"));
+        assert_eq!(tree.update.nodes[2].1.value(), Some("Second"));
+    }
+
+    #[test]
+    fn announcements_coexist_with_widget_nodes() {
+        let mut builder = TreeBuilder::new("Test Window").with_announcements(&["Alert".to_owned()]);
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+
+        // Root -> [Button, Announcement]
+        assert_eq!(tree.update.nodes.len(), 3);
+        assert_eq!(tree.update.nodes[0].1.children().len(), 2);
+        assert_eq!(tree.update.nodes[1].1.role(), Role::Button);
+        assert_eq!(tree.update.nodes[2].1.role(), Role::Label);
+    }
+
+    #[test]
+    fn accessible_without_id_stores_none_in_node_map() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node_id = tree.update.nodes[1].0;
+        let (stored_id, _) = tree.node_map.get(&node_id).expect("node should be in map");
+
+        assert!(stored_id.is_none());
+    }
+
+    #[test]
+    fn leaf_accessible_does_not_corrupt_next_sibling() {
+        // Simulates Column containing [Slider, Container(Button)].
+        // The slider calls accessible() without traverse(). Then
+        // a container calls container() + traverse(), with a button
+        // inside. The button must be a child of the container, NOT
+        // the slider.
+        let mut builder = TreeBuilder::new("Test Window");
+
+        // Column group
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Group,
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            // Slider: accessible() only, no traverse()
+            let slider_bounds = Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: 200.0,
+                height: 20.0,
+            };
+            op.accessible(
+                None,
+                slider_bounds,
+                &Accessible {
+                    role: IcedRole::Slider,
+                    ..Accessible::default()
+                },
+            );
+
+            // Container(Button): container() + traverse()
+            let container_bounds = Rectangle {
+                x: 0.0,
+                y: 30.0,
+                width: 100.0,
+                height: 40.0,
+            };
+            op.container(None, container_bounds);
+            op.traverse(&mut |op| {
+                op.accessible(
+                    None,
+                    container_bounds,
+                    &Accessible {
+                        role: IcedRole::Button,
+                        label: Some("Click me"),
+                        ..Accessible::default()
+                    },
+                );
+            });
+        });
+
+        let tree = builder.build();
+
+        // Find nodes by role
+        let slider_id = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::Slider)
+            .map(|(id, _)| *id)
+            .expect("slider node exists");
+
+        let container_id = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::GenericContainer)
+            .map(|(id, _)| *id)
+            .expect("container node exists");
+
+        let button_id = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::Button)
+            .map(|(id, _)| *id)
+            .expect("button node exists");
+
+        // Button must be a child of the container
+        let container_node = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(id, _)| *id == container_id)
+            .map(|(_, n)| n)
+            .unwrap();
+        assert!(
+            container_node.children().contains(&button_id),
+            "button should be a child of the container"
+        );
+
+        // Button must NOT be a child of the slider
+        let slider_node = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(id, _)| *id == slider_id)
+            .map(|(_, n)| n)
+            .unwrap();
+        assert!(
+            !slider_node.children().contains(&button_id),
+            "button should not be a child of the slider"
+        );
+    }
+
+    #[test]
+    fn stable_ids_across_rebuilds() {
+        let widget_a = widget::Id::unique();
+        let widget_b = widget::Id::unique();
+
+        let build_tree = |a: &widget::Id, b: &widget::Id| {
+            let mut builder = TreeBuilder::new("Test Window");
+            builder.accessible(
+                Some(a),
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    label: Some("A"),
+                    ..Accessible::default()
+                },
+            );
+            builder.accessible(
+                Some(b),
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    label: Some("B"),
+                    ..Accessible::default()
+                },
+            );
+            builder.build()
+        };
+
+        let tree1 = build_tree(&widget_a, &widget_b);
+        let tree2 = build_tree(&widget_a, &widget_b);
+
+        let id_a_1 = tree1.update.nodes[1].0;
+        let id_b_1 = tree1.update.nodes[2].0;
+        let id_a_2 = tree2.update.nodes[1].0;
+        let id_b_2 = tree2.update.nodes[2].0;
+
+        assert_eq!(
+            id_a_1, id_a_2,
+            "widget A should have the same NodeId across rebuilds"
+        );
+        assert_eq!(
+            id_b_1, id_b_2,
+            "widget B should have the same NodeId across rebuilds"
+        );
+    }
+
+    #[test]
+    fn id_stability_with_conditional_widget() {
+        let named = widget::Id::new("stable-named-widget");
+
+        // Build 1: just the named widget
+        let mut builder1 = TreeBuilder::new("Test Window");
+        builder1.accessible(
+            Some(&named),
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                label: Some("Named"),
+                ..Accessible::default()
+            },
+        );
+        let tree1 = builder1.build();
+
+        // Build 2: unnamed widget inserted before the named one
+        let mut builder2 = TreeBuilder::new("Test Window");
+        builder2.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::StaticText,
+                label: Some("Extra"),
+                ..Accessible::default()
+            },
+        );
+        builder2.accessible(
+            Some(&named),
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                label: Some("Named"),
+                ..Accessible::default()
+            },
+        );
+        let tree2 = builder2.build();
+
+        // Find the named widget's NodeId in both trees
+        let named_id_1 = tree1
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.label() == Some("Named"))
+            .map(|(id, _)| *id)
+            .expect("named node in tree1");
+
+        let named_id_2 = tree2
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.label() == Some("Named"))
+            .map(|(id, _)| *id)
+            .expect("named node in tree2");
+
+        assert_eq!(
+            named_id_1, named_id_2,
+            "named widget keeps the same NodeId despite conditional widget insertion"
+        );
+    }
+
+    #[test]
+    fn bounds_set_on_accessible_nodes() {
+        let bounds = Rectangle {
+            x: 10.0,
+            y: 20.0,
+            width: 300.0,
+            height: 50.0,
+        };
+
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            bounds,
+            &Accessible {
+                role: IcedRole::Button,
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node = &tree.update.nodes[1].1;
+        let rect = node.bounds().expect("bounds should be set");
+
+        assert_eq!(rect.x0, 10.0);
+        assert_eq!(rect.y0, 20.0);
+        assert_eq!(rect.x1, 310.0);
+        assert_eq!(rect.y1, 70.0);
+    }
+
+    #[test]
+    fn multiple_text_children_all_preserved() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        // Accessible with an explicit label
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Group,
+                label: Some("Parent"),
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            op.text(None, UNIT, "First text");
+            op.text(None, UNIT, "Second text");
+        });
+
+        let tree = builder.build();
+
+        // The parent should keep its explicit label
+        let parent_node = &tree.update.nodes[1].1;
+        assert_eq!(parent_node.label(), Some("Parent"));
+
+        // Both text() calls should produce standalone Label nodes
+        let label_nodes: Vec<_> = tree
+            .update
+            .nodes
+            .iter()
+            .filter(|(_, n)| n.role() == Role::Label)
+            .collect();
+
+        assert_eq!(
+            label_nodes.len(),
+            2,
+            "both text children should be preserved"
+        );
+
+        let values: Vec<_> = label_nodes.iter().map(|(_, n)| n.value()).collect();
+        assert!(values.contains(&Some("First text")));
+        assert!(values.contains(&Some("Second text")));
+    }
+
+    #[test]
+    fn scroll_translation_adjusts_child_bounds() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        let scroll_translation = Vector::new(0.0, 100.0);
+
+        // Simulate scrollable container
+        builder.container(None, UNIT);
+        builder.scrollable(None, UNIT, UNIT, scroll_translation, &mut MockScrollable);
+        builder.traverse(&mut |op| {
+            let child_bounds = Rectangle {
+                x: 10.0,
+                y: 200.0,
+                width: 80.0,
+                height: 30.0,
+            };
+            op.accessible(
+                None,
+                child_bounds,
+                &Accessible {
+                    role: IcedRole::Button,
+                    ..Accessible::default()
+                },
+            );
+        });
+
+        let tree = builder.build();
+
+        // Find the button node
+        let button_entry = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::Button)
+            .expect("button node exists");
+
+        let button_id = button_entry.0;
+
+        // Check that node_map has scroll-adjusted bounds
+        let (_, stored_bounds) = tree
+            .node_map
+            .get(&button_id)
+            .expect("button should be in node_map");
+
+        assert_eq!(
+            stored_bounds.x, 10.0,
+            "x should be unchanged (no horizontal scroll)"
+        );
+        assert_eq!(
+            stored_bounds.y,
+            200.0 - scroll_translation.y,
+            "y should be adjusted by scroll offset"
+        );
+    }
+
+    struct MockScrollable;
+
+    impl Scrollable for MockScrollable {
+        fn snap_to(
+            &mut self,
+            _: crate::core::widget::operation::scrollable::RelativeOffset<Option<f32>>,
+        ) {
+        }
+        fn scroll_to(
+            &mut self,
+            _: crate::core::widget::operation::scrollable::AbsoluteOffset<Option<f32>>,
+        ) {
+        }
+        fn scroll_by(
+            &mut self,
+            _: crate::core::widget::operation::scrollable::AbsoluteOffset,
+            _: Rectangle,
+            _: Rectangle,
+        ) {
+        }
+    }
+
+    #[test]
+    fn separator_maps_to_generic_container_role() {
+        let mut builder = TreeBuilder::new("Test Window");
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Separator,
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+        let node = &tree.update.nodes[1].1;
+
+        assert_eq!(
+            node.role(),
+            Role::GenericContainer,
+            "Separator should map to GenericContainer"
+        );
+    }
+
+    #[test]
+    fn container_noop_under_scroll_offset() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        let scroll_translation = Vector::new(0.0, 50.0);
+
+        // Set up a scrollable context so scroll_offset is non-zero
+        builder.scrollable(None, UNIT, UNIT, scroll_translation, &mut MockScrollable);
+
+        // accessible() stores adjusted bounds in node_map
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Button,
+                ..Accessible::default()
+            },
+        );
+
+        // container() with the same raw bounds and id should be a no-op
+        builder.container(None, UNIT);
+
+        let tree = builder.build();
+
+        // Only root + the one accessible node -- no duplicate container
+        assert_eq!(
+            tree.update.nodes.len(),
+            2,
+            "container() should be a no-op when accessible() already \
+             created a node with the same adjusted bounds"
+        );
+        assert_eq!(tree.update.nodes[1].1.role(), Role::Button);
+    }
+
+    #[test]
+    fn nested_scrollable_offset_accumulates() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        let outer_bounds = Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 400.0,
+            height: 300.0,
+        };
+        let inner_bounds = Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 400.0,
+            height: 200.0,
+        };
+        let child_bounds = Rectangle {
+            x: 10.0,
+            y: 100.0,
+            width: 80.0,
+            height: 30.0,
+        };
+        let sibling_bounds = Rectangle {
+            x: 0.0,
+            y: 400.0,
+            width: 100.0,
+            height: 50.0,
+        };
+
+        // Root group with two children: the scrollable subtree
+        // and a sibling outside any scrollable.
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Group,
+                ..Accessible::default()
+            },
+        );
+        builder.traverse(&mut |op| {
+            // First child: outer scrollable widget.
+            // In real iced, a scrollable widget calls container(),
+            // scrollable(), then traverse() -- all scoped inside
+            // the parent's traverse closure.
+            op.container(None, outer_bounds);
+            op.scrollable(
+                None,
+                outer_bounds,
+                outer_bounds,
+                Vector::new(0.0, 10.0),
+                &mut MockScrollable,
+            );
+            op.traverse(&mut |op| {
+                // Inner scrollable container
+                op.container(None, inner_bounds);
+                op.scrollable(
+                    None,
+                    inner_bounds,
+                    inner_bounds,
+                    Vector::new(0.0, 20.0),
+                    &mut MockScrollable,
+                );
+                op.traverse(&mut |op| {
+                    op.accessible(
+                        None,
+                        child_bounds,
+                        &Accessible {
+                            role: IcedRole::Button,
+                            label: Some("Nested"),
+                            ..Accessible::default()
+                        },
+                    );
+                });
+            });
+        });
+
+        // Second child: sibling placed after the outer traverse()
+        // returns, so scroll_offset has been restored to zero.
+        builder.accessible(
+            None,
+            sibling_bounds,
+            &Accessible {
+                role: IcedRole::StaticText,
+                label: Some("Sibling"),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+
+        // Find the nested button
+        let button_id = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.label() == Some("Nested"))
+            .map(|(id, _)| *id)
+            .expect("nested button exists");
+
+        let (_, button_stored) = tree.node_map.get(&button_id).expect("button in node_map");
+
+        // Total offset is 10 + 20 = 30
+        assert_eq!(
+            button_stored.y,
+            child_bounds.y - 30.0,
+            "nested child bounds should be adjusted by cumulative scroll offset"
+        );
+        assert_eq!(
+            button_stored.x, child_bounds.x,
+            "x should be unchanged (no horizontal scroll)"
+        );
+
+        // Find the sibling -- should have no offset adjustment
+        let sibling_id = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.label() == Some("Sibling"))
+            .map(|(id, _)| *id)
+            .expect("sibling exists");
+
+        let (_, sibling_stored) = tree.node_map.get(&sibling_id).expect("sibling in node_map");
+
+        assert_eq!(
+            *sibling_stored, sibling_bounds,
+            "sibling outside scrollable should have unadjusted bounds"
+        );
+    }
+
+    #[test]
+    fn scrollbar_created_for_overflowing_scrollable() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        let bounds = UNIT;
+        let content_bounds = Rectangle {
+            height: 200.0,
+            ..UNIT
+        };
+
+        builder.accessible(
+            None,
+            bounds,
+            &Accessible {
+                role: IcedRole::ScrollView,
+                ..Accessible::default()
+            },
+        );
+        builder.scrollable(
+            None,
+            bounds,
+            content_bounds,
+            Vector::new(0.0, 42.0),
+            &mut MockScrollable,
+        );
+
+        let tree = builder.build();
+
+        // Should have root + ScrollView + ScrollBar
+        let scrollbar = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::ScrollBar);
+        assert!(scrollbar.is_some(), "ScrollBar node should exist");
+
+        let (_, sb_node) = scrollbar.unwrap();
+        assert_eq!(sb_node.numeric_value(), Some(42.0));
+        assert_eq!(sb_node.min_numeric_value(), Some(0.0));
+        assert_eq!(
+            sb_node.max_numeric_value(),
+            Some((content_bounds.height - bounds.height) as f64)
+        );
+
+        // ScrollBar should be a child of the ScrollView
+        let scroll_view = &tree.update.nodes[1].1;
+        let sb_id = scrollbar.unwrap().0;
+        assert!(scroll_view.children().contains(&sb_id));
+    }
+
+    #[test]
+    fn scrollbar_not_created_when_content_fits() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        let bounds = UNIT;
+        // Content fits within bounds
+        let content_bounds = Rectangle {
+            height: 30.0,
+            ..UNIT
+        };
+
+        builder.accessible(
+            None,
+            bounds,
+            &Accessible {
+                role: IcedRole::ScrollView,
+                ..Accessible::default()
+            },
+        );
+        builder.scrollable(
+            None,
+            bounds,
+            content_bounds,
+            Vector::new(0.0, 0.0),
+            &mut MockScrollable,
+        );
+
+        let tree = builder.build();
+
+        let scrollbar = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::ScrollBar);
+        assert!(scrollbar.is_none(), "no ScrollBar when content fits");
+    }
+
+    #[test]
+    fn new_roles_map_correctly() {
+        assert_eq!(convert_role(IcedRole::Dialog), Role::Dialog);
+        assert_eq!(convert_role(IcedRole::Menu), Role::Menu);
+        assert_eq!(convert_role(IcedRole::MenuItem), Role::MenuItem);
+        assert_eq!(convert_role(IcedRole::ScrollBar), Role::ScrollBar);
+        assert_eq!(convert_role(IcedRole::Tab), Role::Tab);
+        assert_eq!(convert_role(IcedRole::TabList), Role::TabList);
+    }
+
+    #[test]
+    fn extended_roles_map_correctly() {
+        assert_eq!(convert_role(IcedRole::Alert), Role::Alert);
+        assert_eq!(convert_role(IcedRole::AlertDialog), Role::AlertDialog);
+        assert_eq!(convert_role(IcedRole::Canvas), Role::Canvas);
+        assert_eq!(convert_role(IcedRole::Document), Role::Document);
+        assert_eq!(convert_role(IcedRole::Heading), Role::Heading);
+        assert_eq!(convert_role(IcedRole::Label), Role::Label);
+        assert_eq!(convert_role(IcedRole::List), Role::List);
+        assert_eq!(convert_role(IcedRole::ListItem), Role::ListItem);
+        assert_eq!(convert_role(IcedRole::MenuBar), Role::MenuBar);
+        assert_eq!(convert_role(IcedRole::Meter), Role::Meter);
+        assert_eq!(
+            convert_role(IcedRole::MultilineTextInput),
+            Role::MultilineTextInput
+        );
+        assert_eq!(convert_role(IcedRole::Navigation), Role::Navigation);
+        assert_eq!(convert_role(IcedRole::Region), Role::Region);
+        assert_eq!(convert_role(IcedRole::Search), Role::Search);
+        assert_eq!(convert_role(IcedRole::Status), Role::Status);
+        assert_eq!(convert_role(IcedRole::Table), Role::Table);
+        assert_eq!(convert_role(IcedRole::TabPanel), Role::TabPanel);
+        assert_eq!(convert_role(IcedRole::Toolbar), Role::Toolbar);
+        assert_eq!(convert_role(IcedRole::Tooltip), Role::Tooltip);
+        assert_eq!(convert_role(IcedRole::Tree), Role::Tree);
+        assert_eq!(convert_role(IcedRole::TreeItem), Role::TreeItem);
+        assert_eq!(convert_role(IcedRole::Window), Role::Window);
+    }
+
+    #[test]
+    fn required_property_is_set() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::TextInput,
+                required: true,
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+
+        let input_node = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::TextInput)
+            .map(|(_, n)| n)
+            .expect("input node exists");
+
+        assert!(
+            input_node.is_required(),
+            "required: true should set is_required on the accesskit node"
+        );
+    }
+
+    #[test]
+    fn level_property_is_set() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(
+            None,
+            UNIT,
+            &Accessible {
+                role: IcedRole::Heading,
+                level: Some(2),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+
+        let heading_node = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::Heading)
+            .map(|(_, n)| n)
+            .expect("heading node exists");
+
+        assert_eq!(
+            heading_node.level(),
+            Some(2),
+            "level: Some(2) should set level on the accesskit node"
+        );
+    }
+
+    #[test]
+    fn required_default_is_false() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        builder.accessible(None, UNIT, &Accessible::default());
+
+        let tree = builder.build();
+
+        let node = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(id, _)| *id != ROOT_ID)
+            .map(|(_, n)| n)
+            .expect("non-root node exists");
+
+        assert!(
+            !node.is_required(),
+            "default Accessible should not have required set"
+        );
+    }
+
+    #[test]
+    fn labelled_by_resolves_to_node_id() {
+        let label_wid = widget::Id::unique();
+        let input_wid = widget::Id::unique();
+
+        let mut builder = TreeBuilder::new("Test Window");
+
+        // Create the label node with a widget::Id
+        builder.accessible(
+            Some(&label_wid),
+            UNIT,
+            &Accessible {
+                role: IcedRole::StaticText,
+                label: Some("Username"),
+                ..Accessible::default()
+            },
+        );
+
+        // Create the input node with labelled_by pointing to the label
+        builder.accessible(
+            Some(&input_wid),
+            UNIT,
+            &Accessible {
+                role: IcedRole::TextInput,
+                labelled_by: Some(&label_wid),
+                ..Accessible::default()
+            },
+        );
+
+        let tree = builder.build();
+
+        // Find the label's NodeId
+        let label_nid = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.label() == Some("Username"))
+            .map(|(id, _)| *id)
+            .expect("label node exists");
+
+        // Find the input node
+        let input_node = tree
+            .update
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == Role::TextInput)
+            .map(|(_, n)| n)
+            .expect("input node exists");
+
+        assert_eq!(
+            input_node.labelled_by(),
+            &[label_nid],
+            "labelled_by should resolve to the label's NodeId"
+        );
+    }
+
+    #[test]
+    fn traverse_without_accessible_is_transparent() {
+        let mut builder = TreeBuilder::new("Test Window");
+
+        // traverse() without a prior accessible() or container()
+        builder.traverse(&mut |op| {
+            op.accessible(
+                None,
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    label: Some("Child A"),
+                    ..Accessible::default()
+                },
+            );
+            op.accessible(
+                None,
+                UNIT,
+                &Accessible {
+                    role: IcedRole::Button,
+                    label: Some("Child B"),
+                    ..Accessible::default()
+                },
+            );
+        });
+
+        let tree = builder.build();
+
+        // Children should be added directly under the root
+        assert_eq!(
+            tree.update.nodes[0].1.children().len(),
+            2,
+            "children should be added under root when traverse() \
+             has no prior accessible/container"
+        );
+
+        // No intermediate node -- just root + 2 children
+        assert_eq!(tree.update.nodes.len(), 3);
+    }
+}
