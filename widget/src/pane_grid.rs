@@ -85,6 +85,7 @@ use crate::core::overlay::{self, Group};
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -443,6 +444,14 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::Group,
+                ..Accessible::default()
+            },
+        );
         operation.container(None, layout.bounds());
         operation.traverse(&mut |operation| {
             self.panes

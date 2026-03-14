@@ -64,6 +64,8 @@ use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{Element, Length, Rectangle, Shell, Size, Vector, Widget};
@@ -296,6 +298,23 @@ where
                 renderer.draw_geometry(layer);
             }
         });
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::Image,
+                ..Accessible::default()
+            },
+        );
     }
 }
 

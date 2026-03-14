@@ -39,6 +39,7 @@ use crate::core::text;
 use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -462,6 +463,17 @@ where
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::CheckBox,
+                label: self.label.as_deref(),
+                toggled: Some(self.is_checked),
+                disabled: self.on_toggle.is_none(),
+                ..Accessible::default()
+            },
+        );
         if let Some(label) = self.label.as_deref() {
             operation.text(None, layout.bounds(), label);
         }

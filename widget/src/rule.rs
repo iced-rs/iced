@@ -21,7 +21,9 @@ use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget;
 use crate::core::widget::Tree;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 /// Creates a new horizontal [`Rule`] with the given height.
@@ -182,6 +184,23 @@ where
                 ..renderer::Quad::default()
             },
             style.color,
+        );
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::Separator,
+                ..Accessible::default()
+            },
         );
     }
 }

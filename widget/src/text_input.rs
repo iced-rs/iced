@@ -53,6 +53,7 @@ use crate::core::text::{self, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
+use crate::core::widget::operation::accessible::{Accessible, Role, Value as AccessibleValue};
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -99,7 +100,7 @@ where
     Renderer: text::Renderer,
 {
     id: Option<widget::Id>,
-    placeholder: String,
+    pub(crate) placeholder: String,
     value: Value,
     is_secure: bool,
     font: Option<Renderer::Font>,
@@ -636,6 +637,25 @@ where
         operation: &mut dyn Operation,
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+        let value = if !self.is_secure {
+            let text = self.value.to_string();
+            Some(text)
+        } else {
+            None
+        };
+
+        operation.accessible(
+            self.id.as_ref(),
+            layout.bounds(),
+            &Accessible {
+                role: Role::TextInput,
+                label: Some(&self.placeholder),
+                value: value.as_deref().map(AccessibleValue::Text),
+                disabled: self.on_input.is_none(),
+                ..Accessible::default()
+            },
+        );
 
         operation.text_input(self.id.as_ref(), layout.bounds(), state);
         operation.focusable(self.id.as_ref(), layout.bounds(), state);

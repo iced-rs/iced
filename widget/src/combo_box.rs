@@ -62,6 +62,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
+use crate::core::widget::operation::Operation;
+use crate::core::widget::operation::accessible::{Accessible, Role, Value};
 use crate::core::widget::{self, Widget};
 use crate::core::{Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector};
 use crate::overlay::menu;
@@ -535,6 +537,45 @@ where
 
     fn diff(&self, _tree: &mut widget::Tree) {
         // do nothing so the children don't get cleared
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut widget::Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        let inner = self.state.inner.borrow();
+        let value_text = inner.value.clone();
+        drop(inner);
+
+        let is_expanded = tree.children[0]
+            .state
+            .downcast_ref::<text_input::State<Renderer::Paragraph>>()
+            .is_focused();
+
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::ComboBox,
+                label: Some(&self.text_input.placeholder),
+                value: if value_text.is_empty() {
+                    None
+                } else {
+                    Some(Value::Text(&value_text))
+                },
+                expanded: Some(is_expanded),
+                disabled: self.on_input.is_none(),
+                ..Accessible::default()
+            },
+        );
+
+        operation.traverse(&mut |operation| {
+            self.text_input
+                .operate(&mut tree.children[0], layout, renderer, operation);
+        });
     }
 
     fn update(

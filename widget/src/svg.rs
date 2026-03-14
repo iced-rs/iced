@@ -19,7 +19,9 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::svg;
+use crate::core::widget;
 use crate::core::widget::Tree;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::window;
 use crate::core::{
     Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size,
@@ -266,6 +268,23 @@ where
             },
             drawing_bounds,
             bounds,
+        );
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::Image,
+                ..Accessible::default()
+            },
         );
     }
 }

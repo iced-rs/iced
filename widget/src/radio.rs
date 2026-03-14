@@ -64,6 +64,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::touch;
 use crate::core::widget;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -315,6 +316,25 @@ where
                 )
             },
         )
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::RadioButton,
+                label: Some(&self.label),
+                selected: Some(self.is_selected),
+                ..Accessible::default()
+            },
+        );
     }
 
     fn update(

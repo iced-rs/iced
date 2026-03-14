@@ -25,6 +25,8 @@ use crate::canvas;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
+use crate::core::widget;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Vector, Widget,
@@ -205,6 +207,23 @@ where
 
             renderer.draw_geometry(geometry);
         });
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::Image,
+                ..Accessible::default()
+            },
+        );
     }
 }
 

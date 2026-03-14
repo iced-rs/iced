@@ -24,6 +24,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
+use crate::core::widget::operation::Operation;
+use crate::core::widget::operation::accessible::{Accessible, Live, Role, Value};
 use crate::core::{
     self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme, Widget,
 };
@@ -160,6 +162,30 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         layout::atomic(limits, self.width(), self.height())
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::ProgressIndicator,
+                value: Some(Value::Numeric {
+                    current: self.value as f64,
+                    min: *self.range.start() as f64,
+                    max: *self.range.end() as f64,
+                    step: None,
+                }),
+                live: Some(Live::Polite),
+                ..Accessible::default()
+            },
+        );
     }
 
     fn draw(
