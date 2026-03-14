@@ -39,6 +39,8 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::touch;
+use crate::core::widget::Operation;
+use crate::core::widget::operation::accessible::{Accessible, Orientation, Role, Value};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
@@ -238,6 +240,30 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         layout::atomic(limits, self.width, self.height)
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::Slider,
+                value: Some(Value::Numeric {
+                    current: self.value.into(),
+                    min: (*self.range.start()).into(),
+                    max: (*self.range.end()).into(),
+                    step: Some(self.step.into()),
+                }),
+                orientation: Some(Orientation::Vertical),
+                ..Accessible::default()
+            },
+        );
     }
 
     fn update(

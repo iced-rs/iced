@@ -70,6 +70,8 @@ use crate::core::renderer;
 use crate::core::text::paragraph;
 use crate::core::text::{self, Text};
 use crate::core::touch;
+use crate::core::widget::operation::Operation;
+use crate::core::widget::operation::accessible::{Accessible, Role, Value};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -425,6 +427,30 @@ where
         };
 
         layout::Node::new(size)
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+        let selected_label = self.selected.as_ref().map(|v| (self.to_string)(v.borrow()));
+
+        operation.accessible(
+            None,
+            layout.bounds(),
+            &Accessible {
+                role: Role::ComboBox,
+                label: self.placeholder.as_deref(),
+                value: selected_label.as_deref().map(Value::Text),
+                expanded: Some(state.is_open),
+                disabled: self.on_select.is_none(),
+                ..Accessible::default()
+            },
+        );
     }
 
     fn update(

@@ -45,6 +45,7 @@ use crate::core::text::{self, LineHeight, Text, Wrapping};
 use crate::core::theme;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation;
+use crate::core::widget::operation::accessible::{Accessible, Role, Value};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
@@ -1028,6 +1029,21 @@ where
         operation: &mut dyn widget::Operation,
     ) {
         let state = tree.state.downcast_mut::<State<Highlighter>>();
+
+        let label = self.placeholder.as_deref();
+        let text = self.content.text();
+
+        operation.accessible(
+            self.id.as_ref(),
+            layout.bounds(),
+            &Accessible {
+                role: Role::MultilineTextInput,
+                label,
+                value: Some(Value::Text(&text)),
+                disabled: self.on_edit.is_none(),
+                ..Accessible::default()
+            },
+        );
 
         operation.focusable(self.id.as_ref(), layout.bounds(), state);
     }
