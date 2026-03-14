@@ -15,6 +15,7 @@ rust-version.workspace = true
 workspace = true
 
 [features]
+a11y = ["iced_runtime/a11y"]
 debug = []
 time-travel = []
 

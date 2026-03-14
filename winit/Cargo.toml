@@ -15,6 +15,7 @@ workspace = true
 
 [features]
 default = ["x11", "wayland"]
+a11y = ["dep:accesskit", "dep:accesskit_winit", "iced_program/a11y"]
 debug = ["iced_debug/enable"]
 sysinfo = ["dep:sysinfo"]
 hinting = []
@@ -37,6 +38,11 @@ winit.workspace = true
 
 sysinfo.workspace = true
 sysinfo.optional = true
+
+accesskit.workspace = true
+accesskit.optional = true
+accesskit_winit.workspace = true
+accesskit_winit.optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard.workspace = true

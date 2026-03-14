@@ -78,6 +78,10 @@ where
                 redraw_at: None,
                 preedit: None,
                 ime_state: None,
+                #[cfg(feature = "a11y")]
+                adapter: None,
+                #[cfg(feature = "a11y")]
+                a11y_node_map: std::collections::HashMap::new(),
             },
         );
 
@@ -167,6 +171,13 @@ where
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Rectangle, input_method::Purpose)>,
+    #[cfg(feature = "a11y")]
+    pub adapter: Option<crate::a11y::A11yAdapter>,
+    #[cfg(feature = "a11y")]
+    pub a11y_node_map: std::collections::HashMap<
+        accesskit::NodeId,
+        (Option<crate::core::widget::Id>, crate::core::Rectangle),
+    >,
 }
 
 impl<P, C> Window<P, C>

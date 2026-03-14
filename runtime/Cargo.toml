@@ -11,6 +11,7 @@ categories.workspace = true
 keywords.workspace = true
 
 [features]
+a11y = []
 selector = ["dep:iced_selector"]
 image = ["iced_core/image"]
 
