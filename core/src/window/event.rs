@@ -17,6 +17,8 @@ pub enum Event {
         /// The size of the created window. This is its "inner" size, or the size of the
         /// client area, in logical pixels.
         size: Size,
+        /// The scale factor of the created window.
+        scale_factor: f32,
     },
 
     /// A window was closed.

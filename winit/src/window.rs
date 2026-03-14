@@ -186,10 +186,6 @@ where
             })
     }
 
-    pub fn logical_size(&self) -> Size {
-        self.state.logical_size()
-    }
-
     pub fn request_redraw(&mut self, redraw_request: RedrawRequest) {
         match redraw_request {
             RedrawRequest::NextFrame => {
