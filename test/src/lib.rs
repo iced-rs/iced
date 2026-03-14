@@ -102,7 +102,9 @@ pub use emulator::Emulator;
 pub use error::Error;
 pub use ice::Ice;
 pub use instruction::Instruction;
+pub use selector::AccessibleMatch;
 pub use selector::Selector;
+pub use selector::{by_label, by_role};
 pub use simulator::{Simulator, simulator};
 
 use crate::core::Size;

@@ -11,6 +11,9 @@ categories.workspace = true
 keywords.workspace = true
 rust-version.workspace = true
 
+[features]
+a11y = ["iced_runtime/a11y"]
+
 [lints]
 workspace = true
 

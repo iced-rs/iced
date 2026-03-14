@@ -1,4 +1,5 @@
 use crate::core::widget::Id;
+use crate::core::widget::operation::accessible::{Accessible, Role};
 use crate::core::widget::operation::{Focusable, Scrollable, TextInput};
 use crate::core::{Rectangle, Vector};
 
@@ -42,6 +43,14 @@ pub enum Target {
         bounds: Rectangle,
         visible_bounds: Option<Rectangle>,
     },
+    Accessible {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+        role: Role,
+        label: Option<String>,
+        description: Option<String>,
+    },
 }
 
 impl Target {
@@ -53,7 +62,8 @@ impl Target {
             | Target::Scrollable { bounds, .. }
             | Target::TextInput { bounds, .. }
             | Target::Text { bounds, .. }
-            | Target::Custom { bounds, .. } => *bounds,
+            | Target::Custom { bounds, .. }
+            | Target::Accessible { bounds, .. } => *bounds,
         }
     }
 
@@ -65,7 +75,8 @@ impl Target {
             | Target::Scrollable { visible_bounds, .. }
             | Target::TextInput { visible_bounds, .. }
             | Target::Text { visible_bounds, .. }
-            | Target::Custom { visible_bounds, .. } => *visible_bounds,
+            | Target::Custom { visible_bounds, .. }
+            | Target::Accessible { visible_bounds, .. } => *visible_bounds,
         }
     }
 }
@@ -138,6 +149,19 @@ impl From<Candidate<'_>> for Target {
                 bounds,
                 visible_bounds,
             },
+            Candidate::Accessible {
+                id,
+                bounds,
+                visible_bounds,
+                accessible,
+            } => Self::Accessible {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+                role: accessible.role,
+                label: accessible.label.map(str::to_owned),
+                description: accessible.description.map(str::to_owned),
+            },
         }
     }
 }
@@ -195,6 +219,12 @@ pub enum Candidate<'a> {
         visible_bounds: Option<Rectangle>,
         state: &'a dyn Any,
     },
+    Accessible {
+        id: Option<&'a Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+        accessible: &'a Accessible<'a>,
+    },
 }
 
 impl<'a> Candidate<'a> {
@@ -206,7 +236,8 @@ impl<'a> Candidate<'a> {
             | Candidate::Scrollable { id, .. }
             | Candidate::TextInput { id, .. }
             | Candidate::Text { id, .. }
-            | Candidate::Custom { id, .. } => *id,
+            | Candidate::Custom { id, .. }
+            | Candidate::Accessible { id, .. } => *id,
         }
     }
 
@@ -218,7 +249,8 @@ impl<'a> Candidate<'a> {
             | Candidate::Scrollable { bounds, .. }
             | Candidate::TextInput { bounds, .. }
             | Candidate::Text { bounds, .. }
-            | Candidate::Custom { bounds, .. } => *bounds,
+            | Candidate::Custom { bounds, .. }
+            | Candidate::Accessible { bounds, .. } => *bounds,
         }
     }
 
@@ -230,7 +262,8 @@ impl<'a> Candidate<'a> {
             | Candidate::Scrollable { visible_bounds, .. }
             | Candidate::TextInput { visible_bounds, .. }
             | Candidate::Text { visible_bounds, .. }
-            | Candidate::Custom { visible_bounds, .. } => *visible_bounds,
+            | Candidate::Custom { visible_bounds, .. }
+            | Candidate::Accessible { visible_bounds, .. } => *visible_bounds,
         }
     }
 }
@@ -282,6 +315,45 @@ impl Text {
 }
 
 impl Bounded for Text {
+    fn bounds(&self) -> Rectangle {
+        self.bounds()
+    }
+
+    fn visible_bounds(&self) -> Option<Rectangle> {
+        self.visible_bounds()
+    }
+}
+
+/// A widget match produced by an accessibility selector.
+#[derive(Debug, Clone, PartialEq)]
+pub struct AccessibleMatch {
+    /// The widget [`Id`], if any.
+    pub id: Option<Id>,
+    /// The layout bounds of the matched widget.
+    pub bounds: Rectangle,
+    /// The visible bounds of the matched widget, in screen coordinates.
+    pub visible_bounds: Option<Rectangle>,
+    /// The accessible [`Role`] of the matched widget.
+    pub role: Role,
+    /// The accessible label of the matched widget, if any.
+    pub label: Option<String>,
+    /// The accessible description of the matched widget, if any.
+    pub description: Option<String>,
+}
+
+impl AccessibleMatch {
+    /// Returns the layout bounds of the [`AccessibleMatch`].
+    pub fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
+    /// Returns the visible bounds of the [`AccessibleMatch`], in screen coordinates.
+    pub fn visible_bounds(&self) -> Option<Rectangle> {
+        self.visible_bounds
+    }
+}
+
+impl Bounded for AccessibleMatch {
     fn bounds(&self) -> Rectangle {
         self.bounds()
     }

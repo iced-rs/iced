@@ -1,4 +1,5 @@
 use crate::Selector;
+use crate::core::widget::operation::accessible::Accessible;
 use crate::core::widget::operation::{Focusable, Outcome, Scrollable, TextInput};
 use crate::core::widget::{Id, Operation};
 use crate::core::{Rectangle, Vector};
@@ -223,6 +224,19 @@ where
             bounds,
             visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
             content: text,
+        });
+    }
+
+    fn accessible(&mut self, id: Option<&Id>, bounds: Rectangle, accessible: &Accessible<'_>) {
+        if self.strategy.is_done() {
+            return;
+        }
+
+        self.strategy.feed(Candidate::Accessible {
+            id,
+            bounds,
+            visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+            accessible,
         });
     }
 
