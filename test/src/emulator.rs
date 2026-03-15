@@ -208,35 +208,24 @@ impl<P: Program + 'static> Emulator<P> {
                         window::Action::GetOldest(sender) | window::Action::GetLatest(sender) => {
                             let _ = sender.send(Some(self.window));
                         }
-                        window::Action::GetSize(id, sender) => {
-                            if id == self.window {
-                                let _ = sender.send(self.size);
-                            }
+                        window::Action::GetSize(id, sender) if id == self.window => {
+                            let _ = sender.send(self.size);
                         }
-                        window::Action::GetMaximized(id, sender) => {
-                            if id == self.window {
-                                let _ = sender.send(false);
-                            }
+                        window::Action::GetMaximized(id, sender) if id == self.window => {
+                            let send = sender.send(false);
+                            let _ = send;
                         }
-                        window::Action::GetMinimized(id, sender) => {
-                            if id == self.window {
-                                let _ = sender.send(None);
-                            }
+                        window::Action::GetMinimized(id, sender) if id == self.window => {
+                            let _ = sender.send(None);
                         }
-                        window::Action::GetPosition(id, sender) => {
-                            if id == self.window {
-                                let _ = sender.send(Some(Point::ORIGIN));
-                            }
+                        window::Action::GetPosition(id, sender) if id == self.window => {
+                            let _ = sender.send(Some(Point::ORIGIN));
                         }
-                        window::Action::GetScaleFactor(id, sender) => {
-                            if id == self.window {
-                                let _ = sender.send(1.0);
-                            }
+                        window::Action::GetScaleFactor(id, sender) if id == self.window => {
+                            let _ = sender.send(1.0);
                         }
-                        window::Action::GetMode(id, sender) => {
-                            if id == self.window {
-                                let _ = sender.send(core::window::Mode::Windowed);
-                            }
+                        window::Action::GetMode(id, sender) if id == self.window => {
+                            let _ = sender.send(core::window::Mode::Windowed);
                         }
                         _ => {
                             // Ignored
