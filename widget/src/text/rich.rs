@@ -112,6 +112,16 @@ where
         self
     }
 
+    /// Optionally sets the default [`LineHeight`] of the [`Rich`] text.
+    ///
+    /// If `None`, the current line height is left unchanged.
+    pub fn line_height_maybe(mut self, line_height: Option<LineHeight>) -> Self {
+        if let Some(line_height) = line_height {
+            self.line_height = line_height;
+        }
+        self
+    }
+
     /// Sets the default font of the [`Rich`] text.
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());

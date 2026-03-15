@@ -1038,6 +1038,10 @@ pub struct Settings {
     ///
     /// Defaults to `None` (no extra spacing).
     pub letter_spacing: Option<Pixels>,
+    /// The line height to apply to text elements.
+    ///
+    /// Defaults to `None` (uses iced's default of `LineHeight::Relative(1.3)`).
+    pub line_height: Option<text::LineHeight>,
 }
 
 impl Settings {
@@ -1068,6 +1072,7 @@ impl Settings {
             width: Length::Fill,
             wrapping: Wrapping::WordOrGlyph,
             letter_spacing: None,
+            line_height: None,
         }
     }
 }
@@ -1458,6 +1463,7 @@ where
                     .font(settings.style.font)
                     .size(settings.text_size)
                     .letter_spacing_maybe(settings.letter_spacing)
+                    .line_height_maybe(settings.line_height)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1489,6 +1495,7 @@ where
                     .font(settings.style.font)
                     .size(size)
                     .letter_spacing_maybe(settings.letter_spacing)
+                    .line_height_maybe(settings.line_height)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1544,6 +1551,7 @@ where
                             .font(settings.style.font)
                             .size(settings.text_size)
                             .letter_spacing_maybe(settings.letter_spacing)
+                            .line_height_maybe(settings.line_height)
                             .wrapping(settings.wrapping),
                     )
                     .padding(settings.spacing)
@@ -1632,6 +1640,7 @@ where
                     .font(settings.style.font)
                     .size(settings.text_size)
                     .letter_spacing_maybe(settings.letter_spacing)
+                    .line_height_maybe(settings.line_height)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1664,6 +1673,7 @@ where
                     .font(settings.style.font)
                     .size(size)
                     .letter_spacing_maybe(settings.letter_spacing)
+                    .line_height_maybe(settings.line_height)
                     .wrapping(settings.wrapping)
                     .width(settings.width)
                     .selection(selection)
@@ -1783,6 +1793,7 @@ where
                 .font(Font::MONOSPACE)
                 .size(settings.code_size)
                 .letter_spacing_maybe(settings.letter_spacing)
+                .line_height_maybe(settings.line_height)
                 .wrapping(settings.wrapping)
                 .width(settings.width)
                 .selection(selection)
@@ -1841,6 +1852,7 @@ where
                     crate::text(format!("{number:>width$}.", width = digits as usize))
                         .size(settings.text_size)
                         .letter_spacing_maybe(settings.letter_spacing)
+                        .line_height_maybe(settings.line_height)
                         .into()
                 }
             };
@@ -1863,6 +1875,7 @@ where
                                 .font(settings.style.font)
                                 .size(settings.text_size)
                                 .letter_spacing_maybe(settings.letter_spacing)
+                                .line_height_maybe(settings.line_height)
                                 .wrapping(settings.wrapping)
                                 .selection(selection)
                                 .selection_color(settings.style.selection_color)
@@ -1945,6 +1958,7 @@ where
                     .font(settings.style.font)
                     .size(settings.text_size)
                     .letter_spacing_maybe(settings.letter_spacing)
+                    .line_height_maybe(settings.line_height)
                     .wrapping(settings.wrapping)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -1974,6 +1988,7 @@ where
                     .font(settings.style.font)
                     .size(size)
                     .letter_spacing_maybe(settings.letter_spacing)
+                    .line_height_maybe(settings.line_height)
                     .wrapping(settings.wrapping)
                     .selection(selection)
                     .selection_color(settings.style.selection_color)
@@ -2218,6 +2233,7 @@ where
                 .font(settings.style.font)
                 .size(settings.text_size)
                 .letter_spacing_maybe(settings.letter_spacing)
+                .line_height_maybe(settings.line_height)
                 .wrapping(settings.wrapping)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
@@ -2240,6 +2256,7 @@ where
                 .font(settings.style.font)
                 .size(size)
                 .letter_spacing_maybe(settings.letter_spacing)
+                .line_height_maybe(settings.line_height)
                 .wrapping(settings.wrapping)
                 .selection(selection)
                 .selection_color(settings.style.selection_color)
@@ -2325,6 +2342,7 @@ where
                 pulldown_cmark::HeadingLevel::H6 => h6_size,
             })
             .letter_spacing_maybe(settings.letter_spacing)
+            .line_height_maybe(settings.line_height)
             .wrapping(settings.wrapping),
     )
     .padding(padding::top(if index > 0 {
@@ -2349,6 +2367,7 @@ where
     rich_text(text.spans(settings.style))
         .size(settings.text_size)
         .letter_spacing_maybe(settings.letter_spacing)
+        .line_height_maybe(settings.line_height)
         .wrapping(settings.wrapping)
         .on_link_click(on_link_click)
         .into()
@@ -2418,6 +2437,7 @@ where
             text!("{}.", i as u64 + start)
                 .size(settings.text_size)
                 .letter_spacing_maybe(settings.letter_spacing)
+                .line_height_maybe(settings.line_height)
                 .align_x(alignment::Horizontal::Right)
                 .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
             view_with(
@@ -2455,6 +2475,7 @@ where
                     .font(settings.style.code_block_font)
                     .size(settings.code_size)
                     .letter_spacing_maybe(settings.letter_spacing)
+                    .line_height_maybe(settings.line_height)
                     .wrapping(settings.wrapping)
                     .into()
             })))
@@ -2602,6 +2623,7 @@ where
             rich_text(alt.spans(settings.style))
                 .on_link_click(Self::on_link_click)
                 .letter_spacing_maybe(settings.letter_spacing)
+                .line_height_maybe(settings.line_height)
                 .wrapping(settings.wrapping),
         )
         .padding(settings.spacing.0)

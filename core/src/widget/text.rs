@@ -90,6 +90,16 @@ where
         self
     }
 
+    /// Optionally sets the [`LineHeight`] of the [`Text`].
+    ///
+    /// If `None`, the current line height is left unchanged.
+    pub fn line_height_maybe(mut self, line_height: Option<LineHeight>) -> Self {
+        if let Some(line_height) = line_height {
+            self.format.line_height = line_height;
+        }
+        self
+    }
+
     /// Sets the [`Font`] of the [`Text`].
     ///
     /// [`Font`]: crate::text::Renderer::Font
