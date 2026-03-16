@@ -49,3 +49,7 @@ wasm-bindgen-futures.workspace = true
 [target.'cfg(target_os = "linux")'.dependencies]
 mundy.workspace = true
 mundy.optional = true
+
+# Delete once we update to `winit 0.31`
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = { version = "0.5", features = ["relax-sign-encoding"] }
