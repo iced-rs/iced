@@ -260,7 +260,7 @@ pub fn align(
 
             needs_relayout = true;
         } else if let Some(line) = buffer.lines.first_mut() {
-            needs_relayout = line.set_align(None);
+            needs_relayout |= line.set_align(None);
         }
     }
 
