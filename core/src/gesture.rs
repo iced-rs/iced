@@ -9,11 +9,7 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
     /// N-finger pan gesture
-    ///
-    /// ## Platform-specific
-    ///
-    /// - Only available on **iOS** and **Wayland**.
-    /// - On iOS, not recognized by default. It must be enabled when needed.
+    /// Only available on **Wayland**.
     Pan {
         /// Change in pixels of pan gesture from last update.
         delta: Delta,
@@ -21,11 +17,7 @@ pub enum Event {
         phase: Phase,
     },
     /// Two-finger pinch gesture, often used for magnification.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - Only available on **macOS**, **iOS**, and **Wayland**.
-    /// - On iOS, not recognized by default. It must be enabled when needed.
+    /// Only available on **macOS**, and **Wayland**.
     Pinch {
         /// Pinch delta. Positive values indicate magnification (zooming in).
         delta: f64,
@@ -33,11 +25,7 @@ pub enum Event {
         phase: Phase,
     },
     /// Two-finger rotation gesture.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - Only available on **macOS**, **iOS**, and **Wayland**.
-    /// - On iOS, not recognized by default. It must be enabled when needed.
+    /// Only available on **macOS** and **Wayland**.
     Rotate {
         /// Rotation delta. Positive delta values indicate rotation counterclockwise.
         delta: f32,
@@ -45,11 +33,7 @@ pub enum Event {
         phase: Phase,
     },
     /// Double tap gesture.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - Only available on **macOS 10.8** and later, and **iOS**.
-    /// - On iOS, not recognized by default. It must be enabled when needed.
+    /// Only available on **macOS 10.8** and later.
     DoubleTap,
 }
 
@@ -62,7 +46,7 @@ pub struct Delta {
     pub y: f32,
 }
 
-/// Describes touch-screen input state.
+/// Describes gesture input state.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Phase {
     /// Started
