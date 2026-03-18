@@ -23,6 +23,7 @@ struct Internal {
     align_y: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
+    truncated: bool,
     version: text::Version,
     hint: bool,
     hint_factor: f32,
@@ -93,9 +94,15 @@ impl core::text::Paragraph for Paragraph {
         );
 
         buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
-        buffer.set_ellipsize(
+
+        // First measure WITHOUT ellipsis and WITHOUT height limit to get natural bounds
+        // (for truncation detection). The height must be unconstrained so we can detect
+        // when text would need more vertical space than the bounds allow.
+        buffer.set_ellipsize(font_system.raw(), cosmic_text::Ellipsize::None);
+        buffer.set_size(
             font_system.raw(),
-            text::to_ellipsize(text.ellipsis, text.bounds.height * hint_factor),
+            Some(text.bounds.width * hint_factor),
+            None,
         );
 
         buffer.set_text(
@@ -106,7 +113,26 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
+        let (natural_min_bounds, _) = text::measure(&buffer);
+        let natural_min_bounds = natural_min_bounds / hint_factor;
+
+        // Now restore height limit and set actual ellipsis, then re-measure
+        buffer.set_size(
+            font_system.raw(),
+            Some(text.bounds.width * hint_factor),
+            Some(text.bounds.height * hint_factor),
+        );
+        buffer.set_ellipsize(
+            font_system.raw(),
+            text::to_ellipsize(text.ellipsis, text.bounds.height * hint_factor),
+        );
+
         let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / hint_factor;
+
+        let truncated = text.ellipsis != Ellipsis::None
+            && (natural_min_bounds.width > text.bounds.width
+                || natural_min_bounds.height >= text.bounds.height
+                || natural_min_bounds != min_bounds);
 
         Self(Arc::new(Internal {
             buffer,
@@ -120,6 +146,7 @@ impl core::text::Paragraph for Paragraph {
             ellipsis: text.ellipsis,
             bounds: text.bounds,
             min_bounds,
+            truncated,
             version: font_system.version(),
             letter_spacing: text.letter_spacing,
         }))
@@ -210,6 +237,7 @@ impl core::text::Paragraph for Paragraph {
             ellipsis: text.ellipsis,
             bounds: text.bounds,
             min_bounds,
+            truncated: false,
             version: font_system.version(),
             letter_spacing: text.letter_spacing,
         }))
@@ -220,10 +248,30 @@ impl core::text::Paragraph for Paragraph {
 
         let mut font_system = text::font_system().write().expect("Write font system");
 
+        // Measure without ellipsis and without height limit for truncation detection
+        paragraph
+            .buffer
+            .set_ellipsize(font_system.raw(), cosmic_text::Ellipsize::None);
+        paragraph.buffer.set_size(
+            font_system.raw(),
+            Some(new_bounds.width * paragraph.hint_factor),
+            None,
+        );
+        let (natural_min_bounds, _) = text::measure(&paragraph.buffer);
+        let natural_min_bounds = natural_min_bounds / paragraph.hint_factor;
+
+        // Restore height limit and re-apply ellipsis
         paragraph.buffer.set_size(
             font_system.raw(),
             Some(new_bounds.width * paragraph.hint_factor),
             Some(new_bounds.height * paragraph.hint_factor),
+        );
+        paragraph.buffer.set_ellipsize(
+            font_system.raw(),
+            text::to_ellipsize(
+                paragraph.ellipsis,
+                new_bounds.height * paragraph.hint_factor,
+            ),
         );
 
         let min_bounds = text::align(&mut paragraph.buffer, font_system.raw(), paragraph.align_x)
@@ -231,6 +279,10 @@ impl core::text::Paragraph for Paragraph {
 
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
+        paragraph.truncated = paragraph.ellipsis != Ellipsis::None
+            && (natural_min_bounds.width > new_bounds.width
+                || natural_min_bounds.height >= new_bounds.height
+                || natural_min_bounds != min_bounds);
     }
 
     fn compare(&self, text: Text<()>) -> core::text::Difference {
@@ -308,6 +360,10 @@ impl core::text::Paragraph for Paragraph {
 
     fn min_bounds(&self) -> Size {
         self.internal().min_bounds
+    }
+
+    fn is_truncated(&self) -> bool {
+        self.internal().truncated
     }
 
     fn hit_test(&self, point: Point) -> Option<Hit> {
@@ -547,6 +603,7 @@ impl Default for Internal {
             align_y: alignment::Vertical::Top,
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
+            truncated: false,
             version: text::Version::default(),
             hint: false,
             hint_factor: 1.0,

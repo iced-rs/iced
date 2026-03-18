@@ -149,6 +149,10 @@ impl text::Paragraph for () {
         Size::ZERO
     }
 
+    fn is_truncated(&self) -> bool {
+        false
+    }
+
     fn hit_test(&self, _point: Point) -> Option<text::Hit> {
         None
     }

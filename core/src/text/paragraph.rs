@@ -89,6 +89,12 @@ pub trait Paragraph: Sized + Default {
     fn min_height(&self) -> f32 {
         self.min_bounds().height
     }
+
+    /// Returns whether the text was truncated by ellipsis.
+    ///
+    /// `true` when the full text would exceed the allocated bounds and the
+    /// [`Ellipsis`] strategy caused visible truncation.
+    fn is_truncated(&self) -> bool;
 }
 
 /// A [`Paragraph`] of plain text.
@@ -156,6 +162,11 @@ impl<P: Paragraph> Plain<P> {
     /// [`Paragraph`].
     pub fn min_height(&self) -> f32 {
         self.raw.min_height()
+    }
+
+    /// Returns whether the text was truncated by ellipsis.
+    pub fn is_truncated(&self) -> bool {
+        self.raw.is_truncated()
     }
 
     /// Returns the cached [`Paragraph`].
