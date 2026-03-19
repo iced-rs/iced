@@ -427,6 +427,7 @@ impl Engine {
                 shaping,
                 wrapping,
                 ellipsis,
+                letter_spacing,
                 clip_bounds: local_clip_bounds,
             } => {
                 let physical_bounds = *local_clip_bounds * transformation;
@@ -455,6 +456,7 @@ impl Engine {
                     *shaping,
                     *wrapping,
                     *ellipsis,
+                    *letter_spacing,
                     pixels,
                     clip_mask,
                     transformation,

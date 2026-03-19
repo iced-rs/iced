@@ -103,6 +103,7 @@ impl Pipeline {
         shaping: Shaping,
         wrapping: Wrapping,
         ellipsis: Ellipsis,
+        letter_spacing: Option<f32>,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
         transformation: Transformation,
@@ -122,6 +123,7 @@ impl Pipeline {
             wrapping,
             ellipsis,
             align_x,
+            letter_spacing,
         };
 
         let (_, entry) = self.cache.get_mut().allocate(font_system, key);

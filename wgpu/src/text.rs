@@ -475,6 +475,7 @@ fn prepare(
                 wrapping,
                 ellipsis,
                 align_x,
+                letter_spacing,
                 ..
             } => {
                 let (key, _) = buffer_cache.allocate(
@@ -492,6 +493,7 @@ fn prepare(
                         shaping: *shaping,
                         wrapping: *wrapping,
                         ellipsis: *ellipsis,
+                        letter_spacing: *letter_spacing,
                     },
                 );
 

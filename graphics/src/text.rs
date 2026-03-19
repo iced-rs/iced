@@ -63,6 +63,8 @@ pub enum Text {
         wrapping: Wrapping,
         /// The ellipsis strategy of the text.
         ellipsis: Ellipsis,
+        /// The letter spacing of the text in pixels.
+        letter_spacing: Option<f32>,
         /// The clip bounds of the text.
         clip_bounds: Rectangle,
     },

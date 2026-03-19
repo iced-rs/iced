@@ -54,7 +54,7 @@ impl Cache {
             buffer.set_text(
                 font_system,
                 key.content,
-                &text::to_attributes(key.font),
+                &text::to_attributes_with_spacing(key.font, key.letter_spacing, key.size),
                 text::to_shaping(key.shaping, key.content),
                 None,
             );
@@ -121,6 +121,8 @@ pub struct Key<'a> {
     pub wrapping: text::Wrapping,
     /// The ellipsis strategy of the text.
     pub ellipsis: text::Ellipsis,
+    /// The letter spacing of the text in pixels.
+    pub letter_spacing: Option<f32>,
 }
 
 impl Key<'_> {
@@ -133,6 +135,7 @@ impl Key<'_> {
         self.bounds.height.to_bits().hash(&mut hasher);
         self.shaping.hash(&mut hasher);
         self.align_x.hash(&mut hasher);
+        self.letter_spacing.map(f32::to_bits).hash(&mut hasher);
 
         hasher.finish()
     }
