@@ -1220,7 +1220,7 @@ pub trait Catalog: container::Catalog {
 
 /// A styling function for a [`PaneGrid`].
 ///
-/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+/// This is just a boxed closure: `Fn(&Theme) -> Style`.
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
 impl Catalog for Theme {
