@@ -87,16 +87,16 @@ where
 
     /// Compute the visible range from the cached viewport state.
     fn visible_range(&self, state: &State) -> (usize, usize) {
-        if self.item_count == 0 {
+        if self.item_count == 0 || self.item_height <= 0.0 {
             return (0, 0);
         }
 
-        let start = (state.viewport_y / self.item_height).floor() as usize;
+        let start = (state.viewport_y / self.item_height).floor().max(0.0) as usize;
         let start = start.saturating_sub(OVERSCAN).min(self.item_count);
 
-        let visible_count =
-            (state.viewport_height / self.item_height).ceil() as usize + 2 * OVERSCAN + 1;
-        let end = (start + visible_count).min(self.item_count);
+        let visible_count = (state.viewport_height.max(0.0) / self.item_height).ceil() as usize;
+        let visible_count = visible_count.saturating_add(2 * OVERSCAN + 1);
+        let end = start.saturating_add(visible_count).min(self.item_count);
 
         (start, end)
     }
