@@ -64,7 +64,7 @@ impl Path {
         Self::new(|p| {
             p.circle(center, radius);
             p.close();
-        })https://iced.rs/
+        })
     }
 
     /// Returns the internal [`lyon_path::Path`].
