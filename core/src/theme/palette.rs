@@ -505,7 +505,8 @@ pub static OXOCARBON: LazyLock<Palette> = LazyLock::new(|| Palette::generate(See
 /// The built-in Ferra variant of a [`Palette`].
 pub static FERRA: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::FERRA));
 
-struct Oklch {
+/// An OKLCH representation of a [`Color`].
+pub struct Oklch {
     l: f32,
     c: f32,
     h: f32,
@@ -514,7 +515,7 @@ struct Oklch {
 
 /// Darkens a [`Color`] by the given factor.
 pub fn darken(color: Color, amount: f32) -> Color {
-    let mut oklch = to_oklch(color);
+    let mut oklch: Oklch = color.into();
 
     // We try to bump the chroma a bit for more colorful palettes
     if oklch.c > 0.0 && oklch.c < (1.0 - oklch.l) / 2.0 {
@@ -528,12 +529,12 @@ pub fn darken(color: Color, amount: f32) -> Color {
         oklch.l - amount
     };
 
-    from_oklch(oklch)
+    oklch.into()
 }
 
 /// Lightens a [`Color`] by the given factor.
 pub fn lighten(color: Color, amount: f32) -> Color {
-    let mut oklch = to_oklch(color);
+    let mut oklch: Oklch = color.into();
 
     // We try to bump the chroma a bit for more colorful palettes
     // Formula empirically and cluelessly derived
@@ -545,7 +546,7 @@ pub fn lighten(color: Color, amount: f32) -> Color {
         oklch.l + amount
     };
 
-    from_oklch(oklch)
+    oklch.into()
 }
 
 /// Deviates a [`Color`] by the given factor. Lightens if the [`Color`] is
@@ -592,12 +593,13 @@ pub fn readable(background: Color, text: Color) -> Color {
 
 /// Returns true if the [`Color`] is dark.
 pub fn is_dark(color: Color) -> bool {
-    to_oklch(color).l < 0.6
+    let oklch: Oklch = color.into();
+    oklch.l < 0.6
 }
 
-// https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
-fn to_oklch(color: Color) -> Oklch {
-    let [r, g, b, alpha] = color.into_linear();
+impl From<Color> for Oklch {
+    fn from(value: Color) -> Oklch {
+        let [r, g, b, alpha] = value.into_linear();
 
     // linear RGB → LMS
     let l = 0.41222146 * r + 0.53633255 * g + 0.051445995 * b;
@@ -619,11 +621,13 @@ fn to_oklch(color: Color) -> Oklch {
     let h = b.atan2(a); // radians
 
     Oklch { l, c, h, a: alpha }
+    }
 }
 
-// https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
-fn from_oklch(oklch: Oklch) -> Color {
-    let Oklch { l, c, h, a: alpha } = oklch;
+
+impl From<Oklch> for Color {
+    fn from(value: Oklch) -> Self {
+        let Oklch { l, c, h, a: alpha } = value;
 
     let a = c * h.cos();
     let b = c * h.sin();
@@ -648,4 +652,5 @@ fn from_oklch(oklch: Oklch) -> Color {
         b.clamp(0.0, 1.0),
         alpha,
     )
+    }
 }
