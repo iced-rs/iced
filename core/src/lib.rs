@@ -13,6 +13,7 @@ pub mod alignment;
 pub mod animation;
 pub mod border;
 pub mod clipboard;
+pub mod color;
 pub mod event;
 pub mod font;
 pub mod gradient;
@@ -34,7 +35,6 @@ pub mod window;
 
 mod angle;
 mod background;
-mod color;
 mod content_fit;
 mod element;
 mod length;
