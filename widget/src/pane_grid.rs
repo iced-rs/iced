@@ -955,23 +955,19 @@ where
         _layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let bounds = self.layout.bounds();
-
         let translation =
             cursor.position().unwrap_or_default() - Point::new(self.origin.x, self.origin.y);
 
         renderer.with_translation(translation, |renderer| {
-            renderer.with_layer(bounds, |renderer| {
-                self.content.draw(
-                    self.tree,
-                    renderer,
-                    theme,
-                    style,
-                    self.layout,
-                    mouse::Cursor::Unavailable,
-                    &Rectangle::INFINITE,
-                );
-            });
+            self.content.draw(
+                self.tree,
+                renderer,
+                theme,
+                style,
+                self.layout,
+                mouse::Cursor::Unavailable,
+                &Rectangle::INFINITE,
+            );
         });
     }
 }
