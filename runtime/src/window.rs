@@ -257,10 +257,6 @@ pub enum Action {
     /// Unregister the window from receiving voice mode events (COSMIC compositor protocol).
     UnregisterVoiceMode(Id),
 
-    /// Set the audio level for voice mode visualization (COSMIC compositor protocol).
-    /// Level is 0-1000 where 0 is silence and 1000 is maximum volume.
-    SetVoiceAudioLevel(u32),
-
     /// Acknowledge a will_stop event from the compositor (COSMIC compositor protocol).
     /// If freeze is true, the orb will freeze in place for processing.
     /// If freeze is false, the orb will proceed with hiding.
@@ -875,21 +871,6 @@ pub fn register_voice_mode<T>(id: Id, is_default_receiver: bool) -> Task<T> {
 /// - **Other platforms:** No effect.
 pub fn unregister_voice_mode<T>(id: Id) -> Task<T> {
     task::effect(crate::Action::Window(Action::UnregisterVoiceMode(id)))
-}
-
-/// Sets the audio level for voice mode visualization.
-///
-/// This sends the current audio input level to the compositor so it can
-/// animate the voice orb based on voice activity.
-///
-/// ## Parameters
-/// - `level`: Audio level from 0-1000, where 0 is silence and 1000 is maximum volume.
-///
-/// ## Platform-specific
-/// - **COSMIC/Wayland:** Uses `zcosmic_voice_mode_v1` protocol's `set_audio_level` request.
-/// - **Other platforms:** No effect.
-pub fn set_voice_audio_level<T>(level: u32) -> Task<T> {
-    task::effect(crate::Action::Window(Action::SetVoiceAudioLevel(level)))
 }
 
 /// Acknowledges a will_stop event from the compositor.
