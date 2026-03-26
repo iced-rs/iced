@@ -194,11 +194,16 @@ impl Compositor {
         });
 
         // Request SHADER_F16 only if the adapter supports it (e.g., not available in WebGL2)
-        let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
+        let mut required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
             wgpu::Features::SHADER_F16
         } else {
             wgpu::Features::empty()
         };
+
+        // Enable DMA-BUF import for zero-copy video rendering when available
+        if adapter.features().contains(wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF) {
+            required_features |= wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF;
+        }
 
         let mut errors = Vec::new();
 

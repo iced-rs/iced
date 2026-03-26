@@ -1864,7 +1864,11 @@ impl renderer::Headless for Renderer {
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("iced_wgpu [headless]"),
-                required_features: wgpu::Features::empty(),
+                required_features: if adapter.features().contains(wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF) {
+                    wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF
+                } else {
+                    wgpu::Features::empty()
+                },
                 required_limits: wgpu::Limits {
                     max_bind_groups: 2,
                     ..wgpu::Limits::default()

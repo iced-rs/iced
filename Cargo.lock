@@ -1205,7 +1205,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cryoglyph"
 version = "0.1.0"
-source = "git+https://github.com/playtron-os/cryoglyph.git?rev=8337ead#8337ead2dacd58b9cf3f2c60884fadef7c39810b"
+source = "git+https://github.com/playtron-os/cryoglyph.git?rev=3196496#31964966a88f9acfc45faf8a48514219342c2aa3"
 dependencies = [
  "cosmic-text",
  "etagere",
@@ -3553,9 +3553,8 @@ checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
 
 [[package]]
 name = "naga"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "618f667225063219ddfc61251087db8a9aec3c3f0950c916b614e403486f1135"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -7041,9 +7040,8 @@ checksum = "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88"
 
 [[package]]
 name = "wgpu"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9cb534d5ffd109c7d1135f34cdae29e60eab94855a625dcfe1705f8bc7ad79f"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "arrayvec",
  "bitflags 2.11.0",
@@ -7071,9 +7069,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bb4c8b5db5f00e56f1f08869d870a0dff7c8bc7ebc01091fec140b0cf0211a9"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -7104,45 +7101,40 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core-deps-apple"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87b7b696b918f337c486bf93142454080a32a37832ba8a31e4f48221890047da"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-core-deps-emscripten"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34b251c331f84feac147de3c4aa3aa45112622a95dd7ee1b74384fa0458dbd79"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-core-deps-wasm"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12a2cf578ce8d7d50d0e63ddc2345c7dcb599f6eb90b888813406ea78b9b7010"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68ca976e72b2c9964eb243e281f6ce7f14a514e409920920dcda12ae40febaae"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "wgpu-hal",
 ]
 
 [[package]]
 name = "wgpu-hal"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "293080d77fdd14d6b08a67c5487dfddbf874534bb7921526db56a7b75d7e3bef"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7188,9 +7180,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "28.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e18308757e594ed2cd27dddbb16a139c42a683819d32a2e0b1b0167552f5840c"
+version = "28.0.1"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
 dependencies = [
  "bitflags 2.11.0",
  "bytemuck",
