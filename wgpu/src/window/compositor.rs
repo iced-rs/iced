@@ -205,6 +205,11 @@ impl Compositor {
             required_features |= wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF;
         }
 
+        // Enable 16-bit normalized texture formats for 10-bit HDR video (P010)
+        if adapter.features().contains(wgpu::Features::TEXTURE_FORMAT_16BIT_NORM) {
+            required_features |= wgpu::Features::TEXTURE_FORMAT_16BIT_NORM;
+        }
+
         let mut errors = Vec::new();
 
         for required_limits in limits {
