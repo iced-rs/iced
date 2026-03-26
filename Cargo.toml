@@ -194,7 +194,7 @@ bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
 cosmic-text = { git = "https://github.com/playtron-os/cosmic-text.git", rev = "f1ef5fe3" }
-cryoglyph = { git = "https://github.com/playtron-os/cryoglyph.git", rev = "3196496" }
+cryoglyph = { git = "https://github.com/playtron-os/cryoglyph.git", rev = "8051b64" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.25"
 guillotiere = "0.6"
@@ -236,7 +236,7 @@ wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = { git = "https://github.com/playtron-os/wgpu.git", rev = "3bcea5903", default-features = false, features = ["std", "wgsl"] }
+wgpu = { git = "https://github.com/playtron-os/wgpu.git", rev = "f28c5f92e", default-features = false, features = ["std", "wgsl"] }
 #winit = { path = "../winit", default-features = false, features = ["rwh_06"] }
 winit = { git = "https://github.com/playtron-os/winit.git", rev = "dd5964a4", default-features = false, features = ["rwh_06"] }
 

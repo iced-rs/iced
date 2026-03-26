@@ -1205,7 +1205,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cryoglyph"
 version = "0.1.0"
-source = "git+https://github.com/playtron-os/cryoglyph.git?rev=3196496#31964966a88f9acfc45faf8a48514219342c2aa3"
+source = "git+https://github.com/playtron-os/cryoglyph.git?rev=8051b64#8051b64fd2356b069b6f9c7dd9d36f9dbf24700a"
 dependencies = [
  "cosmic-text",
  "etagere",
@@ -3554,7 +3554,7 @@ checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
 [[package]]
 name = "naga"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -7041,7 +7041,7 @@ checksum = "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88"
 [[package]]
 name = "wgpu"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "arrayvec",
  "bitflags 2.11.0",
@@ -7070,7 +7070,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "arrayvec",
  "bit-set",
@@ -7102,7 +7102,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-apple"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7110,7 +7110,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-emscripten"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7118,7 +7118,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-wasm"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7126,7 +7126,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core-deps-windows-linux-android"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "wgpu-hal",
 ]
@@ -7134,7 +7134,7 @@ dependencies = [
 [[package]]
 name = "wgpu-hal"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "android_system_properties",
  "arrayvec",
@@ -7181,7 +7181,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "28.0.1"
-source = "git+https://github.com/playtron-os/wgpu.git?rev=3bcea5903#3bcea590327f479e7a90a85581655970a65ec058"
+source = "git+https://github.com/playtron-os/wgpu.git?rev=f28c5f92e#f28c5f92e16ad4c997206263f6400cd2e8d5a20e"
 dependencies = [
  "bitflags 2.11.0",
  "bytemuck",
