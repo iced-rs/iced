@@ -235,7 +235,7 @@ impl State {
                     let clip_bounds = (*clip_bounds * scale).round();
 
                     if bounds.width < 1.0 || bounds.height < 1.0 {
-                        return;
+                        continue;
                     }
 
                     if let Some((atlas_entry, bind_group)) =
@@ -284,7 +284,7 @@ impl State {
                     let clip_bounds = (*clip_bounds * scale).round();
 
                     if bounds.width < 1.0 || bounds.height < 1.0 {
-                        return;
+                        continue;
                     }
 
                     if let Some((atlas_entry, bind_group)) = cache.upload_vector(
