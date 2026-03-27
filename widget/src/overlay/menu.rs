@@ -14,7 +14,7 @@ use crate::core::{
     Vector,
 };
 use crate::core::{Element, Shell, Widget};
-use crate::scrollable::{self, Scrollable};
+use crate::scrollable::{self, Scrollable, Viewport};
 
 /// A list of selectable options.
 pub struct Menu<'a, 'b, T, Message, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -29,6 +29,7 @@ where
     to_string: &'a dyn Fn(&T) -> String,
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
     on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
+    on_scroll: Option<&'a dyn Fn(Viewport) -> Message>,
     width: f32,
     padding: Padding,
     text_size: Option<Pixels>,
@@ -65,6 +66,7 @@ where
             to_string,
             on_selected: Box::new(on_selected),
             on_option_hovered,
+            on_scroll: None,
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
@@ -109,6 +111,12 @@ where
     /// Sets the [`text::Ellipsis`] strategy of the [`Menu`].
     pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
         self.ellipsis = ellipsis;
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Menu`] is scrolled.
+    pub fn on_scroll(mut self, on_scroll: &'a dyn Fn(Viewport) -> Message) -> Self {
+        self.on_scroll = Some(on_scroll);
         self
     }
 
@@ -200,6 +208,7 @@ where
             to_string,
             on_selected,
             on_option_hovered,
+            on_scroll,
             width,
             padding,
             font,
@@ -225,6 +234,12 @@ where
             class,
         })
         .height(menu_height);
+
+        let list = if let Some(on_scroll) = on_scroll {
+            list.on_scroll(on_scroll)
+        } else {
+            list
+        };
 
         state.tree.diff(&list as &dyn Widget<_, _, _>);
 
