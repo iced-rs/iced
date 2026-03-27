@@ -428,6 +428,7 @@ impl graphics::Compositor for Compositor {
 
         surface.renderer.reset();
         renderer.draw(&mut surface.renderer, viewport, background_color);
+        surface.renderer.flush();
 
         surface.renderer.render_to_buffer(
             bytemuck::cast_slice_mut(&mut buffer),
