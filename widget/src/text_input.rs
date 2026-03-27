@@ -107,6 +107,7 @@ where
     padding: Padding,
     size: Option<Pixels>,
     line_height: text::LineHeight,
+    letter_spacing: crate::core::Em,
     alignment: alignment::Horizontal,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
@@ -138,6 +139,7 @@ where
             padding: DEFAULT_PADDING,
             size: None,
             line_height: text::LineHeight::default(),
+            letter_spacing: crate::core::Em::default(),
             alignment: alignment::Horizontal::Left,
             on_input: None,
             on_paste: None,
@@ -244,6 +246,12 @@ where
         self
     }
 
+    /// Sets the letter spacing of the [`TextInput`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<crate::core::Em>) -> Self {
+        self.letter_spacing = letter_spacing.into();
+        self
+    }
+
     /// Sets the horizontal alignment of the [`TextInput`].
     pub fn align_x(mut self, alignment: impl Into<alignment::Horizontal>) -> Self {
         self.alignment = alignment.into();
@@ -299,6 +307,7 @@ where
             shaping: text::Shaping::Advanced,
             wrapping: text::Wrapping::None,
             ellipsis: text::Ellipsis::None,
+            letter_spacing: self.letter_spacing,
             hint_factor: renderer.scale_factor(),
         };
 
@@ -326,6 +335,7 @@ where
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
+                letter_spacing: crate::core::Em::default(),
                 hint_factor: renderer.scale_factor(),
             };
 
@@ -660,6 +670,7 @@ where
                 self.font,
                 self.size,
                 self.line_height,
+                self.letter_spacing,
             );
         };
 
@@ -1567,6 +1578,7 @@ fn replace_paragraph<Renderer>(
     font: Option<Renderer::Font>,
     text_size: Option<Pixels>,
     line_height: text::LineHeight,
+    letter_spacing: crate::core::Em,
 ) where
     Renderer: text::Renderer,
 {
@@ -1587,6 +1599,7 @@ fn replace_paragraph<Renderer>(
         shaping: text::Shaping::Advanced,
         wrapping: text::Wrapping::None,
         ellipsis: text::Ellipsis::None,
+        letter_spacing,
         hint_factor: renderer.scale_factor(),
     });
 }

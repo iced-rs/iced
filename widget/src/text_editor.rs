@@ -112,6 +112,7 @@ where
     max_height: f32,
     padding: Padding,
     wrapping: Wrapping,
+    letter_spacing: crate::core::Em,
     class: Theme::Class<'a>,
     key_binding: Option<Box<dyn Fn(KeyPress) -> Option<Binding<Message>> + 'a>>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
@@ -140,6 +141,7 @@ where
             max_height: f32::INFINITY,
             padding: Padding::new(5.0),
             wrapping: Wrapping::default(),
+            letter_spacing: crate::core::Em::default(),
             class: <Theme as Catalog>::default(),
             key_binding: None,
             on_edit: None,
@@ -234,6 +236,12 @@ where
         self
     }
 
+    /// Sets the letter spacing of the [`TextEditor`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<crate::core::Em>) -> Self {
+        self.letter_spacing = letter_spacing.into();
+        self
+    }
+
     /// Highlights the [`TextEditor`] using the given syntax and theme.
     #[cfg(feature = "highlighter")]
     pub fn highlight(
@@ -273,6 +281,7 @@ where
             max_height: self.max_height,
             padding: self.padding,
             wrapping: self.wrapping,
+            letter_spacing: self.letter_spacing,
             class: self.class,
             key_binding: self.key_binding,
             on_edit: self.on_edit,
@@ -618,6 +627,7 @@ where
             self.font.unwrap_or_else(|| renderer.default_font()),
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
+            self.letter_spacing,
             self.wrapping,
             renderer.scale_factor(),
             state.highlighter.borrow_mut().deref_mut(),
@@ -930,6 +940,7 @@ where
                         shaping: text::Shaping::Advanced,
                         wrapping: self.wrapping,
                         ellipsis: text::Ellipsis::None,
+                        letter_spacing: self.letter_spacing,
                         hint_factor: renderer.scale_factor(),
                     },
                     text_bounds.position(),
