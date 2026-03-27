@@ -34,6 +34,9 @@ pub trait Program: Sized {
     /// The theme of the program.
     type Theme: theme::Base;
 
+    /// Custom type
+    type Custom: Send + Clone + std::fmt::Debug + 'static;
+
     /// The renderer of the program.
     type Renderer: Renderer;
 
@@ -86,7 +89,7 @@ pub trait Program: Sized {
         format!("{title} - Iced")
     }
 
-    fn subscription(&self, _state: &Self::State) -> Subscription<Self::Message> {
+    fn subscription(&self, _state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
         Subscription::none()
     }
 
@@ -111,7 +114,7 @@ pub trait Program: Sized {
 pub fn with_title<P: Program>(
     program: P,
     title: impl Fn(&P::State, window::Id) -> String,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom> {
     struct WithTitle<P, Title> {
         program: P,
         title: Title,
@@ -127,6 +130,7 @@ pub fn with_title<P: Program>(
         type Theme = P::Theme;
         type Renderer = P::Renderer;
         type Executor = P::Executor;
+        type Custom = P::Custom;
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             (self.title)(state, window)
@@ -164,7 +168,7 @@ pub fn with_title<P: Program>(
             self.program.theme(state, window)
         }
 
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
             self.program.subscription(state)
         }
 
@@ -183,8 +187,8 @@ pub fn with_title<P: Program>(
 /// Decorates a [`Program`] with the given subscription function.
 pub fn with_subscription<P: Program>(
     program: P,
-    f: impl Fn(&P::State) -> Subscription<P::Message>,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+    f: impl Fn(&P::State) -> Subscription<P::Message, P::Custom>,
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom> {
     struct WithSubscription<P, F> {
         program: P,
         subscription: F,
@@ -192,15 +196,16 @@ pub fn with_subscription<P: Program>(
 
     impl<P: Program, F> Program for WithSubscription<P, F>
     where
-        F: Fn(&P::State) -> Subscription<P::Message>,
+        F: Fn(&P::State) -> Subscription<P::Message, P::Custom>,
     {
         type State = P::State;
         type Message = P::Message;
         type Theme = P::Theme;
         type Renderer = P::Renderer;
         type Executor = P::Executor;
+        type Custom = P::Custom;
 
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
             (self.subscription)(state)
         }
 
@@ -259,7 +264,7 @@ pub fn with_subscription<P: Program>(
 pub fn with_theme<P: Program>(
     program: P,
     f: impl Fn(&P::State, window::Id) -> Option<P::Theme>,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom> {
     struct WithTheme<P, F> {
         program: P,
         theme: F,
@@ -274,6 +279,7 @@ pub fn with_theme<P: Program>(
         type Theme = P::Theme;
         type Renderer = P::Renderer;
         type Executor = P::Executor;
+        type Custom = P::Custom;
 
         fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             (self.theme)(state, window)
@@ -311,7 +317,7 @@ pub fn with_theme<P: Program>(
             self.program.view(state, window)
         }
 
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
             self.program.subscription(state)
         }
 
@@ -331,7 +337,7 @@ pub fn with_theme<P: Program>(
 pub fn with_style<P: Program>(
     program: P,
     f: impl Fn(&P::State, &P::Theme) -> theme::Style,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom> {
     struct WithStyle<P, F> {
         program: P,
         style: F,
@@ -346,6 +352,7 @@ pub fn with_style<P: Program>(
         type Theme = P::Theme;
         type Renderer = P::Renderer;
         type Executor = P::Executor;
+        type Custom = P::Custom;
 
         fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             (self.style)(state, theme)
@@ -383,7 +390,7 @@ pub fn with_style<P: Program>(
             self.program.view(state, window)
         }
 
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, P::Custom> {
             self.program.subscription(state)
         }
 
@@ -403,7 +410,7 @@ pub fn with_style<P: Program>(
 pub fn with_scale_factor<P: Program>(
     program: P,
     f: impl Fn(&P::State, window::Id) -> f32,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom> {
     struct WithScaleFactor<P, F> {
         program: P,
         scale_factor: F,
@@ -418,6 +425,7 @@ pub fn with_scale_factor<P: Program>(
         type Theme = P::Theme;
         type Renderer = P::Renderer;
         type Executor = P::Executor;
+        type Custom = P::Custom;
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
@@ -451,7 +459,7 @@ pub fn with_scale_factor<P: Program>(
             self.program.view(state, window)
         }
 
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
             self.program.subscription(state)
         }
 
@@ -477,7 +485,7 @@ pub fn with_scale_factor<P: Program>(
 /// Decorates a [`Program`] with the given executor function.
 pub fn with_executor<P: Program, E: Executor>(
     program: P,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom> {
     use std::marker::PhantomData;
 
     struct WithExecutor<P, E> {
@@ -493,6 +501,7 @@ pub fn with_executor<P: Program, E: Executor>(
         type Message = P::Message;
         type Theme = P::Theme;
         type Renderer = P::Renderer;
+        type Custom = P::Custom;
         type Executor = E;
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
@@ -527,7 +536,7 @@ pub fn with_executor<P: Program, E: Executor>(
             self.program.view(state, window)
         }
 
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
             self.program.subscription(state)
         }
 
@@ -588,7 +597,7 @@ impl<P: Program> Instance<P> {
     }
 
     /// Returns the current [`Subscription`] of the [`Instance`].
-    pub fn subscription(&self) -> Subscription<P::Message> {
+    pub fn subscription(&self) -> Subscription<P::Message, P::Custom> {
         self.program.subscription(&self.state)
     }
 

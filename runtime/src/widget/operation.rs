@@ -49,7 +49,7 @@ pub fn focus_next<T>() -> Task<T> {
 }
 
 /// Returns whether the widget with the given [`Id`] is focused or not.
-pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
+pub fn is_focused<Custom>(id: impl Into<Id>) -> Task<bool> {
     task::widget(operation::focusable::is_focused(id.into()))
 }
 
