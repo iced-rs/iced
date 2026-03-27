@@ -272,7 +272,7 @@ where
 
         #[allow(clippy::redundant_closure_for_method_calls)]
         if overlay.with_overlay(|overlay| overlay.is_some()) {
-            Some(overlay::Element::new(Box::new(Overlay(Some(overlay)))))
+            Some(overlay::Element::new(Overlay(Some(overlay))))
         } else {
             let heads = overlay.into_heads();
 
