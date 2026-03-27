@@ -1,5 +1,5 @@
 use crate::core::alignment;
-use crate::core::text::{Alignment, Shaping};
+use crate::core::text::{Alignment, Ellipsis, Shaping, Wrapping};
 use crate::core::{Color, Font, Pixels, Point, Rectangle, Transformation};
 use crate::graphics::text::cache::{self, Cache};
 use crate::graphics::text::cosmic_text;
@@ -99,6 +99,8 @@ impl Pipeline {
         align_x: Alignment,
         align_y: alignment::Vertical,
         shaping: Shaping,
+        wrapping: Wrapping,
+        ellipsis: Ellipsis,
         renderer: &mut vello_cpu::RenderContext,
         transformation: Transformation,
     ) {
@@ -114,6 +116,8 @@ impl Pipeline {
             size: size.into(),
             line_height,
             shaping,
+            wrapping,
+            ellipsis,
             align_x,
         };
 
