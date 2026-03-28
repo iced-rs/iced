@@ -139,8 +139,43 @@ impl Renderer {
                         Text::Editor { .. } => {
                             // TODO
                         }
-                        Text::Cached { .. } => {
-                            // TODO
+                        Text::Cached {
+                            content,
+                            bounds,
+                            color,
+                            size,
+                            line_height,
+                            font,
+                            align_x,
+                            align_y,
+                            shaping,
+                            wrapping,
+                            ellipsis,
+                            clip_bounds,
+                        } => {
+                            let transformation = Transformation::scale(viewport.scale_factor());
+
+                            renderer.push_clip_path(
+                                &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
+                            );
+
+                            self.text.draw_cached(
+                                content,
+                                *bounds,
+                                *color,
+                                *size,
+                                *line_height,
+                                *font,
+                                *align_x,
+                                *align_y,
+                                *shaping,
+                                *wrapping,
+                                *ellipsis,
+                                renderer,
+                                transformation,
+                            );
+
+                            renderer.pop_clip_path();
                         }
                         Text::Raw { .. } => {
                             // TODO
