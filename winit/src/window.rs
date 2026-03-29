@@ -266,14 +266,16 @@ where
         }
 
         if self.ime_state != Some((cursor, purpose)) {
-            let (cursor_y, cursor_height) = if cfg!(any(target_os = "windows", target_os = "macos"))
-            {
-                (cursor.y, cursor.height)
-            } else {
-                // Specify the bottom-left position of the cursor because
-                // only the position is supported on Linux (or other platforms).
-                (cursor.y + cursor.height, 0f32)
-            };
+            // Specify only the bottom-left position of the cursor on Linux
+            // because fcitx5 doesn't work well with cursor areas of
+            // the top-left position and height.
+            // The candidate window hides the composing text (a.k.a. preedit).
+            let (cursor_y, cursor_height) =
+                if cfg!(not(any(target_os = "windows", target_os = "macos"))) {
+                    (cursor.y + cursor.height, 0.0)
+                } else {
+                    (cursor.y, cursor.height)
+                };
             self.raw.set_ime_cursor_area(
                 LogicalPosition::new(cursor.x, cursor_y),
                 LogicalSize::new(cursor.width, cursor_height),
