@@ -136,8 +136,29 @@ impl Renderer {
 
                             renderer.pop_clip_path();
                         }
-                        Text::Editor { .. } => {
-                            // TODO
+                        Text::Editor {
+                            editor,
+                            position,
+                            color,
+                            clip_bounds,
+                            transformation,
+                        } => {
+                            let transformation =
+                                Transformation::scale(viewport.scale_factor()) * *transformation;
+
+                            renderer.push_clip_path(
+                                &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
+                            );
+
+                            self.text.draw_editor(
+                                editor,
+                                *position,
+                                *color,
+                                renderer,
+                                transformation,
+                            );
+
+                            renderer.pop_clip_path();
                         }
                         Text::Cached {
                             content,
