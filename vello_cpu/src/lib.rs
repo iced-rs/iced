@@ -10,7 +10,7 @@ mod text;
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
-use crate::core::{Background, Color, Font, Pixels, Rectangle, Transformation};
+use crate::core::{Background, Color, Font, Pixels, Rectangle, Size, Transformation};
 use crate::graphics::compositor;
 use crate::graphics::error;
 use crate::graphics::mesh;
@@ -198,8 +198,40 @@ impl Renderer {
 
                             renderer.pop_clip_path();
                         }
-                        Text::Raw { .. } => {
-                            // TODO
+                        Text::Raw {
+                            raw,
+                            transformation,
+                        } => {
+                            let Some(buffer) = raw.buffer.upgrade() else {
+                                return;
+                            };
+
+                            let transformation =
+                                Transformation::scale(viewport.scale_factor()) * *transformation;
+
+                            let (width, height) = buffer.size();
+
+                            let clip_bounds = Rectangle::new(
+                                raw.position,
+                                Size::new(
+                                    width.unwrap_or(layer.bounds.width),
+                                    height.unwrap_or(layer.bounds.height),
+                                ),
+                            );
+
+                            renderer.push_clip_path(
+                                &into_rect(clip_bounds * transformation).to_path(ACCURACY),
+                            );
+
+                            self.text.draw_raw(
+                                &buffer,
+                                raw.position,
+                                raw.color,
+                                renderer,
+                                transformation,
+                            );
+
+                            renderer.pop_clip_path();
                         }
                     }
                 }
