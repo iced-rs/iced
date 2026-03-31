@@ -1402,7 +1402,7 @@ dependencies = [
 [[package]]
 name = "dpi"
 version = "0.1.1"
-source = "git+https://github.com/playtron-os/winit.git#2e28820207080f4499382df3a4fedb0da81562d3"
+source = "git+https://github.com/playtron-os/winit.git?branch=feat%2Frebase-v0.30.12#d3d664ba424c2cdf84520098e6f9c3fae632c5d8"
 
 [[package]]
 name = "editor"
@@ -7728,8 +7728,8 @@ checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
 
 [[package]]
 name = "winit"
-version = "0.30.8"
-source = "git+https://github.com/playtron-os/winit.git#2e28820207080f4499382df3a4fedb0da81562d3"
+version = "0.30.12"
+source = "git+https://github.com/playtron-os/winit.git?branch=feat%2Frebase-v0.30.12#d3d664ba424c2cdf84520098e6f9c3fae632c5d8"
 dependencies = [
  "ahash",
  "android-activity",
@@ -7769,6 +7769,7 @@ dependencies = [
  "wayland-client",
  "wayland-protocols",
  "wayland-protocols-plasma",
+ "wayland-scanner",
  "web-sys",
  "web-time",
  "windows-sys 0.52.0",

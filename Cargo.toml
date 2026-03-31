@@ -238,7 +238,7 @@ web-sys = "0.3.69"
 web-time = "1.1"
 wgpu = { git = "https://github.com/playtron-os/wgpu.git", rev = "f28c5f92e", default-features = false, features = ["std", "wgsl"] }
 #winit = { path = "../winit", default-features = false, features = ["rwh_06"] }
-winit = { git = "https://github.com/playtron-os/winit.git", default-features = false, features = ["rwh_06"] }
+winit = { git = "https://github.com/playtron-os/winit.git", branch = "feat/rebase-v0.30.12", default-features = false, features = ["rwh_06"] }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
