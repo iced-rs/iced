@@ -836,9 +836,11 @@ where
                 text,
                 modified_key,
                 physical_key,
+                modifiers,
                 ..
             }) => {
                 let state = state::<Renderer>(tree);
+                state.keyboard_modifiers = *modifiers;
 
                 if let Some(focus) = &mut state.is_focused {
                     let modifiers = state.keyboard_modifiers;
