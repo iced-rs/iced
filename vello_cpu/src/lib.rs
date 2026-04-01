@@ -7,6 +7,9 @@ use iced_graphics::core;
 mod layer;
 mod text;
 
+#[cfg(feature = "image")]
+mod raster;
+
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
@@ -23,6 +26,8 @@ pub struct Renderer {
     settings: renderer::Settings,
     layers: layer::Stack,
     text: text::Pipeline,
+    #[cfg(feature = "image")]
+    raster: raster::Pipeline,
     scale_factor: Option<f32>,
 }
 
@@ -32,6 +37,8 @@ impl Renderer {
             settings,
             layers: layer::Stack::new(),
             text: text::Pipeline::new(),
+            #[cfg(feature = "image")]
+            raster: raster::Pipeline::new(),
             scale_factor: None,
         }
     }
@@ -108,6 +115,32 @@ impl Renderer {
             }
 
             renderer.reset_transform();
+
+            for image in &layer.images {
+                match image {
+                    #[cfg(feature = "image")]
+                    iced_graphics::Image::Raster {
+                        image,
+                        bounds,
+                        clip_bounds,
+                    } => {
+                        renderer.push_clip_path(
+                            &into_rect(*clip_bounds * viewport.scale_factor()).to_path(ACCURACY),
+                        );
+
+                        self.raster
+                            .draw(image, *bounds, renderer, viewport.scale_factor());
+
+                        renderer.pop_clip_path();
+                    }
+                    #[cfg(feature = "svg")]
+                    iced_graphics::Image::Vector { .. } => todo!(),
+                    #[cfg(not(feature = "image"))]
+                    iced_graphics::Image::Raster { .. } => {}
+                    #[cfg(not(feature = "svg"))]
+                    iced_graphics::Image::Vector { .. } => {}
+                }
+            }
 
             for item in &layer.text {
                 for text in item.as_slice() {
@@ -291,7 +324,8 @@ impl core::Renderer for Renderer {
         _handle: &image::Handle,
         _callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
-        // TODO
+        #[cfg(feature = "image")]
+        _callback(self.raster.load(_handle));
     }
 
     fn hint(&mut self, scale_factor: f32) {
@@ -381,16 +415,17 @@ impl graphics::geometry::Renderer for Renderer {
 impl image::Renderer for Renderer {
     type Handle = image::Handle;
 
-    fn load_image(&self, _handle: &image::Handle) -> Result<image::Allocation, image::Error> {
-        todo!()
+    fn load_image(&self, handle: &image::Handle) -> Result<image::Allocation, image::Error> {
+        self.raster.load(handle)
     }
 
-    fn measure_image(&self, _handle: &image::Handle) -> Option<core::Size<u32>> {
-        todo!()
+    fn measure_image(&self, handle: &image::Handle) -> Option<core::Size<u32>> {
+        self.raster.dimensions(handle)
     }
 
-    fn draw_image(&mut self, _image: core::Image, _bounds: Rectangle, _clip_bounds: Rectangle) {
-        todo!()
+    fn draw_image(&mut self, image: core::Image, bounds: Rectangle, clip_bounds: Rectangle) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_raster(image, bounds, clip_bounds, transformation);
     }
 }
 
