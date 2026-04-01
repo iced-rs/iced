@@ -15,7 +15,7 @@ struct GradientVertexInput {
     @location(12) shadow_color: vec4<f32>,
     @location(13) shadow_offset: vec2<f32>,
     @location(14) shadow_blur_radius: f32,
-    // Packed: x = shadow_inset, y = snap, z = border_only, w = padding
+    // Packed: x = shadow_inset, y = shadow_spread_radius (bitcast to f32), z = snap, w = border_only
     @location(15) flags: vec4<u32>,
 }
 
@@ -34,7 +34,8 @@ struct GradientVertexOutput {
     @location(10) border_width: f32,
     @location(11) shadow_color: vec4<f32>,
     @location(12) shadow_offset: vec2<f32>,
-    @location(13) shadow_blur_radius: f32,
+    // Packed: x = shadow_blur_radius, y = shadow_spread_radius
+    @location(13) shadow_blur_and_spread: vec2<f32>,
     @location(14) @interpolate(flat) shadow_inset: u32,
     @location(15) @interpolate(flat) border_only: u32,
 }
@@ -43,21 +44,22 @@ struct GradientVertexOutput {
 fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     var out: GradientVertexOutput;
 
-    // Unpack flags: x = shadow_inset, y = snap, z = border_only
+    // Unpack flags: x = shadow_inset, y = shadow_spread_radius (bitcast), z = snap, w = border_only
     let shadow_inset = bool(input.flags.x);
-    let snap = bool(input.flags.y);
+    let shadow_spread_radius = bitcast<f32>(input.flags.y);
+    let snap = bool(input.flags.z);
 
     // For outset shadows, expand the quad bounds to include shadow area
     // For inset shadows, no expansion needed
     var shadow_expand = vec2<f32>(0.0, 0.0);
     if !shadow_inset {
-        shadow_expand = min(input.shadow_offset, vec2<f32>(0.0, 0.0)) - input.shadow_blur_radius;
+        shadow_expand = min(input.shadow_offset, vec2<f32>(0.0, 0.0)) - input.shadow_blur_radius - max(shadow_spread_radius, 0.0);
     }
 
     var pos: vec2<f32> = (input.position_and_scale.xy + shadow_expand) * globals.scale;
     var scale_expand = vec2<f32>(0.0, 0.0);
     if !shadow_inset {
-        scale_expand = vec2<f32>(abs(input.shadow_offset.x), abs(input.shadow_offset.y)) + input.shadow_blur_radius * 2.0;
+        scale_expand = vec2<f32>(abs(input.shadow_offset.x), abs(input.shadow_offset.y)) + (input.shadow_blur_radius + max(shadow_spread_radius, 0.0)) * 2.0;
     }
     var scale: vec2<f32> = (input.position_and_scale.zw + scale_expand) * globals.scale;
 
@@ -105,9 +107,9 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     out.border_width = input.border_width * globals.scale;
     out.shadow_color = premultiply(input.shadow_color);
     out.shadow_offset = input.shadow_offset * globals.scale;
-    out.shadow_blur_radius = input.shadow_blur_radius * globals.scale;
+    out.shadow_blur_and_spread = vec2<f32>(input.shadow_blur_radius * globals.scale, shadow_spread_radius * globals.scale);
     out.shadow_inset = input.flags.x;
-    out.border_only = input.flags.z;
+    out.border_only = input.flags.w;
 
     return out;
 }
@@ -371,25 +373,30 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let quad_color = mixed_color * quad_alpha;
 
     if input.shadow_color.a > 0.0 {
+        let blur = input.shadow_blur_and_spread.x;
+        let spread = input.shadow_blur_and_spread.y;
+
         if bool(input.shadow_inset) {
             // Inset shadow - draw inside the quad
+            // Spread contracts the inset shadow shape (positive spread = larger shadow area inside)
             var inset_shadow_dist: f32 = rounded_box_sdf(
                 -(input.position.xy - pos - input.shadow_offset - scale/2.0) * 2.0,
-                scale,
-                input.border_radius * 2.0
+                scale - vec2(spread * 2.0),
+                max(input.border_radius * 2.0 - vec4(spread * 2.0), vec4(0.0))
             ) / 2.0;
             // Invert the distance for inset effect
-            let inset_alpha = 1.0 - smoothstep(-input.shadow_blur_radius, input.shadow_blur_radius, max(-inset_shadow_dist, 0.0));
+            let inset_alpha = 1.0 - smoothstep(-blur, blur, max(-inset_shadow_dist, 0.0));
             // Only apply shadow inside the quad (where quad_alpha > 0)
             return mix(quad_color, input.shadow_color * quad_alpha, inset_alpha * quad_alpha);
         } else {
             // Outset shadow - draw outside the quad
+            // Spread expands the shadow shape (positive = larger shadow, negative = smaller)
             var shadow_dist: f32 = rounded_box_sdf(
                 -(input.position.xy - pos - input.shadow_offset - scale/2.0) * 2.0,
-                scale,
-                input.border_radius * 2.0
+                scale + vec2(spread * 2.0),
+                max(input.border_radius * 2.0 + vec4(spread * 2.0), vec4(0.0))
             ) / 2.0;
-            let shadow_alpha = 1.0 - smoothstep(-input.shadow_blur_radius, input.shadow_blur_radius, max(shadow_dist, 0.0));
+            let shadow_alpha = 1.0 - smoothstep(-blur, blur, max(shadow_dist, 0.0));
 
             return mix(quad_color, input.shadow_color, (1.0 - quad_alpha) * shadow_alpha);
         }

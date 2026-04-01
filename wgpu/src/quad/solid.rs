@@ -111,8 +111,10 @@ impl Pipeline {
                         8 => Float32,
                         // Shadow inset
                         9 => Uint32,
+                        // Shadow spread radius
+                        10 => Float32,
                         // Snap
-                        10 => Uint32,
+                        11 => Uint32,
                     ),
                 }],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),

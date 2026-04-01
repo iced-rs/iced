@@ -201,12 +201,18 @@ impl Compositor {
         };
 
         // Enable DMA-BUF import for zero-copy video rendering when available
-        if adapter.features().contains(wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF) {
+        if adapter
+            .features()
+            .contains(wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF)
+        {
             required_features |= wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF;
         }
 
         // Enable 16-bit normalized texture formats for 10-bit HDR video (P010)
-        if adapter.features().contains(wgpu::Features::TEXTURE_FORMAT_16BIT_NORM) {
+        if adapter
+            .features()
+            .contains(wgpu::Features::TEXTURE_FORMAT_16BIT_NORM)
+        {
             required_features |= wgpu::Features::TEXTURE_FORMAT_16BIT_NORM;
         }
 

@@ -12,6 +12,12 @@ pub struct Shadow {
     /// The blur radius of the shadow.
     pub blur_radius: f32,
 
+    /// The spread radius of the shadow.
+    ///
+    /// Positive values expand the shadow outward (larger than the element).
+    /// Negative values contract the shadow inward (smaller than the element).
+    pub spread_radius: f32,
+
     /// Whether the shadow is inset (inside the element) or outset (outside).
     /// Default is `false` (outset shadow).
     pub inset: bool,
@@ -24,6 +30,7 @@ impl Shadow {
             color,
             offset,
             blur_radius,
+            spread_radius: 0.0,
             inset: false,
         }
     }
@@ -34,8 +41,15 @@ impl Shadow {
             color,
             offset,
             blur_radius,
+            spread_radius: 0.0,
             inset: true,
         }
+    }
+
+    /// Sets the spread radius of the shadow.
+    pub fn with_spread(mut self, spread_radius: f32) -> Self {
+        self.spread_radius = spread_radius;
+        self
     }
 
     /// Sets whether the shadow is inset.

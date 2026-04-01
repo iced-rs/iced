@@ -45,15 +45,15 @@ pub struct Quad {
     /// Whether the shadow is inset (1) or outset (0).
     pub shadow_inset: u32,
 
+    /// The shadow spread radius of the [`Quad`].
+    pub shadow_spread_radius: f32,
+
     /// Whether the [`Quad`] should be snapped to the pixel grid.
     pub snap: u32,
 
     /// Whether only the border should be rendered (gradient fills border only, not interior).
     /// Only applies to gradient quads.
     pub border_only: u32,
-
-    /// Padding to maintain alignment.
-    pub _padding: u32,
 }
 
 #[derive(Debug, Clone)]

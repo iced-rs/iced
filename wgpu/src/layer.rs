@@ -54,9 +54,9 @@ impl Layer {
             shadow_offset: (quad.shadow.offset * transformation.scale_factor()).into(),
             shadow_blur_radius: quad.shadow.blur_radius * transformation.scale_factor(),
             shadow_inset: quad.shadow.inset as u32,
+            shadow_spread_radius: quad.shadow.spread_radius * transformation.scale_factor(),
             snap: quad.snap as u32,
             border_only: quad.border_only as u32,
-            _padding: 0,
         };
 
         self.quads.add(quad, &background);

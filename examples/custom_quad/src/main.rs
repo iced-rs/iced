@@ -37,6 +37,8 @@ impl Example {
                 color: Color::from_rgba(0.0, 0.0, 0.0, 0.8),
                 offset: Vector::new(0.0, 8.0),
                 blur_radius: 16.0,
+                spread_radius: 0.0,
+                inset: false,
             },
             snap: false,
         }
@@ -199,6 +201,7 @@ mod quad {
                     },
                     shadow: self.shadow,
                     snap: self.snap,
+                    border_only: false,
                 },
                 Color::BLACK,
             );

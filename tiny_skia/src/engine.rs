@@ -62,16 +62,17 @@ impl Engine {
         let shadow = quad.shadow;
 
         if shadow.color.a > 0.0 {
+            let spread = shadow.spread_radius;
             let shadow_bounds = Rectangle {
-                x: quad.bounds.x + shadow.offset.x - shadow.blur_radius,
-                y: quad.bounds.y + shadow.offset.y - shadow.blur_radius,
-                width: quad.bounds.width + shadow.blur_radius * 2.0,
-                height: quad.bounds.height + shadow.blur_radius * 2.0,
+                x: quad.bounds.x + shadow.offset.x - shadow.blur_radius - spread.max(0.0),
+                y: quad.bounds.y + shadow.offset.y - shadow.blur_radius - spread.max(0.0),
+                width: quad.bounds.width + shadow.blur_radius * 2.0 + spread.max(0.0) * 2.0,
+                height: quad.bounds.height + shadow.blur_radius * 2.0 + spread.max(0.0) * 2.0,
             } * transformation;
 
             let radii = fill_border_radius
                 .into_iter()
-                .map(|radius| radius * transformation.scale_factor())
+                .map(|radius| (radius + spread).max(0.0) * transformation.scale_factor())
                 .collect::<Vec<_>>();
             let (x, y, width, height) = (
                 shadow_bounds.x as u32,
@@ -79,8 +80,8 @@ impl Engine {
                 shadow_bounds.width as u32,
                 shadow_bounds.height as u32,
             );
-            let half_width = physical_bounds.width / 2.0;
-            let half_height = physical_bounds.height / 2.0;
+            let half_width = physical_bounds.width / 2.0 + spread * transformation.scale_factor();
+            let half_height = physical_bounds.height / 2.0 + spread * transformation.scale_factor();
 
             let colors = (y..y + height)
                 .flat_map(|y| (x..x + width).map(move |x| (x as f32, y as f32)))

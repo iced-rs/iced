@@ -1866,10 +1866,16 @@ impl renderer::Headless for Renderer {
                 label: Some("iced_wgpu [headless]"),
                 required_features: {
                     let mut features = wgpu::Features::empty();
-                    if adapter.features().contains(wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF) {
+                    if adapter
+                        .features()
+                        .contains(wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF)
+                    {
                         features |= wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF;
                     }
-                    if adapter.features().contains(wgpu::Features::TEXTURE_FORMAT_16BIT_NORM) {
+                    if adapter
+                        .features()
+                        .contains(wgpu::Features::TEXTURE_FORMAT_16BIT_NORM)
+                    {
                         features |= wgpu::Features::TEXTURE_FORMAT_16BIT_NORM;
                     }
                     features

@@ -184,7 +184,7 @@ impl Pipeline {
                             offset: 188,
                             shader_location: 11,
                         },
-                        // Shadow inset + snap + border_only (offset 192)
+                        // Shadow inset + spread_radius(f32 bits) + snap + border_only (offset 192)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Uint32x4,
                             offset: 192,
@@ -285,7 +285,7 @@ impl Pipeline {
                             offset: 188,
                             shader_location: 14,
                         },
-                        // Shadow inset + snap + border_only + padding (offset 192)
+                        // Shadow inset + spread_radius(f32 bits) + snap + border_only (offset 192)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Uint32x4,
                             offset: 192,
