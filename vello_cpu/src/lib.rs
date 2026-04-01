@@ -566,11 +566,11 @@ impl graphics::Compositor for Compositor {
 
     fn screenshot(
         &mut self,
-        _renderer: &mut Self::Renderer,
-        _viewport: &iced_graphics::Viewport,
-        _background_color: core::Color,
+        renderer: &mut Self::Renderer,
+        viewport: &iced_graphics::Viewport,
+        background_color: core::Color,
     ) -> Vec<u8> {
-        todo!()
+        screenshot(renderer, viewport, background_color)
     }
 }
 
@@ -592,10 +592,40 @@ impl renderer::Headless for Renderer {
 
     fn screenshot(
         &mut self,
-        _size: core::Size<u32>,
-        _scale_factor: f32,
-        _background_color: core::Color,
+        size: core::Size<u32>,
+        scale_factor: f32,
+        background_color: core::Color,
     ) -> Vec<u8> {
-        todo!()
+        screenshot(
+            self,
+            &Viewport::with_physical_size(size, scale_factor),
+            background_color,
+        )
     }
+}
+
+fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Color) -> Vec<u8> {
+    let mut vello = vello_cpu::RenderContext::new(
+        viewport.physical_width() as u16,
+        viewport.physical_height() as u16,
+    );
+
+    renderer.draw(&mut vello, viewport, background_color);
+    vello.flush();
+
+    let mut screenshot =
+        vec![0; (viewport.physical_width() * viewport.physical_height()) as usize * 4];
+
+    vello.render_to_buffer(
+        &mut screenshot,
+        viewport.physical_width() as u16,
+        viewport.physical_height() as u16,
+        vello_cpu::RenderMode::OptimizeQuality,
+    );
+
+    for i in 0..screenshot.len() / 4 {
+        screenshot.swap(i * 4, i * 4 + 2);
+    }
+
+    screenshot
 }
