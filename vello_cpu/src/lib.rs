@@ -13,7 +13,7 @@ mod raster;
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
-use crate::core::{Background, Color, Font, Pixels, Rectangle, Size, Transformation};
+use crate::core::{Background, Color, Font, Gradient, Pixels, Rectangle, Size, Transformation};
 use crate::graphics::compositor;
 use crate::graphics::error;
 use crate::graphics::mesh;
@@ -66,7 +66,7 @@ impl Renderer {
             renderer.push_clip_path(&into_rect(layer.bounds).to_path(ACCURACY));
 
             for (quad, background) in &layer.quads {
-                renderer.set_paint(into_background(background));
+                renderer.set_paint(into_background(background, quad.bounds));
 
                 if quad.border.radius == border::Radius::default() {
                     renderer.fill_rect(&into_rect(quad.bounds));
@@ -281,10 +281,47 @@ fn into_color(Color { r, g, b, a }: Color) -> vello_cpu::color::AlphaColor<vello
     vello_cpu::color::AlphaColor::<vello_cpu::color::Srgb>::new([b, g, r, a])
 }
 
-fn into_background(background: &Background) -> vello_cpu::PaintType {
+fn into_background(background: &Background, bounds: Rectangle) -> vello_cpu::PaintType {
     match background {
         Background::Color(color) => vello_cpu::PaintType::Solid(into_color(*color)),
-        Background::Gradient(_gradient) => todo!(),
+        Background::Gradient(gradient) => vello_cpu::PaintType::Gradient(match gradient {
+            Gradient::Linear(gradient) => {
+                let (start, end) = gradient.angle.to_distance(&bounds);
+
+                vello_cpu::peniko::Gradient {
+                    kind: vello_cpu::peniko::GradientKind::Linear(
+                        vello_cpu::peniko::LinearGradientPosition::new(
+                            (start.x, start.y),
+                            (end.x, end.y),
+                        ),
+                    ),
+                    stops: vello_cpu::peniko::ColorStops(
+                        gradient
+                            .stops
+                            .into_iter()
+                            .filter_map(|stop| {
+                                let stop = stop?;
+
+                                Some(vello_cpu::peniko::ColorStop {
+                                    offset: stop.offset,
+                                    color: vello_cpu::color::DynamicColor {
+                                        cs: vello_cpu::color::ColorSpaceTag::Srgb,
+                                        flags: vello_cpu::color::Flags::default(),
+                                        components: [
+                                            stop.color.b,
+                                            stop.color.g,
+                                            stop.color.r,
+                                            stop.color.a,
+                                        ],
+                                    },
+                                })
+                            })
+                            .collect(),
+                    ),
+                    ..vello_cpu::peniko::Gradient::default()
+                }
+            }
+        }),
     }
 }
 
