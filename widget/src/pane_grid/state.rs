@@ -424,7 +424,7 @@ pub enum Action {
 }
 
 impl Action {
-    /// Returns the current [`Pane`] that is being dragged, if any.
+    /// Returns the current [`Pane`] that is being picked, if any.
     pub fn picked_pane(&self) -> Option<(Pane, Point)> {
         match *self {
             Action::Dragging { pane, origin, .. } => Some((pane, origin)),
