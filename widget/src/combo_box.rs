@@ -145,6 +145,7 @@ where
     size: Option<f32>,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
+    letter_spacing: crate::core::Em,
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     menu_height: Length,
 }
@@ -184,6 +185,7 @@ where
             size: None,
             shaping: text::Shaping::default(),
             ellipsis: text::Ellipsis::End,
+            letter_spacing: crate::core::Em::default(),
             menu_class: <Theme as Catalog>::default_menu(),
             menu_height: Length::Shrink,
         }
@@ -280,6 +282,12 @@ where
     /// Sets the [`text::Ellipsis`] strategy of the [`ComboBox`].
     pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
         self.ellipsis = ellipsis;
+        self
+    }
+
+    /// Sets the letter spacing of the [`ComboBox`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<crate::core::Em>) -> Self {
+        self.letter_spacing = letter_spacing.into();
         self
     }
 
@@ -858,7 +866,8 @@ where
                 .width(bounds.width)
                 .padding(self.padding)
                 .shaping(self.shaping)
-                .ellipsis(self.ellipsis);
+                .ellipsis(self.ellipsis)
+                .letter_spacing(self.letter_spacing);
 
                 if let Some(font) = self.font {
                     menu = menu.font(font);
