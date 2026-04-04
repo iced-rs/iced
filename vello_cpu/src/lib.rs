@@ -10,6 +10,9 @@ mod text;
 #[cfg(feature = "image")]
 mod raster;
 
+#[cfg(feature = "svg")]
+mod vector;
+
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
@@ -28,6 +31,8 @@ pub struct Renderer {
     text: text::Pipeline,
     #[cfg(feature = "image")]
     raster: raster::Pipeline,
+    #[cfg(feature = "svg")]
+    vector: vector::Pipeline,
     scale_factor: Option<f32>,
 }
 
@@ -39,6 +44,8 @@ impl Renderer {
             text: text::Pipeline::new(),
             #[cfg(feature = "image")]
             raster: raster::Pipeline::new(),
+            #[cfg(feature = "svg")]
+            vector: vector::Pipeline::new(),
             scale_factor: None,
         }
     }
@@ -134,7 +141,20 @@ impl Renderer {
                         renderer.pop_clip_path();
                     }
                     #[cfg(feature = "svg")]
-                    iced_graphics::Image::Vector { .. } => todo!(),
+                    iced_graphics::Image::Vector {
+                        svg,
+                        bounds,
+                        clip_bounds,
+                    } => {
+                        renderer.push_clip_path(
+                            &into_rect(*clip_bounds * viewport.scale_factor()).to_path(ACCURACY),
+                        );
+
+                        self.vector
+                            .draw(svg, *bounds, renderer, viewport.scale_factor());
+
+                        renderer.pop_clip_path();
+                    }
                     #[cfg(not(feature = "image"))]
                     iced_graphics::Image::Raster { .. } => {}
                     #[cfg(not(feature = "svg"))]
@@ -361,6 +381,7 @@ impl core::Renderer for Renderer {
         _handle: &image::Handle,
         _callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
+        // TODO: Concurrency
         #[cfg(feature = "image")]
         _callback(self.raster.load(_handle));
     }
@@ -468,12 +489,13 @@ impl image::Renderer for Renderer {
 
 #[cfg(feature = "svg")]
 impl core::svg::Renderer for Renderer {
-    fn measure_svg(&self, _handle: &core::svg::Handle) -> core::Size<u32> {
-        todo!()
+    fn measure_svg(&self, handle: &core::svg::Handle) -> core::Size<u32> {
+        self.vector.viewport_dimensions(handle)
     }
 
-    fn draw_svg(&mut self, _svg: core::Svg, _bounds: Rectangle, _clip_bounds: Rectangle) {
-        todo!()
+    fn draw_svg(&mut self, svg: core::Svg, bounds: Rectangle, clip_bounds: Rectangle) {
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_svg(svg, bounds, clip_bounds, transformation);
     }
 }
 

@@ -2484,6 +2484,7 @@ dependencies = [
  "iced_debug",
  "iced_graphics",
  "log",
+ "resvg",
  "rustc-hash 2.1.1",
  "softbuffer",
  "vello_cpu",
