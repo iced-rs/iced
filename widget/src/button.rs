@@ -340,7 +340,7 @@ where
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.status = Some(current_status);
-        } else if self.status.is_some_and(|status| status != current_status) {
+        } else if self.status.is_none_or(|status| status != current_status) {
             shell.request_redraw();
         }
     }
