@@ -111,6 +111,8 @@ where
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    on_focus: Option<Message>,
+    on_blur: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
@@ -145,6 +147,8 @@ where
             icon: None,
             class: Theme::default(),
             last_status: None,
+            on_focus: None,
+            on_blur: None,
         }
     }
 
@@ -189,6 +193,30 @@ where
     /// focused and the enter key is pressed, if `Some`.
     pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self {
         self.on_submit = on_submit;
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] starts being focused.
+    pub fn on_focus(mut self, on_focus: Message) -> Self {
+        self.on_focus = Some(on_focus);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] starts being focused, if [`Some`].
+    pub fn on_focus_maybe(mut self, on_focus: Option<Message>) -> Self {
+        self.on_focus = on_focus;
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] stops being focused.
+    pub fn on_blur(mut self, on_blur: Message) -> Self {
+        self.on_blur = Some(on_blur);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] stops being focused, if [`Some`].
+    pub fn on_blur_maybe(mut self, on_focus: Option<Message>) -> Self {
+        self.on_focus = on_focus;
         self
     }
 
@@ -662,6 +690,19 @@ where
                 self.line_height,
             );
         };
+
+        {
+            let state = state::<Renderer>(tree);
+            if let Some(msg) = match (state.is_focused(), state.was_focused) {
+                (true, false) => self.on_blur.clone(),
+                (false, true) => self.on_focus.clone(),
+                _ => None,
+            } {
+                shell.publish(msg);
+            }
+
+            state.was_focused = state.is_focused();
+        }
 
         match &event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -1365,6 +1406,7 @@ pub struct State<P: text::Paragraph> {
     placeholder: paragraph::Plain<P>,
     icon: paragraph::Plain<P>,
     is_focused: Option<Focus>,
+    was_focused: bool,
     is_dragging: Option<Drag>,
     is_pasting: Option<Paste>,
     preedit: Option<input_method::Preedit>,
