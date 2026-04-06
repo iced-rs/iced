@@ -1042,6 +1042,10 @@ pub struct Settings {
     ///
     /// Defaults to `None` (uses iced's default of `LineHeight::Relative(1.3)`).
     pub line_height: Option<text::LineHeight>,
+    /// The height of horizontal rules in pixels.
+    ///
+    /// Defaults to `1`.
+    pub rule_height: Pixels,
 }
 
 impl Settings {
@@ -1073,6 +1077,7 @@ impl Settings {
             wrapping: Wrapping::WordOrGlyph,
             letter_spacing: None,
             line_height: None,
+            rule_height: Pixels(1.0),
         }
     }
 }
@@ -1108,6 +1113,12 @@ pub struct Style {
     pub inline_code_font: Font,
     /// The [`Font`] to be applied to code blocks.
     pub code_block_font: Font,
+    /// The [`Color`] to be applied to code block text.
+    ///
+    /// When set, overrides `text_color` inside code blocks so that text
+    /// remains visible against the code block background.
+    /// Defaults to `None` (inherits from the container/renderer default).
+    pub code_block_text_color: Option<Color>,
     /// The [`Color`] to be applied to links.
     pub link_color: Color,
     /// The [`Color`] to be applied to text selection.
@@ -1128,6 +1139,7 @@ impl Style {
             inline_code_color: Color::WHITE,
             inline_code_font: Font::MONOSPACE,
             code_block_font: Font::MONOSPACE,
+            code_block_text_color: None,
             link_color: palette.primary,
             selection_color: Color::from_rgba(
                 palette.primary.r,
@@ -1540,7 +1552,7 @@ where
                     on_end.clone(),
                 )
             }
-            Item::Rule => rule::horizontal(settings.spacing).into(),
+            Item::Rule => rule::horizontal(settings.rule_height).into(),
             Item::Image { url, alt, .. } => {
                 // Try to show cached image, fallback to alt text
                 if let Some(handle) = images.and_then(|imgs| imgs.get(url)) {
@@ -1734,7 +1746,7 @@ where
                     on_end.clone(),
                 )
             }
-            Item::Rule => rule::horizontal(settings.spacing).into(),
+            Item::Rule => rule::horizontal(settings.rule_height).into(),
             Item::Image { url, title, alt } => {
                 // Delegate to viewer for custom image handling (lazy loading, etc.)
                 viewer.image(settings, url, title, alt)
@@ -1779,6 +1791,20 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    // Use code_block_text_color if set, otherwise clear text_color so
+    // the container's text color (e.g. white on dark) is inherited.
+    let code_style = if settings.style.code_block_text_color.is_some() {
+        Style {
+            text_color: settings.style.code_block_text_color,
+            ..settings.style
+        }
+    } else {
+        Style {
+            text_color: None,
+            ..settings.style
+        }
+    };
+
     let line_elements: Vec<Element<'a, Message, Theme, Renderer>> = lines
         .iter()
         .enumerate()
@@ -1789,7 +1815,7 @@ where
             let on_d = on_drag.clone();
             let on_e = on_end.clone();
 
-            rich_text(line.spans(settings.style))
+            rich_text(line.spans(code_style))
                 .font(Font::MONOSPACE)
                 .size(settings.code_size)
                 .letter_spacing_maybe(settings.letter_spacing)
@@ -2467,10 +2493,22 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    let code_style = if settings.style.code_block_text_color.is_some() {
+        Style {
+            text_color: settings.style.code_block_text_color,
+            ..settings.style
+        }
+    } else {
+        Style {
+            text_color: None,
+            ..settings.style
+        }
+    };
+
     container(
         scrollable(
             container(column(lines.iter().map(|line| {
-                rich_text(line.spans(settings.style))
+                rich_text(line.spans(code_style))
                     .on_link_click(on_link_click.clone())
                     .font(settings.style.code_block_font)
                     .size(settings.code_size)
@@ -2704,8 +2742,8 @@ where
     /// Displays a rule.
     ///
     /// By default, it calls [`rule`](self::rule()).
-    fn rule(&self, _settings: Settings) -> Element<'a, Message, Theme, Renderer> {
-        rule()
+    fn rule(&self, settings: Settings) -> Element<'a, Message, Theme, Renderer> {
+        rule::horizontal(settings.rule_height).into()
     }
 
     /// Displays a table.
