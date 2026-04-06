@@ -4,16 +4,19 @@ use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
 use crate::graphics::{self, Image};
 
+#[cfg(feature = "geometry")]
+use crate::geometry;
+
 use std::sync::Arc;
 
 pub type Stack = layer::Stack<Layer>;
-pub type Primitive = ();
 
 #[derive(Debug, Clone)]
 pub struct Layer {
     pub bounds: Rectangle,
     pub quads: Vec<(Quad, Background)>,
-    pub primitives: Vec<Item<Primitive>>,
+    #[cfg(feature = "geometry")]
+    pub primitives: Vec<Item<geometry::Primitive>>,
     pub images: Vec<Image>,
     pub text: Vec<Item<Text>>,
 }
@@ -176,9 +179,10 @@ impl Layer {
         self.images.push(svg);
     }
 
+    #[cfg(feature = "geometry")]
     pub fn draw_primitive_group(
         &mut self,
-        primitives: Vec<Primitive>,
+        primitives: Vec<geometry::Primitive>,
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
@@ -189,9 +193,10 @@ impl Layer {
         ));
     }
 
+    #[cfg(feature = "geometry")]
     pub fn draw_primitive_cache(
         &mut self,
-        primitives: Arc<[Primitive]>,
+        primitives: Arc<[geometry::Primitive]>,
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
@@ -208,6 +213,7 @@ impl Default for Layer {
         Self {
             bounds: Rectangle::INFINITE,
             quads: Vec::new(),
+            #[cfg(feature = "geometry")]
             primitives: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
@@ -237,6 +243,7 @@ impl graphics::Layer for Layer {
         self.bounds = Rectangle::INFINITE;
 
         self.quads.clear();
+        #[cfg(feature = "geometry")]
         self.primitives.clear();
         self.text.clear();
         self.images.clear();
@@ -247,6 +254,7 @@ impl graphics::Layer for Layer {
             return 1;
         }
 
+        #[cfg(feature = "geometry")]
         if !self.primitives.is_empty() {
             return 2;
         }
@@ -271,6 +279,7 @@ impl graphics::Layer for Layer {
             return 3;
         }
 
+        #[cfg(feature = "geometry")]
         if !self.primitives.is_empty() {
             return 2;
         }
@@ -284,6 +293,7 @@ impl graphics::Layer for Layer {
 
     fn merge(&mut self, layer: &mut Self) {
         self.quads.append(&mut layer.quads);
+        #[cfg(feature = "geometry")]
         self.primitives.append(&mut layer.primitives);
         self.text.append(&mut layer.text);
         self.images.append(&mut layer.images);

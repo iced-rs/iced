@@ -13,6 +13,9 @@ mod raster;
 #[cfg(feature = "svg")]
 mod vector;
 
+#[cfg(feature = "geometry")]
+mod geometry;
+
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
@@ -123,6 +126,49 @@ impl Renderer {
 
             renderer.reset_transform();
 
+            #[cfg(feature = "geometry")]
+            for group in &layer.primitives {
+                use vello_cpu::kurbo;
+
+                let Some(clip_bounds) = group.clip_bounds().intersection(&layer.bounds) else {
+                    continue;
+                };
+
+                renderer.push_clip_path(
+                    &into_rect(clip_bounds * viewport.scale_factor()).to_path(ACCURACY),
+                );
+                renderer.set_transform(
+                    kurbo::Affine::scale(f64::from(viewport.scale_factor())).pre_translate(
+                        kurbo::Vec2 {
+                            x: f64::from(clip_bounds.x),
+                            y: f64::from(clip_bounds.y),
+                        },
+                    ),
+                );
+
+                for primitive in group.as_slice() {
+                    match primitive {
+                        geometry::Primitive::Fill { path, paint, rule } => {
+                            renderer.set_paint(paint.clone());
+                            renderer.set_fill_rule(*rule);
+                            renderer.fill_path(path);
+                        }
+                        geometry::Primitive::Stroke {
+                            path,
+                            paint,
+                            stroke,
+                        } => {
+                            renderer.set_paint(paint.clone());
+                            renderer.set_stroke(stroke.clone());
+                            renderer.stroke_path(path);
+                        }
+                    }
+                }
+
+                renderer.reset_transform();
+                renderer.pop_clip_path();
+            }
+
             for image in &layer.images {
                 match image {
                     #[cfg(feature = "image")]
@@ -227,11 +273,16 @@ impl Renderer {
                             ellipsis,
                             clip_bounds,
                         } => {
-                            let transformation = Transformation::scale(viewport.scale_factor());
+                            let transformation = Transformation::scale(viewport.scale_factor())
+                                * item.transformation();
 
-                            renderer.push_clip_path(
-                                &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
-                            );
+                            let Some(clip_bounds) = (*clip_bounds * transformation)
+                                .intersection(&(layer.bounds * transformation))
+                            else {
+                                continue;
+                            };
+
+                            renderer.push_clip_path(&into_rect(clip_bounds).to_path(ACCURACY));
 
                             self.text.draw_cached(
                                 content,
@@ -457,15 +508,43 @@ impl core::text::Renderer for Renderer {
 
 #[cfg(feature = "geometry")]
 impl graphics::geometry::Renderer for Renderer {
-    type Geometry = ();
-    type Frame = ();
+    type Geometry = geometry::Geometry;
+    type Frame = geometry::Frame;
 
-    fn new_frame(&self, _bounds: Rectangle) -> Self::Frame {
-        todo!()
+    fn new_frame(&self, bounds: Rectangle) -> Self::Frame {
+        geometry::Frame::new(bounds)
     }
 
-    fn draw_geometry(&mut self, _geometry: Self::Geometry) {
-        todo!()
+    fn draw_geometry(&mut self, geometry: Self::Geometry) {
+        pub use geometry::Geometry;
+
+        let (layer, transformation) = self.layers.current_mut();
+
+        match geometry {
+            Geometry::Live {
+                primitives,
+                images,
+                text,
+                clip_bounds,
+            } => {
+                layer.draw_primitive_group(primitives, clip_bounds, transformation);
+
+                for image in images {
+                    layer.draw_image(image, transformation);
+                }
+
+                layer.draw_text_group(text, clip_bounds, transformation);
+            }
+            Geometry::Cache(cache) => {
+                layer.draw_primitive_cache(cache.primitives, cache.clip_bounds, transformation);
+
+                for image in cache.images.iter() {
+                    layer.draw_image(image.clone(), transformation);
+                }
+
+                layer.draw_text_cache(cache.text, cache.clip_bounds, transformation);
+            }
+        }
     }
 }
 
