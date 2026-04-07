@@ -80,17 +80,12 @@ impl Compositor {
         let compatible_surface =
             compatible_window.and_then(|window| instance.create_surface(window).ok());
 
-        let adapter_options = wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::from_env()
-                .unwrap_or(wgpu::PowerPreference::HighPerformance),
-            compatible_surface: compatible_surface.as_ref(),
-            force_fallback_adapter: false,
-        };
-
-        let adapter = instance
-            .request_adapter(&adapter_options)
-            .await
-            .map_err(|_error| Error::NoAdapterFound(format!("{adapter_options:?}")))?;
+        let adapter = wgpu::util::initialize_adapter_from_env_or_default(
+            &instance,
+            compatible_surface.as_ref(),
+        )
+        .await
+        .map_err(|error| Error::NoAdapterFound(error.to_string()))?;
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
