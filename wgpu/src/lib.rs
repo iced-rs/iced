@@ -182,9 +182,9 @@ impl Renderer {
 
         #[cfg(not(target_arch = "wasm32"))]
         {
-            // Native path: render to swapchain, apply gradient fades, then blur
+            // Native path: render to swapchain (gradient fades applied inline
+            // at the correct z-position during render), then blur
             self.render(&mut encoder, target, clear_color, viewport);
-            self.apply_gradient_fades(&mut encoder, target, viewport);
             self.apply_backdrop_blurs(&mut encoder, target, target_texture, viewport);
         }
 
@@ -539,11 +539,63 @@ impl Renderer {
 
         let scale = Transformation::scale(scale_factor);
 
-        // Iterate with index so we can check gradient fade regions and post-blur regions
-        for (layer_index, layer) in self.layers.as_slice().iter().enumerate() {
-            // Check if this layer is in a gradient fade region - if so, skip it here
-            // It will be rendered separately in apply_gradient_fades
-            if self.gradient_fade.is_layer_in_fade_region(layer_index) {
+        // Take gradient fade regions so we can apply them inline at the correct
+        // z-position, rather than after all layers (which breaks overlay z-order).
+        let fade_regions = self.gradient_fade.take_regions();
+        let mut fade_applied = vec![false; fade_regions.len()];
+        let layer_count = self.layers.as_slice().len();
+
+        // Use index-based loop so we can call &mut self methods for gradient
+        // fade compositing between layers without borrow conflicts.
+        for layer_index in 0..layer_count {
+            // Apply any gradient fade regions whose end_layer we've reached.
+            // This ensures fade content is composited before layers that come
+            // after it in the z-order (e.g. modal overlays).
+            {
+                let mut needs_fade = false;
+                for (i, region) in fade_regions.iter().enumerate() {
+                    if !fade_applied[i] && layer_index >= region.end_layer {
+                        needs_fade = true;
+                        break;
+                    }
+                }
+                if needs_fade {
+                    let _ = ManuallyDrop::into_inner(render_pass);
+                    for (i, region) in fade_regions.iter().enumerate() {
+                        if !fade_applied[i] && layer_index >= region.end_layer {
+                            self.apply_gradient_fade_region(encoder, frame, region, viewport);
+                            fade_applied[i] = true;
+                        }
+                    }
+                    render_pass =
+                        ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                            label: Some("iced_wgpu render pass"),
+                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                                view: frame,
+                                depth_slice: None,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: wgpu::StoreOp::Store,
+                                },
+                            })],
+                            depth_stencil_attachment: None,
+                            timestamp_writes: None,
+                            occlusion_query_set: None,
+                            multiview_mask: None,
+                        }));
+                }
+            }
+
+            let layer = &self.layers.as_slice()[layer_index];
+
+            // Check if this layer is in a gradient fade region - if so, skip
+            // it here. It will be rendered to an offscreen texture and
+            // composited with the gradient shader by apply_gradient_fade_region.
+            let in_fade = fade_regions
+                .iter()
+                .any(|r| layer_index >= r.start_layer && layer_index < r.end_layer);
+            if in_fade {
                 // Still need to count primitives so offsets are correct,
                 // but only if prepare() actually processed this layer
                 // (prepare skips layers with no physical bounds intersection)
@@ -780,6 +832,14 @@ impl Renderer {
         }
 
         let _ = ManuallyDrop::into_inner(render_pass);
+
+        // Apply any remaining gradient fade regions whose layers were at
+        // the end of the stack (no later layers triggered inline application).
+        for (i, region) in fade_regions.iter().enumerate() {
+            if !fade_applied[i] {
+                self.apply_gradient_fade_region(encoder, frame, region, viewport);
+            }
+        }
 
         debug::layers_rendered(|| {
             self.layers
@@ -1199,6 +1259,11 @@ impl Renderer {
     ///
     /// This function processes pending gradient fade regions and composites them
     /// with the gradient alpha mask.
+    ///
+    /// NOTE: In the native path, gradient fades are now applied inline during
+    /// `render()` at the correct z-position. This method is kept for the WASM
+    /// path.
+    #[cfg(target_arch = "wasm32")]
     fn apply_gradient_fades(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
@@ -1207,17 +1272,27 @@ impl Renderer {
     ) {
         let regions = self.gradient_fade.take_regions();
 
-        if regions.is_empty() {
-            return;
+        for region in &regions {
+            self.apply_gradient_fade_region(encoder, target, region, viewport);
         }
+    }
 
+    /// Apply a single gradient fade region by rendering its layers to an
+    /// offscreen texture with the gradient alpha shader, then compositing
+    /// the result back to the main target.
+    fn apply_gradient_fade_region(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        region: &gradient_fade::GradientFadeRegion,
+        viewport: &Viewport,
+    ) {
         let physical_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor();
         let physical_bounds =
             Rectangle::<f32>::from(Rectangle::with_size(viewport.physical_size()));
 
-        // First, ensure the offscreen texture exists (one texture shared by all regions)
-        // We do this in a separate scope to release the mutable borrow
+        // Ensure the offscreen texture exists
         {
             let _ = self.gradient_fade.get_or_create_texture(
                 &self.engine.device,
@@ -1226,18 +1301,41 @@ impl Renderer {
             );
         }
 
-        for region in regions {
-            // Clear the offscreen texture
-            {
-                let offscreen_view = self.gradient_fade.texture_view().unwrap();
-                let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu.gradient_fade.clear_pass"),
+        // Clear the offscreen texture
+        {
+            let offscreen_view = self.gradient_fade.texture_view().unwrap();
+            let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu.gradient_fade.clear_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: offscreen_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+        }
+
+        // Render layers to offscreen texture
+        {
+            use std::mem::ManuallyDrop;
+
+            let offscreen_view = self.gradient_fade.texture_view().unwrap();
+            let mut render_pass =
+                ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("iced_wgpu.gradient_fade.layer_render_pass"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                         view: offscreen_view,
                         depth_slice: None,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                            load: wgpu::LoadOp::Load,
                             store: wgpu::StoreOp::Store,
                         },
                     })],
@@ -1245,142 +1343,117 @@ impl Renderer {
                     timestamp_writes: None,
                     occlusion_query_set: None,
                     multiview_mask: None,
-                });
+                }));
+
+            // Set viewport and scissor for the offscreen render pass
+            render_pass.set_viewport(
+                0.0,
+                0.0,
+                physical_size.width as f32,
+                physical_size.height as f32,
+                0.0,
+                1.0,
+            );
+            render_pass.set_scissor_rect(0, 0, physical_size.width, physical_size.height);
+
+            let layers_slice = self.layers.as_slice();
+            let end_idx = region.end_layer.min(layers_slice.len());
+            let start_idx = region.start_layer.min(end_idx);
+
+            // Count primitives in layers before our range to calculate offsets
+            // For text, we need to count Item::Group entries, not just non-empty batches
+            let mut quad_offset = 0usize;
+            let mut text_offset = 0usize;
+            #[cfg(any(feature = "svg", feature = "image"))]
+            let mut image_offset = 0usize;
+
+            for layer in &layers_slice[..start_idx] {
+                // Only count if prepare() actually processed this layer
+                if physical_bounds
+                    .intersection(&(layer.bounds * scale_factor))
+                    .and_then(Rectangle::snap)
+                    .is_none()
+                {
+                    continue;
+                }
+                if !layer.quads.is_empty() {
+                    quad_offset += 1;
+                }
+                text_offset += layer
+                    .text
+                    .iter()
+                    .filter(|item| matches!(item, text::Item::Group { .. }))
+                    .count();
+                #[cfg(any(feature = "svg", feature = "image"))]
+                if !layer.images.is_empty() {
+                    image_offset += 1;
+                }
             }
 
-            // Render layers to offscreen texture (inline to avoid borrow issues)
-            {
-                use std::mem::ManuallyDrop;
+            let mut quad_layer = quad_offset;
+            let mut text_layer = text_offset;
+            #[cfg(any(feature = "svg", feature = "image"))]
+            let mut image_layer = image_offset;
 
-                let offscreen_view = self.gradient_fade.texture_view().unwrap();
-                let mut render_pass =
-                    ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu.gradient_fade.layer_render_pass"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: offscreen_view,
-                            depth_slice: None,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: wgpu::StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                        multiview_mask: None,
-                    }));
+            for layer in &layers_slice[start_idx..end_idx] {
+                let Some(layer_physical_bounds) =
+                    physical_bounds.intersection(&(layer.bounds * scale_factor))
+                else {
+                    continue;
+                };
 
-                // Set viewport and scissor for the offscreen render pass
-                render_pass.set_viewport(
-                    0.0,
-                    0.0,
-                    physical_size.width as f32,
-                    physical_size.height as f32,
-                    0.0,
-                    1.0,
-                );
-                render_pass.set_scissor_rect(0, 0, physical_size.width, physical_size.height);
+                let Some(scissor_rect) = layer_physical_bounds.snap() else {
+                    continue;
+                };
 
-                let layers_slice = self.layers.as_slice();
-                let end_idx = region.end_layer.min(layers_slice.len());
-                let start_idx = region.start_layer.min(end_idx);
-
-                // Count primitives in layers before our range to calculate offsets
-                // For text, we need to count Item::Group entries, not just non-empty batches
-                let mut quad_offset = 0usize;
-                let mut text_offset = 0usize;
-                #[cfg(any(feature = "svg", feature = "image"))]
-                let mut image_offset = 0usize;
-
-                for layer in &layers_slice[..start_idx] {
-                    // Only count if prepare() actually processed this layer
-                    if physical_bounds
-                        .intersection(&(layer.bounds * scale_factor))
-                        .and_then(Rectangle::snap)
-                        .is_none()
-                    {
-                        continue;
-                    }
-                    if !layer.quads.is_empty() {
-                        quad_offset += 1;
-                    }
-                    text_offset += layer
-                        .text
-                        .iter()
-                        .filter(|item| matches!(item, text::Item::Group { .. }))
-                        .count();
-                    #[cfg(any(feature = "svg", feature = "image"))]
-                    if !layer.images.is_empty() {
-                        image_offset += 1;
-                    }
+                if !layer.quads.is_empty() {
+                    self.quad.render(
+                        &self.engine.quad_pipeline,
+                        quad_layer,
+                        scissor_rect,
+                        &layer.quads,
+                        &mut render_pass,
+                    );
+                    quad_layer += 1;
                 }
 
-                let mut quad_layer = quad_offset;
-                let mut text_layer = text_offset;
                 #[cfg(any(feature = "svg", feature = "image"))]
-                let mut image_layer = image_offset;
-
-                for layer in &layers_slice[start_idx..end_idx] {
-                    let Some(layer_physical_bounds) =
-                        physical_bounds.intersection(&(layer.bounds * scale_factor))
-                    else {
-                        continue;
-                    };
-
-                    let Some(scissor_rect) = layer_physical_bounds.snap() else {
-                        continue;
-                    };
-
-                    if !layer.quads.is_empty() {
-                        self.quad.render(
-                            &self.engine.quad_pipeline,
-                            quad_layer,
-                            scissor_rect,
-                            &layer.quads,
-                            &mut render_pass,
-                        );
-                        quad_layer += 1;
-                    }
-
-                    #[cfg(any(feature = "svg", feature = "image"))]
-                    if !layer.images.is_empty() {
-                        self.image.render(
-                            &self.engine.image_pipeline,
-                            image_layer,
-                            scissor_rect,
-                            &mut render_pass,
-                        );
-                        image_layer += 1;
-                    }
-
-                    if !layer.text.is_empty() {
-                        text_layer += self.text.render(
-                            &self.engine.text_pipeline,
-                            &self.text_viewport,
-                            text_layer,
-                            &layer.text,
-                            scissor_rect,
-                            &mut render_pass,
-                        );
-                    }
+                if !layer.images.is_empty() {
+                    self.image.render(
+                        &self.engine.image_pipeline,
+                        image_layer,
+                        scissor_rect,
+                        &mut render_pass,
+                    );
+                    image_layer += 1;
                 }
 
-                let _ = ManuallyDrop::into_inner(render_pass);
+                if !layer.text.is_empty() {
+                    text_layer += self.text.render(
+                        &self.engine.text_pipeline,
+                        &self.text_viewport,
+                        text_layer,
+                        &layer.text,
+                        scissor_rect,
+                        &mut render_pass,
+                    );
+                }
             }
 
-            // Composite the offscreen texture back to the main target with gradient fade
-            {
-                let offscreen_view = self.gradient_fade.texture_view().unwrap();
-                self.engine.gradient_fade_pipeline.render(
-                    &self.engine.device,
-                    encoder,
-                    offscreen_view,
-                    target,
-                    &region.fade,
-                    viewport,
-                );
-            }
+            let _ = ManuallyDrop::into_inner(render_pass);
+        }
+
+        // Composite the offscreen texture back to the main target with gradient fade
+        {
+            let offscreen_view = self.gradient_fade.texture_view().unwrap();
+            self.engine.gradient_fade_pipeline.render(
+                &self.engine.device,
+                encoder,
+                offscreen_view,
+                target,
+                &region.fade,
+                viewport,
+            );
         }
     }
 }
