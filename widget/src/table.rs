@@ -1,5 +1,6 @@
 //! Display tables.
 use crate::core;
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::layout;
 use crate::core::mouse;
@@ -215,7 +216,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let metrics = tree.state.downcast_mut::<Metrics>();
         let columns = self.columns.len();
         let rows = self.cells.len() / columns;
@@ -285,7 +292,7 @@ where
             )
             .width(width);
 
-            cell.layout(state, renderer, &limits);
+            cell.layout(state, renderer, &limits, direction);
             let size = limits.resolve(width, Length::Fit, state.size);
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
@@ -371,7 +378,7 @@ where
             )
             .width(width);
 
-            cell.layout(state, renderer, &limits);
+            cell.layout(state, renderer, &limits, direction);
             let size = limits.resolve(
                 if let Length::Fixed(_) = width {
                     width
@@ -568,6 +575,7 @@ where
         viewport: &Rectangle,
         translation: core::Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.cells,
@@ -577,6 +585,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         )
     }
 }

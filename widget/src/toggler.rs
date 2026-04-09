@@ -29,6 +29,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::border;
 use crate::core::layout;
@@ -256,7 +257,13 @@ where
         tree.children.resize_with(2, Tree::empty);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let limits = limits.width(self.width);
 
         let size = if renderer::CRISP {
@@ -302,7 +309,7 @@ where
             0.0
         };
 
-        layout::next_to_each_other(tree, track, label, spacing);
+        layout::next_to_each_other(tree, track, label, spacing, direction);
     }
 
     fn update(
@@ -395,9 +402,13 @@ where
         let mut children = layout.iter(&tree.children);
         let (track_layout, _) = children.next().unwrap();
 
-        if self.label.is_some() {
-            let (label_layout, _) = children.next().unwrap();
+        let label_layout = self.label.is_some().then(|| children.next().unwrap().0);
 
+        let is_rtl = label_layout
+            .map(|label| label.bounds().x < track_layout.bounds().x)
+            .unwrap_or(false);
+
+        if let Some(label_layout) = label_layout {
             let state = tree
                 .state
                 .downcast_ref::<text::paragraph::Plain<Renderer::Paragraph>>();
@@ -446,9 +457,15 @@ where
 
             let padding = (style.padding_ratio * bounds.height).round();
 
+            let toggled_right = if is_rtl {
+                !self.is_toggled
+            } else {
+                self.is_toggled
+            };
+
             Rectangle {
                 x: bounds.x
-                    + if self.is_toggled {
+                    + if toggled_right {
                         bounds.width - bounds.height + padding
                     } else {
                         padding

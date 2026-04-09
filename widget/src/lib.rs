@@ -165,6 +165,7 @@ pub use crate::core::theme::{self, Theme};
 pub use action::Action;
 pub use renderer::Renderer;
 
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::widget::tree;
@@ -400,8 +401,14 @@ where
         self.widget.diff(tree);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.widget.layout(tree, renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.widget.layout(tree, renderer, limits, direction);
     }
 
     fn operate(
@@ -492,8 +499,16 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
-        self.widget
-            .overlay(tree, layout, renderer, viewport, translation, window)
+        self.widget.overlay(
+            tree,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        )
     }
 }

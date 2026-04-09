@@ -36,6 +36,7 @@
 //! }
 //! ```
 use crate::core;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -123,8 +124,15 @@ where
         self.content.size()
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.layout(&mut tree.children[0], renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.content
+            .layout(&mut tree.children[0], renderer, limits, direction);
 
         tree.size = tree.children[0].size;
     }
@@ -244,6 +252,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
         let parent = layout.parent();
@@ -279,6 +288,7 @@ where
                 layout: layout.move_to(position),
                 viewport,
                 window,
+                direction,
             }))]
         } else {
             self.content.overlay(
@@ -288,6 +298,7 @@ where
                 viewport,
                 translation,
                 window,
+                direction,
             )
         }
     }
@@ -336,6 +347,7 @@ struct Overlay<'b, W> {
     layout: Layout,
     viewport: Rectangle,
     window: Size,
+    direction: Direction,
 }
 
 impl<W> Overlay<'_, W> {
@@ -425,6 +437,7 @@ where
             &self.viewport,
             Vector::ZERO,
             self.window,
+            self.direction,
         )
     }
 }

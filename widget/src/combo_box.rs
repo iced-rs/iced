@@ -53,6 +53,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -415,7 +416,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
         tree.size = state.editor.input.layout(
@@ -689,6 +696,7 @@ where
         _viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let internal = tree.state.downcast_mut::<Internal<T, Renderer>>();
         let is_focused = internal.editor.input.is_focused();
@@ -729,7 +737,7 @@ where
                     menu = menu.text_size(size);
                 }
 
-                vec![menu.overlay(renderer, position, window, bounds.height)]
+                vec![menu.overlay(renderer, position, window, bounds.height, direction)]
             }
         } else {
             Vec::new()

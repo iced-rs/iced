@@ -1,4 +1,5 @@
 //! A widget that only rebuilds its contents when necessary.
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -81,12 +82,18 @@ where
         self.size
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let cached = tree.state.downcast_mut::<Internal<W>>();
 
         cached
             .element
-            .layout(&mut tree.children[0], renderer, limits);
+            .layout(&mut tree.children[0], renderer, limits, direction);
 
         tree.size = tree.children[0].size;
     }
@@ -175,6 +182,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let current = tree.state.downcast_mut::<Internal<W>>();
 
@@ -185,6 +193,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         )
     }
 }

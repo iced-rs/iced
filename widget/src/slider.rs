@@ -28,6 +28,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::border::{self, Border};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -238,7 +239,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = layout::atomic(limits, self.width, self.height);
     }
 

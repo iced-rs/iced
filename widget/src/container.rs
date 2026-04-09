@@ -18,6 +18,7 @@
 //!         .style(container::rounded_box)
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::alignment::{self, Alignment};
 use crate::core::border::{self, Border};
 use crate::core::gradient::{self, Gradient};
@@ -222,7 +223,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         layout(
             tree,
             limits,
@@ -232,7 +239,7 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
             |tree, limits| {
-                self.content.layout(tree, renderer, limits);
+                self.content.layout(tree, renderer, limits, direction);
                 tree.size
             },
         );
@@ -335,11 +342,19 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-        self.content
-            .overlay(tree, layout, renderer, viewport, translation, window)
+        self.content.overlay(
+            tree,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        )
     }
 }
 

@@ -17,6 +17,7 @@
 //! }
 //! ```
 use crate::core;
+use crate::core::Direction;
 use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
@@ -119,7 +120,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let size = <Self as Widget<(), Theme, Renderer>>::size(self);
 
         tree.size = layout::atomic(limits, size.width, size.height);

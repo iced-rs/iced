@@ -2,7 +2,7 @@
 use iced_widget::core::Length::{Fill, FillPortion};
 use iced_widget::core::layout;
 use iced_widget::core::widget::{self, Widget};
-use iced_widget::core::{Never, Pixels, Size, Theme};
+use iced_widget::core::{Direction, Never, Pixels, Size, Theme};
 use iced_widget::{column, row, space};
 
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
@@ -24,6 +24,29 @@ fn layout_fill_max() {
             (0, 0),
             (400, 30),
             [node((0, 0), (300, 30), []), node((0, 30), (400, 0), [])],
+        ),
+    );
+}
+
+#[test]
+fn layout_rtl_mirrors_row_and_column() {
+    assert_layout_eq_with(
+        row![space().width(10).height(10), space().width(20).height(20)],
+        Direction::RightToLeft,
+        node(
+            (0, 0),
+            (30, 20),
+            [node((20, 0), (10, 10), []), node((0, 0), (20, 20), [])],
+        ),
+    );
+
+    assert_layout_eq_with(
+        column![space().width(10).height(10), space().width(20).height(20)],
+        Direction::RightToLeft,
+        node(
+            (0, 0),
+            (20, 30),
+            [node((10, 0), (10, 10), []), node((0, 10), (20, 20), [])],
         ),
     );
 }
@@ -397,11 +420,19 @@ struct Node {
     children: Vec<Node>,
 }
 
-fn assert_layout_eq<'a>(mut widget: impl Widget<Never, Theme, ()> + 'a, expect: Node) {
+fn assert_layout_eq<'a>(widget: impl Widget<Never, Theme, ()> + 'a, expect: Node) {
+    assert_layout_eq_with(widget, Direction::LeftToRight, expect);
+}
+
+fn assert_layout_eq_with<'a>(
+    mut widget: impl Widget<Never, Theme, ()> + 'a,
+    direction: Direction,
+    expect: Node,
+) {
     let mut tree = widget::Tree::new(&widget);
 
     widget.diff(&mut tree);
-    widget.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    widget.layout(&mut tree, &(), &DEFAULT_LIMITS, direction);
 
     assert_eq!(to_node(&tree), expect);
 }
@@ -428,4 +459,16 @@ fn to_node(tree: &widget::Tree) -> Node {
         height: tree.size.height,
         children: tree.children.iter().map(to_node).collect(),
     }
+}
+
+#[test]
+fn layout_rtl_toggler_puts_track_on_the_right() {
+    let mut toggler = iced_widget::Toggler::<Never, Theme>::new(false).label("label");
+    let mut tree = widget::Tree::new::<Never, Theme, ()>(&toggler);
+
+    Widget::<Never, Theme, ()>::diff(&mut toggler, &mut tree);
+    toggler.layout(&mut tree, &(), &DEFAULT_LIMITS, Direction::RightToLeft);
+
+    let (track, label) = (&tree.children[0], &tree.children[1]);
+    assert!(label.translation.x < track.translation.x);
 }

@@ -1,4 +1,5 @@
 //! Zoom and pan on an image.
+use crate::core::Direction;
 use crate::core::border;
 use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
@@ -118,7 +119,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         // The raw w/h of the underlying image
         let image_size = renderer.measure_image(&self.handle).unwrap_or_default();
 

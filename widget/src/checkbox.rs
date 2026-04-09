@@ -30,6 +30,7 @@
 //! }
 //! ```
 //! ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
+use crate::core::Direction;
 use std::marker::PhantomData;
 
 use crate::core::alignment;
@@ -279,7 +280,13 @@ where
         tree.children.resize_with(2, Tree::empty);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let limits = limits.width(self.width);
 
         let checkbox = Size::new(self.size, self.size);
@@ -316,7 +323,7 @@ where
             Size::ZERO
         };
 
-        layout::next_to_each_other(tree, checkbox, label, spacing);
+        layout::next_to_each_other(tree, checkbox, label, spacing, direction);
     }
 
     fn update(

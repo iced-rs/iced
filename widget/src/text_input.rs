@@ -29,6 +29,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
@@ -280,7 +281,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<State<Renderer>>();
 
         if state.value != self.value

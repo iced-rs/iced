@@ -1,5 +1,6 @@
 //! Run your application in a headless runtime.
 use crate::core;
+use crate::core::Direction;
 use crate::core::font;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -186,6 +187,7 @@ impl<P: Program + 'static> Emulator<P> {
                         self.size,
                         self.cache.take().unwrap(),
                         &mut self.renderer,
+                        Direction::LeftToRight,
                     );
 
                     let mut operation = Some(operation);
@@ -298,6 +300,7 @@ impl<P: Program + 'static> Emulator<P> {
             self.size,
             self.cache.take().unwrap(),
             &mut self.renderer,
+            Direction::LeftToRight,
         );
 
         let mut messages = shell::Bus::new();
@@ -478,6 +481,7 @@ impl<P: Program + 'static> Emulator<P> {
             self.size,
             self.cache.take().unwrap(),
             &mut self.renderer,
+            Direction::LeftToRight,
         );
 
         // TODO: Nested redraws!

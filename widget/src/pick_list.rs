@@ -60,6 +60,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::keyboard;
 use crate::core::layout;
@@ -354,7 +355,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         let font = self.font.unwrap_or_else(|| renderer.font());
@@ -722,6 +729,7 @@ where
         _viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let Some(on_select) = &self.on_select else {
             return Vec::new();
@@ -758,7 +766,7 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            vec![menu.overlay(renderer, position, window, bounds.height)]
+            vec![menu.overlay(renderer, position, window, bounds.height, direction)]
         } else {
             Vec::new()
         }

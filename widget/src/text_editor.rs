@@ -30,6 +30,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::clipboard;
 use crate::core::layout::{self, Layout};
@@ -352,7 +353,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_mut::<State<Parser>>();
 

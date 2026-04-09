@@ -56,6 +56,7 @@
 //!     column![a, b, c, all]
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::layout;
@@ -284,7 +285,13 @@ where
         tree.children.resize_with(2, Tree::empty);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let limits = limits.width(self.width);
 
         let radio = Size::new(self.size, self.size);
@@ -312,7 +319,7 @@ where
             },
         );
 
-        layout::next_to_each_other(tree, radio, label, self.spacing);
+        layout::next_to_each_other(tree, radio, label, self.spacing, direction);
     }
 
     fn update(

@@ -11,7 +11,8 @@ use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{
-    Clipboard, InputMethod, Layout, Point, Rectangle, Shell, Size, Vector, Widget, Window,
+    Clipboard, Direction, InputMethod, Layout, Point, Rectangle, Shell, Size, Vector, Widget,
+    Window,
 };
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -33,6 +34,7 @@ pub struct UserInterface<'a, Message, Theme, Renderer> {
     bounds: Size,
     last_click: Option<mouse::Click>,
     selection: Option<(Point, Point)>,
+    direction: Direction,
 }
 
 impl<'a, Message, Theme, Renderer> UserInterface<'a, Message, Theme, Renderer>
@@ -65,7 +67,7 @@ where
     /// # }
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;
-    /// use iced_runtime::core::Size;
+    /// use iced_runtime::core::{Direction, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
@@ -87,6 +89,7 @@ where
     ///         window_size,
     ///         cache,
     ///         &mut renderer,
+    ///         Direction::default(),
     ///     );
     ///
     ///     // Update and draw the user interface here...
@@ -101,6 +104,7 @@ where
         bounds: Size,
         cache: Cache,
         renderer: &mut Renderer,
+        direction: Direction,
     ) -> Self {
         let Cache {
             mut state,
@@ -115,6 +119,7 @@ where
             &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
+            direction,
         );
 
         UserInterface {
@@ -124,6 +129,7 @@ where
             bounds,
             last_click,
             selection,
+            direction,
         }
     }
 
@@ -151,7 +157,7 @@ where
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;
-    /// use iced_runtime::core::Size;
+    /// use iced_runtime::core::{Direction, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
@@ -175,6 +181,7 @@ where
     ///         window_size,
     ///         cache,
     ///         &mut renderer,
+    ///         Direction::default(),
     ///     );
     ///
     ///     // Update the user interface
@@ -208,7 +215,7 @@ where
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
         let mut clipboard = Clipboard::new();
-        let mut layout = Layout::new(self.state.size);
+        let mut layout = root_layout(self.state.size, self.bounds, self.direction);
         let viewport = Rectangle::with_size(self.bounds);
 
         let overlay = self.root.overlay(
@@ -218,6 +225,7 @@ where
             &viewport,
             Vector::ZERO,
             self.bounds,
+            self.direction,
         );
 
         let mut maybe_overlay = (!overlay.is_empty()).then(|| overlay::Group::new(overlay));
@@ -255,9 +263,10 @@ where
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
+                            self.direction,
                         );
 
-                        layout = Layout::new(self.state.size);
+                        layout = root_layout(self.state.size, self.bounds, self.direction);
                     }
 
                     maybe_overlay = {
@@ -268,6 +277,7 @@ where
                             &viewport,
                             Vector::ZERO,
                             self.bounds,
+                            self.direction,
                         );
 
                         (!overlay.is_empty()).then(|| overlay::Group::new(overlay))
@@ -355,9 +365,10 @@ where
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
+                            self.direction,
                         );
 
-                        layout = Layout::new(self.state.size);
+                        layout = root_layout(self.state.size, self.bounds, self.direction);
                     }
 
                     let overlay = self.root.overlay(
@@ -367,6 +378,7 @@ where
                         &viewport,
                         Vector::ZERO,
                         self.bounds,
+                        self.direction,
                     );
 
                     if !overlay.is_empty() {
@@ -503,7 +515,7 @@ where
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;
-    /// use iced_runtime::core::{Element, Size};
+    /// use iced_runtime::core::{Direction, Element, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::{Renderer, Theme};
     ///
@@ -526,6 +538,7 @@ where
     ///         window_size,
     ///         cache,
     ///         &mut renderer,
+    ///         Direction::default(),
     ///     );
     ///
     ///     // Update the user interface
@@ -561,7 +574,7 @@ where
         let viewport = Rectangle::with_size(self.bounds);
         renderer.reset(viewport);
 
-        let layout = Layout::new(self.state.size);
+        let layout = root_layout(self.state.size, self.bounds, self.direction);
         let base_cursor = match &self.overlay {
             None | Some(mouse::Interaction::None) => cursor,
             _ => cursor.levitate(),
@@ -590,6 +603,7 @@ where
             &viewport,
             Vector::ZERO,
             self.bounds,
+            self.direction,
         );
 
         if !overlay.is_empty() {
@@ -602,7 +616,7 @@ where
     /// Applies a [`widget::Operation`] to the [`UserInterface`].
     pub fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         let viewport = Rectangle::with_size(self.bounds);
-        let layout = Layout::new(self.state.size);
+        let layout = root_layout(self.state.size, self.bounds, self.direction);
 
         operation.traverse(&mut |operation| {
             self.root
@@ -616,6 +630,7 @@ where
             &viewport,
             Vector::ZERO,
             self.bounds,
+            self.direction,
         );
 
         if !overlay.is_empty() {
@@ -637,6 +652,7 @@ where
                 selection: self.selection,
             },
             renderer,
+            self.direction,
         )
     }
 
@@ -648,6 +664,14 @@ where
             last_click: self.last_click,
             selection: self.selection,
         }
+    }
+}
+
+/// Returns the [`Layout`] of the root, anchored to the right edge for RTL.
+fn root_layout(size: Size, bounds: Size, direction: Direction) -> Layout {
+    match direction {
+        Direction::LeftToRight => Layout::new(size),
+        Direction::RightToLeft => Layout::new(size).move_to((bounds.width - size.width, 0.0)),
     }
 }
 

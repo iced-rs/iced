@@ -24,6 +24,7 @@
 //!     .position(tooltip::Position::Bottom)
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -156,8 +157,15 @@ where
         self.content.size()
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.layout(&mut tree.children[0], renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.content
+            .layout(&mut tree.children[0], renderer, limits, direction);
 
         tree.size = tree.children[0].size;
     }
@@ -287,6 +295,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State>();
 
@@ -299,6 +308,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         );
 
         let tooltip_tree = children.next().unwrap();
@@ -319,6 +329,7 @@ where
                         Size::INFINITE
                     },
                 ),
+                direction,
             );
 
             *needs_relayout = false;
@@ -348,6 +359,7 @@ where
                 tooltip: &mut self.tooltip,
                 tree: tooltip_tree,
                 window,
+                direction,
             })))
         } else {
             None
@@ -407,6 +419,7 @@ struct Overlay<'b, V> {
     tooltip: &'b mut V,
     tree: &'b mut widget::Tree,
     window: Size,
+    direction: Direction,
 }
 
 impl<V, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer> for Overlay<'_, V>
@@ -488,6 +501,7 @@ where
             &Rectangle::with_size(self.window),
             Vector::ZERO,
             self.window,
+            self.direction,
         )
     }
 }

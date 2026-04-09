@@ -1,4 +1,5 @@
 //! Build and show dropdown menus.
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::layout;
@@ -134,12 +135,15 @@ where
     /// The `target_height` will be used to display the menu either on top
     /// of the target or under it, depending on the screen position and the
     /// dimensions of the [`Menu`].
+    ///
+    /// The `direction` is used to lay out the contents of the [`Menu`].
     pub fn overlay<Renderer>(
         self,
         renderer: &Renderer,
         position: Point,
         window: Size,
         target_height: f32,
+        direction: Direction,
     ) -> overlay::Element<'a, Message, Theme, Renderer>
     where
         Renderer: text::Renderer + 'a,
@@ -150,6 +154,7 @@ where
             self,
             target_height,
             renderer,
+            direction,
         )))
     }
 }
@@ -199,6 +204,7 @@ where
         menu: Menu<'a, 'b, T, Message, Theme>,
         target_height: f32,
         renderer: &Renderer,
+        direction: Direction,
     ) -> Self
     where
         Renderer: text::Renderer + 'a,
@@ -254,7 +260,7 @@ where
         .width(width);
 
         state.tree.diff::<_, _, Renderer>(&mut list);
-        list.layout(&mut state.tree, renderer, &limits);
+        list.layout(&mut state.tree, renderer, &limits, direction);
 
         let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
             position + Vector::new(0.0, target_height)
@@ -404,7 +410,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         use std::f32;
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());

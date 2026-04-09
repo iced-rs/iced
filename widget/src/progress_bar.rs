@@ -19,6 +19,7 @@
 //!     progress_bar(0.0..=100.0, state.progress)
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
@@ -153,7 +154,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = layout::atomic(limits, self.width(), self.height());
     }
 
