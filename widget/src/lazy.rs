@@ -8,6 +8,7 @@ pub use component::Component;
 
 mod cache;
 
+use crate::core::Direction;
 use crate::core::Element;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -154,11 +155,12 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         self.with_element_mut(|element| {
             element
                 .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
+                .layout(&mut tree.children[0], renderer, limits, direction)
         })
     }
 
@@ -334,8 +336,8 @@ impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.with_overlay_maybe(|overlay| overlay.layout(renderer, bounds))
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node {
+        self.with_overlay_maybe(|overlay| overlay.layout(renderer, bounds, direction))
             .unwrap_or_default()
     }
 

@@ -8,7 +8,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
+    Direction, Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation,
+    Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -114,8 +115,11 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
-        self.content.as_widget_mut().layout(tree, renderer, limits)
+        self.content
+            .as_widget_mut()
+            .layout(tree, renderer, limits, direction)
     }
 
     fn update(
@@ -273,7 +277,12 @@ where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: Direction,
+    ) -> layout::Node {
         let bounds = self.layout.bounds() * self.transformation;
 
         layout::Node::new(bounds.size()).move_to(bounds.position())

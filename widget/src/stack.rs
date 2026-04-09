@@ -1,4 +1,5 @@
 //! Display content on top of other content.
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -154,6 +155,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
@@ -165,6 +167,7 @@ where
             &mut tree.children[self.base_layer],
             renderer,
             &limits,
+            direction,
         );
 
         let size = limits.resolve(self.width, self.height, base.size());
@@ -176,13 +179,21 @@ where
         let nodes = under
             .iter_mut()
             .zip(tree_under)
-            .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits))
+            .map(|(layer, tree)| {
+                layer
+                    .as_widget_mut()
+                    .layout(tree, renderer, &limits, direction)
+            })
             .chain(std::iter::once(base))
             .chain(
                 above[1..]
                     .iter_mut()
                     .zip(&mut tree_above[1..])
-                    .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits)),
+                    .map(|(layer, tree)| {
+                        layer
+                            .as_widget_mut()
+                            .layout(tree, renderer, &limits, direction)
+                    }),
             )
             .collect();
 

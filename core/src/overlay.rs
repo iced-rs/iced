@@ -12,7 +12,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Event, Layout, Rectangle, Shell, Size, Vector};
+use crate::{Direction, Event, Layout, Rectangle, Shell, Size, Vector};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
@@ -25,7 +25,7 @@ where
     /// user interface.
     ///
     /// [`Node`]: layout::Node
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node;
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node;
 
     /// Draws the [`Overlay`] using the associated `Renderer`.
     fn draw(

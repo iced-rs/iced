@@ -48,8 +48,8 @@ use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, InputMethod, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, SmolStr, Theme, Vector,
+    Background, Border, Color, Direction, Element, Event, InputMethod, Length, Padding, Pixels,
+    Point, Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
 use std::borrow::Cow;
@@ -588,6 +588,7 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> iced_renderer::core::layout::Node {
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_mut::<State<Highlighter>>();

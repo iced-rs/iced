@@ -7,7 +7,8 @@ use crate::core::widget;
 use crate::core::widget::operation;
 use crate::core::widget::tree;
 use crate::core::{
-    self, Color, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget,
+    self, Color, Direction, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 use crate::test::Selector;
 use crate::test::instruction::{Interaction, Mouse, Target};
@@ -131,10 +132,11 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits, direction)
     }
 
     fn draw(
@@ -262,8 +264,10 @@ where
     Renderer: core::Renderer + 'a,
     Theme: theme::Base + 'a,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.raw.as_overlay_mut().layout(renderer, bounds)
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node {
+        self.raw
+            .as_overlay_mut()
+            .layout(renderer, bounds, direction)
     }
 
     fn draw(

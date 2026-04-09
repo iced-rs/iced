@@ -1,4 +1,5 @@
 //! Distribute content on a grid.
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -166,6 +167,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let size = self.size();
         let limits = limits.width(size.width).height(size.height);
@@ -214,7 +216,7 @@ where
         for (i, (child, tree)) in self.children.iter_mut().zip(&mut tree.children).enumerate() {
             let node = child
                 .as_widget_mut()
-                .layout(tree, renderer, &cell_limits)
+                .layout(tree, renderer, &cell_limits, direction)
                 .move_to((x, y));
 
             let size = node.size();

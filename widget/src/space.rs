@@ -1,5 +1,6 @@
 //! Add some explicit spacing between elements.
 use crate::core;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -75,6 +76,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.width, self.height)
     }

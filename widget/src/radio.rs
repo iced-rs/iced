@@ -67,8 +67,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
-    Widget,
+    Background, Color, Direction, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size,
+    Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -285,10 +285,12 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         layout::next_to_each_other(
             &limits.width(self.width),
             self.spacing,
+            direction,
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
                 let state = tree

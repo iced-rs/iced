@@ -4,7 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::{Event, Layout, Shell, Size};
+use crate::{Direction, Event, Layout, Shell, Size};
 
 /// A generic [`Overlay`].
 pub struct Element<'a, Message, Theme, Renderer> {
@@ -62,8 +62,8 @@ impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer> for Map<'_, A, B, Theme,
 where
     Renderer: crate::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.content.layout(renderer, bounds)
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node {
+        self.content.layout(renderer, bounds, direction)
     }
 
     fn operate(

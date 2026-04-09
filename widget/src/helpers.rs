@@ -4,6 +4,7 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
+use crate::core::Direction;
 use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
@@ -624,8 +625,11 @@ where
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
+            direction: Direction,
         ) -> layout::Node {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+            self.content
+                .as_widget_mut()
+                .layout(tree, renderer, limits, direction)
         }
 
         fn draw(
@@ -776,16 +780,20 @@ where
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
+            direction: Direction,
         ) -> layout::Node {
-            let base = self
-                .base
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            let base = self.base.as_widget_mut().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+                direction,
+            );
 
             let top = self.top.as_widget_mut().layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, base.size()),
+                direction,
             );
 
             layout::Node::with_children(base.size(), vec![base, top])

@@ -25,7 +25,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    self, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
+    self, Direction, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
@@ -139,6 +140,7 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
@@ -147,7 +149,12 @@ where
         let node = self
             .content
             .as_widget_mut()
-            .layout(tree, renderer, &layout::Limits::new(Size::ZERO, available))
+            .layout(
+                tree,
+                renderer,
+                &layout::Limits::new(Size::ZERO, available),
+                direction,
+            )
             .move_to(self.position);
 
         let size = limits.resolve(self.width, self.height, node.size());

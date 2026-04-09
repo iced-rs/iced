@@ -5,7 +5,7 @@ use crate::core::renderer;
 use crate::core::time::Instant;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Bytes, Element, Point, Size};
+use crate::core::{Bytes, Direction, Element, Point, Size};
 use crate::instruction;
 use crate::program;
 use crate::program::Program;
@@ -174,6 +174,7 @@ impl<P: Program + 'static> Emulator<P> {
                         self.size,
                         self.cache.take().unwrap(),
                         &mut self.renderer,
+                        Direction::LeftToRight,
                     );
 
                     let mut operation = Some(operation);
@@ -272,6 +273,7 @@ impl<P: Program + 'static> Emulator<P> {
             self.size,
             self.cache.take().unwrap(),
             &mut self.renderer,
+            Direction::LeftToRight,
         );
 
         let mut messages = Vec::new();
@@ -446,6 +448,7 @@ impl<P: Program + 'static> Emulator<P> {
             self.size,
             self.cache.take().unwrap(),
             &mut self.renderer,
+            Direction::LeftToRight,
         );
 
         // TODO: Nested redraws!

@@ -5,7 +5,7 @@ mod circle {
     use iced::advanced::widget::{self, Widget};
     use iced::border;
     use iced::mouse;
-    use iced::{Color, Element, Length, Rectangle, Size};
+    use iced::{Color, Direction, Element, Length, Rectangle, Size};
 
     pub struct Circle {
         radius: f32,
@@ -37,6 +37,7 @@ mod circle {
             _tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
+            _direction: Direction,
         ) -> layout::Node {
             layout::Node::new(Size::new(self.radius * 2.0, self.radius * 2.0))
         }

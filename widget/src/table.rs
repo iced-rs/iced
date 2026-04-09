@@ -7,7 +7,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    Alignment, Background, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
+    Alignment, Background, Direction, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
 };
 
 /// Creates a new [`Table`] with the given columns and rows.
@@ -230,6 +230,7 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let metrics = tree.state.downcast_mut::<Metrics>();
         let columns = self.columns.len();
@@ -297,7 +298,9 @@ where
             )
             .width(width);
 
-            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
+            let layout = cell
+                .as_widget_mut()
+                .layout(state, renderer, &limits, direction);
             let size = limits.resolve(width, Length::Shrink, layout.size());
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
@@ -379,7 +382,9 @@ where
             let limits =
                 layout::Limits::new(Size::ZERO, Size::new(max_width, max_height)).width(width);
 
-            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
+            let layout = cell
+                .as_widget_mut()
+                .layout(state, renderer, &limits, direction);
             let size = limits.resolve(
                 if let Length::Fixed(_) = width {
                     width

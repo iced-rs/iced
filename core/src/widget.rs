@@ -14,7 +14,7 @@ use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Event, Length, Rectangle, Shell, Size, Vector};
+use crate::{Direction, Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
 ///
@@ -58,6 +58,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node;
 
     /// Draws the [`Widget`] using the associated `Renderer`.

@@ -7,7 +7,7 @@ pub mod flex;
 pub use limits::Limits;
 pub use node::Node;
 
-use crate::{Length, Padding, Point, Rectangle, Size, Vector};
+use crate::{Direction, Length, Padding, Point, Rectangle, Size, Vector};
 
 /// The bounds of a [`Node`] and its children, using absolute coordinates.
 #[derive(Debug, Clone, Copy)]
@@ -78,6 +78,7 @@ impl<'a> Layout<'a> {
 pub fn next_to_each_other(
     limits: &Limits,
     spacing: f32,
+    direction: Direction,
     left: impl FnOnce(&Limits) -> Node,
     right: impl FnOnce(&Limits) -> Node,
 ) -> Node {
@@ -95,14 +96,22 @@ pub fn next_to_each_other(
         ((right_size.height - left_size.height) / 2.0, 0.0)
     };
 
+    let total_size = Size::new(
+        left_size.width + spacing + right_size.width,
+        left_size.height.max(right_size.height),
+    );
+
+    let (left_x, right_x) = if matches!(direction, Direction::RightToLeft) {
+        (right_size.width + spacing, 0.0)
+    } else {
+        (0.0, left_size.width + spacing)
+    };
+
     Node::with_children(
-        Size::new(
-            left_size.width + spacing + right_size.width,
-            left_size.height.max(right_size.height),
-        ),
+        total_size,
         vec![
-            left_node.move_to(Point::new(0.0, left_y)),
-            right_node.move_to(Point::new(left_size.width + spacing, right_y)),
+            left_node.move_to(Point::new(left_x, left_y)),
+            right_node.move_to(Point::new(right_x, right_y)),
         ],
     )
 }

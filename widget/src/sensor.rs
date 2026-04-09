@@ -8,7 +8,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
+    self, Direction, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that can generate messages when its content pops in and out of view.
@@ -266,10 +266,11 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits, direction)
     }
 
     fn draw(

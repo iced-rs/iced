@@ -42,8 +42,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size,
-    Theme, Widget,
+    Background, Border, Color, Direction, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
+    Size, Theme, Widget,
 };
 
 /// A box that can be checked.
@@ -269,6 +269,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         layout::next_to_each_other(
             &limits.width(self.width),
@@ -277,6 +278,7 @@ where
             } else {
                 0.0
             },
+            direction,
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
                 if let Some(label) = self.label.as_deref() {

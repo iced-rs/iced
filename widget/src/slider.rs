@@ -38,8 +38,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Theme, Widget,
+    self, Background, Color, Direction, Element, Event, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -236,6 +236,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.width, self.height)
     }

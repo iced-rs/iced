@@ -27,7 +27,8 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Vector, Widget,
+    Color, Direction, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Vector,
+    Widget,
 };
 
 use std::cell::RefCell;
@@ -137,6 +138,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         _limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         let side_length = (self.data.width + 2 * QUIET_ZONE) as f32 * self.cell_size;
 
