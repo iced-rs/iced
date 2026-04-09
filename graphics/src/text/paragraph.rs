@@ -2,7 +2,8 @@
 use crate::core;
 use crate::core::alignment;
 use crate::core::text::{
-    Affinity, Alignment, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping};
+    Affinity, Alignment, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -90,29 +91,28 @@ impl core::text::Paragraph for Paragraph {
         );
 
         if hint {
-            buffer.set_hinting(font_system.raw(), cosmic_text::Hinting::Enabled);
+            buffer.set_hinting(cosmic_text::Hinting::Enabled);
         }
 
         buffer.set_size(
-            font_system.raw(),
             Some(text.bounds.width * hint_factor),
             Some(text.bounds.height * hint_factor),
         );
 
-        buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
-        buffer.set_ellipsize(
-            font_system.raw(),
-            text::to_ellipsize(text.ellipsis, text.bounds.height * hint_factor),
-        );
+        buffer.set_wrap(text::to_wrap(text.wrapping));
+        buffer.set_ellipsize(text::to_ellipsize(
+            text.ellipsis,
+            text.bounds.height * hint_factor,
+        ));
 
         buffer.set_text(
-            font_system.raw(),
             text.content,
             &text::to_attributes(text.font),
             text::to_shaping(text.shaping, text.content),
             None,
         );
 
+        buffer.shape_until_scroll(font_system.raw(), false);
         let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / hint_factor;
 
         Self(Arc::new(Internal {
@@ -150,19 +150,17 @@ impl core::text::Paragraph for Paragraph {
         );
 
         if hint {
-            buffer.set_hinting(font_system.raw(), cosmic_text::Hinting::Enabled);
+            buffer.set_hinting(cosmic_text::Hinting::Enabled);
         }
 
         buffer.set_size(
-            font_system.raw(),
             Some(text.bounds.width * hint_factor),
             Some(text.bounds.height * hint_factor),
         );
 
-        buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
+        buffer.set_wrap(text::to_wrap(text.wrapping));
 
         buffer.set_rich_text(
-            font_system.raw(),
             text.content.iter().enumerate().map(|(i, span)| {
                 let attrs = text::to_attributes(span.font.unwrap_or(text.font));
 
@@ -195,6 +193,7 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
+        buffer.shape_until_scroll(font_system.raw(), false);
         let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / hint_factor;
 
         Self(Arc::new(Internal {
@@ -219,7 +218,6 @@ impl core::text::Paragraph for Paragraph {
         let mut font_system = text::font_system().write().expect("Write font system");
 
         paragraph.buffer.set_size(
-            font_system.raw(),
             Some(new_bounds.width * paragraph.hint_factor),
             Some(new_bounds.height * paragraph.hint_factor),
         );
@@ -438,18 +436,10 @@ impl core::text::Paragraph for Paragraph {
         ))
     }
 
-    fn cursor_position(
-        &self,
-        line: usize,
-        byte_index: usize,
-        affinity: Affinity,
-    ) -> Option<Point> {
+    fn cursor_position(&self, line: usize, byte_index: usize, affinity: Affinity) -> Option<Point> {
         let internal = self.internal();
-        let cursor = cosmic_text::Cursor::new_with_affinity(
-            line,
-            byte_index,
-            to_cosmic_affinity(affinity),
-        );
+        let cursor =
+            cosmic_text::Cursor::new_with_affinity(line, byte_index, to_cosmic_affinity(affinity));
         internal
             .buffer
             .cursor_position(&cursor)
@@ -463,16 +453,10 @@ impl core::text::Paragraph for Paragraph {
         end: (usize, Affinity),
     ) -> Vec<Rectangle> {
         let internal = self.internal();
-        let start_cursor = cosmic_text::Cursor::new_with_affinity(
-            line,
-            start.0,
-            to_cosmic_affinity(start.1),
-        );
-        let end_cursor = cosmic_text::Cursor::new_with_affinity(
-            line,
-            end.0,
-            to_cosmic_affinity(end.1),
-        );
+        let start_cursor =
+            cosmic_text::Cursor::new_with_affinity(line, start.0, to_cosmic_affinity(start.1));
+        let end_cursor =
+            cosmic_text::Cursor::new_with_affinity(line, end.0, to_cosmic_affinity(end.1));
 
         internal
             .buffer

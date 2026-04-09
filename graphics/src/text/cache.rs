@@ -46,13 +46,12 @@ impl Cache {
 
             let max_height = key.bounds.height.max(key.line_height);
 
-            buffer.set_size(font_system, Some(key.bounds.width), Some(max_height));
+            buffer.set_size(Some(key.bounds.width), Some(max_height));
 
-            buffer.set_wrap(font_system, text::to_wrap(key.wrapping));
-            buffer.set_ellipsize(font_system, text::to_ellipsize(key.ellipsis, max_height));
+            buffer.set_wrap(text::to_wrap(key.wrapping));
+            buffer.set_ellipsize(text::to_ellipsize(key.ellipsis, max_height));
 
             buffer.set_text(
-                font_system,
                 key.content,
                 &text::to_attributes(key.font),
                 text::to_shaping(key.shaping, key.content),
