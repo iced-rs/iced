@@ -173,16 +173,36 @@ fn fs_main(
     let half = (box_size - 1) / 2;
     
     var color = vec4<f32>(0.0);
-    var total_weight = 0.0;
-    
-    // Box blur: equal weight for all samples within the box
-    for (var i = -half; i <= half; i++) {
-        let offset = f32(i);
-        let offset_uv = dir * pixel_size * offset;
-        color += textureSample(u_texture, u_sampler, uv + offset_uv);
-        total_weight += 1.0;
+    var total_weight: f32 = 0.0;
+
+    // Center sample
+    color += textureSample(u_texture, u_sampler, uv);
+    total_weight += 1.0;
+
+    // Bilinear-optimized box blur: pair adjacent texels via hardware
+    // interpolation.  A fetch at half-offset (i+0.5) returns the average
+    // of texels at i and i+1, so multiply by 2 to recover their sum
+    // (box weight = 1 each).  This halves texture fetches vs per-texel
+    // sampling.
+    var i: i32 = 1;
+    loop {
+        if (i + 1 > half) { break; }
+        let tap_offset = f32(i) + 0.5;
+        let step = dir * pixel_size * tap_offset;
+        color += (textureSample(u_texture, u_sampler, uv + step)
+                + textureSample(u_texture, u_sampler, uv - step)) * 2.0;
+        total_weight += 4.0;
+        i += 2;
     }
-    
+
+    // Unpaired edge sample when per-side count is odd
+    if (i <= half) {
+        let step = dir * pixel_size * f32(i);
+        color += textureSample(u_texture, u_sampler, uv + step)
+               + textureSample(u_texture, u_sampler, uv - step);
+        total_weight += 2.0;
+    }
+
     let final_color = color / total_weight;
 
     // Scale the premultiplied blur result by SDF alpha.

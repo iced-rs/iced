@@ -103,6 +103,7 @@ pub struct Pipeline {
     constant_layout: wgpu::BindGroupLayout,
     texture_layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
+    uniform_alignment: u32,
 }
 
 impl Pipeline {
@@ -131,8 +132,10 @@ impl Pipeline {
                     visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                        has_dynamic_offset: true,
+                        min_binding_size: wgpu::BufferSize::new(
+                            std::mem::size_of::<BlurUniforms>() as u64,
+                        ),
                     },
                     count: None,
                 },
@@ -285,6 +288,8 @@ impl Pipeline {
             cache: None,
         });
 
+        let uniform_alignment = device.limits().min_uniform_buffer_offset_alignment;
+
         Self {
             pipeline,
             pipeline_erase,
@@ -292,65 +297,22 @@ impl Pipeline {
             constant_layout,
             texture_layout,
             sampler,
+            uniform_alignment,
         }
     }
 
     /// Performs a single blur pass (horizontal or vertical).
     fn blur_pass(
         &self,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
-        source_texture: &wgpu::TextureView,
+        constant_bind_group: &wgpu::BindGroup,
+        dynamic_offset: u32,
+        source_bind_group: &wgpu::BindGroup,
         target: &wgpu::TextureView,
-        quad_bounds: &[f32; 4], // Expanded bounds for the rendered quad
-        clip_bounds: &[f32; 4], // Original bounds for SDF clipping
-        radius: f32,
-        direction: u32, // 0 = horizontal, 1 = vertical
         target_width: f32,
         target_height: f32,
-        border_radius: [f32; 4],
-        fade_start: f32,
-        invert_fade: bool,
         mode: BlurPassMode,
     ) {
-        let uniforms = BlurUniforms {
-            quad_bounds: *quad_bounds,
-            clip_bounds: *clip_bounds,
-            params: [radius, direction as f32, target_width, target_height],
-            border_radius,
-            fade_params: [fade_start, if invert_fade { 1.0 } else { 0.0 }, 0.0, 0.0],
-        };
-
-        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("iced_wgpu.blur.uniform_buffer"),
-            contents: bytemuck::bytes_of(&uniforms),
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
-
-        let constant_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu.blur.constant_bind_group"),
-            layout: &self.constant_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: uniform_buffer.as_entire_binding(),
-                },
-            ],
-        });
-
-        let texture_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu.blur.texture_bind_group"),
-            layout: &self.texture_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(source_texture),
-            }],
-        });
-
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("iced_wgpu.blur.render_pass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -378,9 +340,75 @@ impl Pipeline {
             BlurPassMode::Additive => &self.pipeline_additive,
         };
         pass.set_pipeline(pipeline);
-        pass.set_bind_group(0, &constant_bind_group, &[]);
-        pass.set_bind_group(1, &texture_bind_group, &[]);
+        pass.set_bind_group(0, constant_bind_group, &[dynamic_offset]);
+        pass.set_bind_group(1, source_bind_group, &[]);
         pass.draw(0..6, 0..1); // 6 vertices for bounds quad
+    }
+
+    /// Creates a texture bind group for the given texture view.
+    pub fn create_texture_bind_group(
+        &self,
+        device: &wgpu::Device,
+        texture_view: &wgpu::TextureView,
+    ) -> wgpu::BindGroup {
+        device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu.blur.texture_bind_group"),
+            layout: &self.texture_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(texture_view),
+            }],
+        })
+    }
+
+    /// Packs multiple [`BlurUniforms`] into a single GPU buffer aligned to
+    /// `minUniformBufferOffsetAlignment` and creates one constant bind group
+    /// that uses dynamic offsets to index into it.
+    ///
+    /// Returns `(bind_group, aligned_stride)` where each pass uses
+    /// `dynamic_offset = pass_index * aligned_stride`.
+    fn create_packed_uniforms(
+        &self,
+        device: &wgpu::Device,
+        uniforms: &[BlurUniforms],
+    ) -> (wgpu::BindGroup, u32) {
+        let block_size = std::mem::size_of::<BlurUniforms>();
+        let alignment = self.uniform_alignment as usize;
+        let aligned_stride = block_size.div_ceil(alignment) * alignment;
+        let total_size = aligned_stride * uniforms.len();
+
+        let mut buffer_data = vec![0u8; total_size];
+        for (i, u) in uniforms.iter().enumerate() {
+            let offset = i * aligned_stride;
+            buffer_data[offset..offset + block_size].copy_from_slice(bytemuck::bytes_of(u));
+        }
+
+        let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("iced_wgpu.blur.uniform_buffer"),
+            contents: &buffer_data,
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
+
+        let constant_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu.blur.constant_bind_group"),
+            layout: &self.constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&self.sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: &uniform_buffer,
+                        offset: 0,
+                        size: wgpu::BufferSize::new(block_size as u64),
+                    }),
+                },
+            ],
+        });
+
+        (constant_bind_group, aligned_stride as u32)
     }
 
     /// Renders the blur effect using two passes (horizontal + vertical).
@@ -473,161 +501,120 @@ impl Pipeline {
 
         let fade = blur.fade_start;
 
-        // Erase pass: clear target content in the blur region.
-        self.blur_pass(
-            device,
-            encoder,
-            intermediate_texture, // source doesn't matter for erase
-            target,
-            &clip_bounds,
-            &clip_bounds,
-            -1.0, // negative radius = erase mode in shader
-            0,
-            tex_width,
-            tex_height,
-            scaled_border_radius,
-            1.0, // no fade — always fully clear inside SDF bounds
-            false,
-            BlurPassMode::Erase,
-        );
+        // Create texture bind groups once for all passes in this render call.
+        let source_bg = self.create_texture_bind_group(device, source_texture);
+        let intermediate_bg = self.create_texture_bind_group(device, intermediate_texture);
 
-        // Restore pass: additively blend the original scene back with (1-fade)*sdf.
-        // This must happen before blur passes 1-5 which destroy source_texture.
-        // When fade_start=1.0 (no fade), (1-fade)=0 everywhere, so skip this pass.
-        if fade < 1.0 {
-            self.blur_pass(
-                device,
-                encoder,
-                source_texture,
-                target,
-                &clip_bounds, // no expansion needed — just copying with SDF mask
-                &clip_bounds,
-                0.0, // radius=0 = copy (no blur)
-                0,
-                tex_width,
-                tex_height,
-                scaled_border_radius,
-                fade,
-                true, // invert fade: output (1-fade)*sdf
-                BlurPassMode::Additive,
-            );
+        // Build all uniform blocks upfront so we can pack them into a single
+        // GPU buffer with one bind group (dynamic offsets select the block).
+        let mut all_uniforms: Vec<BlurUniforms> = Vec::with_capacity(8);
+
+        // Pass 0: Erase
+        all_uniforms.push(BlurUniforms {
+            quad_bounds: clip_bounds,
+            clip_bounds,
+            params: [-1.0, 0.0, tex_width, tex_height],
+            border_radius: scaled_border_radius,
+            fade_params: [1.0, 0.0, 0.0, 0.0],
+        });
+
+        // Pass 1: Restore (only when fading)
+        let has_restore = fade < 1.0;
+        if has_restore {
+            all_uniforms.push(BlurUniforms {
+                quad_bounds: clip_bounds,
+                clip_bounds,
+                params: [0.0, 0.0, tex_width, tex_height],
+                border_radius: scaled_border_radius,
+                fade_params: [fade, 1.0, 0.0, 0.0], // invert_fade
+            });
         }
 
-        // Blur passes 1-5: ping-pong between source and intermediate.
-        // NOTE: These destroy source_texture content (passes 2,4 write to it).
-        // The restore pass above already captured the original.
+        // Passes 2-6: H/V/H/V/H intermediate blur (ping-pong)
+        for dir in [0u32, 1, 0, 1, 0] {
+            all_uniforms.push(BlurUniforms {
+                quad_bounds,
+                clip_bounds: quad_bounds,
+                params: [total_radius, dir as f32, tex_width, tex_height],
+                border_radius: [0.0; 4],
+                fade_params: [1.0, 0.0, 0.0, 0.0],
+            });
+        }
 
-        // Intermediate passes use quad_bounds as clip bounds so the SDF covers
-        // the full expanded area. This prevents the blur from averaging in zeros
-        // from outside the widget bounds, which would darken edges.
+        // Pass 7: Final V blur → target (additive)
+        all_uniforms.push(BlurUniforms {
+            quad_bounds,
+            clip_bounds,
+            params: [total_radius, 1.0, tex_width, tex_height],
+            border_radius: scaled_border_radius,
+            fade_params: [fade, 0.0, 0.0, 0.0],
+        });
 
-        // Pass 1: H blur (source -> intermediate)
+        let (constant_bg, stride) = self.create_packed_uniforms(device, &all_uniforms);
+
+        // Execute passes — each uses a dynamic offset into the packed buffer.
+        let mut idx: u32 = 0;
+
+        // Erase pass
         self.blur_pass(
-            device,
             encoder,
-            source_texture,
-            intermediate_texture,
-            &quad_bounds,
-            &quad_bounds,
-            total_radius,
-            0, // horizontal
-            tex_width,
-            tex_height,
-            [0.0; 4],
-            1.0,
-            false,
-            BlurPassMode::Intermediate,
-        );
-
-        // Pass 2: V blur (intermediate -> source)
-        self.blur_pass(
-            device,
-            encoder,
-            intermediate_texture,
-            source_texture,
-            &quad_bounds,
-            &quad_bounds,
-            total_radius,
-            1, // vertical
-            tex_width,
-            tex_height,
-            [0.0; 4],
-            1.0,
-            false,
-            BlurPassMode::Intermediate,
-        );
-
-        // Pass 3: H blur (source -> intermediate)
-        self.blur_pass(
-            device,
-            encoder,
-            source_texture,
-            intermediate_texture,
-            &quad_bounds,
-            &quad_bounds,
-            total_radius,
-            0, // horizontal
-            tex_width,
-            tex_height,
-            [0.0; 4],
-            1.0,
-            false,
-            BlurPassMode::Intermediate,
-        );
-
-        // Pass 4: V blur (intermediate -> source)
-        self.blur_pass(
-            device,
-            encoder,
-            intermediate_texture,
-            source_texture,
-            &quad_bounds,
-            &quad_bounds,
-            total_radius,
-            1, // vertical
-            tex_width,
-            tex_height,
-            [0.0; 4],
-            1.0,
-            false,
-            BlurPassMode::Intermediate,
-        );
-
-        // Pass 5: H blur (source -> intermediate)
-        self.blur_pass(
-            device,
-            encoder,
-            source_texture,
-            intermediate_texture,
-            &quad_bounds,
-            &quad_bounds,
-            total_radius,
-            0, // horizontal
-            tex_width,
-            tex_height,
-            [0.0; 4],
-            1.0,
-            false,
-            BlurPassMode::Intermediate,
-        );
-
-        // Pass 6: V blur (intermediate -> target) with additive blending
-        // Adds blurred*fade*sdf to the target (which already has original*(1-fade)*sdf
-        // from the restore pass). The sum is a perfect crossfade.
-        self.blur_pass(
-            device,
-            encoder,
-            intermediate_texture,
+            &constant_bg,
+            idx * stride,
+            &intermediate_bg,
             target,
-            &quad_bounds,
-            &clip_bounds,
-            total_radius,
-            1, // vertical
             tex_width,
             tex_height,
-            scaled_border_radius,
-            fade,
-            false,
+            BlurPassMode::Erase,
+        );
+        idx += 1;
+
+        // Restore pass
+        if has_restore {
+            self.blur_pass(
+                encoder,
+                &constant_bg,
+                idx * stride,
+                &source_bg,
+                target,
+                tex_width,
+                tex_height,
+                BlurPassMode::Additive,
+            );
+            idx += 1;
+        }
+
+        // Blur passes 1-5: ping-pong between source and intermediate
+        // H: source→intermediate, V: inter→source, repeated, final H: source→inter
+        let ping_pong: [(&wgpu::BindGroup, &wgpu::TextureView); 5] = [
+            (&source_bg, intermediate_texture),
+            (&intermediate_bg, source_texture),
+            (&source_bg, intermediate_texture),
+            (&intermediate_bg, source_texture),
+            (&source_bg, intermediate_texture),
+        ];
+        for (src_bg, dst) in &ping_pong {
+            self.blur_pass(
+                encoder,
+                &constant_bg,
+                idx * stride,
+                src_bg,
+                dst,
+                tex_width,
+                tex_height,
+                BlurPassMode::Intermediate,
+            );
+            idx += 1;
+        }
+
+        // Final V blur → target (additive)
+        self.blur_pass(
+            encoder,
+            &constant_bg,
+            idx * stride,
+            &intermediate_bg,
+            target,
+            tex_width,
+            tex_height,
             BlurPassMode::Additive,
         );
     }
@@ -662,22 +649,26 @@ impl Pipeline {
         // Full screen bounds (normalized)
         let full_bounds = [0.0, 0.0, 1.0, 1.0];
 
-        // Use blur pass with radius=0 to just copy
+        let uniforms = BlurUniforms {
+            quad_bounds: full_bounds,
+            clip_bounds: full_bounds,
+            params: [0.0, 0.0, tex_width, tex_height],
+            border_radius: [0.0; 4],
+            fade_params: [1.0, 0.0, 0.0, 0.0],
+        };
+
+        let (constant_bg, _) = self.create_packed_uniforms(device, &[uniforms]);
+        let source_bg = self.create_texture_bind_group(device, source_texture);
+
         self.blur_pass(
-            device,
             encoder,
-            source_texture,
+            &constant_bg,
+            0,
+            &source_bg,
             target,
-            &full_bounds,
-            &full_bounds, // clip_bounds same as quad_bounds for full blit
-            0.0,          // radius = 0 means just copy
-            0,            // direction doesn't matter for radius=0
             tex_width,
             tex_height,
-            [0.0; 4], // No border radius for full blit
-            1.0,      // No fade for blit
-            false,
-            BlurPassMode::Intermediate, // No blending for blit
+            BlurPassMode::Intermediate,
         );
     }
 
@@ -716,21 +707,26 @@ impl Pipeline {
         );
 
         // Use blur pass with radius=0 to just copy the region
+        let uniforms = BlurUniforms {
+            quad_bounds: normalized_bounds,
+            clip_bounds: normalized_bounds,
+            params: [0.0, 0.0, tex_width, tex_height],
+            border_radius: [0.0; 4],
+            fade_params: [1.0, 0.0, 0.0, 0.0],
+        };
+
+        let (constant_bg, _) = self.create_packed_uniforms(device, &[uniforms]);
+        let source_bg = self.create_texture_bind_group(device, source_texture);
+
         self.blur_pass(
-            device,
             encoder,
-            source_texture,
+            &constant_bg,
+            0,
+            &source_bg,
             target,
-            &normalized_bounds,
-            &normalized_bounds, // clip_bounds same as quad_bounds for region blit
-            0.0,                // radius = 0 means just copy
-            0,                  // direction doesn't matter for radius=0
             tex_width,
             tex_height,
-            [0.0; 4], // No border radius for region blit
-            1.0,      // No fade for blit
-            false,
-            BlurPassMode::Intermediate, // No blending for blit
+            BlurPassMode::Intermediate,
         );
     }
 }
