@@ -44,7 +44,7 @@ use crate::core::shell;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Direction, Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -129,6 +129,8 @@ where
     let (control_sender, control_receiver) = mpsc::unbounded();
     let (system_theme_sender, system_theme_receiver) = oneshot::channel();
 
+    let default_direction = settings.default_direction;
+
     let instance: std::pin::Pin<Box<dyn Future<Output = ()>>> = Box::pin(run_instance::<P>(
         program,
         runtime,
@@ -141,6 +143,7 @@ where
         renderer_settings,
         settings.fonts,
         system_theme_receiver,
+        default_direction,
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
@@ -475,6 +478,7 @@ async fn run_instance<P>(
     mut renderer_settings: renderer::Settings,
     default_fonts: Vec<Cow<'static, [u8]>>,
     mut _system_theme: oneshot::Receiver<theme::Mode>,
+    default_direction: Direction,
 ) where
     P: Program + 'static,
     P::Theme: theme::Base,
@@ -658,6 +662,7 @@ async fn run_instance<P>(
                         &mut window.renderer,
                         logical_size,
                         id,
+                        default_direction,
                     ),
                 );
                 let _ = ui_caches.insert(id, user_interface::Cache::default());
@@ -731,6 +736,7 @@ async fn run_instance<P>(
                             &mut is_window_opening,
                             &mut system_theme,
                             &mut renderer_settings,
+                            default_direction,
                         );
                         actions += 1;
                     }
@@ -827,6 +833,7 @@ async fn run_instance<P>(
                                     &mut window_manager,
                                     caches,
                                     &mut proxy,
+                                    default_direction,
                                 ));
 
                                 for action in actions {
@@ -853,6 +860,7 @@ async fn run_instance<P>(
                                         &mut is_window_opening,
                                         &mut system_theme,
                                         &mut renderer_settings,
+                                        default_direction,
                                     );
                                 }
 
@@ -1044,6 +1052,7 @@ async fn run_instance<P>(
                                 &mut is_window_opening,
                                 &mut system_theme,
                                 &mut renderer_settings,
+                                default_direction,
                             );
                         } else {
                             window.state.update(&program, &window.raw, &window_event);
@@ -1158,6 +1167,7 @@ async fn run_instance<P>(
                                 &mut window_manager,
                                 cached_interfaces,
                                 &mut proxy,
+                                default_direction,
                             ));
 
                             for action in actions {
@@ -1177,6 +1187,7 @@ async fn run_instance<P>(
                                     &mut is_window_opening,
                                     &mut system_theme,
                                     &mut renderer_settings,
+                                    default_direction,
                                 );
                             }
 
@@ -1210,6 +1221,7 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     id: window::Id,
+    direction: Direction,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer>
 where
     P::Theme: theme::Base,
@@ -1219,7 +1231,7 @@ where
     view_span.finish();
 
     let layout_span = debug::layout(id);
-    let user_interface = UserInterface::build(view, size, cache, renderer);
+    let user_interface = UserInterface::build(view, size, cache, renderer, direction);
     layout_span.finish();
 
     user_interface
@@ -1296,6 +1308,7 @@ fn run_action<'a, P, C>(
     is_window_opening: &mut bool,
     system_theme: &mut theme::Mode,
     renderer_settings: &mut renderer::Settings,
+    default_direction: Direction,
 ) where
     P: Program,
     C: Compositor<Renderer = P::Renderer> + 'static,
@@ -1783,7 +1796,14 @@ fn run_action<'a, P, C>(
 
                 let _ = interfaces.insert(
                     id,
-                    build_user_interface(program, cache, &mut window.renderer, size, id),
+                    build_user_interface(
+                        program,
+                        cache,
+                        &mut window.renderer,
+                        size,
+                        id,
+                        default_direction,
+                    ),
                 );
 
                 window.raw.request_redraw();
@@ -1803,6 +1823,7 @@ pub fn build_user_interfaces<'a, P: Program, C>(
     window_manager: &mut window::Manager<P, C>,
     mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
     proxy: &mut Proxy<P::Message>,
+    direction: Direction,
 ) -> FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>
 where
     C: Compositor<Renderer = P::Renderer>,
@@ -1844,6 +1865,7 @@ where
                     &mut window.renderer,
                     window.state.logical_size(),
                     id,
+                    direction,
                 ),
             ))
         })

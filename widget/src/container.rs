@@ -30,7 +30,8 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell,
+    self, Background, Color, Direction, Element, Event, Layout, Length, Padding, Rectangle,
+    Shadow, Shell,
     Size, Theme, Vector, Widget, color,
 };
 
@@ -231,6 +232,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         layout(
             limits,
@@ -239,7 +241,11 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |limits| self.content.as_widget_mut().layout(tree, renderer, limits),
+            |limits| {
+                self.content
+                    .as_widget_mut()
+                    .layout(tree, renderer, limits, direction)
+            },
         )
     }
 

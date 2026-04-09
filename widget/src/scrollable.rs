@@ -456,6 +456,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        layout_direction: crate::core::Direction,
     ) -> layout::Node {
         let mut layout = |right_padding, bottom_padding| {
             let is_horizontal = self.direction.horizontal().is_some();
@@ -485,6 +486,7 @@ where
                         &mut tree.children[0],
                         renderer,
                         &child_limits,
+                        layout_direction,
                     )
                 },
             )
@@ -1318,7 +1320,12 @@ where
     Renderer: text::Renderer,
     Theme: Catalog,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: crate::core::Direction,
+    ) -> layout::Node {
         layout::Node::new(Size::new(Self::SIZE, Self::SIZE))
             .move_to(self.origin - Vector::new(Self::SIZE, Self::SIZE) / 2.0)
     }

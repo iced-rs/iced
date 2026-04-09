@@ -22,8 +22,8 @@ use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::window;
 use crate::core::{
-    Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size,
-    Theme, Vector, Widget,
+    Color, ContentFit, Direction, Element, Event, Layout, Length, Point, Rectangle, Rotation,
+    Shell, Size, Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -167,6 +167,7 @@ where
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         // The raw w/h of the underlying image
         let Size { width, height } = renderer.measure_svg(&self.handle);

@@ -131,7 +131,7 @@ mod quad {
     use iced::advanced::widget::{self, Widget};
     use iced::border;
     use iced::mouse;
-    use iced::{Border, Color, Element, Length, Rectangle, Shadow, Size};
+    use iced::{Border, Color, Direction, Element, Length, Rectangle, Shadow, Size};
 
     pub struct CustomQuad {
         size: f32,
@@ -175,6 +175,7 @@ mod quad {
             _tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
+            _direction: Direction,
         ) -> layout::Node {
             layout::Node::new(Size::new(self.size, self.size))
         }

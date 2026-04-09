@@ -1,4 +1,5 @@
 //! A widget that only rebuilds its contents when necessary.
+use crate::core::Direction;
 use crate::core::Element;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -93,6 +94,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let cached = tree
             .state
@@ -101,7 +103,7 @@ where
         cached
             .element
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits, direction)
     }
 
     fn operate(

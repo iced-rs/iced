@@ -25,7 +25,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme, Widget,
+    self, Background, Color, Direction, Element, Layout, Length, Rectangle, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -158,6 +158,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.width(), self.height())
     }

@@ -4,7 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Event, Layout, Shell, Size};
+use crate::{Direction, Event, Layout, Shell, Size};
 
 /// A container of nested overlays.
 pub struct Nested<'a, Message, Theme, Renderer> {
@@ -43,11 +43,17 @@ where
     /// Returns the layout [`Node`] of the [`Nested`] overlay.
     ///
     /// [`Node`]: layout::Node
-    pub fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+    pub fn layout(
+        &mut self,
+        renderer: &Renderer,
+        bounds: Size,
+        direction: Direction,
+    ) -> layout::Node {
         fn recurse<Message, Theme, Renderer>(
             children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
             renderer: &Renderer,
             bounds: Size,
+            direction: Direction,
         ) -> layout::Node
         where
             Renderer: renderer::Renderer,
@@ -56,7 +62,7 @@ where
                 .iter_mut()
                 .map(|element| {
                     let overlay = element.as_overlay_mut();
-                    let node = overlay.layout(renderer, bounds);
+                    let node = overlay.layout(renderer, bounds, direction);
 
                     let mut nested = overlay.overlay(Layout::new(&node), renderer);
 
@@ -67,7 +73,7 @@ where
                     } else {
                         sort_overlays(&mut nested);
 
-                        let nested_node = recurse(&mut nested, renderer, bounds);
+                        let nested_node = recurse(&mut nested, renderer, bounds, direction);
                         drop(nested);
 
                         layout::Node::with_children(node.size(), vec![node, nested_node])
@@ -78,7 +84,7 @@ where
             layout::Node::with_children(bounds, children)
         }
 
-        recurse(&mut self.children, renderer, bounds)
+        recurse(&mut self.children, renderer, bounds, direction)
     }
 
     /// Draws the [`Nested`] overlay using the associated `Renderer`.

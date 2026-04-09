@@ -9,7 +9,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{Element, Event, Length, Rectangle, Shell, Size};
+use crate::core::{Direction, Element, Event, Length, Rectangle, Shell, Size};
 use crate::renderer::wgpu::primitive;
 
 use std::marker::PhantomData;
@@ -79,6 +79,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.width, self.height)
     }

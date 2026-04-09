@@ -10,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Event, Font, Length, Padding, Pixels, Point, Rectangle, Shadow, Size, Theme,
-    Vector,
+    Background, Color, Direction, Event, Font, Length, Padding, Pixels, Point, Rectangle, Shadow, Size,
+    Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -250,7 +250,7 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node {
         let space_below = bounds.height - (self.position.y + self.target_height);
         let space_above = self.position.y;
 
@@ -267,7 +267,7 @@ where
         )
         .width(self.width);
 
-        let node = self.list.layout(self.tree, renderer, &limits);
+        let node = self.list.layout(self.tree, renderer, &limits, direction);
         let size = node.size();
 
         node.move_to(if space_below > space_above {
@@ -397,6 +397,7 @@ where
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         use std::f32;
 

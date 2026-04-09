@@ -5,7 +5,9 @@ use crate::renderer;
 use crate::shell;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::{
+    Border, Color, Direction, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+};
 
 use std::borrow::{Borrow, BorrowMut};
 
@@ -297,8 +299,9 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
-        self.widget.layout(tree, renderer, limits)
+        self.widget.layout(tree, renderer, limits, direction)
     }
 
     fn operate(
@@ -423,8 +426,11 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
-        self.element.widget.layout(tree, renderer, limits)
+        self.element
+            .widget
+            .layout(tree, renderer, limits, direction)
     }
 
     fn operate(

@@ -51,6 +51,7 @@ where
     element: Element<'a, Message, Theme, Renderer>,
     next_element: Option<Element<'a, Message, Theme, Renderer>>,
     last_limits: layout::Limits,
+    last_direction: core::Direction,
     new_layout: Option<layout::Node>,
     key: Key,
     id: Option<widget::Id>,
@@ -84,6 +85,7 @@ where
             next_element: None,
             new_layout: None,
             last_limits: layout::Limits::new(Size::ZERO, Size::ZERO),
+            last_direction: core::Direction::default(),
             key: Key::default(),
             id: None,
             value,
@@ -199,13 +201,15 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: core::Direction,
     ) -> layout::Node {
         self.last_limits = *limits;
+        self.last_direction = direction;
         self.new_layout = None;
 
         self.element
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, &limits.loose())
+            .layout(&mut tree.children[0], renderer, &limits.loose(), direction)
     }
 
     fn update(
@@ -263,6 +267,7 @@ where
                             &mut tree.children[0],
                             renderer,
                             &self.last_limits,
+                            self.last_direction,
                         ));
                     }
 

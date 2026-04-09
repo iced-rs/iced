@@ -54,6 +54,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -422,6 +423,7 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
