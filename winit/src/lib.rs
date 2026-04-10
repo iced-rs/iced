@@ -2748,6 +2748,11 @@ fn run_action<'a, P, C>(
                     }
                 }
             }
+            window::Action::SetBlur(id, blur) => {
+                if let Some(window) = window_manager.get_mut(id) {
+                    window.raw.set_blur(blur);
+                }
+            }
             window::Action::RegisterVoiceMode(id, is_default) => {
                 #[cfg(all(
                     feature = "wayland",

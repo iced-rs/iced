@@ -249,6 +249,9 @@ pub enum Action {
     /// Parameters are (window_id, r, g, b, a) where each component is 0-255.
     SetBackdropColor(Id, u32, u32, u32, u32),
 
+    /// Enable or disable blur behind the window at runtime.
+    SetBlur(Id, bool),
+
     /// Register the window to receive voice mode events (COSMIC compositor protocol).
     /// Parameters are (window_id, is_default_receiver).
     /// When is_default_receiver is true, this window receives events when no other receiver is active.
@@ -847,6 +850,18 @@ pub fn set_backdrop_color<T>(id: Id, r: u32, g: u32, b: u32, a: u32) -> Task<T> 
     task::effect(crate::Action::Window(Action::SetBackdropColor(
         id, r, g, b, a,
     )))
+}
+
+/// Enable or disable blur behind the window at runtime.
+///
+/// The window must have been created with `transparent: true` for blur to
+/// have a visible effect.
+///
+/// ## Platform-specific
+/// - **Wayland/macOS:** Supported.
+/// - **Other platforms:** No effect.
+pub fn set_blur<T>(id: Id, blur: bool) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetBlur(id, blur)))
 }
 
 /// Registers the window to receive voice mode events from the compositor.
