@@ -530,6 +530,8 @@ where
             };
 
             if is_selected {
+                let item_radius = style.item_border_radius.unwrap_or(style.border.radius);
+
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
@@ -537,7 +539,7 @@ where
                             width: bounds.width - style.border.width * 2.0,
                             ..bounds
                         },
-                        border: border::rounded(style.border.radius),
+                        border: border::rounded(item_radius),
                         ..renderer::Quad::default()
                     },
                     style.selected_background,
@@ -598,6 +600,10 @@ pub struct Style {
     pub selected_text_color: Color,
     /// The background [`Color`] of a selected option in the menu.
     pub selected_background: Background,
+    /// The [`border::Radius`] of a selected/hovered item in the menu.
+    ///
+    /// When `None`, falls back to the container's `border.radius`.
+    pub item_border_radius: Option<border::Radius>,
     /// The [`Shadow`] of the menu.
     pub shadow: Shadow,
 }
@@ -648,6 +654,7 @@ pub fn default(theme: &Theme) -> Style {
         text_color: palette.background.weak.text,
         selected_text_color: palette.primary.strong.text,
         selected_background: palette.primary.strong.color.into(),
+        item_border_radius: None,
         shadow: Shadow::default(),
     }
 }
