@@ -341,6 +341,7 @@ where
 
         let is_over = cursor.is_over(layout.bounds());
         let end = self.children.len() - 1;
+        let was_captured = shell.is_event_captured();
 
         for (i, ((child, tree), layout)) in self
             .children
@@ -354,7 +355,7 @@ where
                 .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
 
-            if shell.is_event_captured() {
+            if !was_captured && shell.is_event_captured() {
                 return;
             }
 
