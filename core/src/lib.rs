@@ -59,6 +59,7 @@ pub use angle::{Degrees, Radians};
 pub use animation::Animation;
 pub use background::Background;
 pub use border::Border;
+pub use border::Outline;
 pub use clipboard::Clipboard;
 pub use color::Color;
 pub use content_fit::ContentFit;

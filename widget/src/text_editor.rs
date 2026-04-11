@@ -48,8 +48,8 @@ use crate::core::widget::operation;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, InputMethod, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, SmolStr, Theme, Vector,
+    Background, Border, Color, Element, Event, InputMethod, Length, Outline, Padding, Pixels,
+    Point, Rectangle, Shell, Size, SmolStr, Theme, Vector,
 };
 
 use std::borrow::Cow;
@@ -949,6 +949,10 @@ where
 
         let style = theme.style(&self.class, self.last_status.unwrap_or(Status::Active));
 
+        if let Some(outline) = style.outline {
+            renderer.draw_outline(bounds, outline);
+        }
+
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
@@ -1410,6 +1414,8 @@ pub struct Style {
     pub background: Background,
     /// The [`Border`] of the text input.
     pub border: Border,
+    /// An optional [`Outline`] drawn outside the text input bounds (e.g. focus ring).
+    pub outline: Option<Outline>,
     /// The [`Color`] of the placeholder of the text input.
     pub placeholder: Color,
     /// The [`Color`] of the value of the text input.
@@ -1456,6 +1462,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             width: 1.0,
             color: palette.background.strong.color,
         },
+        outline: None,
         placeholder: palette.secondary.base.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,

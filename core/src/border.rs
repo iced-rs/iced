@@ -276,3 +276,28 @@ impl std::ops::Mul<f32> for Radius {
         }
     }
 }
+
+/// An outline drawn outside a widget's bounds (e.g. a focus ring).
+///
+/// Combines a [`Border`] (color, width, radius) with a `gap` that controls
+/// the space between the widget edge and the inner edge of the outline.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Outline {
+    /// The border styling of the outline (color, width, radius).
+    pub border: Border,
+    /// Gap in logical pixels between the widget bounds and the outline.
+    pub gap: f32,
+}
+
+impl Outline {
+    /// Creates a new [`Outline`] with the given [`Border`] and zero gap.
+    pub fn new(border: Border) -> Self {
+        Self { border, gap: 0.0 }
+    }
+
+    /// Sets the gap between the widget bounds and the outline.
+    #[must_use]
+    pub fn gap(self, gap: f32) -> Self {
+        Self { gap, ..self }
+    }
+}

@@ -57,8 +57,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Alignment, Background, Border, Color, Element, Event, InputMethod, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Alignment, Background, Border, Color, Element, Event, InputMethod, Layout, Length, Outline,
+    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 
 /// A field that can be filled with text.
@@ -486,6 +486,10 @@ where
         let text_bounds = children_layout.next().unwrap().bounds();
 
         let style = theme.style(&self.class, self.last_status.unwrap_or(Status::Disabled));
+
+        if let Some(outline) = style.outline {
+            renderer.draw_outline(bounds, outline);
+        }
 
         renderer.fill_quad(
             renderer::Quad {
@@ -1952,6 +1956,8 @@ pub struct Style {
     pub background: Background,
     /// The [`Border`] of the text input.
     pub border: Border,
+    /// An optional [`Outline`] drawn outside the text input bounds (e.g. focus ring).
+    pub outline: Option<Outline>,
     /// The [`Color`] of the icon of the text input.
     pub icon: Color,
     /// The [`Color`] of the placeholder of the text input.
@@ -2002,6 +2008,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             width: 1.0,
             color: palette.background.strong.color,
         },
+        outline: None,
         icon: palette.background.weak.text,
         placeholder: palette.secondary.base.color,
         value: palette.background.base.text,

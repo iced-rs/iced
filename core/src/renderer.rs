@@ -4,7 +4,8 @@ mod null;
 
 use crate::image;
 use crate::{
-    Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size, Transformation, Vector,
+    Background, Border, Color, Font, Outline, Pixels, Rectangle, Shadow, Size, Transformation,
+    Vector,
 };
 
 /// Whether anti-aliasing should be avoided by snapping primitive coordinates to the
@@ -155,6 +156,31 @@ pub trait Renderer {
 
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
+
+    /// Draws a focus outline ring around the given bounds.
+    ///
+    /// The outline is rendered as a border-only quad that extends outside the
+    /// widget bounds. The [`Outline::gap`] controls the space between the
+    /// widget edge and the inner edge of the outline ring.
+    ///
+    /// Use this for keyboard-focus indicators on text inputs, editors, or any
+    /// focusable widget.
+    fn draw_outline(&mut self, bounds: Rectangle, outline: Outline) {
+        let offset = outline.gap + outline.border.width;
+        self.fill_quad(
+            Quad {
+                bounds: Rectangle {
+                    x: bounds.x - offset,
+                    y: bounds.y - offset,
+                    width: bounds.width + offset * 2.0,
+                    height: bounds.height + offset * 2.0,
+                },
+                border: outline.border,
+                ..Quad::default()
+            },
+            Color::TRANSPARENT,
+        );
+    }
 
     /// Creates an [`image::Allocation`] for the given [`image::Handle`] and calls the given callback with it.
     fn allocate_image(
