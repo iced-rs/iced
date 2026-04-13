@@ -18,6 +18,7 @@ pub struct Shell<'a, Message> {
     input_method: InputMethod,
     is_layout_invalid: bool,
     are_widgets_invalid: bool,
+    is_auto_focus_pending: bool,
     clipboard: Clipboard,
 }
 
@@ -30,6 +31,7 @@ impl<'a, Message> Shell<'a, Message> {
             redraw_request: window::RedrawRequest::Wait,
             is_layout_invalid: false,
             are_widgets_invalid: false,
+            is_auto_focus_pending: false,
             input_method: InputMethod::Disabled,
             clipboard: Clipboard {
                 reads: Vec::new(),
@@ -279,6 +281,18 @@ impl<'a, Message> Shell<'a, Message> {
         self.are_widgets_invalid = true;
     }
 
+    /// Returns whether an auto-focus operation is pending.
+    #[must_use]
+    pub fn is_auto_focus_pending(&self) -> bool {
+        self.is_auto_focus_pending
+    }
+
+    /// Requests the framework to run the auto-focus operation after
+    /// the current event batch is processed.
+    pub fn request_auto_focus(&mut self) {
+        self.is_auto_focus_pending = true;
+    }
+
     /// Merges the current [`Shell`] with another one by applying the given
     /// function to the messages of the latter.
     ///
@@ -288,6 +302,7 @@ impl<'a, Message> Shell<'a, Message> {
 
         self.is_layout_invalid = self.is_layout_invalid || other.is_layout_invalid;
         self.are_widgets_invalid = self.are_widgets_invalid || other.are_widgets_invalid;
+        self.is_auto_focus_pending = self.is_auto_focus_pending || other.is_auto_focus_pending;
         self.redraw_request = self.redraw_request.min(other.redraw_request);
         self.event_status = self.event_status.merge(other.event_status);
 

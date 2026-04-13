@@ -10,6 +10,7 @@ pub use iced_renderer::graphics;
 pub use core::widget::Id;
 
 mod action;
+mod auto_focus;
 mod backdrop_blur;
 mod column;
 mod gradient_fade;
@@ -57,6 +58,8 @@ mod lazy;
 #[cfg(feature = "lazy")]
 pub use crate::lazy::helpers::*;
 
+#[doc(no_inline)]
+pub use auto_focus::{AutoFocus, auto_focus};
 #[doc(no_inline)]
 pub use backdrop_blur::{BackdropBlur, backdrop_blur};
 #[doc(no_inline)]

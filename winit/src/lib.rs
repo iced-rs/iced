@@ -1232,7 +1232,7 @@ async fn run_instance<P>(
                             // requests from this iteration.
                             match &state {
                                 user_interface::State::Updated { clipboard: cb, .. }
-                                | user_interface::State::Outdated { clipboard: cb } => {
+                                | user_interface::State::Outdated { clipboard: cb, .. } => {
                                     if !cb.dnd_requests.is_empty() {
                                         tracing::trace!(
                                             count = cb.dnd_requests.len(),
@@ -1244,9 +1244,10 @@ async fn run_instance<P>(
                                 }
                             }
                             // Move clipboard out of state before dropping it
+                            let auto_focus_from_state = state.is_auto_focus_pending();
                             let mut intermediate_clipboard = match state {
                                 user_interface::State::Updated { clipboard: cb, .. }
-                                | user_interface::State::Outdated { clipboard: cb } => cb,
+                                | user_interface::State::Outdated { clipboard: cb, .. } => cb,
                             };
                             accumulated_clipboard.merge(&mut intermediate_clipboard);
 
@@ -1270,6 +1271,9 @@ async fn run_instance<P>(
                             redraw_count += 1;
 
                             if !messages.is_empty() {
+                                // Check if auto-focus was requested before rebuilding
+                                let needs_auto_focus = auto_focus_from_state;
+
                                 let caches: FxHashMap<_, _> =
                                     ManuallyDrop::into_inner(user_interfaces)
                                         .into_iter()
@@ -1354,9 +1358,53 @@ async fn run_instance<P>(
                                 }
 
                                 interface = user_interfaces.get_mut(&id).unwrap();
+
+                                if needs_auto_focus {
+                                    use iced_runtime::core::widget::operation::{
+                                        self as op, auto_focusable,
+                                    };
+
+                                    let mut current_op: Option<Box<dyn core::widget::Operation>> =
+                                        Some(Box::new(auto_focusable::focus_auto::<()>()));
+
+                                    while let Some(mut operation) = current_op.take() {
+                                        interface.operate(&window.renderer, operation.as_mut());
+
+                                        match operation.finish() {
+                                            op::Outcome::None | op::Outcome::Some(()) => {}
+                                            op::Outcome::Chain(next) => {
+                                                current_op = Some(next);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         };
                         interact_span.finish();
+
+                        // Handle auto-focus from the final state after the
+                        // redraw loop.  The loop may break before reaching
+                        // the inner `needs_auto_focus` check (e.g. when no
+                        // messages were produced), so we must also check here.
+                        if state.is_auto_focus_pending() {
+                            use iced_runtime::core::widget::operation::{
+                                self as op, auto_focusable,
+                            };
+
+                            let mut current_op: Option<Box<dyn core::widget::Operation>> =
+                                Some(Box::new(auto_focusable::focus_auto::<()>()));
+
+                            while let Some(mut operation) = current_op.take() {
+                                interface.operate(&window.renderer, operation.as_mut());
+
+                                match operation.finish() {
+                                    op::Outcome::None | op::Outcome::Some(()) => {}
+                                    op::Outcome::Chain(next) => {
+                                        current_op = Some(next);
+                                    }
+                                }
+                            }
+                        }
 
                         let draw_span = debug::draw(id);
                         interface.draw(
@@ -1438,6 +1486,7 @@ async fn run_instance<P>(
                             );
                         } else if let user_interface::State::Outdated {
                             clipboard: mut clipboard_requests,
+                            ..
                         } = state
                         {
                             // Merge accumulated requests from earlier iterations.
@@ -1763,6 +1812,7 @@ async fn run_instance<P>(
                         }
 
                         let mut uis_stale = false;
+                        let mut auto_focus_requested = false;
 
                         for (id, window) in window_manager.iter_mut() {
                             let interact_span = debug::interact(id);
@@ -1794,9 +1844,13 @@ async fn run_instance<P>(
                             #[cfg(feature = "unconditional-rendering")]
                             window.request_redraw(window::RedrawRequest::NextFrame);
 
+                            if ui_state.is_auto_focus_pending() {
+                                auto_focus_requested = true;
+                            }
+
                             match &ui_state {
                                 user_interface::State::Updated { clipboard: cb, .. }
-                                | user_interface::State::Outdated { clipboard: cb } => {
+                                | user_interface::State::Outdated { clipboard: cb, .. } => {
                                     if !cb.dnd_requests.is_empty() {
                                         tracing::trace!(
                                             count = cb.dnd_requests.len(),
@@ -1839,6 +1893,7 @@ async fn run_instance<P>(
                                 }
                                 user_interface::State::Outdated {
                                     clipboard: mut clipboard_requests,
+                                    ..
                                 } => {
                                     if let Some(ref mut comp) = compositor {
                                         resolve_dnd_icon_elements::<P, _>(
@@ -1999,6 +2054,34 @@ async fn run_instance<P>(
 
                             for (_id, window) in window_manager.iter_mut() {
                                 window.raw.request_redraw();
+                            }
+                        }
+
+                        // Run auto-focus after UI rebuild so the operation
+                        // walks the freshly-built widget tree.
+                        if auto_focus_requested {
+                            use iced_runtime::core::widget::operation::{
+                                self as op, auto_focusable,
+                            };
+
+                            for (id, ui) in user_interfaces.iter_mut() {
+                                let Some(window) = window_manager.get_mut(*id) else {
+                                    continue;
+                                };
+
+                                let mut current_op: Option<Box<dyn core::widget::Operation>> =
+                                    Some(Box::new(auto_focusable::focus_auto::<()>()));
+
+                                while let Some(mut operation) = current_op.take() {
+                                    ui.operate(&window.renderer, operation.as_mut());
+
+                                    match operation.finish() {
+                                        op::Outcome::None | op::Outcome::Some(()) => {}
+                                        op::Outcome::Chain(next) => {
+                                            current_op = Some(next);
+                                        }
+                                    }
+                                }
                             }
                         }
 

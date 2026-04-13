@@ -1,4 +1,5 @@
 //! Query or update internal widget state.
+pub mod auto_focusable;
 pub mod focusable;
 pub mod scrollable;
 pub mod text_input;
@@ -43,6 +44,11 @@ pub trait Operation<T = ()>: Send {
     /// Operates on a widget that can be focused.
     fn focusable(&mut self, _id: Option<&Id>, _bounds: Rectangle, _state: &mut dyn Focusable) {}
 
+    /// Marks the most recently visited focusable widget as the auto-focus
+    /// target. Wrapper widgets call this just before delegating to their
+    /// child so the next `focusable()` hit becomes the target.
+    fn auto_focusable(&mut self, _id: Option<&Id>, _bounds: Rectangle) {}
+
     /// Operates on a widget that has text input.
     fn text_input(&mut self, _id: Option<&Id>, _bounds: Rectangle, _state: &mut dyn TextInput) {}
 
@@ -72,6 +78,10 @@ where
 
     fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
         self.as_mut().focusable(id, bounds, state);
+    }
+
+    fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
+        self.as_mut().auto_focusable(id, bounds);
     }
 
     fn scrollable(
@@ -153,6 +163,10 @@ where
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
             self.operation.focusable(id, bounds, state);
+        }
+
+        fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
+            self.operation.auto_focusable(id, bounds);
         }
 
         fn scrollable(
@@ -246,6 +260,10 @@ where
                     self.operation.focusable(id, bounds, state);
                 }
 
+                fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
+                    self.operation.auto_focusable(id, bounds);
+                }
+
                 fn text_input(
                     &mut self,
                     id: Option<&Id>,
@@ -275,6 +293,10 @@ where
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
             self.operation.focusable(id, bounds, state);
+        }
+
+        fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
+            self.operation.auto_focusable(id, bounds);
         }
 
         fn scrollable(
@@ -356,6 +378,10 @@ where
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
             self.operation.focusable(id, bounds, state);
+        }
+
+        fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
+            self.operation.auto_focusable(id, bounds);
         }
 
         fn scrollable(

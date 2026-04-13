@@ -48,6 +48,15 @@ pub fn focus_next<T>() -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus_next()))
 }
 
+/// Focuses the first widget marked for auto-focus.
+///
+/// If no auto-focus widget is found, focuses the first focusable widget
+/// instead. Use this after page transitions to automatically focus the
+/// appropriate widget.
+pub fn focus_auto<T>() -> Task<T> {
+    task::effect(Action::widget(operation::auto_focusable::focus_auto()))
+}
+
 /// Returns whether the widget with the given [`Id`] is focused or not.
 pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
     task::widget(operation::focusable::is_focused(id.into()))

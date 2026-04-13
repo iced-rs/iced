@@ -188,6 +188,7 @@ where
         let mut input_method = InputMethod::Disabled;
         let mut clipboard = Clipboard::new();
         let mut has_layout_changed = false;
+        let mut auto_focus_pending = false;
         let viewport = Rectangle::with_size(self.bounds);
 
         let mut maybe_overlay = self
@@ -254,6 +255,10 @@ where
 
                 if shell.are_widgets_invalid() {
                     outdated = true;
+                }
+
+                if shell.is_auto_focus_pending() {
+                    auto_focus_pending = true;
                 }
             }
 
@@ -361,6 +366,10 @@ where
                     outdated = true;
                 }
 
+                if shell.is_auto_focus_pending() {
+                    auto_focus_pending = true;
+                }
+
                 shell.event_status().merge(overlay_status)
             })
             .collect();
@@ -379,7 +388,10 @@ where
 
         (
             if outdated {
-                State::Outdated { clipboard }
+                State::Outdated {
+                    clipboard,
+                    auto_focus_pending,
+                }
             } else {
                 State::Updated {
                     mouse_interaction,
@@ -387,6 +399,7 @@ where
                     input_method,
                     clipboard,
                     has_layout_changed,
+                    auto_focus_pending,
                 }
             },
             event_statuses,
@@ -612,6 +625,8 @@ pub enum State {
     Outdated {
         /// The set of [`Clipboard`] requests that the user interface has produced.
         clipboard: Clipboard,
+        /// Whether an auto-focus operation should be run after the tree is rebuilt.
+        auto_focus_pending: bool,
     },
 
     /// The [`UserInterface`] is up-to-date and can be reused without
@@ -627,6 +642,8 @@ pub enum State {
         clipboard: Clipboard,
         /// Whether the layout of the [`UserInterface`] has changed.
         has_layout_changed: bool,
+        /// Whether an auto-focus operation should be run after the tree is rebuilt.
+        auto_focus_pending: bool,
     },
 }
 
@@ -638,6 +655,18 @@ impl State {
             State::Updated {
                 has_layout_changed, ..
             } => *has_layout_changed,
+        }
+    }
+
+    /// Returns whether an auto-focus operation is pending.
+    pub fn is_auto_focus_pending(&self) -> bool {
+        match self {
+            State::Outdated {
+                auto_focus_pending, ..
+            }
+            | State::Updated {
+                auto_focus_pending, ..
+            } => *auto_focus_pending,
         }
     }
 }
