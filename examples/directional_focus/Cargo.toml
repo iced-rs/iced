@@ -1,0 +1,11 @@
+[package]
+name = "directional_focus"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["advanced"]
+env_logger = "0.11"
+log.workspace = true

@@ -17,13 +17,15 @@
 //! }
 //! ```
 use crate::core::border::{self, Border};
+use crate::core::keyboard;
+use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
-use crate::core::widget::Operation;
+use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -196,6 +198,21 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
     is_pressed: bool,
+    is_focused: bool,
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -248,6 +265,9 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        let state = tree.state.downcast_mut::<State>();
+
+        operation.focusable(None, layout.bounds(), state);
         operation.container(None, layout.bounds());
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
@@ -321,6 +341,17 @@ where
 
                 state.is_pressed = false;
             }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(key::Named::Enter | key::Named::Space),
+                ..
+            }) => {
+                let state = tree.state.downcast_ref::<State>();
+
+                if let Some(on_press) = self.on_press.as_ref().filter(|_| state.is_focused) {
+                    shell.publish(on_press.get());
+                    shell.capture_event();
+                }
+            }
             _ => {}
         }
 
@@ -335,7 +366,13 @@ where
                 Status::Hovered
             }
         } else {
-            Status::Active
+            let state = tree.state.downcast_ref::<State>();
+
+            if state.is_focused {
+                Status::Focused
+            } else {
+                Status::Active
+            }
         };
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
@@ -459,6 +496,8 @@ pub enum Status {
     Pressed,
     /// The [`Button`] cannot be pressed.
     Disabled,
+    /// The [`Button`] is focused via keyboard/gamepad navigation.
+    Focused,
 }
 
 /// The style of a button.
@@ -583,7 +622,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.primary.strong.color)),
             ..base
         },
@@ -598,7 +637,7 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.secondary.strong.color)),
             ..base
         },
@@ -613,7 +652,7 @@ pub fn success(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.success.strong.color)),
             ..base
         },
@@ -628,7 +667,7 @@ pub fn warning(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.warning.strong.color)),
             ..base
         },
@@ -643,7 +682,7 @@ pub fn danger(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.danger.strong.color)),
             ..base
         },
@@ -662,7 +701,7 @@ pub fn text(theme: &Theme, status: Status) -> Style {
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             text_color: palette.background.base.text.scale_alpha(0.8),
             ..base
         },
@@ -681,7 +720,7 @@ pub fn background(theme: &Theme, status: Status) -> Style {
             background: Some(Background::Color(palette.background.strong.color)),
             ..base
         },
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.background.weak.color)),
             ..base
         },
@@ -700,7 +739,7 @@ pub fn subtle(theme: &Theme, status: Status) -> Style {
             background: Some(Background::Color(palette.background.strong.color)),
             ..base
         },
-        Status::Hovered => Style {
+        Status::Hovered | Status::Focused => Style {
             background: Some(Background::Color(palette.background.weaker.color)),
             ..base
         },

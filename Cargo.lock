@@ -1327,6 +1327,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "directional_focus"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "iced",
+ "log",
+]
+
+[[package]]
 name = "directories"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -4,9 +4,9 @@
 //! [`focus_auto`] to focus the first widget wrapped in an
 //! [`auto_focus`](crate::widget::auto_focus) wrapper. If no auto-focus
 //! widget exists, the first focusable widget receives focus instead.
-use crate::widget::operation::{self, Focusable, Operation, Outcome};
-use crate::widget::Id;
 use crate::Rectangle;
+use crate::widget::Id;
+use crate::widget::operation::{self, Focusable, Operation, Outcome};
 
 /// Result of the first tree-walk phase.
 #[derive(Debug, Clone, Copy, Default)]

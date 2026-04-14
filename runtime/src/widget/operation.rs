@@ -4,6 +4,7 @@ use crate::core::widget::operation;
 use crate::task;
 use crate::{Action, Task};
 
+pub use crate::core::widget::operation::focusable::FocusDirection;
 pub use crate::core::widget::operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 /// Snaps the scrollable with the given [`Id`] to the provided [`RelativeOffset`].
@@ -46,6 +47,16 @@ pub fn focus_previous<T>() -> Task<T> {
 /// Focuses the next focusable widget.
 pub fn focus_next<T>() -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus_next()))
+}
+
+/// Focuses the nearest focusable widget in the given spatial [`FocusDirection`].
+///
+/// Uses widget bounds to determine the closest candidate. If nothing is
+/// focused, the first focusable widget receives focus.
+pub fn focus_direction<T>(direction: FocusDirection) -> Task<T> {
+    task::effect(Action::widget(operation::focusable::focus_directional(
+        direction,
+    )))
 }
 
 /// Focuses the first widget marked for auto-focus.
