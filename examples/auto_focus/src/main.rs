@@ -5,8 +5,6 @@ use iced::widget::operation;
 use iced::widget::{auto_focus, button, center, column, container, row, text, text_input};
 use iced::{Element, Subscription, Task};
 
-use log;
-
 /// Demonstrates the `auto_focus` widget wrapper.
 ///
 /// - Wrap any focusable widget with `auto_focus(...)` to mark it as the
@@ -27,17 +25,12 @@ pub fn main() -> iced::Result {
         .run()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 enum Page {
+    #[default]
     Login,
     Search,
     Profile,
-}
-
-impl Default for Page {
-    fn default() -> Self {
-        Self::Login
-    }
 }
 
 #[derive(Default)]

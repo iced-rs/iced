@@ -156,6 +156,7 @@ impl App {
                     color: Color::from_rgba(0.0, 0.0, 0.0, 0.9),
                     offset: Vector::new(0.0, 2.0),
                     blur_radius: 15.0,
+                    spread_radius: 0.0,
                     inset: true,
                 },
                 ..Default::default()
@@ -179,6 +180,7 @@ impl App {
                             color: Color::from_rgba(0.0, 0.0, 0.0, 0.9),
                             offset: Vector::new(0.0, 4.0),
                             blur_radius: 10.0,
+                            spread_radius: 0.0,
                             inset: false,
                         },
                         ..Default::default()

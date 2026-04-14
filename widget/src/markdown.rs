@@ -1383,7 +1383,7 @@ fn count_selectable_in_table(columns: &[Column], rows: &[Row]) -> usize {
     // Count row cells
     let row_count: usize = rows
         .iter()
-        .flat_map(|row| row.cells())
+        .flat_map(Row::cells)
         .flat_map(|cell| cell.iter())
         .map(count_selectable_in_item)
         .sum();
@@ -1888,7 +1888,7 @@ where
                 .items()
                 .iter()
                 .map(|item| {
-                    let elem = match item {
+                    match item {
                         Item::Paragraph(text) => {
                             let idx = current_idx;
                             current_idx += 1;
@@ -1933,8 +1933,7 @@ where
                             )
                         }
                         _ => crate::text("").into(),
-                    };
-                    elem
+                    }
                 })
                 .collect();
 
@@ -2092,7 +2091,7 @@ where
     // Pre-compute header element count per column
     let header_counts: Vec<usize> = columns
         .iter()
-        .map(|col| col.header.iter().map(|i| count_selectable_in_item(i)).sum())
+        .map(|col| col.header.iter().map(count_selectable_in_item).sum())
         .collect();
 
     // Pre-compute cumulative header indices (starting index for each column's header)
@@ -2110,7 +2109,7 @@ where
         .map(|row| {
             row.cells()
                 .iter()
-                .map(|cell| cell.iter().map(|i| count_selectable_in_item(i)).sum())
+                .map(|cell| cell.iter().map(count_selectable_in_item).sum())
                 .collect()
         })
         .collect();
@@ -2129,7 +2128,7 @@ where
 
     // Clone what we need for closures
     let cell_start_indices = std::sync::Arc::new(cell_start_indices);
-    let rows_arc = std::sync::Arc::new(rows.iter().collect::<Vec<_>>());
+    let rows_arc = std::rc::Rc::new(rows.iter().collect::<Vec<_>>());
 
     let table_widget = table(
         columns.iter().enumerate().map(|(col_idx, col)| {
@@ -2267,7 +2266,7 @@ where
                 .paragraph_info(idx, total_elements)
                 .on_selection_start(move |offset| on_start(idx, offset))
                 .on_selection_drag(move |offset| on_drag(idx, offset))
-                .on_selection_end(move || on_end())
+                .on_selection_end(on_end)
                 .into()
         }
         Item::Heading(level, text) => {
@@ -2290,7 +2289,7 @@ where
                 .paragraph_info(idx, total_elements)
                 .on_selection_start(move |offset| on_start(idx, offset))
                 .on_selection_drag(move |offset| on_drag(idx, offset))
-                .on_selection_end(move || on_end())
+                .on_selection_end(on_end)
                 .into()
         }
         _ => crate::text("").into(),

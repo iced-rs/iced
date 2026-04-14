@@ -134,7 +134,7 @@ mod render_counter {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::advanced::{Clipboard, Shell};
+    use iced::advanced::Shell;
     use iced::border;
     use iced::mouse;
     use iced::{Color, Element, Event, Length, Rectangle, Size};
@@ -223,7 +223,6 @@ mod render_counter {
             _layout: Layout<'_>,
             _cursor: mouse::Cursor,
             _renderer: &Renderer,
-            _clipboard: &mut dyn Clipboard,
             _shell: &mut Shell<'_, Message>,
             _viewport: &Rectangle,
         ) {

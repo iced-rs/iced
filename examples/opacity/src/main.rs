@@ -283,6 +283,8 @@ impl App {
                     color: Color::BLACK,
                     offset: Vector::new(0.0, 8.0),
                     blur_radius: 24.0,
+                    spread_radius: 0.0,
+                    inset: false,
                 },
                 ..Default::default()
             });

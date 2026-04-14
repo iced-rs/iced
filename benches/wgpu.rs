@@ -185,6 +185,7 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         shaping: text::Shaping::Basic,
                         wrapping: text::Wrapping::default(),
                         ellipsis: text::Ellipsis::default(),
+                        letter_spacing: None,
                         max_width: f32::INFINITY,
                     });
                 }
