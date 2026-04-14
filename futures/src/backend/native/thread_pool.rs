@@ -5,7 +5,18 @@ pub type Executor = futures::executor::ThreadPool;
 
 impl crate::Executor for Executor {
     fn new() -> Result<Self, futures::io::Error> {
-        futures::executor::ThreadPool::new()
+        let pool_size = std::env::var("ICED_THREAD_POOL_SIZE")
+            .ok()
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_else(|| {
+                std::thread::available_parallelism()
+                    .map(|n| n.get().min(4))
+                    .unwrap_or(4)
+            });
+
+        futures::executor::ThreadPoolBuilder::new()
+            .pool_size(pool_size)
+            .create()
     }
 
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
