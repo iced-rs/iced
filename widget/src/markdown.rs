@@ -1887,53 +1887,51 @@ where
             let content_elements: Vec<Element<'a, Message, Theme, Renderer>> = bullet
                 .items()
                 .iter()
-                .map(|item| {
-                    match item {
-                        Item::Paragraph(text) => {
-                            let idx = current_idx;
-                            current_idx += 1;
-                            let selection = get_selection.clone()(idx);
-                            let on_s = on_start.clone();
-                            let on_d = on_drag.clone();
-                            let on_e = on_end.clone();
+                .map(|item| match item {
+                    Item::Paragraph(text) => {
+                        let idx = current_idx;
+                        current_idx += 1;
+                        let selection = get_selection.clone()(idx);
+                        let on_s = on_start.clone();
+                        let on_d = on_drag.clone();
+                        let on_e = on_end.clone();
 
-                            rich_text(text.spans(settings.style))
-                                .font(settings.style.font)
-                                .size(settings.text_size)
-                                .letter_spacing_maybe(settings.letter_spacing)
-                                .line_height_maybe(settings.line_height)
-                                .wrapping(settings.wrapping)
-                                .selection(selection)
-                                .selection_color(settings.style.selection_color)
-                                .global_selecting(is_selecting)
-                                .paragraph_info(idx, total_elements)
-                                .on_selection_start(move |offset| on_s(idx, offset))
-                                .on_selection_drag(move |offset| on_d(idx, offset))
-                                .on_selection_end(on_e)
-                                .into()
-                        }
-                        Item::List {
-                            start: nested_start,
-                            bullets: nested_bullets,
-                        } => {
-                            let nested_count = count_selectable_in_bullets(nested_bullets);
-                            let nested_start_idx = current_idx;
-                            current_idx += nested_count;
-                            list_selectable(
-                                settings,
-                                *nested_start,
-                                nested_bullets,
-                                nested_start_idx,
-                                total_elements,
-                                is_selecting,
-                                get_selection.clone(),
-                                on_start.clone(),
-                                on_drag.clone(),
-                                on_end.clone(),
-                            )
-                        }
-                        _ => crate::text("").into(),
+                        rich_text(text.spans(settings.style))
+                            .font(settings.style.font)
+                            .size(settings.text_size)
+                            .letter_spacing_maybe(settings.letter_spacing)
+                            .line_height_maybe(settings.line_height)
+                            .wrapping(settings.wrapping)
+                            .selection(selection)
+                            .selection_color(settings.style.selection_color)
+                            .global_selecting(is_selecting)
+                            .paragraph_info(idx, total_elements)
+                            .on_selection_start(move |offset| on_s(idx, offset))
+                            .on_selection_drag(move |offset| on_d(idx, offset))
+                            .on_selection_end(on_e)
+                            .into()
                     }
+                    Item::List {
+                        start: nested_start,
+                        bullets: nested_bullets,
+                    } => {
+                        let nested_count = count_selectable_in_bullets(nested_bullets);
+                        let nested_start_idx = current_idx;
+                        current_idx += nested_count;
+                        list_selectable(
+                            settings,
+                            *nested_start,
+                            nested_bullets,
+                            nested_start_idx,
+                            total_elements,
+                            is_selecting,
+                            get_selection.clone(),
+                            on_start.clone(),
+                            on_drag.clone(),
+                            on_end.clone(),
+                        )
+                    }
+                    _ => crate::text("").into(),
                 })
                 .collect();
 
