@@ -235,14 +235,17 @@ impl Default for EnsureVisibleConfig {
     /// Default: 35% alignment on both axes, animated with default duration.
     fn default() -> Self {
         Self {
-            alignment_y: 0.35,
-            alignment_x: 0.35,
+            alignment_y: Self::DEFAULT_ALIGNMENT,
+            alignment_x: Self::DEFAULT_ALIGNMENT,
             animation: Some(ScrollAnimation::default()),
         }
     }
 }
 
 impl EnsureVisibleConfig {
+    /// Default alignment ratio (35% from the top/left of the viewport).
+    pub const DEFAULT_ALIGNMENT: f32 = 0.35;
+
     /// Creates a config with custom vertical and horizontal alignment.
     /// Animated by default.
     #[must_use]
@@ -256,12 +259,12 @@ impl EnsureVisibleConfig {
 
     /// Creates a config with a custom vertical alignment.
     ///
-    /// Horizontal alignment defaults to `0.35`. Animated by default.
+    /// Horizontal alignment defaults to [`Self::DEFAULT_ALIGNMENT`]. Animated by default.
     #[must_use]
     pub fn vertical(alignment_y: f32) -> Self {
         Self {
             alignment_y: alignment_y.clamp(0.0, 1.0),
-            alignment_x: 0.35,
+            alignment_x: Self::DEFAULT_ALIGNMENT,
             animation: Some(ScrollAnimation::default()),
         }
     }
