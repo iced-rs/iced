@@ -48,6 +48,7 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
+use crate::core::widget::operation::focusable::take_focus_dirty;
 use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
@@ -2010,6 +2011,17 @@ async fn run_instance<P>(
                             });
                         }
 
+                        // If mouse click (or other event) changed focus state, broadcast FocusChanged
+                        if take_focus_dirty() {
+                            for (id, _) in window_manager.iter_mut() {
+                                runtime.broadcast(subscription::Event::Interaction {
+                                    window: id,
+                                    event: core::Event::Focus(core::focus::Event::FocusChanged),
+                                    status: core::event::Status::Ignored,
+                                });
+                            }
+                        }
+
                         if !messages.is_empty() || uis_stale {
                             let cached_interfaces: FxHashMap<_, _> =
                                 ManuallyDrop::into_inner(user_interfaces)
@@ -2963,6 +2975,17 @@ fn run_action<'a, P, C>(
                     operation::Outcome::Chain(next) => {
                         current_operation = Some(next);
                     }
+                }
+            }
+
+            // If any focus operation changed focus, broadcast FocusChanged
+            if take_focus_dirty() {
+                for (id, _) in window_manager.iter_mut() {
+                    runtime.broadcast(subscription::Event::Interaction {
+                        window: id,
+                        event: core::Event::Focus(core::focus::Event::FocusChanged),
+                        status: core::event::Status::Ignored,
+                    });
                 }
             }
 

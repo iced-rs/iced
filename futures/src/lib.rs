@@ -14,6 +14,7 @@ mod runtime;
 pub mod backend;
 pub mod event;
 pub mod executor;
+pub mod focus;
 pub mod keyboard;
 pub mod stream;
 pub mod subscription;

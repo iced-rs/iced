@@ -20,6 +20,27 @@ thread_local! {
     /// and navigate from there, rather than always jumping to the
     /// first widget.
     static LAST_FOCUSED: Cell<Option<(usize, Rectangle)>> = const { Cell::new(None) };
+
+    /// Set to `true` whenever a focus operation changes which widget is
+    /// focused. The runtime checks and clears this flag after processing
+    /// widget operations, injecting a `FocusChanged` event when set.
+    static FOCUS_DIRTY: Cell<bool> = const { Cell::new(false) };
+}
+
+/// Marks that a focus change occurred during an operation.
+///
+/// Called internally by focus operations when they call
+/// [`Focusable::focus()`] or [`Focusable::unfocus()`].
+pub fn mark_focus_dirty() {
+    FOCUS_DIRTY.set(true);
+}
+
+/// Returns `true` if a focus change occurred since the last call,
+/// clearing the flag.
+///
+/// Called by the runtime after processing widget operations.
+pub fn take_focus_dirty() -> bool {
+    FOCUS_DIRTY.replace(false)
 }
 
 /// The internal state of a widget that can be focused.
@@ -79,6 +100,7 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
             match id {
                 Some(id) if id == &self.target => {
                     state.focus();
+                    mark_focus_dirty();
                 }
                 _ => {
                     state.unfocus();
@@ -100,7 +122,10 @@ pub fn unfocus<T>() -> impl Operation<T> {
 
     impl<T> Operation<T> for Unfocus {
         fn focusable(&mut self, _id: Option<&Id>, _bounds: Rectangle, state: &mut dyn Focusable) {
-            state.unfocus();
+            if state.is_focused() {
+                state.unfocus();
+                mark_focus_dirty();
+            }
         }
 
         fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
@@ -160,11 +185,17 @@ where
             }
 
             match self.count.focused {
-                None if self.current == self.count.total - 1 => state.focus(),
+                None if self.current == self.count.total - 1 => {
+                    state.focus();
+                    mark_focus_dirty();
+                }
                 Some(0) if self.current == 0 => state.unfocus(),
                 Some(0) => {}
                 Some(focused) if focused == self.current => state.unfocus(),
-                Some(focused) if focused - 1 == self.current => state.focus(),
+                Some(focused) if focused - 1 == self.current => {
+                    state.focus();
+                    mark_focus_dirty();
+                }
                 _ => {}
             }
 
@@ -194,9 +225,15 @@ where
     impl<T> Operation<T> for FocusNext {
         fn focusable(&mut self, _id: Option<&Id>, _bounds: Rectangle, state: &mut dyn Focusable) {
             match self.count.focused {
-                None if self.current == 0 => state.focus(),
+                None if self.current == 0 => {
+                    state.focus();
+                    mark_focus_dirty();
+                }
                 Some(focused) if focused == self.current => state.unfocus(),
-                Some(focused) if focused + 1 == self.current => state.focus(),
+                Some(focused) if focused + 1 == self.current => {
+                    state.focus();
+                    mark_focus_dirty();
+                }
                 _ => {}
             }
 
@@ -376,6 +413,7 @@ where
                 // Focus the target widget.
                 if self.current == target {
                     state.focus();
+                    mark_focus_dirty();
                 }
             }
             self.current += 1;
