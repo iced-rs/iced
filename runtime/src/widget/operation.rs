@@ -68,6 +68,16 @@ pub fn focus_auto<T>() -> Task<T> {
     task::effect(Action::widget(operation::auto_focusable::focus_auto()))
 }
 
+/// Activates the currently focused widget by calling its
+/// [`Focusable::press()`](operation::Focusable::press) method.
+///
+/// This is the preferred way to trigger a focused widget from gamepad
+/// input — it targets only the focused widget without injecting synthetic
+/// keyboard events.
+pub fn press_focused<T>() -> Task<T> {
+    task::effect(Action::widget(operation::focusable::press_focused()))
+}
+
 /// Returns whether the widget with the given [`Id`] is focused or not.
 pub fn is_focused(id: impl Into<Id>) -> Task<bool> {
     task::widget(operation::focusable::is_focused(id.into()))

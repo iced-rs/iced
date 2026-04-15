@@ -12,6 +12,14 @@ thread_local! {
     /// previous origin wins, producing natural "return to where I came
     /// from" behavior.
     static PREV_FOCUS_CENTER: Cell<Option<(f32, f32)>> = const { Cell::new(None) };
+
+    /// Index and bounds of the last widget that was focused during
+    /// directional navigation. When nothing is focused and a direction
+    /// key is pressed, we try to restore focus to this widget (if it
+    /// still exists at the same tree position with matching bounds)
+    /// and navigate from there, rather than always jumping to the
+    /// first widget.
+    static LAST_FOCUSED: Cell<Option<(usize, Rectangle)>> = const { Cell::new(None) };
 }
 
 /// The internal state of a widget that can be focused.
@@ -24,6 +32,17 @@ pub trait Focusable {
 
     /// Unfocuses the widget.
     fn unfocus(&mut self);
+
+    /// Requests activation of the focused widget (e.g. gamepad A button).
+    ///
+    /// The widget should set an internal flag that is consumed during the
+    /// next event-processing cycle to fire its `on_press` handler.
+    /// Returns `true` if the widget accepted the press.
+    ///
+    /// The default implementation does nothing and returns `false`.
+    fn press(&mut self) -> bool {
+        false
+    }
 }
 
 /// Spatial direction for directional focus navigation.
@@ -257,11 +276,36 @@ pub fn is_focused(target: Id) -> impl Operation<bool> {
     }
 }
 
+/// Produces an [`Operation`] that activates the currently focused widget
+/// by calling [`Focusable::press()`]. This is the preferred way to trigger
+/// a focused widget from gamepad input — it targets only the focused widget
+/// without injecting synthetic keyboard events.
+pub fn press_focused<T>() -> impl Operation<T>
+where
+    T: Send + 'static,
+{
+    struct PressFocused;
+
+    impl<T> Operation<T> for PressFocused {
+        fn focusable(&mut self, _id: Option<&Id>, _bounds: Rectangle, state: &mut dyn Focusable) {
+            if state.is_focused() {
+                let _ = state.press();
+            }
+        }
+
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>)) {
+            operate(self);
+        }
+    }
+
+    PressFocused
+}
+
 /// A snapshot of all focusable widgets: their indices, bounds, and which is focused.
 #[derive(Debug, Clone, Default)]
 struct SpatialScan {
-    /// `(index, bounds)` for every focusable widget in tree order.
-    widgets: Vec<(usize, Rectangle)>,
+    /// `(index, bounds, id)` for every focusable widget in tree order.
+    widgets: Vec<(usize, Rectangle, Option<Id>)>,
     /// Index + bounds of the currently focused widget, if any.
     focused: Option<(usize, Rectangle)>,
     /// Running counter while scanning.
@@ -277,9 +321,9 @@ fn spatial_scan(direction: FocusDirection) -> impl Operation<SpatialScan> {
     }
 
     impl Operation<SpatialScan> for Scan {
-        fn focusable(&mut self, _id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
+        fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
             let idx = self.result.total;
-            self.result.widgets.push((idx, bounds));
+            self.result.widgets.push((idx, bounds, id.cloned()));
             if state.is_focused() {
                 self.result.focused = Some((idx, bounds));
             }
@@ -344,15 +388,60 @@ where
 
     fn apply_directional(scan: SpatialScan) -> FocusDirectional {
         let direction = scan.direction.unwrap_or(FocusDirection::Down);
+
+        log::trace!(
+            "[FocusDir] direction={:?}, {} widgets, focused={:?}",
+            direction,
+            scan.widgets.len(),
+            scan.focused
+                .map(|(idx, b)| (idx, b.x, b.y, b.width, b.height)),
+        );
+
+        if log::log_enabled!(log::Level::Trace) {
+            for &(idx, b, ref id) in &scan.widgets {
+                log::trace!(
+                    "[FocusDir]   widget[{}] id={:?} x={:.0} y={:.0} w={:.0} h={:.0}",
+                    idx,
+                    id,
+                    b.x,
+                    b.y,
+                    b.width,
+                    b.height,
+                );
+            }
+        }
+
         let target_index = find_directional_target(&scan, direction);
+
+        log::trace!(
+            "[FocusDir] target_index={:?} (from {:?} → {:?})",
+            target_index,
+            scan.focused.map(|(i, _)| i),
+            target_index,
+        );
 
         // Save the current focused widget's center so the *next* directional
         // navigation can use it as a tiebreaker ("return to origin").
-        if target_index.is_some()
-            && let Some((_idx, bounds)) = scan.focused
+        if let Some((_idx, bounds)) = scan.focused
+            && target_index.is_some()
         {
             let c = bounds.center();
             PREV_FOCUS_CENTER.set(Some((c.x, c.y)));
+        }
+
+        // Remember whichever widget ends up focused (target if moving,
+        // current if staying put) so we can restore it later when
+        // nothing is focused.
+        let last = target_index
+            .and_then(|ti| {
+                scan.widgets
+                    .iter()
+                    .find(|(i, _, _)| *i == ti)
+                    .map(|&(i, b, _)| (i, b))
+            })
+            .or(scan.focused);
+        if let Some(entry) = last {
+            LAST_FOCUSED.set(Some(entry));
         }
 
         FocusDirectional {
@@ -380,16 +469,28 @@ where
 /// 4. Among out-of-beam candidates, a weighted edge distance is used
 ///    (primary × 1 + cross × 3) to favour roughly-aligned widgets.
 ///
-/// Returns `Some(index)` of the best candidate, or the first widget if
-/// nothing is focused, or `None` if there are no candidates.
+/// Returns `Some(index)` of the best candidate, or a direction-appropriate
+/// edge widget if nothing is focused, or `None` if there are no candidates.
 fn find_directional_target(scan: &SpatialScan, direction: FocusDirection) -> Option<usize> {
     if scan.widgets.is_empty() {
         return None;
     }
 
     let Some((focused_idx, focused_bounds)) = scan.focused else {
-        // Nothing focused → focus the first widget.
-        return Some(scan.widgets[0].0);
+        // Nothing focused — try to restore the last focused widget
+        // if it still exists at the same tree position with matching bounds.
+        if let Some((last_idx, last_bounds)) = LAST_FOCUSED.get()
+            && scan
+                .widgets
+                .iter()
+                .any(|&(idx, b, _)| idx == last_idx && bounds_match(b, last_bounds))
+        {
+            return Some(last_idx);
+        }
+
+        // No restorable widget — pick the edge widget that matches
+        // the direction the user is pressing FROM (opposite edge).
+        return Some(edge_widget(scan, direction));
     };
 
     let origin = focused_bounds.center();
@@ -399,7 +500,7 @@ fn find_directional_target(scan: &SpatialScan, direction: FocusDirection) -> Opt
     //                  cross_edge_dist, history_dist).
     let mut best: Option<(usize, bool, f32, f32, f32, f32)> = None;
 
-    for &(idx, bounds) in &scan.widgets {
+    for &(idx, bounds, _) in &scan.widgets {
         if idx == focused_idx {
             continue;
         }
@@ -511,7 +612,11 @@ fn find_directional_target(scan: &SpatialScan, direction: FocusDirection) -> Opt
         }
     }
 
-    best.map(|(idx, _, _, _, _, _)| idx)
+    // If a candidate was found, use it. Otherwise, wrap to the opposite edge.
+    best.map_or_else(
+        || Some(wrap_widget(scan, focused_idx, direction)),
+        |(idx, _, _, _, _, _)| Some(idx),
+    )
 }
 
 /// Edge-to-edge distance between two 1D intervals. Returns 0 if they overlap.
@@ -528,4 +633,89 @@ fn edge_dist(a_min: f32, a_max: f32, b_min: f32, b_max: f32) -> f32 {
 /// Overlap length between two 1D intervals. Returns 0 if they don't overlap.
 fn axis_overlap(a_min: f32, a_max: f32, b_min: f32, b_max: f32) -> f32 {
     (a_max.min(b_max) - a_min.max(b_min)).max(0.0)
+}
+
+/// Returns `true` if `a` and `b` have the same position and size
+/// (within a small tolerance to handle floating-point drift).
+fn bounds_match(a: Rectangle, b: Rectangle) -> bool {
+    const E: f32 = 1.0;
+    (a.x - b.x).abs() < E
+        && (a.y - b.y).abs() < E
+        && (a.width - b.width).abs() < E
+        && (a.height - b.height).abs() < E
+}
+
+/// Picks the widget at the edge the user is pressing *from*.
+/// Pressing Up → user is below → start from the bottom-most widget.
+/// Pressing Down → user is above → start from the top-most widget.
+fn edge_widget(scan: &SpatialScan, direction: FocusDirection) -> usize {
+    let &(idx, _, _) = scan
+        .widgets
+        .iter()
+        .max_by(|a, b| {
+            let val = |w: &(usize, Rectangle, Option<Id>)| -> f32 {
+                match direction {
+                    // Pressing Up → want bottom-most (max y)
+                    FocusDirection::Up => w.1.y + w.1.height,
+                    // Pressing Down → want top-most (min y → negate for max_by)
+                    FocusDirection::Down => -(w.1.y),
+                    // Pressing Left → want right-most (max x)
+                    FocusDirection::Left => w.1.x + w.1.width,
+                    // Pressing Right → want left-most (min x → negate)
+                    FocusDirection::Right => -(w.1.x),
+                }
+            };
+            val(a)
+                .partial_cmp(&val(b))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .unwrap_or(&scan.widgets[0]);
+    idx
+}
+
+/// Wraps focus to the opposite edge when no candidate exists in the
+/// requested direction. Pressing Up at the top → bottom-most widget,
+/// pressing Down at the bottom → top-most widget, etc.
+///
+/// Returns `focused_idx` (no movement) when:
+/// - The edge widget is the currently focused one (single-item list).
+/// - All widgets share the same position on the movement axis (e.g.
+///   Left/Right in a purely vertical list), since wrapping would jump
+///   to an arbitrary widget.
+fn wrap_widget(scan: &SpatialScan, focused_idx: usize, direction: FocusDirection) -> usize {
+    // Check whether there are at least two distinct positions along the
+    // movement axis. Without that, wrapping has nowhere meaningful to go.
+    let has_distinct_positions = {
+        let tolerance = 1.0_f32;
+        let first = scan.widgets.first().map(|w| match direction {
+            FocusDirection::Left | FocusDirection::Right => w.1.x,
+            FocusDirection::Up | FocusDirection::Down => w.1.y,
+        });
+        first.is_some_and(|first_val| {
+            scan.widgets.iter().any(|w| {
+                let val = match direction {
+                    FocusDirection::Left | FocusDirection::Right => w.1.x,
+                    FocusDirection::Up | FocusDirection::Down => w.1.y,
+                };
+                (val - first_val).abs() > tolerance
+            })
+        })
+    };
+
+    if !has_distinct_positions {
+        return focused_idx;
+    }
+
+    // Wrap direction is the opposite of movement: pressing Up wraps
+    // to the bottom edge, so we reuse `edge_widget` with the same direction
+    // (Up → bottom-most is exactly what `edge_widget` already returns).
+    let candidate = edge_widget(scan, direction);
+
+    // If the edge widget is the currently focused one (single-item list),
+    // don't move focus.
+    if candidate == focused_idx {
+        focused_idx
+    } else {
+        candidate
+    }
 }

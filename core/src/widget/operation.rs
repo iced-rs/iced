@@ -49,6 +49,14 @@ pub trait Operation<T = ()>: Send {
     /// child so the next `focusable()` hit becomes the target.
     fn auto_focusable(&mut self, _id: Option<&Id>, _bounds: Rectangle) {}
 
+    /// Advertises action hints for the focusable widget that follows.
+    ///
+    /// Wrapper widgets call this in [`operate()`] just before delegating
+    /// to their child.  The `hints` value is opaque to the framework;
+    /// consumers downcast it to their concrete type inside a custom
+    /// [`Operation`] implementation.
+    fn action_hintable(&mut self, _id: Option<&Id>, _bounds: Rectangle, _hints: &dyn Any) {}
+
     /// Operates on a widget that has text input.
     fn text_input(&mut self, _id: Option<&Id>, _bounds: Rectangle, _state: &mut dyn TextInput) {}
 
@@ -82,6 +90,10 @@ where
 
     fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
         self.as_mut().auto_focusable(id, bounds);
+    }
+
+    fn action_hintable(&mut self, id: Option<&Id>, bounds: Rectangle, hints: &dyn Any) {
+        self.as_mut().action_hintable(id, bounds, hints);
     }
 
     fn scrollable(
@@ -167,6 +179,10 @@ where
 
         fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
             self.operation.auto_focusable(id, bounds);
+        }
+
+        fn action_hintable(&mut self, id: Option<&Id>, bounds: Rectangle, hints: &dyn Any) {
+            self.operation.action_hintable(id, bounds, hints);
         }
 
         fn scrollable(
@@ -264,6 +280,10 @@ where
                     self.operation.auto_focusable(id, bounds);
                 }
 
+                fn action_hintable(&mut self, id: Option<&Id>, bounds: Rectangle, hints: &dyn Any) {
+                    self.operation.action_hintable(id, bounds, hints);
+                }
+
                 fn text_input(
                     &mut self,
                     id: Option<&Id>,
@@ -297,6 +317,10 @@ where
 
         fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
             self.operation.auto_focusable(id, bounds);
+        }
+
+        fn action_hintable(&mut self, id: Option<&Id>, bounds: Rectangle, hints: &dyn Any) {
+            self.operation.action_hintable(id, bounds, hints);
         }
 
         fn scrollable(
@@ -382,6 +406,10 @@ where
 
         fn auto_focusable(&mut self, id: Option<&Id>, bounds: Rectangle) {
             self.operation.auto_focusable(id, bounds);
+        }
+
+        fn action_hintable(&mut self, id: Option<&Id>, bounds: Rectangle, hints: &dyn Any) {
+            self.operation.action_hintable(id, bounds, hints);
         }
 
         fn scrollable(
