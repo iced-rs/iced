@@ -359,7 +359,9 @@ impl<T> Operation<T> for EnsureFocusedVisibleOp {
             return;
         };
 
-        if let Some(offset) = compute_scroll_offset(bounds, ctx, self.config) {
+        if let Some(offset) =
+            compute_scroll_offset(bounds, ctx.bounds, ctx.content_bounds, self.config)
+        {
             self.target = Some((*idx, offset));
         }
     }
@@ -411,36 +413,37 @@ impl<T> Operation<T> for ApplyScrollAtIndex {
     }
 }
 
-/// Computes the absolute scroll offset needed to position the focused widget
-/// at the configured alignment within its scrollable ancestor.
+/// Computes the absolute scroll offset needed to position a widget
+/// at the configured alignment within a scrollable viewport.
 ///
 /// Layout bounds inside a scrollable are **not** translated by the scroll
 /// offset — translation is only applied during rendering. So the
 /// content-relative position is simply `bounds.origin - scrollable.origin`.
-fn compute_scroll_offset(
+pub fn compute_scroll_offset(
     focused_bounds: Rectangle,
-    ctx: &ScrollableContext,
+    scrollable_bounds: Rectangle,
+    content_bounds: Rectangle,
     config: EnsureVisibleConfig,
 ) -> Option<AbsoluteOffset<Option<f32>>> {
     // --- Vertical axis ---
-    let target_y = if ctx.content_bounds.height > ctx.bounds.height {
-        let focused_y = focused_bounds.y - ctx.bounds.y;
+    let target_y = if content_bounds.height > scrollable_bounds.height {
+        let focused_y = focused_bounds.y - scrollable_bounds.y;
         let focused_center_y = focused_y + focused_bounds.height / 2.0;
-        let viewport_target_y = ctx.bounds.height * config.alignment_y;
+        let viewport_target_y = scrollable_bounds.height * config.alignment_y;
         let desired = focused_center_y - viewport_target_y;
-        let max_scroll = ctx.content_bounds.height - ctx.bounds.height;
+        let max_scroll = content_bounds.height - scrollable_bounds.height;
         Some(desired.clamp(0.0, max_scroll))
     } else {
         None
     };
 
     // --- Horizontal axis ---
-    let target_x = if ctx.content_bounds.width > ctx.bounds.width {
-        let focused_x = focused_bounds.x - ctx.bounds.x;
+    let target_x = if content_bounds.width > scrollable_bounds.width {
+        let focused_x = focused_bounds.x - scrollable_bounds.x;
         let focused_center_x = focused_x + focused_bounds.width / 2.0;
-        let viewport_target_x = ctx.bounds.width * config.alignment_x;
+        let viewport_target_x = scrollable_bounds.width * config.alignment_x;
         let desired = focused_center_x - viewport_target_x;
-        let max_scroll = ctx.content_bounds.width - ctx.bounds.width;
+        let max_scroll = content_bounds.width - scrollable_bounds.width;
         Some(desired.clamp(0.0, max_scroll))
     } else {
         None

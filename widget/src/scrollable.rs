@@ -78,6 +78,7 @@ where
     auto_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
+    ensure_focused_visible: Option<EnsureVisibleConfig>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
 }
@@ -105,6 +106,7 @@ where
             auto_scroll: false,
             content: content.into(),
             on_scroll: None,
+            ensure_focused_visible: None,
             class: Theme::default(),
             last_status: None,
         }
@@ -228,6 +230,22 @@ where
     /// By default, it is disabled.
     pub fn auto_scroll(mut self, auto_scroll: bool) -> Self {
         self.auto_scroll = auto_scroll;
+        self
+    }
+
+    /// Automatically scrolls the focused child into view whenever focus
+    /// changes inside this [`Scrollable`].
+    ///
+    /// The [`EnsureVisibleConfig`] controls alignment and animation. Use
+    /// [`EnsureVisibleConfig::default()`] for 35% from top with ease-out
+    /// cubic animation.
+    ///
+    /// This makes the scrollable self-contained — no app-level
+    /// `focus::changed()` subscription or `ensure_focused_visible()` task
+    /// needed.
+    #[must_use]
+    pub fn ensure_focused_visible(mut self, config: EnsureVisibleConfig) -> Self {
+        self.ensure_focused_visible = Some(config);
         self
     }
 
@@ -548,6 +566,39 @@ where
                 operation,
             );
         });
+
+        // Auto scroll-to-focus: after children have been operated on,
+        // detect focus changes and scroll the focused child into view.
+        if let Some(config) = self.ensure_focused_visible {
+            let mut finder = FindFocusedBounds { result: None };
+            // Re-operate children with our read-only finder.
+            self.content.as_widget_mut().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                &mut finder,
+            );
+
+            let focused_bounds = finder.result;
+            if focused_bounds != state.last_focused_bounds {
+                state.last_focused_bounds = focused_bounds;
+
+                if let Some(fb) = focused_bounds
+                    && let Some(offset) = operation::scrollable::compute_scroll_offset(
+                        fb,
+                        bounds,
+                        content_bounds,
+                        config,
+                    )
+                {
+                    if let Some(animation) = config.animation {
+                        operation::Scrollable::scroll_to_animated(state, offset, animation);
+                    } else {
+                        operation::Scrollable::scroll_to(state, offset);
+                    }
+                }
+            }
+        }
     }
 
     fn update(
@@ -1539,6 +1590,8 @@ struct State {
     is_scrollbar_visible: bool,
     /// Active scroll animation state.
     scroll_animation: Option<ActiveScrollAnimation>,
+    /// Bounds of the last focused child (for detecting focus changes).
+    last_focused_bounds: Option<Rectangle>,
 }
 
 /// A running scroll animation driven by `RedrawRequested` events.
@@ -1576,6 +1629,7 @@ impl Default for State {
             last_scrolled: None,
             is_scrollbar_visible: true,
             scroll_animation: None,
+            last_focused_bounds: None,
         }
     }
 }
@@ -2299,5 +2353,27 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 auto_scroll,
             }
         }
+    }
+}
+
+/// A small read-only operation that finds the focused widget's bounds.
+struct FindFocusedBounds {
+    result: Option<Rectangle>,
+}
+
+impl Operation for FindFocusedBounds {
+    fn focusable(
+        &mut self,
+        _id: Option<&widget::Id>,
+        bounds: Rectangle,
+        state: &mut dyn operation::Focusable,
+    ) {
+        if state.is_focused() {
+            self.result = Some(bounds);
+        }
+    }
+
+    fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation)) {
+        operate(self);
     }
 }

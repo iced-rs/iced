@@ -1,9 +1,7 @@
 use iced::advanced::widget::operation::{Focusable, Operation, Outcome};
 use iced::widget::operation::EnsureVisibleConfig;
-use iced::widget::{
-    button, checkbox, column, container, operation, row, scrollable, text, text_input,
-};
-use iced::{Center, Element, Fill, Rectangle, Subscription, Task};
+use iced::widget::{button, checkbox, column, container, row, scrollable, text, text_input};
+use iced::{Center, Element, Fill, Rectangle, Task};
 
 use iced::widget::Id;
 
@@ -16,7 +14,6 @@ pub fn main() -> iced::Result {
 
     iced::application(App::default, App::update, App::view)
         .title("Scroll to Focus")
-        .subscription(App::subscription)
         .run()
 }
 
@@ -41,15 +38,10 @@ enum Message {
     IndexInputChanged(String),
     GoToIndex,
     ItemPressed(usize),
-    FocusChanged,
     ToggleAnimate(bool),
 }
 
 impl App {
-    fn subscription(&self) -> Subscription<Message> {
-        iced::focus::changed().map(|_| Message::FocusChanged)
-    }
-
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::IndexInputChanged(value) => {
@@ -71,14 +63,6 @@ impl App {
                 self.focused_index = Some(index);
                 Task::none()
             }
-            Message::FocusChanged => {
-                let config = if self.animate {
-                    EnsureVisibleConfig::default()
-                } else {
-                    EnsureVisibleConfig::default().instant()
-                };
-                operation::ensure_focused_visible(config)
-            }
             Message::ToggleAnimate(value) => {
                 self.animate = value;
                 Task::none()
@@ -96,7 +80,14 @@ impl App {
             })
             .collect();
 
+        let config = if self.animate {
+            EnsureVisibleConfig::default()
+        } else {
+            EnsureVisibleConfig::default().instant()
+        };
+
         let list = scrollable(column(items).spacing(4).padding(8))
+            .ensure_focused_visible(config)
             .width(300)
             .height(Fill);
 
