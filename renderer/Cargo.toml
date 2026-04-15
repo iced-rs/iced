@@ -17,6 +17,7 @@ workspace = true
 wgpu = ["iced_wgpu/default"]
 wgpu-bare = ["iced_wgpu"]
 vello-cpu = ["iced_vello_cpu"]
+vello-cpu-multithreading = ["iced_vello_cpu/multithreading"]
 image = ["iced_vello_cpu?/image", "iced_wgpu?/image"]
 svg = ["iced_vello_cpu?/svg", "iced_wgpu?/svg"]
 geometry = ["iced_graphics/geometry", "iced_vello_cpu?/geometry", "iced_wgpu?/geometry"]

@@ -78,6 +78,22 @@ impl Renderer {
             for (quad, background) in &layer.quads {
                 renderer.set_paint(into_background(background, quad.bounds));
 
+                let shadow = quad.shadow;
+
+                if shadow.color.a > 0.0 {
+                    renderer.set_filter_effect(
+                        vello_common::filter_effects::Filter::from_primitive(
+                            vello_common::filter_effects::FilterPrimitive::DropShadow {
+                                dx: shadow.offset.x,
+                                dy: shadow.offset.y,
+                                std_deviation: shadow.blur_radius,
+                                color: into_color(shadow.color),
+                                edge_mode: vello_common::filter_effects::EdgeMode::None,
+                            },
+                        ),
+                    );
+                }
+
                 if quad.border.radius == border::Radius::default() {
                     renderer.fill_rect(&into_rect(quad.bounds));
 
@@ -121,7 +137,7 @@ impl Renderer {
                     }
                 }
 
-                // TODO: Shadows
+                renderer.reset_filter_effect();
             }
 
             renderer.reset_transform();

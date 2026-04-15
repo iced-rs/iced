@@ -21,6 +21,7 @@ svg = ["iced_graphics/svg", "resvg"]
 geometry = ["iced_graphics/geometry"]
 x11 = ["softbuffer/x11", "softbuffer/x11-dlopen"]
 wayland = ["softbuffer/wayland", "softbuffer/wayland-dlopen"]
+multithreading = ["vello_cpu/multithreading"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -31,6 +32,7 @@ log.workspace = true
 rustc-hash.workspace = true
 softbuffer.workspace = true
 vello_cpu.workspace = true
+vello_common.workspace = true
 
 resvg.workspace = true
 resvg.optional = true
