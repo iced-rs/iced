@@ -28,6 +28,8 @@ use crate::graphics::{Error, Shell, Text, Viewport};
 
 use std::num::NonZeroU32;
 
+const ACCURACY: f64 = 0.1;
+
 pub struct Renderer {
     settings: renderer::Settings,
     layers: layer::Stack,
@@ -60,8 +62,6 @@ impl Renderer {
         background_color: Color,
     ) {
         use vello_cpu::kurbo::Shape;
-
-        const ACCURACY: f64 = 0.1;
 
         let scale = vello_cpu::kurbo::Affine::scale(f64::from(viewport.scale_factor()));
 
@@ -107,16 +107,7 @@ impl Renderer {
                             .stroke_rect(&into_rect(quad.bounds.shrink(quad.border.width / 2.0)));
                     }
                 } else {
-                    let rounded_rect = into_rect(quad.bounds)
-                        .to_rounded_rect((
-                            f64::from(quad.border.radius.top_left),
-                            f64::from(quad.border.radius.top_right),
-                            f64::from(quad.border.radius.bottom_right),
-                            f64::from(quad.border.radius.bottom_left),
-                        ))
-                        .to_path(ACCURACY);
-
-                    renderer.fill_path(&rounded_rect);
+                    renderer.fill_path(&into_rounded_rect(quad.bounds, quad.border.radius));
 
                     if quad.border.width > 0.0 && quad.border.color.a > 0.0 {
                         renderer.set_paint(into_color(quad.border.color));
@@ -124,14 +115,10 @@ impl Renderer {
                             quad.border.width,
                         )));
 
-                        let border_rect = into_rect(quad.bounds.shrink(quad.border.width / 2.0))
-                            .to_rounded_rect((
-                                f64::from(quad.border.radius.top_left),
-                                f64::from(quad.border.radius.top_right),
-                                f64::from(quad.border.radius.bottom_right),
-                                f64::from(quad.border.radius.bottom_left),
-                            ))
-                            .to_path(ACCURACY);
+                        let border_rect = into_rounded_rect(
+                            quad.bounds.shrink(quad.border.width / 2.0),
+                            quad.border.radius,
+                        );
 
                         renderer.stroke_path(&border_rect);
                     }
@@ -193,9 +180,10 @@ impl Renderer {
                         bounds,
                         clip_bounds,
                     } => {
-                        renderer.push_clip_path(
-                            &into_rect(*clip_bounds * viewport.scale_factor()).to_path(ACCURACY),
-                        );
+                        renderer.push_clip_path(&into_rounded_rect(
+                            *clip_bounds * viewport.scale_factor(),
+                            image.border_radius * viewport.scale_factor(),
+                        ));
 
                         self.raster
                             .draw(image, *bounds, renderer, viewport.scale_factor());
@@ -419,6 +407,19 @@ fn into_rect(rectangle: Rectangle) -> vello_cpu::kurbo::Rect {
         x1: f64::from(rectangle.x + rectangle.width),
         y1: f64::from(rectangle.y + rectangle.height),
     }
+}
+
+fn into_rounded_rect(rectangle: Rectangle, radius: border::Radius) -> vello_cpu::kurbo::BezPath {
+    use vello_cpu::kurbo::Shape;
+
+    into_rect(rectangle)
+        .to_rounded_rect((
+            f64::from(radius.top_left),
+            f64::from(radius.top_right),
+            f64::from(radius.bottom_right),
+            f64::from(radius.bottom_left),
+        ))
+        .to_path(ACCURACY)
 }
 
 impl core::Renderer for Renderer {
