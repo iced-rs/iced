@@ -5,7 +5,9 @@ use crate::task;
 use crate::{Action, Task};
 
 pub use crate::core::widget::operation::focusable::FocusDirection;
-pub use crate::core::widget::operation::scrollable::{AbsoluteOffset, RelativeOffset};
+pub use crate::core::widget::operation::scrollable::{
+    AbsoluteOffset, EnsureVisibleConfig, RelativeOffset, ScrollAnimation,
+};
 
 /// Snaps the scrollable with the given [`Id`] to the provided [`RelativeOffset`].
 pub fn snap_to<T>(id: impl Into<Id>, offset: impl Into<RelativeOffset<Option<f32>>>) -> Task<T> {
@@ -37,6 +39,32 @@ pub fn scroll_by<T>(id: impl Into<Id>, offset: AbsoluteOffset) -> Task<T> {
         id.into(),
         offset,
     )))
+}
+
+/// Scrolls the nearest scrollable ancestor of the currently focused widget
+/// so the focused widget is visible at the configured alignment.
+///
+/// Works with any scrollable — no explicit [`Id`] required. If the
+/// scrollable does have an ID it is ignored; the operation identifies the
+/// scrollable by its position in the widget tree.
+///
+/// Pass [`EnsureVisibleConfig::default()`] for 35% from top (Flutter Grid
+/// default), or [`EnsureVisibleConfig::CENTER`] for center alignment.
+///
+/// Returns `Task::none()` if no focused widget or scrollable ancestor is found.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use iced::widget::operation::{ensure_focused_visible, EnsureVisibleConfig};
+///
+/// // In update(), when focus changes:
+/// ensure_focused_visible(EnsureVisibleConfig::default())
+/// ```
+pub fn ensure_focused_visible<T: Send + 'static>(config: EnsureVisibleConfig) -> Task<T> {
+    task::effect(Action::widget(
+        operation::scrollable::ensure_focused_visible_op(config),
+    ))
 }
 
 /// Focuses the previous focusable widget.

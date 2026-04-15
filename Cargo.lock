@@ -5401,6 +5401,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "scroll_to_focus"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "iced",
+ "log",
+]
+
+[[package]]
 name = "scrollable"
 version = "0.1.0"
 dependencies = [

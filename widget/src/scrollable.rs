@@ -21,6 +21,7 @@
 //! ```
 use crate::container;
 use crate::core::alignment;
+use crate::core::animation::Easing;
 use crate::core::border::{self, Border};
 use crate::core::keyboard;
 use crate::core::layout;
@@ -39,7 +40,9 @@ use crate::core::{
     Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
-pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
+pub use operation::scrollable::{
+    AbsoluteOffset, EnsureVisibleConfig, RelativeOffset, ScrollAnimation,
+};
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -984,6 +987,31 @@ where
                     }
 
                     let _ = notify_viewport(state, &self.on_scroll, bounds, content_bounds, shell);
+
+                    // Drive scroll animation
+                    if let Some(anim) = state.scroll_animation {
+                        let elapsed = now.duration_since(anim.start).as_secs_f32();
+                        let t = (elapsed / anim.duration_secs).min(1.0);
+                        let eased = anim.easing.value(t);
+
+                        if let Some(target_y) = anim.to.y {
+                            let y = anim.from_y + (target_y - anim.from_y) * eased;
+                            state.offset_y = Offset::Absolute(y);
+                        }
+                        if let Some(target_x) = anim.to.x {
+                            let x = anim.from_x + (target_x - anim.from_x) * eased;
+                            state.offset_x = Offset::Absolute(x);
+                        }
+
+                        if t >= 1.0 {
+                            state.scroll_animation = None;
+                        } else {
+                            shell.request_redraw();
+                        }
+
+                        let _ =
+                            notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                    }
                 }
                 _ => {}
             }
@@ -1509,6 +1537,19 @@ struct State {
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
+    /// Active scroll animation state.
+    scroll_animation: Option<ActiveScrollAnimation>,
+}
+
+/// A running scroll animation driven by `RedrawRequested` events.
+#[derive(Debug, Clone, Copy)]
+struct ActiveScrollAnimation {
+    from_x: f32,
+    from_y: f32,
+    to: AbsoluteOffset<Option<f32>>,
+    start: Instant,
+    duration_secs: f32,
+    easing: Easing,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1534,6 +1575,7 @@ impl Default for State {
             last_notified: None,
             last_scrolled: None,
             is_scrollbar_visible: true,
+            scroll_animation: None,
         }
     }
 }
@@ -1544,11 +1586,36 @@ impl operation::Scrollable for State {
     }
 
     fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
+        self.scroll_animation = None;
         State::scroll_to(self, offset);
     }
 
     fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
         State::scroll_by(self, offset, bounds, content_bounds);
+    }
+
+    fn scroll_to_animated(
+        &mut self,
+        offset: AbsoluteOffset<Option<f32>>,
+        animation: ScrollAnimation,
+    ) {
+        let from_x = match self.offset_x {
+            Offset::Absolute(v) => v,
+            Offset::Relative(_) => 0.0,
+        };
+        let from_y = match self.offset_y {
+            Offset::Absolute(v) => v,
+            Offset::Relative(_) => 0.0,
+        };
+
+        self.scroll_animation = Some(ActiveScrollAnimation {
+            from_x,
+            from_y,
+            to: offset,
+            start: Instant::now(),
+            duration_secs: animation.duration_secs,
+            easing: animation.easing,
+        });
     }
 }
 
