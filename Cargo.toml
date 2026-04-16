@@ -118,9 +118,15 @@ image.optional = true
 [dev-dependencies]
 criterion = "0.5"
 iced_wgpu.workspace = true
+iced_renderer.workspace = true
 
 [[bench]]
 name = "wgpu"
+harness = false
+required-features = ["canvas"]
+
+[[bench]]
+name = "cpu"
 harness = false
 required-features = ["canvas"]
 

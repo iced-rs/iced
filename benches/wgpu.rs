@@ -11,7 +11,6 @@ use iced_wgpu::wgpu;
 criterion_main!(benches);
 criterion_group!(benches, wgpu_benchmark);
 
-#[allow(unused_results)]
 pub fn wgpu_benchmark(c: &mut Criterion) {
     use iced_futures::futures::executor;
     use iced_wgpu::wgpu;
@@ -38,35 +37,33 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
     }))
     .expect("request device");
 
-    c.bench_function("wgpu — canvas (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| scene(10));
-    });
-    c.bench_function("wgpu — canvas (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| scene(1_000));
-    });
-
-    c.bench_function("wgpu - layered text (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| layered_text(10));
-    });
-    c.bench_function("wgpu - layered text (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| layered_text(1_000));
-    });
-
-    c.bench_function("wgpu - dynamic text (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| dynamic_text(1_000, i));
-    });
-    c.bench_function("wgpu - dynamic text (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| dynamic_text(100_000, i));
-    });
-
-    c.bench_function("wgpu - advanced shaping (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| advanced_shaping(1_000, i));
-    });
-    c.bench_function("wgpu - advanced shaping (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| {
-            advanced_shaping(100_000, i)
+    let _ = c
+        .bench_function("wgpu — canvas (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| scene(10));
+        })
+        .bench_function("wgpu — canvas (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| scene(1_000));
+        })
+        .bench_function("wgpu - layered text (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| layered_text(10));
+        })
+        .bench_function("wgpu - layered text (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| layered_text(1_000));
+        })
+        .bench_function("wgpu - dynamic text (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| dynamic_text(1_000, i));
+        })
+        .bench_function("wgpu - dynamic text (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| dynamic_text(100_000, i));
+        })
+        .bench_function("wgpu - advanced shaping (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| advanced_shaping(1_000, i));
+        })
+        .bench_function("wgpu - advanced shaping (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| {
+                advanced_shaping(100_000, i)
+            });
         });
-    });
 }
 
 fn benchmark<'a>(
