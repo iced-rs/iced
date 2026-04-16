@@ -734,7 +734,8 @@ impl renderer::Headless for Renderer {
     where
         Self: Sized,
     {
-        if backend.is_some_and(|backend| !["vello-cpu", "vello_cpu"].contains(&backend)) {
+        if backend.is_some_and(|backend| !["vello-cpu", "vello_cpu", "software"].contains(&backend))
+        {
             return None;
         }
 
