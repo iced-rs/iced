@@ -30,9 +30,8 @@
 //! ```
 use std::ops::RangeInclusive;
 
-pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn, default};
+pub use crate::slider::{Catalog, Handle, Status, Style, StyleFn, default};
 
-use crate::core::border::Border;
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
 use crate::core::layout::{self, Layout};
@@ -92,6 +91,7 @@ where
     on_release: Option<Message>,
     width: f32,
     height: Length,
+    handle: Size,
     class: Theme::Class<'a>,
     status: Option<Status>,
 }
@@ -139,6 +139,7 @@ where
             on_release: None,
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
+            handle: Size::new(14.0, 14.0),
             class: Theme::default(),
             status: None,
         }
@@ -186,6 +187,12 @@ where
     /// If set, this value is used as the step while the shift key is pressed.
     pub fn shift_step(mut self, shift_step: impl Into<T>) -> Self {
         self.shift_step = Some(shift_step.into());
+        self
+    }
+
+    /// Sets the size of the [`VerticalSlider`]'s handle.
+    pub fn handle(mut self, handle: impl Into<Size>) -> Self {
+        self.handle = handle.into();
         self
     }
 
@@ -272,8 +279,11 @@ where
                 let start = (*self.range.start()).into();
                 let end = (*self.range.end()).into();
 
-                let percent =
-                    1.0 - f64::from(cursor_position.y - bounds.y) / f64::from(bounds.height);
+                let percent = 1.0
+                    - f64::from(cursor_position.y - bounds.y - self.handle.height / 2.0)
+                        / f64::from(bounds.height - self.handle.height);
+
+                let percent = percent.clamp(0.0, 1.0);
 
                 let steps = (percent * (end - start) / step).round();
                 let value = steps * step + start;
@@ -427,14 +437,6 @@ where
 
         let style = theme.style(&self.class, self.status.unwrap_or(Status::Active));
 
-        let (handle_width, handle_height, handle_border_radius) = match style.handle.shape {
-            HandleShape::Circle { radius } => (radius * 2.0, radius * 2.0, radius.into()),
-            HandleShape::Rectangle {
-                width,
-                border_radius,
-            } => (f32::from(width), bounds.width, border_radius),
-        };
-
         let value = self.value.into() as f32;
         let (range_start, range_end) = {
             let (start, end) = self.range.clone().into_inner();
@@ -445,7 +447,7 @@ where
         let offset = if range_start >= range_end {
             0.0
         } else {
-            (bounds.height - handle_width) * (value - range_end) / (range_start - range_end)
+            (bounds.height - self.handle.height) * (value - range_end) / (range_start - range_end)
         };
 
         let rail_x = bounds.x + bounds.width / 2.0;
@@ -456,7 +458,7 @@ where
                     x: rail_x - style.rail.width / 2.0,
                     y: bounds.y,
                     width: style.rail.width,
-                    height: offset + handle_width / 2.0,
+                    height: offset + self.handle.height / 2.0,
                 },
                 border: style.rail.border,
                 ..renderer::Quad::default()
@@ -468,9 +470,9 @@ where
             renderer::Quad {
                 bounds: Rectangle {
                     x: rail_x - style.rail.width / 2.0,
-                    y: bounds.y + offset + handle_width / 2.0,
+                    y: bounds.y + offset + self.handle.height / 2.0,
                     width: style.rail.width,
-                    height: bounds.height - offset - handle_width / 2.0,
+                    height: bounds.height - offset - self.handle.height / 2.0,
                 },
                 border: style.rail.border,
                 ..renderer::Quad::default()
@@ -481,16 +483,12 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle {
-                    x: rail_x - handle_height / 2.0,
+                    x: rail_x - self.handle.width / 2.0,
                     y: bounds.y + offset,
-                    width: handle_height,
-                    height: handle_width,
+                    width: self.handle.width,
+                    height: self.handle.height,
                 },
-                border: Border {
-                    radius: handle_border_radius,
-                    width: style.handle.border_width,
-                    color: style.handle.border_color,
-                },
+                border: style.handle.border,
                 ..renderer::Quad::default()
             },
             style.handle.background,
