@@ -719,13 +719,9 @@ where
         let node = self.internal.layout();
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
 
-        let picked_pane = action.picked_pane().filter(|(_, origin)| {
-            cursor
-                .position()
-                .map(|position| position.distance(*origin))
-                .unwrap_or_default()
-                > DRAG_DEADBAND_DISTANCE
-        });
+        let picked_pane = action.picked_pane();
+        let dragged_pane = picked_pane
+            .filter(|(_, origin)| is_dragging(*origin, cursor.position().unwrap_or_default()));
 
         let picked_split = action
             .picked_split()
@@ -800,11 +796,10 @@ where
                         viewport,
                     );
 
-                    if picked_pane.is_some()
+                    if let Some(cursor_position) = cursor.position()
+                        && dragged_pane.is_some()
                         && pane_in_edge.is_none()
-                        && let Some(region) = cursor
-                            .position()
-                            .and_then(|cursor_position| layout_region(pane_layout, cursor_position))
+                        && let Some(region) = layout_region(pane_layout, cursor_position)
                     {
                         let bounds = layout_region_bounds(pane_layout, region);
 
@@ -832,7 +827,9 @@ where
             }
         }
 
-        if let Some(edge) = pane_in_edge {
+        if dragged_pane.is_some()
+            && let Some(edge) = pane_in_edge
+        {
             let bounds = edge_bounds(layout, edge);
 
             renderer.fill_quad(
@@ -845,7 +842,7 @@ where
             );
         }
 
-        if picked_pane.is_none()
+        if dragged_pane.is_none()
             && let Some((axis, split_region, is_picked)) = picked_split
         {
             let highlight = if is_picked {
@@ -955,8 +952,13 @@ where
         _layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let translation =
-            cursor.position().unwrap_or_default() - Point::new(self.origin.x, self.origin.y);
+        let cursor_position = cursor.position().unwrap_or_default();
+
+        let translation = if is_dragging(self.origin, cursor_position) {
+            cursor_position - self.origin
+        } else {
+            Vector::ZERO
+        };
 
         renderer.with_translation(translation, |renderer| {
             self.content.draw(
@@ -970,6 +972,10 @@ where
             );
         });
     }
+}
+
+fn is_dragging(origin: Point, cursor: Point) -> bool {
+    cursor.distance(origin) > DRAG_DEADBAND_DISTANCE
 }
 
 impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
