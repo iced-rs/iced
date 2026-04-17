@@ -11,6 +11,7 @@ pub use core::widget::Id;
 
 mod action;
 mod column;
+mod directional;
 mod mouse_area;
 mod pin;
 mod responsive;
@@ -63,6 +64,8 @@ pub use column::Column;
 pub use combo_box::ComboBox;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use directional::Directional;
 #[doc(no_inline)]
 pub use float::Float;
 #[doc(no_inline)]

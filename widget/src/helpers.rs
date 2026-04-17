@@ -9,6 +9,7 @@ use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
+use crate::directional::Directional;
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
@@ -1991,6 +1992,21 @@ where
     Renderer: core::Renderer,
 {
     Themer::new(theme, content)
+}
+
+/// Creates a new [`Directional`] widget that lays out the given content
+/// using the provided [`Direction`].
+///
+/// This is useful to embed a subtree with a reading direction different
+/// from the rest of the application.
+pub fn directional<'a, Message, Theme, Renderer>(
+    direction: Direction,
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Directional<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Directional::new(direction, content)
 }
 
 /// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.
