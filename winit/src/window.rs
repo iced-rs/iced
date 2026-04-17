@@ -15,7 +15,6 @@ use crate::core::time::Instant;
 use crate::core::{Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector};
 use crate::graphics::Compositor;
 use crate::program::{self, Program};
-use crate::runtime::window::raw_window_handle;
 
 use winit::dpi::{LogicalPosition, LogicalSize};
 use winit::monitor::MonitorHandle;
@@ -283,30 +282,6 @@ where
         }
 
         self.preedit = None;
-    }
-}
-
-impl<P, C> raw_window_handle::HasWindowHandle for Window<P, C>
-where
-    P: Program,
-    C: Compositor<Renderer = P::Renderer>,
-{
-    fn window_handle(
-        &self,
-    ) -> Result<raw_window_handle::WindowHandle<'_>, raw_window_handle::HandleError> {
-        self.raw.window_handle()
-    }
-}
-
-impl<P, C> raw_window_handle::HasDisplayHandle for Window<P, C>
-where
-    P: Program,
-    C: Compositor<Renderer = P::Renderer>,
-{
-    fn display_handle(
-        &self,
-    ) -> Result<raw_window_handle::DisplayHandle<'_>, raw_window_handle::HandleError> {
-        self.raw.display_handle()
     }
 }
 

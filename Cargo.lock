@@ -2309,6 +2309,7 @@ dependencies = [
  "lilt",
  "log",
  "num-traits",
+ "raw-window-handle",
  "rustc-hash 2.1.1",
  "serde",
  "smol_str 0.2.2",
@@ -2406,7 +2407,6 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "iced_selector",
- "raw-window-handle",
  "sipper",
  "thiserror 2.0.18",
 ]

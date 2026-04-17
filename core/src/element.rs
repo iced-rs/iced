@@ -305,7 +305,7 @@ where
         viewport: &Rectangle,
     ) {
         let mut local_messages = Vec::new();
-        let mut local_shell = Shell::new(&mut local_messages);
+        let mut local_shell = Shell::new(shell.window(), &mut local_messages);
 
         self.widget.update(
             tree,

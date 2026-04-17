@@ -326,8 +326,13 @@ impl<P: Program + 'static> Emulator<P> {
                     }
                 }
 
-                let (_state, _status) =
-                    user_interface.update(&events, self.cursor, &mut self.renderer, &mut messages);
+                let (_state, _status) = user_interface.update(
+                    &window::Headless,
+                    &events,
+                    self.cursor,
+                    &mut self.renderer,
+                    &mut messages,
+                );
 
                 self.cache = Some(user_interface.into_cache());
 
@@ -450,6 +455,7 @@ impl<P: Program + 'static> Emulator<P> {
 
         // TODO: Nested redraws!
         let _ = user_interface.update(
+            &window::Headless,
             &[core::Event::Window(window::Event::RedrawRequested(
                 Instant::now(),
             ))],

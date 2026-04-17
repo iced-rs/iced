@@ -792,6 +792,7 @@ async fn run_instance<P>(
                         let state = loop {
                             let message_count = messages.len();
                             let (state, _) = interface.update(
+                                &window.raw,
                                 slice::from_ref(&redraw_event),
                                 cursor,
                                 &mut window.renderer,
@@ -1081,6 +1082,7 @@ async fn run_instance<P>(
                                 .get_mut(&id)
                                 .expect("Get user interface")
                                 .update(
+                                    &window.raw,
                                     &window_events,
                                     window.state.cursor(),
                                     &mut window.renderer,
@@ -1529,7 +1531,7 @@ fn run_action<'a, P, C>(
             }
             window::Action::Run(id, f) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    f(window);
+                    f(&window.raw);
                 }
             }
             window::Action::Screenshot(id, channel) => {

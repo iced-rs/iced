@@ -82,6 +82,7 @@ pub use theme::Theme;
 pub use transformation::Transformation;
 pub use vector::Vector;
 pub use widget::Widget;
+pub use window::Window;
 
 pub use bytes::Bytes;
 pub use smol_str::SmolStr;

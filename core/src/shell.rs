@@ -1,7 +1,7 @@
 use crate::clipboard;
 use crate::event;
 use crate::window;
-use crate::{Clipboard, InputMethod};
+use crate::{Clipboard, InputMethod, Window};
 
 /// A connection to the state of a shell.
 ///
@@ -11,6 +11,7 @@ use crate::{Clipboard, InputMethod};
 /// [`Widget`]: crate::Widget
 #[derive(Debug)]
 pub struct Shell<'a, Message> {
+    window: &'a dyn Window,
     messages: &'a mut Vec<Message>,
     event_status: event::Status,
     redraw_request: window::RedrawRequest,
@@ -22,8 +23,9 @@ pub struct Shell<'a, Message> {
 
 impl<'a, Message> Shell<'a, Message> {
     /// Creates a new [`Shell`] with the provided buffer of messages.
-    pub fn new(messages: &'a mut Vec<Message>) -> Self {
+    pub fn new(window: &'a dyn Window, messages: &'a mut Vec<Message>) -> Self {
         Self {
+            window,
             messages,
             event_status: event::Status::Ignored,
             redraw_request: window::RedrawRequest::Wait,
@@ -35,6 +37,11 @@ impl<'a, Message> Shell<'a, Message> {
                 write: None,
             },
         }
+    }
+
+    /// Returns the [`Window`] of the [`Shell`].
+    pub fn window(&self) -> &'a dyn Window {
+        self.window
     }
 
     /// Returns true if the [`Shell`] contains no published messages

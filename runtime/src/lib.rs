@@ -24,7 +24,6 @@ pub use iced_futures as futures;
 
 pub use task::Task;
 pub use user_interface::UserInterface;
-pub use window::Window;
 
 use crate::core::Event;
 

@@ -255,6 +255,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             );
 
                             let (state, _) = interface.update(
+                                window,
                                 &[Event::Window(
                                     window::Event::RedrawRequested(Instant::now()),
                                 )],
@@ -344,7 +345,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                 let mut messages = Vec::new();
 
-                let _ = interface.update(events, *cursor, renderer, &mut messages);
+                let _ = interface.update(window, events, *cursor, renderer, &mut messages);
 
                 events.clear();
                 *cache = interface.into_cache();

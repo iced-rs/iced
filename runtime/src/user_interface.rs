@@ -6,7 +6,9 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
+use crate::core::{
+    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector, Window,
+};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -59,6 +61,7 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
+    /// use iced_runtime::core::window;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
@@ -67,6 +70,7 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
+    /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
     /// let mut window_size = Size::new(1024.0, 768.0);
     ///
     /// // Application loop
@@ -136,6 +140,7 @@ where
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::mouse;
+    /// use iced_runtime::core::window;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
@@ -143,6 +148,7 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
+    /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     ///
@@ -162,6 +168,7 @@ where
     ///
     ///     // Update the user interface
     ///     let (state, event_statuses) = user_interface.update(
+    ///         &window,
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
@@ -178,6 +185,7 @@ where
     /// ```
     pub fn update(
         &mut self,
+        window: &dyn Window,
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
@@ -210,7 +218,7 @@ where
             let mut event_statuses = Vec::new();
 
             for event in events {
-                let mut shell = Shell::new(messages);
+                let mut shell = Shell::new(window, messages);
 
                 overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
 
@@ -302,7 +310,7 @@ where
                     return overlay_status;
                 }
 
-                let mut shell = Shell::new(messages);
+                let mut shell = Shell::new(window, messages);
 
                 self.root.as_widget_mut().update(
                     &mut self.state,
@@ -416,6 +424,7 @@ where
     /// # }
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
+    /// use iced_runtime::core::window;
     /// use iced_runtime::core::{Element, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::{Renderer, Theme};
@@ -423,6 +432,7 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
+    /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut events = Vec::new();
@@ -441,6 +451,7 @@ where
     ///
     ///     // Update the user interface
     ///     let event_statuses = user_interface.update(
+    ///         &window,
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
