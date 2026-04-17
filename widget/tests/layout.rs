@@ -3,7 +3,7 @@ use iced_widget::core::Length::{Fill, FillPortion};
 use iced_widget::core::layout;
 use iced_widget::core::widget::{self, Widget};
 use iced_widget::core::{Direction, Never, Pixels, Size, Theme};
-use iced_widget::{column, row, space};
+use iced_widget::{column, directional, row, space};
 
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
     Size::ZERO,
@@ -47,6 +47,21 @@ fn layout_rtl_mirrors_row_and_column() {
             (0, 0),
             (20, 30),
             [node((10, 0), (10, 10), []), node((0, 10), (20, 20), [])],
+        ),
+    );
+}
+
+#[test]
+fn layout_directional_overrides_direction() {
+    assert_layout_eq(
+        directional(
+            Direction::RightToLeft,
+            row![space().width(10).height(10), space().width(20).height(20)],
+        ),
+        node(
+            (0, 0),
+            (30, 20),
+            [node((20, 0), (10, 10), []), node((0, 0), (20, 20), [])],
         ),
     );
 }
