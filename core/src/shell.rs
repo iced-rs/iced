@@ -1,7 +1,10 @@
+//! Communicate with the iced runtime from widgets.
 use crate::clipboard;
 use crate::event;
 use crate::window;
 use crate::{Clipboard, InputMethod, Window};
+
+use std::sync::Arc;
 
 /// A connection to the state of a shell.
 ///
@@ -13,6 +16,7 @@ use crate::{Clipboard, InputMethod, Window};
 pub struct Shell<'a, Message> {
     window: &'a dyn Window,
     messages: &'a mut Vec<Message>,
+    ticker: Ticker,
     event_status: event::Status,
     redraw_request: window::RedrawRequest,
     input_method: InputMethod,
@@ -23,10 +27,11 @@ pub struct Shell<'a, Message> {
 
 impl<'a, Message> Shell<'a, Message> {
     /// Creates a new [`Shell`] with the provided buffer of messages.
-    pub fn new(window: &'a dyn Window, messages: &'a mut Vec<Message>) -> Self {
+    pub fn new(window: &'a dyn Window, messages: &'a mut Vec<Message>, ticker: Ticker) -> Self {
         Self {
             window,
             messages,
+            ticker,
             event_status: event::Status::Ignored,
             redraw_request: window::RedrawRequest::Wait,
             is_layout_invalid: false,
@@ -39,9 +44,22 @@ impl<'a, Message> Shell<'a, Message> {
         }
     }
 
+    /// Creates a new [`Shell`] from the current one with the given list of local messages.
+    pub fn local<'b, A>(&self, messages: &'b mut Vec<A>) -> Shell<'b, A>
+    where
+        'a: 'b,
+    {
+        Shell::new(self.window, messages, self.ticker.clone())
+    }
+
     /// Returns the [`Window`] of the [`Shell`].
     pub fn window(&self) -> &'a dyn Window {
         self.window
+    }
+
+    /// Returns the [`Ticker`] of the [`Shell`].
+    pub fn ticker(&self) -> &Ticker {
+        &self.ticker
     }
 
     /// Returns true if the [`Shell`] contains no published messages
@@ -190,5 +208,39 @@ impl<'a, Message> Shell<'a, Message> {
 
         self.input_method.merge(&other.input_method);
         self.clipboard.merge(&mut other.clipboard);
+    }
+}
+
+/// A function that triggers tick events when called.
+///
+/// A [`Ticker`] can be used to wake up the iced runtime and trigger
+/// tick events concurrently from widget logic.
+#[derive(Clone)]
+pub struct Ticker {
+    tick: Arc<dyn Fn() + 'static>,
+}
+
+impl Ticker {
+    /// Creates a new [`Ticker`] with the given `tick` function.
+    pub fn new(tick: impl Fn() + 'static) -> Self {
+        Self {
+            tick: Arc::new(tick),
+        }
+    }
+
+    /// Creates a new [`Ticker`] that does nothing.
+    pub fn null() -> Self {
+        Self::new(|| {})
+    }
+
+    /// Queues a new tick.
+    pub fn tick(&self) {
+        (self.tick)();
+    }
+}
+
+impl std::fmt::Debug for Ticker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Ticker").finish()
     }
 }

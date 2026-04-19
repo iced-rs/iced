@@ -512,7 +512,7 @@ mod toast {
                 .zip(self.instants.iter_mut())
             {
                 let mut local_messages = vec![];
-                let mut local_shell = Shell::new(shell.window(), &mut local_messages);
+                let mut local_shell = shell.local(&mut local_messages);
 
                 child.as_widget_mut().update(
                     state,

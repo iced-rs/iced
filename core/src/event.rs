@@ -31,6 +31,9 @@ pub enum Event {
 
     /// A clipboard event
     Clipboard(clipboard::Event),
+
+    /// A tick event.
+    Tick,
 }
 
 /// The status of an [`Event`] after being processed.

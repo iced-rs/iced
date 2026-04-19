@@ -632,6 +632,7 @@ async fn run_instance<P>(
                     window,
                     &program,
                     compositor.as_mut().expect("Compositor must be initialized"),
+                    proxy.clone(),
                     renderer_settings,
                     exit_on_close_request,
                     system_theme,
@@ -793,6 +794,7 @@ async fn run_instance<P>(
                             let message_count = messages.len();
                             let (state, _) = interface.update(
                                 &window.raw,
+                                &window.ticker,
                                 slice::from_ref(&redraw_event),
                                 cursor,
                                 &mut window.renderer,
@@ -1083,6 +1085,7 @@ async fn run_instance<P>(
                                 .expect("Get user interface")
                                 .update(
                                     &window.raw,
+                                    &window.ticker,
                                     &window_events,
                                     window.state.cursor(),
                                     &mut window.renderer,

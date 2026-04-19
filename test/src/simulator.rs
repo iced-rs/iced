@@ -3,6 +3,7 @@ use crate::core;
 use crate::core::event;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::shell;
 use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
@@ -170,6 +171,7 @@ where
 
         let (_state, statuses) = self.raw.update(
             &window::Headless,
+            &shell::Ticker::null(),
             &events,
             self.cursor,
             &mut self.renderer,
@@ -185,6 +187,7 @@ where
 
         let _ = self.raw.update(
             &window::Headless,
+            &shell::Ticker::null(),
             &[Event::Window(window::Event::RedrawRequested(
                 time::Instant::now(),
             ))],

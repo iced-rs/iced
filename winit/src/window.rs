@@ -4,11 +4,14 @@ use state::State;
 
 pub use crate::core::window::{Event, Id, RedrawRequest, Settings};
 
+use crate::Proxy;
 use crate::conversion;
+use crate::core;
 use crate::core::alignment;
 use crate::core::input_method;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::time::Instant;
@@ -51,6 +54,7 @@ where
         window: Arc<winit::window::Window>,
         program: &program::Instance<P>,
         compositor: &mut C,
+        proxy: Proxy<P::Message>,
         renderer_settings: renderer::Settings,
         exit_on_close_request: bool,
         system_theme: theme::Mode,
@@ -62,12 +66,20 @@ where
             compositor.create_surface(window.clone(), surface_size.width, surface_size.height);
         let renderer = compositor.create_renderer(renderer_settings);
 
+        let ticker = shell::Ticker::new(move || {
+            proxy.send_action(iced_runtime::Action::Event {
+                window: id,
+                event: core::Event::Tick,
+            });
+        });
+
         let _ = self.aliases.insert(window.id(), id);
 
         let _ = self.entries.insert(
             id,
             Window {
                 raw: window,
+                ticker,
                 state,
                 exit_on_close_request,
                 surface,
@@ -157,6 +169,7 @@ where
     P::Theme: theme::Base,
 {
     pub raw: Arc<winit::window::Window>,
+    pub ticker: shell::Ticker,
     pub state: State<P>,
     pub exit_on_close_request: bool,
     pub mouse_interaction: mouse::Interaction,
