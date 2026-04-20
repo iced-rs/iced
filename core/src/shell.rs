@@ -27,7 +27,7 @@ pub struct Shell<'a, Message> {
 
 impl<'a, Message> Shell<'a, Message> {
     /// Creates a new [`Shell`] with the provided buffer of messages.
-    pub fn new(window: &'a dyn Window, messages: &'a mut Vec<Message>, waker: Waker) -> Self {
+    pub fn new(window: &'a dyn Window, waker: Waker, messages: &'a mut Vec<Message>) -> Self {
         Self {
             window,
             messages,
@@ -49,7 +49,7 @@ impl<'a, Message> Shell<'a, Message> {
     where
         'a: 'b,
     {
-        Shell::new(self.window, messages, self.waker.clone())
+        Shell::new(self.window, self.waker.clone(), messages)
     }
 
     /// Returns the [`Window`] of the [`Shell`].

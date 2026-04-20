@@ -225,7 +225,7 @@ where
             let mut event_statuses = Vec::new();
 
             for event in events {
-                let mut shell = Shell::new(window, messages, waker.clone());
+                let mut shell = Shell::new(window, waker.clone(), messages);
 
                 overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
 
@@ -317,7 +317,7 @@ where
                     return overlay_status;
                 }
 
-                let mut shell = Shell::new(window, messages, waker.clone());
+                let mut shell = Shell::new(window, waker.clone(), messages);
 
                 self.root.as_widget_mut().update(
                     &mut self.state,
