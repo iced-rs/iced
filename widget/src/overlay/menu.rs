@@ -346,6 +346,7 @@ where
 
 struct ListState {
     is_hovered: Option<bool>,
+    direction: Direction,
 }
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -360,7 +361,10 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(ListState { is_hovered: None })
+        tree::State::new(ListState {
+            is_hovered: None,
+            direction: Direction::default(),
+        })
     }
 
     fn size(&self) -> Size<Length> {
@@ -372,12 +376,14 @@ where
 
     fn layout(
         &mut self,
-        _tree: &mut Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
-        _direction: Direction,
+        direction: Direction,
     ) -> layout::Node {
         use std::f32;
+
+        tree.state.downcast_mut::<ListState>().direction = direction;
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
@@ -488,7 +494,7 @@ where
 
     fn draw(
         &self,
-        _tree: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -498,6 +504,10 @@ where
     ) {
         let style = Catalog::style(theme, self.class);
         let bounds = layout.bounds();
+        let is_rtl = matches!(
+            tree.state.downcast_ref::<ListState>().direction,
+            Direction::RightToLeft
+        );
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
         let option_height = f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
@@ -541,14 +551,25 @@ where
                     size: text_size,
                     line_height: self.line_height,
                     font: self.font.unwrap_or_else(|| renderer.default_font()),
-                    align_x: text::Alignment::Default,
+                    align_x: if is_rtl {
+                        text::Alignment::Right
+                    } else {
+                        text::Alignment::Default
+                    },
                     align_y: alignment::Vertical::Center,
                     shaping: self.shaping,
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
                     hint_factor: renderer.scale_factor(),
                 },
-                Point::new(bounds.x + self.padding.left, bounds.center_y()),
+                Point::new(
+                    if is_rtl {
+                        bounds.x + bounds.width - self.padding.right
+                    } else {
+                        bounds.x + self.padding.left
+                    },
+                    bounds.center_y(),
+                ),
                 if is_selected {
                     style.selected_text_color
                 } else {
