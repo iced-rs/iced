@@ -73,7 +73,7 @@ where
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
     /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
-    /// let mut ticker = shell::Ticker::null(); // This should be a proper ticker
+    /// let mut waker = shell::Waker::noop();
     /// let mut window_size = Size::new(1024.0, 768.0);
     ///
     /// // Application loop
@@ -153,7 +153,7 @@ where
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
     /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
-    /// let mut ticker = shell::Ticker::null(); // This should be a proper ticker
+    /// let mut waker = shell::Waker::noop();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     ///
@@ -174,7 +174,7 @@ where
     ///     // Update the user interface
     ///     let (state, event_statuses) = user_interface.update(
     ///         &window,
-    ///         &ticker,
+    ///         &waker,
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
@@ -192,7 +192,7 @@ where
     pub fn update(
         &mut self,
         window: &dyn Window,
-        ticker: &shell::Ticker,
+        waker: &shell::Waker,
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
@@ -225,7 +225,7 @@ where
             let mut event_statuses = Vec::new();
 
             for event in events {
-                let mut shell = Shell::new(window, messages, ticker.clone());
+                let mut shell = Shell::new(window, messages, waker.clone());
 
                 overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
 
@@ -317,7 +317,7 @@ where
                     return overlay_status;
                 }
 
-                let mut shell = Shell::new(window, messages, ticker.clone());
+                let mut shell = Shell::new(window, messages, waker.clone());
 
                 self.root.as_widget_mut().update(
                     &mut self.state,
@@ -441,7 +441,7 @@ where
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
     /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
-    /// let mut ticker = shell::Ticker::null(); // This should be a proper ticker
+    /// let mut waker = shell::Waker::noop();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut events = Vec::new();
@@ -461,7 +461,7 @@ where
     ///     // Update the user interface
     ///     let event_statuses = user_interface.update(
     ///         &window,
-    ///         &ticker,
+    ///         &waker,
     ///         &events,
     ///         cursor,
     ///         &mut renderer,

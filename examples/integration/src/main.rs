@@ -199,7 +199,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
             // You should wire your own ticker logic if you will use widgets that must
             // notify the runtime concurrently.
-            let ticker = shell::Ticker::null();
+            let waker = shell::Waker::noop();
 
             match event {
                 WindowEvent::RedrawRequested => {
@@ -261,7 +261,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                             let (state, _) = interface.update(
                                 window,
-                                &ticker,
+                                &waker,
                                 &[Event::Window(
                                     window::Event::RedrawRequested(Instant::now()),
                                 )],
@@ -351,7 +351,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                 let mut messages = Vec::new();
 
-                let _ = interface.update(window, &ticker, events, *cursor, renderer, &mut messages);
+                let _ = interface.update(window, &waker, events, *cursor, renderer, &mut messages);
 
                 events.clear();
                 *cache = interface.into_cache();

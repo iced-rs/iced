@@ -171,7 +171,7 @@ where
 
         let (_state, statuses) = self.raw.update(
             &window::Headless,
-            &shell::Ticker::null(),
+            &shell::Waker::noop(),
             &events,
             self.cursor,
             &mut self.renderer,
@@ -187,7 +187,7 @@ where
 
         let _ = self.raw.update(
             &window::Headless,
-            &shell::Ticker::null(),
+            &shell::Waker::noop(),
             &[Event::Window(window::Event::RedrawRequested(
                 time::Instant::now(),
             ))],

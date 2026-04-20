@@ -16,7 +16,7 @@ use std::sync::Arc;
 pub struct Shell<'a, Message> {
     window: &'a dyn Window,
     messages: &'a mut Vec<Message>,
-    ticker: Ticker,
+    waker: Waker,
     event_status: event::Status,
     redraw_request: window::RedrawRequest,
     input_method: InputMethod,
@@ -27,11 +27,11 @@ pub struct Shell<'a, Message> {
 
 impl<'a, Message> Shell<'a, Message> {
     /// Creates a new [`Shell`] with the provided buffer of messages.
-    pub fn new(window: &'a dyn Window, messages: &'a mut Vec<Message>, ticker: Ticker) -> Self {
+    pub fn new(window: &'a dyn Window, messages: &'a mut Vec<Message>, waker: Waker) -> Self {
         Self {
             window,
             messages,
-            ticker,
+            waker,
             event_status: event::Status::Ignored,
             redraw_request: window::RedrawRequest::Wait,
             is_layout_invalid: false,
@@ -49,7 +49,7 @@ impl<'a, Message> Shell<'a, Message> {
     where
         'a: 'b,
     {
-        Shell::new(self.window, messages, self.ticker.clone())
+        Shell::new(self.window, messages, self.waker.clone())
     }
 
     /// Returns the [`Window`] of the [`Shell`].
@@ -57,9 +57,9 @@ impl<'a, Message> Shell<'a, Message> {
         self.window
     }
 
-    /// Returns the [`Ticker`] of the [`Shell`].
-    pub fn ticker(&self) -> &Ticker {
-        &self.ticker
+    /// Returns the [`Waker`] of the [`Shell`].
+    pub fn waker(&self) -> &Waker {
+        &self.waker
     }
 
     /// Returns true if the [`Shell`] contains no published messages
@@ -211,36 +211,36 @@ impl<'a, Message> Shell<'a, Message> {
     }
 }
 
-/// A function that triggers tick events when called.
-///
-/// A [`Ticker`] can be used to wake up the iced runtime and trigger
-/// tick events concurrently from widget logic.
+/// A waker can be used to wake up the iced runtime and, consequently, trigger
+/// wake events concurrently from widget logic.
 #[derive(Clone)]
-pub struct Ticker {
-    tick: Arc<dyn Fn() + 'static>,
+pub struct Waker {
+    wake: Arc<dyn Fn() + 'static>,
 }
 
-impl Ticker {
-    /// Creates a new [`Ticker`] with the given `tick` function.
-    pub fn new(tick: impl Fn() + 'static) -> Self {
+impl Waker {
+    /// Creates a new [`Waker`] with the given `wake` function.
+    pub fn new(wake: impl Fn() + 'static) -> Self {
         Self {
-            tick: Arc::new(tick),
+            wake: Arc::new(wake),
         }
     }
 
-    /// Creates a new [`Ticker`] that does nothing.
-    pub fn null() -> Self {
+    /// Creates a new [`Waker`] that does nothing.
+    pub fn noop() -> Self {
         Self::new(|| {})
     }
 
-    /// Queues a new tick.
-    pub fn tick(&self) {
-        (self.tick)();
+    /// Wakes up the iced runtime as soon as possible.
+    ///
+    /// You normally want to call this concurrently (e.g. from a different thread).
+    pub fn wake(&self) {
+        (self.wake)();
     }
 }
 
-impl std::fmt::Debug for Ticker {
+impl std::fmt::Debug for Waker {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Ticker").finish()
+        f.debug_struct("Waker").finish()
     }
 }

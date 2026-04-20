@@ -329,7 +329,7 @@ impl<P: Program + 'static> Emulator<P> {
 
                 let (_state, _status) = user_interface.update(
                     &window::Headless,
-                    &shell::Ticker::null(),
+                    &shell::Waker::noop(),
                     &events,
                     self.cursor,
                     &mut self.renderer,
@@ -458,7 +458,7 @@ impl<P: Program + 'static> Emulator<P> {
         // TODO: Nested redraws!
         let _ = user_interface.update(
             &window::Headless,
-            &shell::Ticker::null(),
+            &shell::Waker::noop(),
             &[core::Event::Window(window::Event::RedrawRequested(
                 Instant::now(),
             ))],
