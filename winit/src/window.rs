@@ -69,7 +69,7 @@ where
         let ticker = shell::Waker::new(move || {
             proxy.send_action(iced_runtime::Action::Event {
                 window: id,
-                event: core::Event::Tick,
+                event: core::Event::Waken,
             });
         });
 
