@@ -27,7 +27,9 @@ use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Direction, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::{
+    Color, Direction, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
+};
 
 pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 

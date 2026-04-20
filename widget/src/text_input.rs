@@ -43,9 +43,8 @@ use crate::core::widget::operation::{self, Focusable, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Direction, Element, Event, Font, Layout, Length,
-    Padding, Pixels, Rectangle,
-    Shell, Size, Theme, Widget,
+    Background, Border, Color, Direction, Element, Event, Font, Layout, Length, Padding, Pixels,
+    Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A field that can be filled with text.

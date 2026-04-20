@@ -9,9 +9,8 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Border, Color, Direction, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size,
-    Vector, Widget,
+    self, Border, Color, Direction, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 /// A bunch of [`Rich`] text.

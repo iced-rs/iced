@@ -44,8 +44,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Direction, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell,
-    Size, Theme, Widget,
+    Background, Border, Color, Direction, Element, Event, Font, Layout, Length, Pixels, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 /// A box that can be checked.

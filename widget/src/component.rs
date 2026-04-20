@@ -197,10 +197,12 @@ where
         if &self.limits != limits || self.direction != direction {
             self.limits = *limits;
             self.direction = direction;
-            self.layout = self
-                .view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits, direction);
+            self.layout = self.view.as_widget_mut().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+                direction,
+            );
         }
 
         layout::Node::new(self.layout.size())
@@ -287,10 +289,12 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.view));
 
         let previous_size = self.layout.size();
-        self.layout =
-            self.view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, &self.limits, self.direction);
+        self.layout = self.view.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            &self.limits,
+            self.direction,
+        );
 
         let new_sizing = self.view.as_widget().size();
 
@@ -491,7 +495,9 @@ where
         bounds: Size,
         direction: core::Direction,
     ) -> layout::Node {
-        self.raw.as_overlay_mut().layout(renderer, bounds, direction)
+        self.raw
+            .as_overlay_mut()
+            .layout(renderer, bounds, direction)
     }
 
     fn update(

@@ -167,9 +167,8 @@ mod toast {
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
-        Alignment, Center, Direction, Element, Event, Fill, Fit, Length, Point, Rectangle, Renderer,
-        Size,
-        Theme, Vector,
+        Alignment, Center, Direction, Element, Event, Fill, Fit, Length, Point, Rectangle,
+        Renderer, Size, Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;

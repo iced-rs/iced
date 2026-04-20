@@ -391,9 +391,10 @@ fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expec
     let mut tree = widget::Tree::new(&element);
     element.as_widget_mut().diff(&mut tree);
 
-    let layout = element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS, Direction::default());
+    let layout =
+        element
+            .as_widget_mut()
+            .layout(&mut tree, &(), &DEFAULT_LIMITS, Direction::default());
 
     assert_eq!(layout, expect);
 }

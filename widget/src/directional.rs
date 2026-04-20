@@ -55,20 +55,12 @@ where
         self.content.as_widget().state()
     }
 
-    fn children(&self) -> Vec<widget::Tree> {
-        self.content.as_widget().children()
-    }
-
-    fn diff(&self, tree: &mut widget::Tree) {
-        self.content.as_widget().diff(tree);
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        self.content.as_widget_mut().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
         self.content.as_widget().size()
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.content.as_widget().size_hint()
     }
 
     fn layout(
@@ -87,12 +79,13 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         self.content
             .as_widget_mut()
-            .operate(tree, layout, renderer, operation);
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
@@ -145,15 +138,18 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content
             .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation)
-            .map(|content| Overlay {
-                direction: self.direction,
-                content,
+            .into_iter()
+            .map(|content| {
+                overlay::Element::new(Box::new(Overlay {
+                    direction: self.direction,
+                    content,
+                }))
             })
-            .map(|overlay| overlay::Element::new(Box::new(overlay)))
+            .collect()
     }
 }
 
@@ -239,15 +235,18 @@ where
         &'b mut self,
         layout: Layout<'b>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content
             .as_overlay_mut()
             .overlay(layout, renderer)
-            .map(|content| Overlay {
-                direction: self.direction,
-                content,
+            .into_iter()
+            .map(|content| {
+                overlay::Element::new(Box::new(Overlay {
+                    direction: self.direction,
+                    content,
+                }))
             })
-            .map(|overlay| overlay::Element::new(Box::new(overlay)))
+            .collect()
     }
 
     fn index(&self) -> f32 {

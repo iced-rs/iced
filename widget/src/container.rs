@@ -30,9 +30,8 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Color, Direction, Element, Event, Layout, Length, Padding, Rectangle,
-    Shadow, Shell,
-    Size, Theme, Vector, Widget, color,
+    self, Background, Color, Direction, Element, Event, Layout, Length, Padding, Rectangle, Shadow,
+    Shell, Size, Theme, Vector, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.

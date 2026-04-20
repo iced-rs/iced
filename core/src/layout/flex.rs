@@ -203,9 +203,10 @@ where
             infinite,
         );
 
-        let layout = child
-            .as_widget_mut()
-            .layout(&mut trees[i], renderer, &child_limits, direction);
+        let layout =
+            child
+                .as_widget_mut()
+                .layout(&mut trees[i], renderer, &child_limits, direction);
 
         let size = layout.size();
 
@@ -242,9 +243,10 @@ where
                 cross_infinite,
             );
 
-            let layout = child
-                .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits, direction);
+            let layout =
+                child
+                    .as_widget_mut()
+                    .layout(&mut trees[i], renderer, &child_limits, direction);
 
             let size = layout.size();
 
@@ -359,9 +361,10 @@ where
                 infinite,
             );
 
-            let layout = child
-                .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits, direction);
+            let layout =
+                child
+                    .as_widget_mut()
+                    .layout(&mut trees[i], renderer, &child_limits, direction);
 
             cross = cross.max(axis.cross(layout.size()));
             remaining -= axis.main(layout.size());
@@ -423,9 +426,10 @@ where
                 infinite,
             );
 
-            let layout = child
-                .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits, direction);
+            let layout =
+                child
+                    .as_widget_mut()
+                    .layout(&mut trees[i], renderer, &child_limits, direction);
 
             cross = cross.max(axis.cross(layout.size()));
             nodes[i] = layout;
@@ -453,9 +457,10 @@ where
                 cross_infinite,
             );
 
-            let layout = child
-                .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits, direction);
+            let layout =
+                child
+                    .as_widget_mut()
+                    .layout(&mut trees[i], renderer, &child_limits, direction);
 
             let size = layout.size();
 

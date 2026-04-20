@@ -207,9 +207,12 @@ where
         self.last_direction = direction;
         self.new_layout = None;
 
-        self.element
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, &limits.loose(), direction)
+        self.element.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            &limits.loose(),
+            direction,
+        )
     }
 
     fn update(
