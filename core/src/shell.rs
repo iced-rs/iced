@@ -215,12 +215,12 @@ impl<'a, Message> Shell<'a, Message> {
 /// wake events concurrently from widget logic.
 #[derive(Clone)]
 pub struct Waker {
-    wake: Arc<dyn Fn() + 'static>,
+    wake: Arc<dyn Fn() + Send + Sync + 'static>,
 }
 
 impl Waker {
     /// Creates a new [`Waker`] with the given `wake` function.
-    pub fn new(wake: impl Fn() + 'static) -> Self {
+    pub fn new(wake: impl Fn() + Send + Sync + 'static) -> Self {
         Self {
             wake: Arc::new(wake),
         }
