@@ -66,7 +66,7 @@ where
             compositor.create_surface(window.clone(), surface_size.width, surface_size.height);
         let renderer = compositor.create_renderer(renderer_settings);
 
-        let ticker = shell::Waker::new(move || {
+        let waker = shell::Waker::new(move || {
             proxy.send_action(iced_runtime::Action::Event {
                 window: id,
                 event: core::Event::Waken,
@@ -79,7 +79,7 @@ where
             id,
             Window {
                 raw: window,
-                ticker,
+                waker,
                 state,
                 exit_on_close_request,
                 surface,
@@ -169,7 +169,7 @@ where
     P::Theme: theme::Base,
 {
     pub raw: Arc<winit::window::Window>,
-    pub ticker: shell::Waker,
+    pub waker: shell::Waker,
     pub state: State<P>,
     pub exit_on_close_request: bool,
     pub mouse_interaction: mouse::Interaction,
