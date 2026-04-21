@@ -64,6 +64,19 @@ pub trait Focusable {
     fn press(&mut self) -> bool {
         false
     }
+
+    /// Gives the focused widget a chance to consume a directional input
+    /// before focus moves to another widget.
+    ///
+    /// For example, a focusable scrollable returns `true` (and scrolls
+    /// internally) when the direction still has room to scroll, preventing
+    /// focus from leaving. At a scroll boundary it returns `false` so
+    /// focus proceeds to the next widget.
+    ///
+    /// The default implementation returns `false` (direction not consumed).
+    fn consume_direction(&mut self, _direction: FocusDirection) -> bool {
+        false
+    }
 }
 
 /// Spatial direction for directional focus navigation.
@@ -351,6 +364,8 @@ struct SpatialScan {
     direction: Option<FocusDirection>,
     /// Whether to wrap to the opposite edge when no candidate exists.
     wrap: bool,
+    /// Whether the focused widget consumed the direction (e.g. scrolled).
+    direction_consumed: bool,
 }
 
 /// Produces an [`Operation`] that collects all focusable widget bounds.
@@ -365,6 +380,12 @@ fn spatial_scan(direction: FocusDirection, wrap: bool) -> impl Operation<Spatial
             self.result.widgets.push((idx, bounds, id.cloned()));
             if state.is_focused() {
                 self.result.focused = Some((idx, bounds));
+                // Let the focused widget consume the direction (e.g. scroll).
+                if let Some(direction) = self.result.direction {
+                    if state.consume_direction(direction) {
+                        self.result.direction_consumed = true;
+                    }
+                }
             }
             self.result.total += 1;
         }
@@ -446,6 +467,17 @@ where
     }
 
     fn apply_directional(scan: SpatialScan) -> FocusDirectional {
+        // If the focused widget consumed the direction (e.g. scrolled),
+        // don't move focus at all.
+        if scan.direction_consumed {
+            log::trace!("[FocusDir] direction consumed by focused widget — not moving focus");
+            return FocusDirectional {
+                scan,
+                target_index: None,
+                current: 0,
+            };
+        }
+
         let direction = scan.direction.unwrap_or(FocusDirection::Down);
         let wrap = scan.wrap;
 
