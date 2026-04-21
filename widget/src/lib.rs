@@ -13,6 +13,7 @@ mod action;
 mod auto_focus;
 mod backdrop_blur;
 mod column;
+mod focus_order;
 mod gradient_fade;
 mod mouse_area;
 mod opacity;
@@ -64,6 +65,8 @@ pub use auto_focus::{AutoFocus, auto_focus};
 pub use backdrop_blur::{BackdropBlur, backdrop_blur};
 #[doc(no_inline)]
 pub use button::Button;
+#[doc(no_inline)]
+pub use focus_order::{FocusOrder, focus_order};
 #[doc(no_inline)]
 pub use checkbox::Checkbox;
 #[doc(no_inline)]

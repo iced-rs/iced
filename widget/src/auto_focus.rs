@@ -41,6 +41,11 @@ struct AutoFocusState {
     /// `true` after this widget has successfully requested auto-focus.
     /// Prevents re-triggering on subsequent events (no focus stealing).
     did_auto_focus: bool,
+    /// `true` between the `request_auto_focus()` call in `update()` and the
+    /// subsequent `focus_auto` scan in `operate()`.  Only the widget that
+    /// just requested auto-focus advertises itself as a target, so stale
+    /// wrappers don't compete with newly mounted ones.
+    scan_pending: bool,
     /// Hash of the key supplied via [`AutoFocus::key`].
     /// When the key changes across `diff()`, `did_auto_focus` is reset.
     key_hash: Option<u64>,
@@ -97,6 +102,7 @@ where
     fn state(&self) -> tree::State {
         tree::State::new(AutoFocusState {
             did_auto_focus: false,
+            scan_pending: false,
             key_hash: self.key_hash,
         })
     }
@@ -159,8 +165,15 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        // Mark the next focusable descendant as the auto-focus target.
-        operation.auto_focusable(None, layout.bounds());
+        // Only advertise as an auto-focus target when this widget has a
+        // pending scan (i.e. it just called `request_auto_focus()` in its
+        // most recent `update()`).  This prevents stale wrappers whose
+        // auto-focus already fired from competing with newly mounted ones.
+        let state = tree.state.downcast_mut::<AutoFocusState>();
+        if state.scan_pending {
+            state.scan_pending = false;
+            operation.auto_focusable(None, layout.bounds());
+        }
 
         self.content
             .as_widget_mut()
@@ -181,6 +194,7 @@ where
         if !state.did_auto_focus {
             log::debug!("[AutoFocus] first update after mount/key-change — requesting auto-focus");
             state.did_auto_focus = true;
+            state.scan_pending = true;
             shell.request_auto_focus();
         }
 

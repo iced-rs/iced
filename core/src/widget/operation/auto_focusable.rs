@@ -64,15 +64,26 @@ fn scan() -> impl Operation<ScanResult> {
         }
 
         fn finish(&self) -> Outcome<ScanResult> {
-            // If ANY widget is already focused, don't steal focus.
-            // This matches Flutter's behaviour: autofocus only fires
-            // when nothing in the scope has primary focus.
-            if let Some(idx) = self.result.focused_index {
-                log::debug!(
-                    "[focus_auto] widget at index {} is already focused — not stealing focus",
-                    idx,
-                );
-                return Outcome::None;
+            if let Some(target) = self.result.auto_focus_index {
+                // An explicit auto-focus target exists. Only skip if that
+                // exact target is already focused (avoid redundant cycle).
+                if self.result.focused_index == Some(target) {
+                    log::debug!(
+                        "[focus_auto] auto-focus target at index {} is already focused — skipping",
+                        target,
+                    );
+                    return Outcome::None;
+                }
+            } else {
+                // No auto-focus widget found — fallback to first focusable.
+                // Respect existing focus to avoid stealing from user interaction.
+                if let Some(idx) = self.result.focused_index {
+                    log::debug!(
+                        "[focus_auto] no auto-focus target; widget at index {} already focused — skipping",
+                        idx,
+                    );
+                    return Outcome::None;
+                }
             }
 
             log::debug!(

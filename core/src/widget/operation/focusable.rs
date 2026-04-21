@@ -354,8 +354,8 @@ where
 /// A snapshot of all focusable widgets: their indices, bounds, and which is focused.
 #[derive(Debug, Clone, Default)]
 struct SpatialScan {
-    /// `(index, bounds, id)` for every focusable widget in tree order.
-    widgets: Vec<(usize, Rectangle, Option<Id>)>,
+    /// `(index, bounds, id, focus_order)` for every focusable widget in tree order.
+    widgets: Vec<(usize, Rectangle, Option<Id>, u32)>,
     /// Index + bounds of the currently focused widget, if any.
     focused: Option<(usize, Rectangle)>,
     /// Running counter while scanning.
@@ -366,6 +366,8 @@ struct SpatialScan {
     wrap: bool,
     /// Whether the focused widget consumed the direction (e.g. scrolled).
     direction_consumed: bool,
+    /// Pending focus order hint for the next `focusable()` call.
+    pending_order: Option<u32>,
 }
 
 /// Produces an [`Operation`] that collects all focusable widget bounds.
@@ -375,9 +377,14 @@ fn spatial_scan(direction: FocusDirection, wrap: bool) -> impl Operation<Spatial
     }
 
     impl Operation<SpatialScan> for Scan {
+        fn focus_order_hint(&mut self, order: u32) {
+            self.result.pending_order = Some(order);
+        }
+
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
             let idx = self.result.total;
-            self.result.widgets.push((idx, bounds, id.cloned()));
+            let order = self.result.pending_order.take().unwrap_or(u32::MAX);
+            self.result.widgets.push((idx, bounds, id.cloned(), order));
             if state.is_focused() {
                 self.result.focused = Some((idx, bounds));
                 // Let the focused widget consume the direction (e.g. scroll).
@@ -490,7 +497,7 @@ where
         );
 
         if log::log_enabled!(log::Level::Trace) {
-            for &(idx, b, ref id) in &scan.widgets {
+            for &(idx, b, ref id, _) in &scan.widgets {
                 log::trace!(
                     "[FocusDir]   widget[{}] id={:?} x={:.0} y={:.0} w={:.0} h={:.0}",
                     idx,
@@ -528,8 +535,8 @@ where
             .and_then(|ti| {
                 scan.widgets
                     .iter()
-                    .find(|(i, _, _)| *i == ti)
-                    .map(|&(i, b, _)| (i, b))
+                    .find(|(i, _, _, _)| *i == ti)
+                    .map(|&(i, b, _, _)| (i, b))
             })
             .or(scan.focused);
         if let Some(entry) = last {
@@ -579,7 +586,7 @@ fn find_directional_target(
             && scan
                 .widgets
                 .iter()
-                .any(|&(idx, b, _)| idx == last_idx && bounds_match(b, last_bounds))
+                .any(|&(idx, b, _, _)| idx == last_idx && bounds_match(b, last_bounds))
         {
             return Some(last_idx);
         }
@@ -593,10 +600,10 @@ fn find_directional_target(
     let prev_center = PREV_FOCUS_CENTER.get();
 
     // Best candidate: (index, in_beam, primary_edge_dist, beam_overlap,
-    //                  cross_edge_dist, history_dist).
-    let mut best: Option<(usize, bool, f32, f32, f32, f32)> = None;
+    //                  cross_edge_dist, history_dist, focus_order).
+    let mut best: Option<(usize, bool, f32, f32, f32, f32, u32)> = None;
 
-    for &(idx, bounds, _) in &scan.widgets {
+    for &(idx, bounds, _, order) in &scan.widgets {
         if idx == focused_idx {
             continue;
         }
@@ -673,20 +680,24 @@ fn find_directional_target(
 
         let is_better = match best {
             None => true,
-            Some((_, best_in_beam, best_primary, best_beam, best_cross, best_hist)) => {
+            Some((_, best_in_beam, best_primary, best_beam, best_cross, best_hist, best_order)) => {
                 if in_beam != best_in_beam {
                     // In-beam always wins over out-of-beam.
                     in_beam
                 } else if in_beam {
-                    // Both in beam: prefer closer primary edge distance.
-                    if (primary_dist - best_primary).abs() > 0.5 {
+                    // Both in beam.
+                    if order != best_order {
+                        // Explicit focus_order takes priority: lower wins.
+                        order < best_order
+                    } else if (primary_dist - best_primary).abs() > 0.5 {
+                        // Same order: prefer closer primary edge distance.
                         primary_dist < best_primary
                     } else if prev_center.is_some() {
-                        // Same primary distance with history: prefer
-                        // candidate closer to where we came from.
+                        // Same distance with history: prefer candidate
+                        // closer to where we came from.
                         history_dist < best_hist
                     } else {
-                        // No history: prefer more beam overlap.
+                        // No history, no order: prefer more beam overlap.
                         beam_overlap > best_beam
                     }
                 } else {
@@ -704,6 +715,7 @@ fn find_directional_target(
                 beam_overlap,
                 cross_dist,
                 history_dist,
+                order,
             ));
         }
     }
@@ -718,7 +730,7 @@ fn find_directional_target(
                 None
             }
         },
-        |(idx, _, _, _, _, _)| Some(idx),
+        |(idx, _, _, _, _, _, _)| Some(idx),
     )
 }
 
@@ -752,11 +764,11 @@ fn bounds_match(a: Rectangle, b: Rectangle) -> bool {
 /// Pressing Up → user is below → start from the bottom-most widget.
 /// Pressing Down → user is above → start from the top-most widget.
 fn edge_widget(scan: &SpatialScan, direction: FocusDirection) -> usize {
-    let &(idx, _, _) = scan
+    let &(idx, _, _, _) = scan
         .widgets
         .iter()
         .max_by(|a, b| {
-            let val = |w: &(usize, Rectangle, Option<Id>)| -> f32 {
+            let val = |w: &(usize, Rectangle, Option<Id>, u32)| -> f32 {
                 match direction {
                     // Pressing Up → want bottom-most (max y)
                     FocusDirection::Up => w.1.y + w.1.height,
