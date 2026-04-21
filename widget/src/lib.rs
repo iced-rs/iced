@@ -66,8 +66,6 @@ pub use backdrop_blur::{BackdropBlur, backdrop_blur};
 #[doc(no_inline)]
 pub use button::Button;
 #[doc(no_inline)]
-pub use focus_order::{FocusOrder, focus_order};
-#[doc(no_inline)]
 pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use column::Column;
@@ -77,6 +75,8 @@ pub use combo_box::ComboBox;
 pub use container::Container;
 #[doc(no_inline)]
 pub use float::Float;
+#[doc(no_inline)]
+pub use focus_order::{FocusOrder, focus_order};
 #[doc(no_inline)]
 pub use gradient_fade::{FadeEdge, GradientFade, gradient_fade};
 #[doc(no_inline)]
