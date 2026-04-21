@@ -349,10 +349,12 @@ struct SpatialScan {
     total: usize,
     /// The direction to move focus.
     direction: Option<FocusDirection>,
+    /// Whether to wrap to the opposite edge when no candidate exists.
+    wrap: bool,
 }
 
 /// Produces an [`Operation`] that collects all focusable widget bounds.
-fn spatial_scan(direction: FocusDirection) -> impl Operation<SpatialScan> {
+fn spatial_scan(direction: FocusDirection, wrap: bool) -> impl Operation<SpatialScan> {
     struct Scan {
         result: SpatialScan,
     }
@@ -379,6 +381,7 @@ fn spatial_scan(direction: FocusDirection) -> impl Operation<SpatialScan> {
     Scan {
         result: SpatialScan {
             direction: Some(direction),
+            wrap,
             ..SpatialScan::default()
         },
     }
@@ -388,8 +391,26 @@ fn spatial_scan(direction: FocusDirection) -> impl Operation<SpatialScan> {
 /// in the given [`FocusDirection`] based on spatial position.
 ///
 /// If no widget is currently focused, focuses the first widget.
-/// If no candidate exists in the requested direction, focus does not move.
+/// If no candidate exists in the requested direction, wraps to the opposite
+/// edge (e.g. Down at the bottom → top-most widget).
 pub fn focus_directional<T>(direction: FocusDirection) -> impl Operation<T>
+where
+    T: Send + 'static,
+{
+    focus_directional_impl(direction, true)
+}
+
+/// Like [`focus_directional`], but does **not** wrap to the opposite edge
+/// when no candidate exists in the requested direction. Focus simply stays
+/// on the currently focused widget.
+pub fn focus_directional_no_wrap<T>(direction: FocusDirection) -> impl Operation<T>
+where
+    T: Send + 'static,
+{
+    focus_directional_impl(direction, false)
+}
+
+fn focus_directional_impl<T>(direction: FocusDirection, wrap: bool) -> impl Operation<T>
 where
     T: Send + 'static,
 {
@@ -426,6 +447,7 @@ where
 
     fn apply_directional(scan: SpatialScan) -> FocusDirectional {
         let direction = scan.direction.unwrap_or(FocusDirection::Down);
+        let wrap = scan.wrap;
 
         log::trace!(
             "[FocusDir] direction={:?}, {} widgets, focused={:?}",
@@ -449,7 +471,7 @@ where
             }
         }
 
-        let target_index = find_directional_target(&scan, direction);
+        let target_index = find_directional_target(&scan, direction, wrap);
 
         log::trace!(
             "[FocusDir] target_index={:?} (from {:?} → {:?})",
@@ -489,7 +511,7 @@ where
         }
     }
 
-    operation::then(spatial_scan(direction), apply_directional)
+    operation::then(spatial_scan(direction, wrap), apply_directional)
 }
 
 /// Finds the best focusable widget in the given direction from the currently
@@ -509,7 +531,11 @@ where
 ///
 /// Returns `Some(index)` of the best candidate, or a direction-appropriate
 /// edge widget if nothing is focused, or `None` if there are no candidates.
-fn find_directional_target(scan: &SpatialScan, direction: FocusDirection) -> Option<usize> {
+fn find_directional_target(
+    scan: &SpatialScan,
+    direction: FocusDirection,
+    wrap: bool,
+) -> Option<usize> {
     if scan.widgets.is_empty() {
         return None;
     }
@@ -650,9 +676,16 @@ fn find_directional_target(scan: &SpatialScan, direction: FocusDirection) -> Opt
         }
     }
 
-    // If a candidate was found, use it. Otherwise, wrap to the opposite edge.
+    // If a candidate was found, use it. Otherwise, optionally wrap to the
+    // opposite edge.
     best.map_or_else(
-        || Some(wrap_widget(scan, focused_idx, direction)),
+        || {
+            if wrap {
+                Some(wrap_widget(scan, focused_idx, direction))
+            } else {
+                None
+            }
+        },
         |(idx, _, _, _, _, _)| Some(idx),
     )
 }

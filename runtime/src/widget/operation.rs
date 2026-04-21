@@ -80,11 +80,21 @@ pub fn focus_next<T>() -> Task<T> {
 /// Focuses the nearest focusable widget in the given spatial [`FocusDirection`].
 ///
 /// Uses widget bounds to determine the closest candidate. If nothing is
-/// focused, the first focusable widget receives focus.
+/// focused, the first focusable widget receives focus. Wraps to the opposite
+/// edge when no candidate exists in the requested direction.
 pub fn focus_direction<T>(direction: FocusDirection) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus_directional(
         direction,
     )))
+}
+
+/// Like [`focus_direction`], but does **not** wrap to the opposite edge
+/// when no candidate exists in the requested direction. Focus simply stays
+/// on the currently focused widget.
+pub fn focus_direction_no_wrap<T>(direction: FocusDirection) -> Task<T> {
+    task::effect(Action::widget(
+        operation::focusable::focus_directional_no_wrap(direction),
+    ))
 }
 
 /// Focuses the first widget marked for auto-focus.
