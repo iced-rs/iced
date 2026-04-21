@@ -381,10 +381,10 @@ fn spatial_scan(direction: FocusDirection, wrap: bool) -> impl Operation<Spatial
             if state.is_focused() {
                 self.result.focused = Some((idx, bounds));
                 // Let the focused widget consume the direction (e.g. scroll).
-                if let Some(direction) = self.result.direction {
-                    if state.consume_direction(direction) {
-                        self.result.direction_consumed = true;
-                    }
+                if let Some(direction) = self.result.direction
+                    && state.consume_direction(direction)
+                {
+                    self.result.direction_consumed = true;
                 }
             }
             self.result.total += 1;
