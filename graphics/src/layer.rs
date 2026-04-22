@@ -156,13 +156,14 @@ impl<T: Layer> Stack<T> {
 
             // We scan downwards for a contiguous block of mergeable layer candidates
             while current > 0 {
-                let candidate = &self.layers[current - 1];
+                current -= 1;
+
+                let candidate = &self.layers[current];
                 let start = candidate.start();
                 let end = candidate.end();
 
                 // We skip empty layers
                 if end == 0 {
-                    current -= 1;
                     continue;
                 }
 
@@ -176,7 +177,6 @@ impl<T: Layer> Stack<T> {
                 target = candidate;
                 target_start = start;
                 target_index = current;
-                current -= 1;
             }
 
             // We merge all the layers scanned into the target
