@@ -1033,7 +1033,7 @@ where
                                 bounds: clipped_cursor,
                                 ..renderer::Quad::default()
                             },
-                            style.value,
+                            style.caret.unwrap_or(style.value),
                         );
                     }
                 }
@@ -1422,6 +1422,8 @@ pub struct Style {
     pub value: Color,
     /// The [`Color`] of the selection of the text input.
     pub selection: Color,
+    /// The [`Color`] of the caret. Falls back to `value` when `None`.
+    pub caret: Option<Color>,
 }
 
 /// The theme catalog of a [`TextEditor`].
@@ -1466,6 +1468,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         placeholder: palette.secondary.base.color,
         value: palette.background.base.text,
         selection: palette.primary.weak.color,
+        caret: None,
     };
 
     match status {
