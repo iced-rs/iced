@@ -23,6 +23,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![allow(missing_docs)]
 pub mod blur;
+pub mod cached_scale;
 pub mod gradient_fade;
 pub mod layer;
 pub mod primitive;
@@ -98,6 +99,9 @@ pub struct Renderer {
     /// Gradient fade state for offscreen rendering
     gradient_fade: gradient_fade::State,
 
+    /// Cached scale state for GPU-accelerated scale animations
+    cached_scale_state: cached_scale::State,
+
     /// Backdrop blur state
     blur_state: blur::State,
     /// Backdrop blur texture cache
@@ -127,6 +131,8 @@ impl Renderer {
             image_cache: std::cell::RefCell::new(engine.create_image_cache()),
 
             gradient_fade: gradient_fade::State::new(),
+
+            cached_scale_state: cached_scale::State::new(),
 
             blur_state: blur::State::new(),
             blur_cache: blur::TextureCache::new(),
@@ -543,6 +549,11 @@ impl Renderer {
         // z-position, rather than after all layers (which breaks overlay z-order).
         let fade_regions = self.gradient_fade.take_regions();
         let mut fade_applied = vec![false; fade_regions.len()];
+
+        // Take cached scale regions for GPU-accelerated scale animations
+        let scale_regions = self.cached_scale_state.take_regions();
+        let mut scale_applied = vec![false; scale_regions.len()];
+
         let layer_count = self.layers.as_slice().len();
 
         // Use index-based loop so we can call &mut self methods for gradient
@@ -552,19 +563,31 @@ impl Renderer {
             // This ensures fade content is composited before layers that come
             // after it in the z-order (e.g. modal overlays).
             {
-                let mut needs_fade = false;
+                let mut needs_offscreen = false;
                 for (i, region) in fade_regions.iter().enumerate() {
                     if !fade_applied[i] && layer_index >= region.end_layer {
-                        needs_fade = true;
+                        needs_offscreen = true;
                         break;
                     }
                 }
-                if needs_fade {
+                for (i, region) in scale_regions.iter().enumerate() {
+                    if !scale_applied[i] && layer_index >= region.end_layer {
+                        needs_offscreen = true;
+                        break;
+                    }
+                }
+                if needs_offscreen {
                     let _ = ManuallyDrop::into_inner(render_pass);
                     for (i, region) in fade_regions.iter().enumerate() {
                         if !fade_applied[i] && layer_index >= region.end_layer {
                             self.apply_gradient_fade_region(encoder, frame, region, viewport);
                             fade_applied[i] = true;
+                        }
+                    }
+                    for (i, region) in scale_regions.iter().enumerate() {
+                        if !scale_applied[i] && layer_index >= region.end_layer {
+                            self.apply_cached_scale_region(encoder, frame, region, viewport);
+                            scale_applied[i] = true;
                         }
                     }
                     render_pass =
@@ -595,7 +618,13 @@ impl Renderer {
             let in_fade = fade_regions
                 .iter()
                 .any(|r| layer_index >= r.start_layer && layer_index < r.end_layer);
-            if in_fade {
+
+            // Check if this layer is in a cached scale region
+            let in_cached_scale = scale_regions
+                .iter()
+                .any(|r| layer_index >= r.start_layer && layer_index < r.end_layer);
+
+            if in_fade || in_cached_scale {
                 // Still need to count primitives so offsets are correct,
                 // but only if prepare() actually processed this layer
                 // (prepare skips layers with no physical bounds intersection)
@@ -838,6 +867,13 @@ impl Renderer {
         for (i, region) in fade_regions.iter().enumerate() {
             if !fade_applied[i] {
                 self.apply_gradient_fade_region(encoder, frame, region, viewport);
+            }
+        }
+
+        // Apply any remaining cached scale regions.
+        for (i, region) in scale_regions.iter().enumerate() {
+            if !scale_applied[i] {
+                self.apply_cached_scale_region(encoder, frame, region, viewport);
             }
         }
 
@@ -1456,6 +1492,190 @@ impl Renderer {
             );
         }
     }
+
+    /// Apply a single cached scale region by rendering its layers to an
+    /// offscreen texture at 1x, then compositing as a scaled quad.
+    fn apply_cached_scale_region(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        region: &cached_scale::CachedScaleRegion,
+        viewport: &Viewport,
+    ) {
+        let physical_size = viewport.physical_size();
+        let scale_factor = viewport.scale_factor();
+        let physical_bounds =
+            Rectangle::<f32>::from(Rectangle::with_size(viewport.physical_size()));
+
+        let total_layers = self.layers.as_slice().len();
+        let start = region.start_layer.min(total_layers);
+        let end = region.end_layer.min(total_layers);
+        if start >= end {
+            return;
+        }
+
+        // Ensure the offscreen texture exists
+        {
+            let _ = self.cached_scale_state.get_or_create_texture(
+                &self.engine.device,
+                self.engine.format,
+                physical_size,
+            );
+        }
+
+        // Clear the offscreen texture
+        {
+            let offscreen_view = self.cached_scale_state.texture_view().unwrap();
+            let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu.cached_scale.clear_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: offscreen_view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+        }
+
+        // Render layers to offscreen texture.
+        // Content is already at render_scale (transformation applied in start_cached_scale).
+        {
+            use std::mem::ManuallyDrop;
+
+            let offscreen_view = self.cached_scale_state.texture_view().unwrap();
+            let mut render_pass =
+                ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("iced_wgpu.cached_scale.layer_render_pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: offscreen_view,
+                        depth_slice: None,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                    multiview_mask: None,
+                }));
+
+            render_pass.set_viewport(
+                0.0,
+                0.0,
+                physical_size.width as f32,
+                physical_size.height as f32,
+                0.0,
+                1.0,
+            );
+            render_pass.set_scissor_rect(0, 0, physical_size.width, physical_size.height);
+
+            let layers_slice = self.layers.as_slice();
+            let end_idx = region.end_layer.min(layers_slice.len());
+            let start_idx = region.start_layer.min(end_idx);
+
+            // Count primitives in layers before our range to calculate offsets
+            let mut quad_offset = 0usize;
+            let mut text_offset = 0usize;
+            #[cfg(any(feature = "svg", feature = "image"))]
+            let mut image_offset = 0usize;
+
+            for layer in &layers_slice[..start_idx] {
+                if physical_bounds
+                    .intersection(&(layer.bounds * scale_factor))
+                    .and_then(Rectangle::snap)
+                    .is_none()
+                {
+                    continue;
+                }
+                if !layer.quads.is_empty() {
+                    quad_offset += 1;
+                }
+                text_offset += layer
+                    .text
+                    .iter()
+                    .filter(|item| matches!(item, text::Item::Group { .. }))
+                    .count();
+                #[cfg(any(feature = "svg", feature = "image"))]
+                if !layer.images.is_empty() {
+                    image_offset += 1;
+                }
+            }
+
+            let mut quad_layer = quad_offset;
+            let mut text_layer = text_offset;
+            #[cfg(any(feature = "svg", feature = "image"))]
+            let mut image_layer = image_offset;
+
+            for layer in &layers_slice[start_idx..end_idx] {
+                let Some(layer_physical_bounds) =
+                    physical_bounds.intersection(&(layer.bounds * scale_factor))
+                else {
+                    continue;
+                };
+
+                let Some(scissor_rect) = layer_physical_bounds.snap() else {
+                    continue;
+                };
+
+                if !layer.quads.is_empty() {
+                    self.quad.render(
+                        &self.engine.quad_pipeline,
+                        quad_layer,
+                        scissor_rect,
+                        &layer.quads,
+                        &mut render_pass,
+                    );
+                    quad_layer += 1;
+                }
+
+                #[cfg(any(feature = "svg", feature = "image"))]
+                if !layer.images.is_empty() {
+                    self.image.render(
+                        &self.engine.image_pipeline,
+                        image_layer,
+                        scissor_rect,
+                        &mut render_pass,
+                    );
+                    image_layer += 1;
+                }
+
+                if !layer.text.is_empty() {
+                    text_layer += self.text.render(
+                        &self.engine.text_pipeline,
+                        &self.text_viewport,
+                        text_layer,
+                        &layer.text,
+                        scissor_rect,
+                        &mut render_pass,
+                    );
+                }
+            }
+
+            let _ = ManuallyDrop::into_inner(render_pass);
+        }
+
+        // Composite the offscreen texture back to the main target as a scaled quad
+        {
+            let offscreen_view = self.cached_scale_state.texture_view().unwrap();
+            self.engine.cached_scale_pipeline.render(
+                &self.engine.device,
+                encoder,
+                offscreen_view,
+                target,
+                region,
+                viewport,
+            );
+        }
+    }
 }
 
 /// Applies opacity to a background, quad border, and shadow, returning the modified values.
@@ -1559,15 +1779,11 @@ impl core::Renderer for Renderer {
     }
 
     fn reset(&mut self, new_bounds: Rectangle) {
-        log::trace!(
-            "RESET called - layers before: {}",
-            self.layers.active_count()
-        );
         self.layers.reset(new_bounds);
-        log::trace!("RESET - layers after reset: {}", self.layers.active_count());
         self.opacity_stack.clear();
         self.opacity_stack.push(1.0);
         self.gradient_fade.clear();
+        self.cached_scale_state.clear();
         self.blur_state.clear();
     }
 
@@ -1620,6 +1836,73 @@ impl core::Renderer for Renderer {
         let layer_count = self.layers.active_count();
 
         let _ = self.gradient_fade.end(layer_count);
+    }
+
+    fn start_cached_scale(&mut self, bounds: Rectangle, render_scale: f32, display_scale: f32) {
+        // Get the current transformation (e.g. scroll offset) BEFORE flushing
+        // so we can transform bounds from content-space to screen-space.
+        // The region must store screen-space bounds for correct offscreen
+        // rendering and compositing (content-space positions may be outside
+        // the physical viewport in scrollable containers).
+        let transformation = self.layers.transformation();
+
+        self.layers.flush();
+        let layer_count = self.layers.active_count();
+        // Expand clip bounds to accommodate shadows and the scale growth.
+        // Use render_scale for padding since content is rasterized at that size.
+        let padding =
+            32.0 + bounds.width.max(bounds.height) * (render_scale.max(display_scale) - 1.0);
+        let expanded = Rectangle {
+            x: bounds.x - padding,
+            y: bounds.y - padding,
+            width: bounds.width + padding * 2.0,
+            height: bounds.height + padding * 2.0,
+        };
+
+        // Transform to screen space for the cached scale region
+        let screen_bounds = bounds * transformation;
+        let screen_expanded = expanded * transformation;
+
+        self.cached_scale_state.start(
+            screen_bounds,
+            screen_expanded,
+            render_scale,
+            display_scale,
+            layer_count,
+        );
+        // Push a dedicated clip layer so content gets its own layer slot
+        // (otherwise it draws into the current layer and active_count won't change)
+        // Note: start_layer calls push_clip which applies the transformation,
+        // so we pass the original content-space expanded bounds here.
+        self.start_layer(expanded);
+
+        // Apply render_scale transformation inside the layer so that text/SVGs
+        // are rasterized at the higher resolution. Scale around bounds center.
+        if (render_scale - 1.0).abs() > 0.0001 {
+            let cx = bounds.x + bounds.width / 2.0;
+            let cy = bounds.y + bounds.height / 2.0;
+            let transform = Transformation::translate(cx, cy)
+                * Transformation::scale(render_scale)
+                * Transformation::translate(-cx, -cy);
+            self.start_transformation(transform);
+        }
+    }
+
+    fn end_cached_scale(&mut self) {
+        // Pop the render_scale transformation if one was pushed.
+        // Check if the active region has a render_scale != 1.0.
+        if self
+            .cached_scale_state
+            .active_render_scale()
+            .is_some_and(|rs| (rs - 1.0).abs() > 0.0001)
+        {
+            self.end_transformation();
+        }
+        // Pop the clip layer we pushed in start_cached_scale
+        self.end_layer();
+        self.layers.flush();
+        let layer_count = self.layers.active_count();
+        let _ = self.cached_scale_state.end(layer_count);
     }
 
     fn draw_backdrop_blur(

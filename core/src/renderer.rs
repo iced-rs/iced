@@ -157,6 +157,40 @@ pub trait Renderer {
         self.end_post_blur_layer();
     }
 
+    /// Starts recording a cached scale region.
+    ///
+    /// All primitives drawn until [`end_cached_scale`](Self::end_cached_scale) is called
+    /// will be rendered to an offscreen texture at `render_scale` resolution, then
+    /// composited as a GPU-scaled quad at `display_scale`. This avoids re-rasterizing
+    /// SVGs, text, and other primitives during scale animations.
+    ///
+    /// # Arguments
+    /// * `bounds` - The logical bounds of the content being scaled
+    /// * `render_scale` - The scale at which to rasterize content in the offscreen texture
+    /// * `display_scale` - The scale at which to composite the quad on screen
+    fn start_cached_scale(&mut self, _bounds: Rectangle, _render_scale: f32, _display_scale: f32) {}
+
+    /// Ends recording the current cached scale region.
+    fn end_cached_scale(&mut self) {}
+
+    /// Draws the primitives recorded in the given closure with GPU-cached scaling.
+    ///
+    /// Content is rendered to an offscreen texture at `render_scale` resolution,
+    /// then composited as a scaled quad at `display_scale`. Set `render_scale` to
+    /// `max(start_scale, target_scale)` so the GPU only ever downscales from a
+    /// higher-resolution texture, preserving quality during animation.
+    fn with_cached_scale(
+        &mut self,
+        bounds: Rectangle,
+        render_scale: f32,
+        display_scale: f32,
+        f: impl FnOnce(&mut Self),
+    ) {
+        self.start_cached_scale(bounds, render_scale, display_scale);
+        f(self);
+        self.end_cached_scale();
+    }
+
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 

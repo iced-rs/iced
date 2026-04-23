@@ -89,6 +89,18 @@ where
         delegate!(self, renderer, renderer.end_gradient_fade());
     }
 
+    fn start_cached_scale(&mut self, bounds: Rectangle, render_scale: f32, display_scale: f32) {
+        delegate!(
+            self,
+            renderer,
+            renderer.start_cached_scale(bounds, render_scale, display_scale)
+        );
+    }
+
+    fn end_cached_scale(&mut self) {
+        delegate!(self, renderer, renderer.end_cached_scale());
+    }
+
     fn draw_backdrop_blur(
         &mut self,
         bounds: Rectangle,
