@@ -6,6 +6,7 @@ jobs:
     steps:
     - uses: hecrj/setup-rust-action@v2
       with:
+        rust-version: 1.95.0
         components: rustfmt
     - uses: actions/checkout@master
     - name: Check format
