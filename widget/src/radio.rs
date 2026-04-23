@@ -338,11 +338,11 @@ where
     ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if cursor.is_over(layout.bounds()) {
-                    shell.publish(self.on_click.clone());
-                    shell.capture_event();
-                }
+            | Event::Touch(touch::Event::FingerPressed { .. })
+                if cursor.is_over(layout.bounds()) =>
+            {
+                shell.publish(self.on_click.clone());
+                shell.capture_event();
             }
             _ => {}
         }
