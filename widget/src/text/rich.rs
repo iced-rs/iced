@@ -29,6 +29,7 @@ where
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     ellipsis: Ellipsis,
+    letter_spacing: crate::core::Em,
     class: Theme::Class<'a>,
     hovered_link: Option<usize>,
     on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
@@ -54,6 +55,7 @@ where
             align_y: alignment::Vertical::Top,
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
+            letter_spacing: crate::core::Em::default(),
             class: Theme::default(),
             hovered_link: None,
             on_link_click: None,
@@ -125,6 +127,12 @@ where
     /// Sets the [`Ellipsis`] strategy of the [`Rich`] text.
     pub fn ellipsis(mut self, ellipsis: Ellipsis) -> Self {
         self.ellipsis = ellipsis;
+        self
+    }
+
+    /// Sets the letter spacing of the [`Rich`] text.
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<crate::core::Em>) -> Self {
+        self.letter_spacing = letter_spacing.into();
         self
     }
 
@@ -241,6 +249,7 @@ where
             self.align_y,
             self.wrapping,
             self.ellipsis,
+            self.letter_spacing,
         )
     }
 
@@ -450,6 +459,7 @@ fn layout<Link, Renderer>(
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     ellipsis: Ellipsis,
+    letter_spacing: crate::core::Em,
 ) -> layout::Node
 where
     Link: Clone,
@@ -472,6 +482,7 @@ where
             shaping: Shaping::Advanced,
             wrapping,
             ellipsis,
+            letter_spacing,
             hint_factor: renderer.scale_factor(),
         };
 
@@ -490,6 +501,7 @@ where
                 shaping: Shaping::Advanced,
                 wrapping,
                 ellipsis,
+                letter_spacing,
                 hint_factor: renderer.scale_factor(),
             }) {
                 core::text::Difference::None => {}

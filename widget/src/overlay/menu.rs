@@ -35,6 +35,7 @@ where
     line_height: text::LineHeight,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
+    letter_spacing: crate::core::Em,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
@@ -71,6 +72,7 @@ where
             line_height: text::LineHeight::default(),
             shaping: text::Shaping::default(),
             ellipsis: text::Ellipsis::default(),
+            letter_spacing: crate::core::Em::default(),
             font: None,
             class,
         }
@@ -109,6 +111,12 @@ where
     /// Sets the [`text::Ellipsis`] strategy of the [`Menu`].
     pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
         self.ellipsis = ellipsis;
+        self
+    }
+
+    /// Sets the letter spacing of the [`Menu`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<crate::core::Em>) -> Self {
+        self.letter_spacing = letter_spacing.into();
         self
     }
 
@@ -207,6 +215,7 @@ where
             line_height,
             shaping,
             ellipsis,
+            letter_spacing,
             class,
         } = menu;
 
@@ -221,6 +230,7 @@ where
             line_height,
             shaping,
             ellipsis,
+            letter_spacing,
             padding,
             class,
         })
@@ -340,6 +350,7 @@ where
     line_height: text::LineHeight,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
+    letter_spacing: crate::core::Em,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
@@ -545,6 +556,7 @@ where
                     shaping: self.shaping,
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
+                    letter_spacing: self.letter_spacing,
                     hint_factor: renderer.scale_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
