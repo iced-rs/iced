@@ -1,6 +1,6 @@
 //! Configure your application.
 use crate::renderer;
-use crate::{Font, Pixels};
+use crate::{Direction, Font, Pixels};
 
 use std::borrow::Cow;
 
@@ -41,6 +41,14 @@ pub struct Settings {
     ///
     /// By default, it is enabled.
     pub vsync: bool,
+
+    /// The default layout [`Direction`] for the application.
+    ///
+    /// This controls whether widgets are laid out left-to-right or
+    /// right-to-left by default.
+    ///
+    /// By default, it is [`Direction::LeftToRight`].
+    pub default_direction: Direction,
 }
 
 impl Default for Settings {
@@ -54,6 +62,7 @@ impl Default for Settings {
             default_text_size: renderer.default_text_size,
             antialiasing: true,
             vsync: true,
+            default_direction: Direction::LeftToRight,
         }
     }
 }

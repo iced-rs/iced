@@ -25,6 +25,7 @@
 //! }
 //! ```
 use crate::container;
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -184,10 +185,11 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits, direction)
     }
 
     fn update(
@@ -429,7 +431,7 @@ where
     Theme: container::Catalog,
     Renderer: text::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
         let tooltip_layout = self.tooltip.as_widget_mut().layout(
@@ -444,6 +446,7 @@ where
                 },
             )
             .shrink(Padding::new(self.padding)),
+            direction,
         );
 
         let text_bounds = tooltip_layout.bounds();

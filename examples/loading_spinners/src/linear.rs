@@ -6,7 +6,7 @@ use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
 use iced::time::Instant;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Rectangle, Size};
+use iced::{Background, Color, Direction, Element, Event, Length, Rectangle, Size};
 
 use super::easing::{self, Easing};
 
@@ -163,6 +163,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.width, self.height)
     }

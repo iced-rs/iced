@@ -6,7 +6,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
+    Direction, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -208,6 +209,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits.max_width(self.max_width);
 
@@ -220,6 +222,7 @@ where
             self.padding,
             self.spacing,
             self.align,
+            direction,
             &mut self.children,
             &mut tree.children,
         )
@@ -400,6 +403,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits
             .width(self.column.width)
@@ -437,9 +441,12 @@ where
         };
 
         for (i, child) in self.column.children.iter_mut().enumerate() {
-            let node = child
-                .as_widget_mut()
-                .layout(&mut tree.children[i], renderer, &child_limits);
+            let node = child.as_widget_mut().layout(
+                &mut tree.children[i],
+                renderer,
+                &child_limits,
+                direction,
+            );
 
             let child_size = node.size();
 

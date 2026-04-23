@@ -26,7 +26,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget,
+    ContentFit, Direction, Element, Layout, Length, Point, Rectangle, Rotation, Size, Vector,
+    Widget,
 };
 
 pub use image::{FilterMethod, Handle};
@@ -353,6 +354,7 @@ where
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout(
             renderer,

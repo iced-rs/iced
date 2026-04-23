@@ -27,7 +27,7 @@ use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::{Color, Direction, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 pub use text::{Alignment, Ellipsis, LineHeight, Shaping, Wrapping};
 
@@ -217,6 +217,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout(
             tree.state.downcast_mut::<State<Renderer::Paragraph>>(),

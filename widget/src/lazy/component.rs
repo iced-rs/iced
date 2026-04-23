@@ -1,5 +1,6 @@
 //! Build and reuse custom widgets using The Elm Architecture.
 #![allow(deprecated)]
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -285,6 +286,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
 
@@ -293,6 +295,7 @@ where
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 renderer,
                 limits,
+                direction,
             )
         })
     }
@@ -547,8 +550,8 @@ where
     Renderer: core::Renderer,
     S: 'static + Default,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.with_overlay_maybe(|overlay| overlay.layout(renderer, bounds))
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node {
+        self.with_overlay_maybe(|overlay| overlay.layout(renderer, bounds, direction))
             .unwrap_or_default()
     }
 

@@ -165,8 +165,8 @@ mod toast {
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
-        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle, Renderer, Size, Theme,
-        Vector,
+        Alignment, Center, Direction, Element, Event, Fill, Length, Point, Rectangle, Renderer,
+        Size, Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -286,10 +286,11 @@ mod toast {
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
+            direction: Direction,
         ) -> layout::Node {
             self.content
                 .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
+                .layout(&mut tree.children[0], renderer, limits, direction)
         }
 
         fn tag(&self) -> widget::tree::Tag {
@@ -457,7 +458,12 @@ mod toast {
     }
 
     impl<Message> overlay::Overlay<Message, Theme, Renderer> for Overlay<'_, '_, Message> {
-        fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        fn layout(
+            &mut self,
+            renderer: &Renderer,
+            bounds: Size,
+            direction: Direction,
+        ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, bounds);
 
             layout::flex::resolve(
@@ -469,6 +475,7 @@ mod toast {
                 10.into(),
                 10.0,
                 Alignment::End,
+                direction,
                 self.toasts,
                 self.trees,
             )

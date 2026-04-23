@@ -1,4 +1,5 @@
 use crate::container;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -257,6 +258,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits.shrink(self.padding);
         let max_size = limits.max();
@@ -265,6 +267,7 @@ where
             &mut tree.children[0],
             renderer,
             &layout::Limits::new(Size::ZERO, max_size),
+            direction,
         );
 
         let title_size = title_layout.size();
@@ -274,6 +277,7 @@ where
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
+                direction,
             );
 
             if title_layout.bounds().width + controls_layout.bounds().width > max_size.width {
@@ -282,6 +286,7 @@ where
                         &mut tree.children[2],
                         renderer,
                         &layout::Limits::new(Size::ZERO, max_size),
+                        direction,
                     );
 
                     let compact_size = compact_layout.size();

@@ -6,7 +6,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
+    Direction, Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A container that distributes its contents horizontally.
@@ -200,6 +201,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
@@ -210,6 +212,7 @@ where
             self.padding,
             self.spacing,
             self.align,
+            direction,
             &mut self.children,
             &mut tree.children,
         )
@@ -389,6 +392,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits
             .width(self.row.width)
@@ -426,9 +430,12 @@ where
         };
 
         for (i, child) in self.row.children.iter_mut().enumerate() {
-            let node = child
-                .as_widget_mut()
-                .layout(&mut tree.children[i], renderer, &child_limits);
+            let node = child.as_widget_mut().layout(
+                &mut tree.children[i],
+                renderer,
+                &child_limits,
+                direction,
+            );
 
             let child_size = node.size();
 
@@ -490,6 +497,19 @@ where
         }
 
         let size = limits.resolve(self.row.width, self.row.height, intrinsic_size);
+
+        if matches!(direction, Direction::RightToLeft) {
+            let container_width = size.expand(self.row.padding).width;
+
+            for node in &mut children {
+                let bounds = node.bounds();
+
+                node.move_to_mut(Point::new(
+                    container_width - bounds.x - bounds.width,
+                    bounds.y,
+                ));
+            }
+        }
 
         layout::Node::with_children(size.expand(self.row.padding), children)
     }

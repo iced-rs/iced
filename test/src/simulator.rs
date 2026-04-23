@@ -7,7 +7,7 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Point, Settings, Size, SmolStr};
+use crate::core::{Direction, Element, Event, Point, Settings, Size, SmolStr};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -78,6 +78,7 @@ where
             size,
             user_interface::Cache::default(),
             &mut renderer,
+            Direction::LeftToRight,
         );
 
         Simulator {

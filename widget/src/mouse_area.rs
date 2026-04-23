@@ -1,4 +1,5 @@
 //! A container for capturing mouse events.
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -180,10 +181,11 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits, direction)
     }
 
     fn operate(

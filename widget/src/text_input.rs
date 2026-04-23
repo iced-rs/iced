@@ -57,8 +57,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Alignment, Background, Border, Color, Element, Event, InputMethod, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    Alignment, Background, Border, Color, Direction, Element, Event, InputMethod, Layout, Length,
+    Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 
 /// A field that can be filled with text.
@@ -624,6 +624,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         self.layout(tree, renderer, limits, None)
     }

@@ -403,6 +403,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: crate::core::Direction,
     ) -> layout::Node {
         let bounds = limits.resolve(self.width, self.height, Size::ZERO);
         let regions = self
@@ -427,7 +428,8 @@ where
                 let region = regions.get(pane)?;
                 let size = Size::new(region.width, region.height);
 
-                let node = content.layout(tree, renderer, &layout::Limits::new(size, size));
+                let node =
+                    content.layout(tree, renderer, &layout::Limits::new(size, size), direction);
 
                 Some(node.move_to(Point::new(region.x, region.y)))
             })
@@ -939,7 +941,12 @@ where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: crate::core::Direction,
+    ) -> layout::Node {
         // TODO: Mouse translation
         layout::Node::new(self.layout.bounds().size()).move_to(self.origin)
     }

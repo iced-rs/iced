@@ -3,7 +3,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Event, Layout, Overlay, Shell, Size};
+use crate::{Direction, Event, Layout, Overlay, Shell, Size};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -60,12 +60,12 @@ impl<Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+    fn layout(&mut self, renderer: &Renderer, bounds: Size, direction: Direction) -> layout::Node {
         layout::Node::with_children(
             bounds,
             self.children
                 .iter_mut()
-                .map(|child| child.as_overlay_mut().layout(renderer, bounds))
+                .map(|child| child.as_overlay_mut().layout(renderer, bounds, direction))
                 .collect(),
         )
     }

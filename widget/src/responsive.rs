@@ -1,3 +1,4 @@
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -71,6 +72,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
         let size = limits.max();
@@ -78,10 +80,12 @@ where
         self.content = (self.view)(size);
         tree.diff_children(std::slice::from_ref(&self.content));
 
-        let node =
-            self.content
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, &limits.loose());
+        let node = self.content.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            &limits.loose(),
+            direction,
+        );
 
         let size = limits.resolve(self.width, self.height, node.size());
 

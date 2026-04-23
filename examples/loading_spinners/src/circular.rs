@@ -7,7 +7,10 @@ use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Radians, Rectangle, Renderer, Size, Vector};
+use iced::{
+    Background, Color, Direction, Element, Event, Length, Radians, Rectangle, Renderer, Size,
+    Vector,
+};
 
 use super::easing::{self, Easing};
 
@@ -237,6 +240,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.size, self.size)
     }
