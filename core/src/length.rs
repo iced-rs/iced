@@ -83,3 +83,9 @@ impl From<u32> for Length {
         Length::Fixed(units as f32)
     }
 }
+
+impl From<u16> for Length {
+    fn from(units: u16) -> Self {
+        Length::Fixed(units as f32)
+    }
+}
