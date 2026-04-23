@@ -61,6 +61,7 @@ use window::WindowManager;
 
 use rustc_hash::FxHashMap;
 use std::borrow::Cow;
+use std::collections::BTreeMap;
 use std::mem::ManuallyDrop;
 use std::slice;
 use std::sync::Arc;
@@ -408,6 +409,21 @@ where
                                     event_loop.set_allows_automatic_window_tabbing(_enabled);
                                 }
                             }
+                            Control::CreateCursor {
+                                id,
+                                source,
+                                on_created,
+                            } => {
+                                let cursor = event_loop.create_custom_cursor(source);
+                                self.process_event(
+                                    event_loop,
+                                    Event::CursorCreated {
+                                        id,
+                                        cursor,
+                                        on_created,
+                                    },
+                                );
+                            }
                         },
                         _ => {
                             break;
@@ -448,6 +464,11 @@ enum Event<Message: 'static> {
         make_visible: bool,
         on_open: oneshot::Sender<window::Id>,
     },
+    CursorCreated {
+        id: window::cursor::Id,
+        cursor: winit::window::CustomCursor,
+        on_created: oneshot::Sender<window::cursor::Id>,
+    },
     EventLoopAwakened(winit::event::Event<Message>),
     Exit,
 }
@@ -465,8 +486,16 @@ enum Control {
         on_open: oneshot::Sender<window::Id>,
         scale_factor: f32,
     },
+    CreateCursor {
+        id: window::cursor::Id,
+        source: winit::window::CustomCursorSource,
+        on_created: oneshot::Sender<window::cursor::Id>,
+    },
     SetAutomaticWindowTabbing(bool),
 }
+
+/// Registry for custom cursors.
+pub type CursorRegistry = BTreeMap<core::window::cursor::Id, winit::window::CustomCursor>;
 
 async fn run_instance<P>(
     mut program: program::Instance<P>,
@@ -488,6 +517,7 @@ async fn run_instance<P>(
     use winit::event_loop::ControlFlow;
 
     let mut window_manager = WindowManager::new();
+    let mut cursor_registry = CursorRegistry::new();
     let mut is_window_opening = !is_daemon;
 
     let mut compositor = None;
@@ -681,6 +711,14 @@ async fn run_instance<P>(
 
                 let _ = on_open.send(id);
                 is_window_opening = false;
+            }
+            Event::CursorCreated {
+                id,
+                cursor,
+                on_created,
+            } => {
+                let _ = cursor_registry.insert(id, cursor);
+                let _ = on_created.send(id);
             }
             Event::EventLoopAwakened(event) => {
                 match event {
@@ -915,7 +953,7 @@ async fn run_instance<P>(
                         {
                             window.request_redraw(redraw_request);
                             window.request_input_method(input_method);
-                            window.update_mouse(mouse_interaction);
+                            window.update_mouse(&cursor_registry, mouse_interaction);
 
                             run_clipboard(&mut proxy, &mut clipboard, clipboard_requests, id);
                         }
@@ -1097,7 +1135,7 @@ async fn run_instance<P>(
                                     clipboard: clipboard_requests,
                                     ..
                                 } => {
-                                    window.update_mouse(mouse_interaction);
+                                    window.update_mouse(&cursor_registry, mouse_interaction);
 
                                     #[cfg(not(feature = "unconditional-rendering"))]
                                     window.request_redraw(_redraw_request);
@@ -1591,6 +1629,29 @@ fn run_action<'a, P, C>(
                     }
 
                     window.raw.request_redraw();
+                }
+            }
+            window::Action::CreateCursor {
+                rgba,
+                size,
+                hotspot,
+                channel,
+            } => {
+                if let Ok(source) = winit::window::CustomCursor::from_rgba(
+                    rgba,
+                    size.width,
+                    size.height,
+                    hotspot.x,
+                    hotspot.y,
+                ) {
+                    let id = core::window::cursor::Id::unique();
+                    control_sender
+                        .start_send(Control::CreateCursor {
+                            id,
+                            source,
+                            on_created: channel,
+                        })
+                        .expect("Send control action");
                 }
             }
         },
