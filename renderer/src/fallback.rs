@@ -76,11 +76,12 @@ where
         direction: u8,
         fade_start: f32,
         fade_end: f32,
+        overflow_margin: f32,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.start_gradient_fade(bounds, direction, fade_start, fade_end)
+            renderer.start_gradient_fade(bounds, direction, fade_start, fade_end, overflow_margin)
         );
     }
 

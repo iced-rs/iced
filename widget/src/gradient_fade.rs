@@ -87,6 +87,8 @@ pub struct GradientFade<'a, Message, Theme = crate::Theme, Renderer = crate::Ren
     custom_fade_start: Option<f32>,
     /// Custom fade end position (0.0 to 1.0, where 1.0 is bottom/right)
     custom_fade_end: Option<f32>,
+    /// Extra margin around bounds for rendering overflow content (e.g. shadows)
+    overflow_margin: f32,
 }
 
 impl<'a, Message, Theme, Renderer> GradientFade<'a, Message, Theme, Renderer> {
@@ -100,6 +102,7 @@ impl<'a, Message, Theme, Renderer> GradientFade<'a, Message, Theme, Renderer> {
             fade_height: Some(80.0),
             custom_fade_start: None,
             custom_fade_end: None,
+            overflow_margin: 0.0,
         }
     }
 
@@ -151,6 +154,16 @@ impl<'a, Message, Theme, Renderer> GradientFade<'a, Message, Theme, Renderer> {
         self.custom_fade_start = Some(start.clamp(0.0, 1.0));
         self.custom_fade_end = Some(end.clamp(0.0, 1.0));
         self.fade_height = None;
+        self
+    }
+
+    /// Sets extra margin around the bounds for rendering overflow content like shadows.
+    ///
+    /// The compositing quad is expanded by this amount on all sides, so content
+    /// that overflows the widget bounds (e.g. box shadows) is not clipped.
+    /// The fade calculation still uses the original bounds.
+    pub fn overflow_margin(mut self, margin: f32) -> Self {
+        self.overflow_margin = margin.max(0.0);
         self
     }
 }
@@ -301,39 +314,81 @@ where
         match self.edge {
             FadeEdge::Bottom => {
                 // Direction 0 = TopToBottom (fade out at bottom)
-                renderer.with_gradient_fade(bounds, 0, fade_start, fade_end, |renderer| {
-                    self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
-                });
+                renderer.with_gradient_fade(
+                    bounds,
+                    0,
+                    fade_start,
+                    fade_end,
+                    self.overflow_margin,
+                    |renderer| {
+                        self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
+                    },
+                );
             }
             FadeEdge::Top => {
                 // Direction 1 = BottomToTop (fade out at top)
-                renderer.with_gradient_fade(bounds, 1, fade_start, fade_end, |renderer| {
-                    self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
-                });
+                renderer.with_gradient_fade(
+                    bounds,
+                    1,
+                    fade_start,
+                    fade_end,
+                    self.overflow_margin,
+                    |renderer| {
+                        self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
+                    },
+                );
             }
             FadeEdge::Right => {
                 // Direction 2 = LeftToRight (fade out at right)
-                renderer.with_gradient_fade(bounds, 2, fade_start, fade_end, |renderer| {
-                    self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
-                });
+                renderer.with_gradient_fade(
+                    bounds,
+                    2,
+                    fade_start,
+                    fade_end,
+                    self.overflow_margin,
+                    |renderer| {
+                        self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
+                    },
+                );
             }
             FadeEdge::Left => {
                 // Direction 3 = RightToLeft (fade out at left)
-                renderer.with_gradient_fade(bounds, 3, fade_start, fade_end, |renderer| {
-                    self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
-                });
+                renderer.with_gradient_fade(
+                    bounds,
+                    3,
+                    fade_start,
+                    fade_end,
+                    self.overflow_margin,
+                    |renderer| {
+                        self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
+                    },
+                );
             }
             FadeEdge::Vertical => {
                 // Direction 4 = VerticalBoth, fade_end = fade ratio from each edge
-                renderer.with_gradient_fade(bounds, 4, fade_start, fade_end, |renderer| {
-                    self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
-                });
+                renderer.with_gradient_fade(
+                    bounds,
+                    4,
+                    fade_start,
+                    fade_end,
+                    self.overflow_margin,
+                    |renderer| {
+                        self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
+                    },
+                );
             }
             FadeEdge::Horizontal => {
                 // Direction 5 = HorizontalBoth, fade_end = fade ratio from each edge
-                renderer.with_gradient_fade(bounds, 5, fade_start, fade_end, |renderer| {
-                    self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
-                });
+                renderer.with_gradient_fade(
+                    bounds,
+                    5,
+                    fade_start,
+                    fade_end,
+                    self.overflow_margin,
+                    |renderer| {
+                        self.draw_content(tree, renderer, theme, style, layout, cursor, viewport);
+                    },
+                );
             }
         }
     }

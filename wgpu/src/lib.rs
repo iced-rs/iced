@@ -1589,6 +1589,7 @@ impl core::Renderer for Renderer {
         direction: u8,
         fade_start: f32,
         fade_end: f32,
+        overflow_margin: f32,
     ) {
         // Flush current layer to ensure all prior content is committed
         self.layers.flush();
@@ -1607,7 +1608,8 @@ impl core::Renderer for Renderer {
         let fade = gradient_fade::GradientFade::new(bounds)
             .direction(fade_direction)
             .fade_start(fade_start)
-            .fade_end(fade_end);
+            .fade_end(fade_end)
+            .overflow_margin(overflow_margin);
 
         self.gradient_fade.start(fade, layer_count);
     }

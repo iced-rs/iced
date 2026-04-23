@@ -46,6 +46,10 @@ pub struct GradientFade {
     /// Where the fade ends (0.0 = start of bounds, 1.0 = end of bounds)
     /// Content after this point is fully transparent.
     pub fade_end: f32,
+    /// Extra margin around the bounds for rendering overflow content (e.g. shadows).
+    /// The compositing quad is expanded by this amount on all sides, but the fade
+    /// calculation still uses the original bounds.
+    pub overflow_margin: f32,
 }
 
 /// A gradient fade region with layer indices for tracking which layers to render offscreen.
@@ -67,6 +71,7 @@ impl GradientFade {
             direction: FadeDirection::default(),
             fade_start: 0.7,
             fade_end: 1.0,
+            overflow_margin: 0.0,
         }
     }
 
@@ -87,6 +92,12 @@ impl GradientFade {
         self.fade_end = end.clamp(0.0, 1.0);
         self
     }
+
+    /// Sets extra margin around the bounds for rendering overflow content (e.g. shadows).
+    pub fn overflow_margin(mut self, margin: f32) -> Self {
+        self.overflow_margin = margin.max(0.0);
+        self
+    }
 }
 
 /// Uniform data for the gradient fade shader.
@@ -95,7 +106,7 @@ impl GradientFade {
 struct GradientFadeUniforms {
     /// Bounds in normalized device coordinates (x, y, width, height)
     bounds: [f32; 4],
-    /// Fade parameters: (direction, fade_start, fade_end, _padding)
+    /// Fade parameters: (direction, fade_start, fade_end, overflow_margin_normalized)
     /// direction: 0 = TopToBottom, 1 = BottomToTop, 2 = LeftToRight, 3 = RightToLeft
     params: [f32; 4],
 }
@@ -219,7 +230,7 @@ impl Pipeline {
         let physical_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor();
 
-        // Calculate normalized bounds
+        // Calculate normalized bounds (original, for fade calculation)
         let bounds = fade.bounds * scale_factor;
         let normalized_bounds = [
             bounds.x / physical_size.width as f32,
@@ -227,6 +238,11 @@ impl Pipeline {
             bounds.width / physical_size.width as f32,
             bounds.height / physical_size.height as f32,
         ];
+
+        // Calculate normalized overflow margin for the shader
+        let margin_px = fade.overflow_margin * scale_factor;
+        let margin_norm_x = margin_px / physical_size.width as f32;
+        let margin_norm_y = margin_px / physical_size.height as f32;
 
         let direction = match fade.direction {
             FadeDirection::TopToBottom => 0.0,
@@ -237,9 +253,17 @@ impl Pipeline {
             FadeDirection::HorizontalBoth => 5.0,
         };
 
+        // Encode the overflow margin into the expanded bounds for the quad,
+        // while keeping the original bounds for fade calculation.
+        // Pack margin into params.w so the shader can expand the quad.
         let uniforms = GradientFadeUniforms {
             bounds: normalized_bounds,
-            params: [direction, fade.fade_start, fade.fade_end, 0.0],
+            params: [
+                direction,
+                fade.fade_start,
+                fade.fade_end,
+                margin_norm_x.max(margin_norm_y),
+            ],
         };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {

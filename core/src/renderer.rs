@@ -86,12 +86,14 @@ pub trait Renderer {
     /// * `direction` - The direction of the fade (0=TopToBottom, 1=BottomToTop, 2=LeftToRight, 3=RightToLeft)
     /// * `fade_start` - Where the fade begins (0.0 to 1.0, relative to bounds)
     /// * `fade_end` - Where the fade ends (0.0 to 1.0, relative to bounds)
+    /// * `overflow_margin` - Extra margin around bounds for rendering overflow (e.g. shadows)
     fn start_gradient_fade(
         &mut self,
         _bounds: Rectangle,
         _direction: u8,
         _fade_start: f32,
         _fade_end: f32,
+        _overflow_margin: f32,
     ) {
     }
 
@@ -111,9 +113,10 @@ pub trait Renderer {
         direction: u8,
         fade_start: f32,
         fade_end: f32,
+        overflow_margin: f32,
         f: impl FnOnce(&mut Self),
     ) {
-        self.start_gradient_fade(bounds, direction, fade_start, fade_end);
+        self.start_gradient_fade(bounds, direction, fade_start, fade_end, overflow_margin);
         f(self);
         self.end_gradient_fade();
     }

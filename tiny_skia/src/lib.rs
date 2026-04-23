@@ -281,6 +281,7 @@ impl core::Renderer for Renderer {
         _direction: u8,
         _fade_start: f32,
         _fade_end: f32,
+        _overflow_margin: f32,
     ) {
         // No-op: content renders at full opacity
     }
