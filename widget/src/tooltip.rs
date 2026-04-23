@@ -319,7 +319,7 @@ where
         );
 
         let tooltip = if let State::Open { cursor_position } = *state {
-            Some(overlay::Element::new(Box::new(Overlay {
+            Some(overlay::Element::new(Overlay {
                 position: layout.position() + translation,
                 tooltip: &mut self.tooltip,
                 tree: children.next().unwrap(),
@@ -330,7 +330,7 @@ where
                 gap: self.gap,
                 padding: self.padding,
                 class: &self.class,
-            })))
+            }))
         } else {
             None
         };
