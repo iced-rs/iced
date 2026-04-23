@@ -4,8 +4,8 @@
 ///
 /// This type is normally asked as an argument in a generic way
 /// (e.g. `impl Into<Pixels>`) and, since `Pixels` implements `From` both for
-/// `f32` and `u16`, you should be able to provide both integers and float
-/// literals as needed.
+/// `f32`, `u32` and `u16`, you should be able to provide both integers and
+/// float literals as needed.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Default)]
 pub struct Pixels(pub f32);
 
@@ -22,6 +22,12 @@ impl From<f32> for Pixels {
 
 impl From<u32> for Pixels {
     fn from(amount: u32) -> Self {
+        Self(amount as f32)
+    }
+}
+
+impl From<u16> for Pixels {
+    fn from(amount: u16) -> Self {
         Self(amount as f32)
     }
 }
@@ -84,6 +90,14 @@ impl std::ops::Div<u32> for Pixels {
     type Output = Pixels;
 
     fn div(self, rhs: u32) -> Self {
+        Pixels(self.0 / rhs as f32)
+    }
+}
+
+impl std::ops::Div<u16> for Pixels {
+    type Output = Pixels;
+
+    fn div(self, rhs: u16) -> Self {
         Pixels(self.0 / rhs as f32)
     }
 }
