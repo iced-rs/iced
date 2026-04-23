@@ -42,9 +42,25 @@ sysinfo.optional = true
 arboard.workspace = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-web-sys.workspace = true
-web-sys.features = ["Document", "Window", "HtmlCanvasElement"]
+wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
+web-sys.workspace = true
+web-sys.features = [
+    "Document",
+    "Window",
+    "HtmlCanvasElement",
+    # text_agent: virtual keyboard support
+    "CssStyleDeclaration",
+    "CompositionEvent",
+    "Element",
+    "Event",
+    "EventTarget",
+    "HtmlElement",
+    "HtmlInputElement",
+    "InputEvent",
+    "KeyboardEvent",
+    "Node",
+]
 
 [target.'cfg(target_os = "linux")'.dependencies]
 mundy.workspace = true

@@ -238,6 +238,7 @@ tracing = "0.1"
 two-face = { version = "0.4", default-features = false, features = ["syntect-default-fancy"] }
 unicode-segmentation = "1.0"
 url = "2.5"
+wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
 web-sys = "=0.3.85"
