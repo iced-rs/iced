@@ -2427,6 +2427,8 @@ dependencies = [
  "iced_renderer",
  "iced_runtime",
  "iced_selector",
+ "image",
+ "image-compare",
  "nom",
  "png 0.18.1",
  "sha2",
@@ -2645,6 +2647,18 @@ dependencies = [
  "tiff",
  "zune-core 0.5.1",
  "zune-jpeg 0.5.14",
+]
+
+[[package]]
+name = "image-compare"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "176623a137baf75908084aff53578d6336cbd932bffaf12fabe26b343eb13338"
+dependencies = [
+ "image",
+ "itertools 0.14.0",
+ "rayon",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
