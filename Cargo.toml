@@ -22,7 +22,17 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "hinting", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
+default = [
+  "wgpu",
+  "tiny-skia",
+  "crisp",
+  "hinting",
+  "web-colors",
+  "thread-pool",
+  "linux-theme-detection",
+  "x11",
+  "wayland",
+]
 # Enables the `wgpu` GPU-accelerated renderer with all its default features (Vulkan, Metal, DX12, OpenGL, and WebGPU)
 wgpu = ["wgpu-bare", "iced_renderer/wgpu"]
 # Enables the `wgpu` GPU-accelerated renderer with the minimum required features (no backends!)
@@ -142,24 +152,24 @@ strip = "debuginfo"
 
 [workspace]
 members = [
-    "beacon",
-    "core",
-    "debug",
-    "devtools",
-    "futures",
-    "graphics",
-    "highlighter",
-    "program",
-    "renderer",
-    "runtime",
-    "selector",
-    "test",
-    "tester",
-    "tiny_skia",
-    "wgpu",
-    "widget",
-    "winit",
-    "examples/*",
+  "beacon",
+  "core",
+  "debug",
+  "devtools",
+  "futures",
+  "graphics",
+  "highlighter",
+  "program",
+  "renderer",
+  "runtime",
+  "selector",
+  "test",
+  "tester",
+  "tiny_skia",
+  "wgpu",
+  "widget",
+  "winit",
+  "examples/*",
 ]
 
 [workspace.package]
@@ -199,9 +209,12 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
-cosmic-text = "0.18"
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "1d68895e9c4c9b73739f826e81c2e3012c155cce" }
-futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+cosmic-text = "0.19"
+cryoglyph = { git = "https://github.com/hojjatabdollahi/cryoglyph.git", rev = "bccada08e636d610d78ec5fd84a7ca1b2f71b81c" }
+futures = { version = "0.3", default-features = false, features = [
+  "std",
+  "async-await",
+] }
 glam = "0.25"
 guillotiere = "0.6"
 half = "2.2"
@@ -232,18 +245,28 @@ smol_str = "0.2"
 softbuffer = { version = "0.4", default-features = false }
 sysinfo = "0.33"
 thiserror = "2"
-tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
+tiny-skia = { version = "0.11", default-features = false, features = [
+  "std",
+  "simd",
+] }
 tokio = "1.0"
 tracing = "0.1"
-two-face = { version = "0.4", default-features = false, features = ["syntect-default-fancy"] }
+two-face = { version = "0.4", default-features = false, features = [
+  "syntect-default-fancy",
+] }
 unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
 web-sys = "=0.3.85"
 web-time = "1.1"
-wgpu = { version = "28.0", default-features = false, features = ["std", "wgsl"] }
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "28.0", default-features = false, features = [
+  "std",
+  "wgsl",
+] }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed", default-features = false, features = [
+  "rwh_06",
+] }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }

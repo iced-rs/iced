@@ -1,7 +1,7 @@
 //! Draw paragraphs.
 use crate::alignment;
 use crate::text::{
-    Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+    Affinity, Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
 };
 use crate::{Pixels, Point, Rectangle, Size};
 
@@ -72,6 +72,32 @@ pub trait Paragraph: Sized + Default {
 
     /// Returns the distance to the given grapheme index in the [`Paragraph`].
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
+
+    /// Returns the visual position of a cursor at the given byte index and [`Affinity`].
+    fn cursor_position(
+        &self,
+        _line: usize,
+        _byte_index: usize,
+        _affinity: Affinity,
+    ) -> Option<Point> {
+        None
+    }
+
+    /// Returns highlight rectangles for a text selection. For mixed BiDi text,
+    /// this may return multiple rectangles.
+    fn highlight(
+        &self,
+        _line: usize,
+        _start: (usize, Affinity),
+        _end: (usize, Affinity),
+    ) -> Vec<Rectangle> {
+        Vec::new()
+    }
+
+    /// Returns `true` if the line is RTL, `false` for LTR.
+    fn is_rtl(&self, _line: usize) -> Option<bool> {
+        None
+    }
 
     /// Returns the minimum width that can fit the contents of the [`Paragraph`].
     fn min_width(&self) -> f32 {
