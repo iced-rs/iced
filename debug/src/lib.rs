@@ -110,7 +110,10 @@ pub fn time_with<T>(name: impl Into<String>, f: impl FnOnce() -> T) -> T {
     result
 }
 
-pub fn commands() -> Subscription<Command> {
+pub fn commands<Custom>() -> Subscription<Command, Custom>
+where
+    Custom: 'static + Send,
+{
     internal::commands()
 }
 
@@ -260,7 +263,10 @@ mod internal {
         ENABLED.store(false, atomic::Ordering::Relaxed);
     }
 
-    pub fn commands() -> Subscription<Command> {
+    pub fn commands<Custom>() -> Subscription<Command, Custom>
+    where
+        Custom: 'static + std::marker::Send,
+    {
         fn listen_for_commands() -> impl Stream<Item = Command> {
             use crate::futures::futures::stream;
 
@@ -394,7 +400,10 @@ mod internal {
         Span
     }
 
-    pub fn commands() -> Subscription<Command> {
+    pub fn commands<Custom>() -> Subscription<Command, Custom>
+    where
+        Custom: 'static + std::marker::Send,
+    {
         Subscription::none()
     }
 

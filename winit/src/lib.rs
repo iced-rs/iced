@@ -19,6 +19,7 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use iced_debug as debug;
+use iced_debug::futures::Subscription;
 pub use iced_program as program;
 pub use iced_runtime as runtime;
 pub use program::core;
@@ -65,10 +66,46 @@ use std::mem::ManuallyDrop;
 use std::slice;
 use std::sync::Arc;
 
+/// A platform specific event
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PlatformSpecific {
+    /// A MacOS specific event
+    MacOS(MacOS),
+}
+
+/// Describes an event specific to MacOS
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MacOS {
+    /// Triggered when the app receives an URL from the system
+    ///
+    /// _**Note:** For this event to be triggered, the executable needs to be properly [bundled]!_
+    ///
+    /// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
+    ReceivedUrl(String),
+}
+
+/// Creates a [`Subscription`] that notifies of custom application URL
+/// received from the system.
+///
+/// _**Note:** Currently, it only triggers on macOS and the executable needs to be properly [bundled]!_
+///
+/// [bundled]: https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW19
+pub fn listen_url() -> Subscription<String, PlatformSpecific> {
+    #[derive(Hash)]
+    struct ListenUrl;
+
+    subscription::filter_map(ListenUrl, move |event| match event {
+        subscription::Event::PlatformSpecific(PlatformSpecific::MacOS(MacOS::ReceivedUrl(url))) => {
+            Some(url)
+        }
+        _ => None,
+    })
+}
+
 /// Runs a [`Program`] with the provided settings.
 pub fn run<P>(program: P) -> Result<(), Error>
 where
-    P: Program + 'static,
+    P: Program<Custom = PlatformSpecific> + 'static,
     P::Theme: theme::Base,
 {
     use winit::event_loop::EventLoop;
@@ -470,7 +507,7 @@ enum Control {
 
 async fn run_instance<P>(
     mut program: program::Instance<P>,
-    mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
+    mut runtime: Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>, P::Custom>,
     mut proxy: Proxy<P::Message>,
     mut event_receiver: mpsc::UnboundedReceiver<Event<Action<P::Message>>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
@@ -481,7 +518,7 @@ async fn run_instance<P>(
     default_fonts: Vec<Cow<'static, [u8]>>,
     mut _system_theme: oneshot::Receiver<theme::Mode>,
 ) where
-    P: Program + 'static,
+    P: Program<Custom = PlatformSpecific> + 'static,
     P::Theme: theme::Base,
 {
     use winit::event;
@@ -713,9 +750,7 @@ async fn run_instance<P>(
                         event::MacOS::ReceivedUrl(url),
                     )) => {
                         runtime.broadcast(subscription::Event::PlatformSpecific(
-                            subscription::PlatformSpecific::MacOS(
-                                subscription::MacOS::ReceivedUrl(url),
-                            ),
+                            PlatformSpecific::MacOS(MacOS::ReceivedUrl(url)),
                         ));
                     }
                     event::Event::UserEvent(action) => {
@@ -1212,9 +1247,9 @@ where
     user_interface
 }
 
-fn update<P: Program, E: Executor>(
+fn update<P: Program<Custom = PlatformSpecific>, E: Executor>(
     program: &mut program::Instance<P>,
-    runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
+    runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>, P::Custom>,
     messages: &mut Vec<P::Message>,
 ) -> Vec<Action<P::Message>>
 where
@@ -1268,7 +1303,7 @@ where
 fn run_action<'a, P, C>(
     action: Action<P::Message>,
     program: &'a program::Instance<P>,
-    runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
+    runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>, P::Custom>,
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
     messages: &mut Vec<P::Message>,

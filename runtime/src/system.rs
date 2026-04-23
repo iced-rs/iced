@@ -58,7 +58,10 @@ pub fn theme() -> Task<theme::Mode> {
 }
 
 /// Subscribes to system theme changes.
-pub fn theme_changes() -> Subscription<theme::Mode> {
+pub fn theme_changes<Custom>() -> Subscription<theme::Mode, Custom>
+where
+    Custom: 'static + Send,
+{
     #[derive(Hash)]
     struct ThemeChanges;
 
