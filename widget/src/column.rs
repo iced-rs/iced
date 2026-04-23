@@ -372,7 +372,7 @@ impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
     }
 
     /// Sets the vertical alignment of the wrapping [`Column`].
-    pub fn align_x(mut self, align_y: impl Into<alignment::Vertical>) -> Self {
+    pub fn align_y(mut self, align_y: impl Into<alignment::Vertical>) -> Self {
         self.align_y = align_y.into();
         self
     }
