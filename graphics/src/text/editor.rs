@@ -93,12 +93,12 @@ impl editor::Editor for Editor {
         let mut font_system = text::font_system().write().expect("Write font system");
 
         buffer.set_text(
-            font_system.raw(),
             text,
             &cosmic_text::Attrs::new(),
             cosmic_text::Shaping::Advanced,
             None,
         );
+        buffer.shape_until_scroll(font_system.raw(), false);
 
         Editor(Some(Arc::new(Internal {
             editor: cosmic_text::Editor::new(buffer),
@@ -547,14 +547,11 @@ impl editor::Editor for Editor {
                 internal.hint = new_hint_factor.is_some();
                 internal.hint_factor = new_hint_factor.unwrap_or(1.0);
 
-                buffer.set_hinting(
-                    font_system.raw(),
-                    if internal.hint {
-                        cosmic_text::Hinting::Enabled
-                    } else {
-                        cosmic_text::Hinting::Disabled
-                    },
-                );
+                buffer.set_hinting(if internal.hint {
+                    cosmic_text::Hinting::Enabled
+                } else {
+                    cosmic_text::Hinting::Disabled
+                });
 
                 hinting_changed = true;
             }
@@ -565,13 +562,10 @@ impl editor::Editor for Editor {
             {
                 log::trace!("Updating `Metrics` of `Editor`...");
 
-                buffer.set_metrics(
-                    font_system.raw(),
-                    cosmic_text::Metrics::new(
-                        new_size.0 * internal.hint_factor,
-                        new_line_height.0 * internal.hint_factor,
-                    ),
-                );
+                buffer.set_metrics(cosmic_text::Metrics::new(
+                    new_size.0 * internal.hint_factor,
+                    new_line_height.0 * internal.hint_factor,
+                ));
             }
 
             let new_wrap = text::to_wrap(new_wrapping);
@@ -579,20 +573,21 @@ impl editor::Editor for Editor {
             if new_wrap != buffer.wrap() {
                 log::trace!("Updating `Wrap` strategy of `Editor`...");
 
-                buffer.set_wrap(font_system.raw(), new_wrap);
+                buffer.set_wrap(new_wrap);
             }
 
             if new_bounds != internal.bounds || hinting_changed {
                 log::trace!("Updating size of `Editor`...");
 
                 buffer.set_size(
-                    font_system.raw(),
                     Some(new_bounds.width * internal.hint_factor),
                     Some(new_bounds.height * internal.hint_factor),
                 );
 
                 internal.bounds = new_bounds;
             }
+
+            buffer.shape_until_scroll(font_system.raw(), false);
 
             if let Some(topmost_line_changed) = internal.topmost_line_changed.take() {
                 log::trace!(
