@@ -189,12 +189,13 @@ impl Cache {
                 log::warn!("SVG rendering for {handle:?} panicked: {error:?}");
             }
 
-            if let Some([r, g, b, _]) = key.color {
-                // Apply color filter
+            if let Some([r, g, b, a]) = key.color {
+                // Apply color filter (RGB replacement + alpha multiplication)
                 for pixel in bytemuck::cast_slice_mut::<u8, u32>(image.data_mut()) {
-                    *pixel = bytemuck::cast(
-                        tiny_skia::ColorU8::from_rgba(b, g, r, (*pixel >> 24) as u8).premultiply(),
-                    );
+                    let src_a = (*pixel >> 24) as u16;
+                    let new_a = ((src_a * u16::from(a)) / 255) as u8;
+                    *pixel =
+                        bytemuck::cast(tiny_skia::ColorU8::from_rgba(b, g, r, new_a).premultiply());
                 }
             } else {
                 // Swap R and B channels for `softbuffer` presentation
