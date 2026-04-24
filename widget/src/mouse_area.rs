@@ -10,6 +10,7 @@ use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
 /// Emit messages on mouse events.
 pub struct MouseArea<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
+    on_drag: Option<Message>,
     on_press: Option<Message>,
     on_release: Option<Message>,
     on_double_click: Option<Message>,
@@ -25,6 +26,13 @@ pub struct MouseArea<'a, Message, Theme = crate::Theme, Renderer = crate::Render
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
+    /// The message to emit when a drag is initiated (mouse moves >1px after press).
+    #[must_use]
+    pub fn on_drag(mut self, message: Message) -> Self {
+        self.on_drag = Some(message);
+        self
+    }
+
     /// The message to emit on a left button press.
     #[must_use]
     pub fn on_press(mut self, message: Message) -> Self {
@@ -126,6 +134,7 @@ struct State {
     bounds: Rectangle,
     cursor_position: Option<Point>,
     previous_click: Option<mouse::Click>,
+    drag_initiated: Option<Point>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -133,6 +142,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         MouseArea {
             content: content.into(),
+            on_drag: None,
             on_press: None,
             on_release: None,
             on_double_click: None,
@@ -372,9 +382,15 @@ fn update<Message: Clone, Theme, Renderer>(
                 // processed by us and should not be popup to parent widgets.
                 shell.capture_event();
             }
+
+            // Record press position for on_drag detection
+            if state.drag_initiated.is_none() && widget.on_drag.is_some() {
+                state.drag_initiated = cursor_position;
+            }
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. }) => {
+            state.drag_initiated = None;
             if let Some(message) = widget.on_release.as_ref() {
                 shell.publish(message.clone());
             }
@@ -408,5 +424,15 @@ fn update<Message: Clone, Theme, Renderer>(
             }
         }
         _ => {}
+    }
+
+    // Drag detection: fire on_drag when cursor moves >1px from press point
+    if let Some((message, drag_source)) = widget.on_drag.as_ref().zip(state.drag_initiated)
+        && let Some(position) = cursor.position()
+        && position.distance(drag_source) > 1.0
+    {
+        state.drag_initiated = None;
+        shell.publish(message.clone());
+        shell.capture_event();
     }
 }
