@@ -134,6 +134,22 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
         #[cfg(feature = "fira-sans")]
         raw.db_mut().set_sans_serif_family("Fira Sans");
 
+        #[cfg(target_os = "macos")]
+        {
+            #[cfg(not(feature = "fira-sans"))]
+            raw.db_mut().set_sans_serif_family(".SF NS");
+            raw.db_mut().set_serif_family("Times New Roman");
+            raw.db_mut().set_monospace_family("Menlo");
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            #[cfg(not(feature = "fira-sans"))]
+            raw.db_mut().set_sans_serif_family("Segoe UI");
+            raw.db_mut().set_serif_family("Times New Roman");
+            raw.db_mut().set_monospace_family("Consolas");
+        }
+
         RwLock::new(FontSystem {
             raw,
             loaded_fonts: HashSet::new(),
