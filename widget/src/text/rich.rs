@@ -1,8 +1,10 @@
 use crate::core::alignment;
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
+use crate::core::widget::operation::Selectable;
 use crate::core::widget::text::{
     self, Alignment, Catalog, Ellipsis, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
@@ -32,6 +34,7 @@ where
     class: Theme::Class<'a>,
     hovered_link: Option<usize>,
     on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
+    selectable: bool,
 }
 
 impl<'a, Link, Message, Theme, Renderer> Rich<'a, Link, Message, Theme, Renderer>
@@ -57,7 +60,15 @@ where
             class: Theme::default(),
             hovered_link: None,
             on_link_click: None,
+            selectable: false,
         }
+    }
+
+    /// Allows the user to drag-select text inside the [`Rich`] and
+    /// copy it with `Ctrl+C` while focused. Off by default.
+    pub fn selectable(mut self, selectable: bool) -> Self {
+        self.selectable = selectable;
+        self
     }
 
     /// Creates a new [`Rich`] text with the given text spans.
@@ -164,7 +175,13 @@ where
     {
         let color = color.map(Into::into);
 
-        self.style(move |_theme| Style { color })
+        // Inherit `selection` (and any other field) from the theme's
+        // default class so a per-widget color override doesn't silently
+        // disable the selection highlight.
+        self.style(move |theme: &Theme| Style {
+            color,
+            ..theme.style(&<Theme as Catalog>::default())
+        })
     }
 
     /// Sets the default style class of the [`Rich`] text.
@@ -188,10 +205,72 @@ where
     }
 }
 
+/// The internal state of a [`Rich`] widget. Implements the
+/// [`Selectable`] operation hook so coordinator widgets like
+/// [`selectable_group`] can read and write the selection without
+/// touching this concrete type.
+///
+/// [`Selectable`]: core::widget::operation::Selectable
+/// [`selectable_group`]: crate::selectable_group
 struct State<Link, P: Paragraph> {
     spans: Vec<Span<'static, Link, P::Font>>,
+    /// Cached concatenation of every span's text, kept in sync with
+    /// `spans` during layout. Lets the keyboard navigation helpers
+    /// walk codepoints / words without allocating a fresh `String`
+    /// per keystroke.
+    text: String,
     span_pressed: Option<usize>,
     paragraph: P,
+    selection: Option<(usize, usize)>,
+    selecting: bool,
+    focused: bool,
+    externally_managed: bool,
+}
+
+impl<Link, P: Paragraph> core::widget::operation::Selectable for State<Link, P> {
+    fn selection(&self) -> Option<(usize, usize)> {
+        self.selection
+    }
+
+    fn set_selection(&mut self, range: Option<(usize, usize)>) {
+        self.selection = range;
+    }
+
+    fn text(&self) -> &str {
+        &self.text
+    }
+
+    fn byte_position(&self, byte: usize) -> Option<Point> {
+        self.paragraph.byte_position(byte)
+    }
+
+    fn hit_test(&self, point: Point) -> Option<usize> {
+        self.paragraph.hit_test(point).map(core::text::Hit::cursor)
+    }
+
+    fn visual_line_height(&self) -> Option<f32> {
+        self.paragraph.visual_line_height()
+    }
+
+    fn min_bounds_height(&self) -> f32 {
+        self.paragraph.min_bounds().height
+    }
+
+    fn bounds_width(&self) -> f32 {
+        self.paragraph.bounds().width
+    }
+
+    fn set_externally_managed(&mut self, value: bool) {
+        self.externally_managed = value;
+    }
+
+    /// Override: rich text needs to walk per-span to extract selection
+    /// content, since `self.text` is a flat concatenation that doesn't
+    /// preserve span boundaries — but the public API has to return
+    /// what the user *sees* and that's the per-span text.
+    fn selection_text(&self, start: usize, end: usize) -> String {
+        collect_selection(&self.spans, start, end)
+    }
 }
 
 impl<Link, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -208,8 +287,13 @@ where
     fn state(&self) -> tree::State {
         tree::State::new(State::<Link, _> {
             spans: Vec::new(),
+            text: String::new(),
             span_pressed: None,
             paragraph: Renderer::Paragraph::default(),
+            selection: None,
+            selecting: false,
+            focused: false,
+            externally_managed: false,
         })
     }
 
@@ -244,6 +328,22 @@ where
         )
     }
 
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn core::widget::Operation,
+    ) {
+        if !self.selectable {
+            return;
+        }
+        let state = tree
+            .state
+            .downcast_mut::<State<Link, Renderer::Paragraph>>();
+        operation.selectable(None, layout.bounds(), state);
+    }
+
     fn draw(
         &self,
         tree: &Tree,
@@ -263,6 +363,29 @@ where
             .downcast_ref::<State<Link, Renderer::Paragraph>>();
 
         let style = theme.style(&self.class);
+
+        if self.selectable
+            && let Some((a, b)) = state.selection
+        {
+            let (start, end) = if a <= b { (a, b) } else { (b, a) };
+            if start < end && style.selection.a > 0.0 {
+                let anchor = layout.bounds().anchor(
+                    state.paragraph.min_bounds(),
+                    state.paragraph.align_x(),
+                    state.paragraph.align_y(),
+                );
+                let translation = anchor - Point::ORIGIN;
+                for bounds in state.paragraph.selection_bounds(start, end) {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: bounds + translation,
+                            ..Default::default()
+                        },
+                        style.selection,
+                    );
+                }
+            }
+        }
 
         for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
             let is_hovered_link = self.on_link_click.is_some() && Some(index) == self.hovered_link;
@@ -357,31 +480,42 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
-        let Some(on_link_clicked) = &self.on_link_click else {
+        // Bail entirely when neither feature is enabled — keeps the
+        // hot path for plain decorative `rich_text` allocation-free.
+        if self.on_link_click.is_none() && !self.selectable {
             return;
-        };
+        }
 
         let was_hovered = self.hovered_link.is_some();
+        let cursor_in_bounds = cursor.position_in(layout.bounds());
 
-        if let Some(position) = cursor.position_in(layout.bounds()) {
-            let state = tree
-                .state
-                .downcast_ref::<State<Link, Renderer::Paragraph>>();
+        if self.on_link_click.is_some() {
+            if let Some(position) = cursor_in_bounds {
+                let state = tree
+                    .state
+                    .downcast_ref::<State<Link, Renderer::Paragraph>>();
 
-            self.hovered_link = state.paragraph.hit_span(position).and_then(|span| {
-                if self.spans.as_ref().as_ref().get(span)?.link.is_some() {
-                    Some(span)
-                } else {
-                    None
-                }
-            });
-        } else {
-            self.hovered_link = None;
+                self.hovered_link = state.paragraph.hit_span(position).and_then(|span| {
+                    if self.spans.as_ref().as_ref().get(span)?.link.is_some() {
+                        Some(span)
+                    } else {
+                        None
+                    }
+                });
+            } else {
+                self.hovered_link = None;
+            }
+
+            if was_hovered != self.hovered_link.is_some() {
+                shell.request_redraw();
+            }
         }
 
-        if was_hovered != self.hovered_link.is_some() {
-            shell.request_redraw();
-        }
+        let externally_managed = tree
+            .state
+            .downcast_ref::<State<Link, Renderer::Paragraph>>()
+            .externally_managed;
+        let selectable_self = self.selectable && !externally_managed;
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -392,6 +526,38 @@ where
                 if self.hovered_link.is_some() {
                     state.span_pressed = self.hovered_link;
                     shell.capture_event();
+                } else if selectable_self
+                    && let Some(position) = cursor_in_bounds
+                    && let Some(hit) = state.paragraph.hit_test(position)
+                {
+                    let cursor_at = hit.cursor();
+                    state.selection = Some((cursor_at, cursor_at));
+                    state.selecting = true;
+                    state.focused = true;
+                    shell.capture_event();
+                    shell.request_redraw();
+                } else if selectable_self && (state.selection.take().is_some() || state.focused) {
+                    // Press outside this widget's text drops focus, so
+                    // siblings can self-clear on the same event.
+                    state.focused = false;
+                    shell.request_redraw();
+                }
+            }
+            Event::Mouse(mouse::Event::CursorMoved { .. }) if selectable_self => {
+                let state = tree
+                    .state
+                    .downcast_mut::<State<Link, Renderer::Paragraph>>();
+                if state.selecting
+                    && let Some(position) = cursor_in_bounds
+                    && let Some(hit) = state.paragraph.hit_test(position)
+                {
+                    let new_focus = hit.cursor();
+                    if let Some((anchor, focus)) = state.selection
+                        && focus != new_focus
+                    {
+                        state.selection = Some((anchor, new_focus));
+                        shell.request_redraw();
+                    }
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
@@ -401,12 +567,13 @@ where
 
                 match state.span_pressed {
                     Some(span) if Some(span) == self.hovered_link => {
-                        if let Some(link) = self
-                            .spans
-                            .as_ref()
-                            .as_ref()
-                            .get(span)
-                            .and_then(|span| span.link.clone())
+                        if let Some(on_link_clicked) = &self.on_link_click
+                            && let Some(link) = self
+                                .spans
+                                .as_ref()
+                                .as_ref()
+                                .get(span)
+                                .and_then(|span| span.link.clone())
                         {
                             shell.publish(on_link_clicked(link));
                         }
@@ -415,6 +582,110 @@ where
                 }
 
                 state.span_pressed = None;
+
+                if selectable_self && state.selecting {
+                    state.selecting = false;
+
+                    if let Some((a, b)) = state.selection
+                        && a == b
+                    {
+                        state.selection = None;
+                    }
+                }
+            }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Character(c),
+                modifiers,
+                ..
+            }) if selectable_self && modifiers.command() && matches!(c.as_str(), "c" | "C") => {
+                let state = tree
+                    .state
+                    .downcast_ref::<State<Link, Renderer::Paragraph>>();
+                if state.focused
+                    && let Some((a, b)) = state.selection
+                {
+                    let (start, end) = if a <= b { (a, b) } else { (b, a) };
+                    if start < end {
+                        let extracted = collect_selection(self.spans.as_ref().as_ref(), start, end);
+                        if !extracted.is_empty() {
+                            shell.write_clipboard(core::clipboard::Content::Text(extracted));
+                            shell.capture_event();
+                        }
+                    }
+                }
+            }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Character(c),
+                modifiers,
+                ..
+            }) if selectable_self && modifiers.command() && matches!(c.as_str(), "a" | "A") => {
+                let state = tree
+                    .state
+                    .downcast_mut::<State<Link, Renderer::Paragraph>>();
+                if state.focused {
+                    let len = state.text_len();
+                    if len > 0 {
+                        state.selection = Some((0, len));
+                        state.selecting = false;
+                        shell.capture_event();
+                        shell.request_redraw();
+                    }
+                }
+            }
+            Event::Keyboard(keyboard::Event::KeyPressed {
+                key: keyboard::Key::Named(named),
+                modifiers,
+                ..
+            }) if selectable_self => {
+                let state = tree
+                    .state
+                    .downcast_mut::<State<Link, Renderer::Paragraph>>();
+                if !state.focused {
+                    return;
+                }
+                if matches!(named, keyboard::key::Named::Escape) {
+                    if state.selection.take().is_some() {
+                        shell.capture_event();
+                        shell.request_redraw();
+                    }
+                    return;
+                }
+
+                let len = state.text_len();
+                let (anchor, focus) = state
+                    .selection
+                    .unwrap_or((focus_default(*named, len), focus_default(*named, len)));
+
+                let new_focus: Option<usize> = match named {
+                    keyboard::key::Named::ArrowLeft if modifiers.command() => {
+                        Some(state.step_byte_word(focus, -1))
+                    }
+                    keyboard::key::Named::ArrowRight if modifiers.command() => {
+                        Some(state.step_byte_word(focus, 1))
+                    }
+                    keyboard::key::Named::ArrowLeft => Some(state.step_byte(focus, -1)),
+                    keyboard::key::Named::ArrowRight => Some(state.step_byte(focus, 1)),
+                    keyboard::key::Named::ArrowUp => state.step_byte_line(focus, -1).or(Some(0)),
+                    keyboard::key::Named::ArrowDown => state.step_byte_line(focus, 1).or(Some(len)),
+                    keyboard::key::Named::Home if modifiers.command() => Some(0),
+                    keyboard::key::Named::End if modifiers.command() => Some(len),
+                    keyboard::key::Named::Home => state.line_edge_byte(focus, -1).or(Some(0)),
+                    keyboard::key::Named::End => state.line_edge_byte(focus, 1).or(Some(len)),
+                    _ => return,
+                };
+
+                if let Some(new_focus) = new_focus
+                    && new_focus != focus
+                {
+                    // With Shift: extend selection (anchor stays).
+                    // Without Shift: collapse to a caret at the new
+                    // focus, mirroring how `text_input` moves a
+                    // non-extending cursor.
+                    let new_anchor = if modifiers.shift() { anchor } else { new_focus };
+                    state.selection = Some((new_anchor, new_focus));
+                    shell.capture_event();
+                    shell.request_redraw();
+                }
             }
             _ => {}
         }
@@ -423,13 +694,15 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        _layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         if self.hovered_link.is_some() {
             mouse::Interaction::Pointer
+        } else if self.selectable && cursor.is_over(layout.bounds()) {
+            mouse::Interaction::Text
         } else {
             mouse::Interaction::None
         }
@@ -478,6 +751,7 @@ where
         if state.spans != spans {
             state.paragraph = Renderer::Paragraph::with_spans(text_with_spans());
             state.spans = spans.iter().cloned().map(Span::to_static).collect();
+            state.text = state.spans.iter().map(|s| s.text.as_ref()).collect();
         } else {
             match state.paragraph.compare(core::Text {
                 content: (),
@@ -504,6 +778,55 @@ where
 
         state.paragraph.min_bounds()
     })
+}
+
+/// Default focus byte when no selection exists yet — keys that go
+/// rightward start from `0`, keys that go leftward start from the end.
+fn focus_default(named: keyboard::key::Named, len: usize) -> usize {
+    use keyboard::key::Named;
+    match named {
+        Named::ArrowLeft | Named::ArrowUp | Named::Home => len,
+        Named::ArrowRight | Named::ArrowDown | Named::End => 0,
+        _ => 0,
+    }
+}
+
+fn collect_selection<Link, Font>(
+    spans: &[Span<'_, Link, Font>],
+    start: usize,
+    end: usize,
+) -> String {
+    let mut out = String::new();
+    let mut cursor = 0usize;
+    for span in spans {
+        let text = span.text.as_ref();
+        let len = text.len();
+        let span_end = cursor + len;
+        if span_end <= start {
+            cursor = span_end;
+            continue;
+        }
+        if cursor >= end {
+            break;
+        }
+        let local_start = floor_char_boundary(text, start.saturating_sub(cursor));
+        let local_end = floor_char_boundary(text, (end - cursor).min(len));
+        if local_start < local_end {
+            out.push_str(&text[local_start..local_end]);
+        }
+        cursor = span_end;
+    }
+    out
+}
+
+fn floor_char_boundary(s: &str, mut idx: usize) -> usize {
+    if idx >= s.len() {
+        return s.len();
+    }
+    while idx > 0 && !s.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    idx
 }
 
 impl<'a, Link, Message, Theme, Renderer> FromIterator<Span<'a, Link, Renderer::Font>>
