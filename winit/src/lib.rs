@@ -2035,6 +2035,20 @@ async fn run_instance<P>(
                                 cached_interfaces,
                             ));
 
+                            // Widget tree diff may have dropped a focused
+                            // widget (e.g. page navigation).  Check the
+                            // dirty flag and broadcast FocusChanged so
+                            // subscribers can clear stale state.
+                            if take_focus_dirty() {
+                                for (id, _) in window_manager.iter_mut() {
+                                    runtime.broadcast(subscription::Event::Interaction {
+                                        window: id,
+                                        event: core::Event::Focus(core::focus::Event::FocusChanged),
+                                        status: core::event::Status::Ignored,
+                                    });
+                                }
+                            }
+
                             for action in actions {
                                 run_action(
                                     action,

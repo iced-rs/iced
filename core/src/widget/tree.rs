@@ -1,5 +1,6 @@
 //! Store internal widget state in a state tree to ensure continuity.
 use crate::Widget;
+use crate::widget::operation::focusable::mark_focus_dirty;
 
 use std::any::{self, Any};
 use std::borrow::Borrow;
@@ -63,6 +64,10 @@ impl Tree {
         if self.tag == new.borrow().tag() {
             new.borrow().diff(self);
         } else {
+            // The widget type changed — the old state (which may include a
+            // focused widget) is being dropped.  Mark focus dirty so the
+            // runtime can broadcast a FocusChanged event.
+            mark_focus_dirty();
             *self = Self::new(new);
         }
     }
@@ -90,6 +95,8 @@ impl Tree {
         new_state: impl Fn(&T) -> Self,
     ) {
         if self.children.len() > new_children.len() {
+            // Children are being removed — a focused widget may be among them.
+            mark_focus_dirty();
             self.children.truncate(new_children.len());
         }
 
@@ -117,6 +124,9 @@ pub fn diff_children_custom_with_search<T>(
     new_state: impl Fn(&T) -> Tree,
 ) {
     if new_children.is_empty() {
+        if !current_children.is_empty() {
+            mark_focus_dirty();
+        }
         current_children.clear();
         return;
     }
@@ -130,6 +140,8 @@ pub fn diff_children_custom_with_search<T>(
     let last_maybe_changed = maybe_changed(current_children.len() - 1);
 
     if current_children.len() > new_children.len() {
+        // Children are being removed — a focused widget may be among them.
+        mark_focus_dirty();
         if !first_maybe_changed && last_maybe_changed {
             current_children.truncate(new_children.len());
         } else {
