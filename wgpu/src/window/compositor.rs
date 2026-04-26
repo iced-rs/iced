@@ -323,10 +323,20 @@ impl graphics::Compositor for Compositor {
         width: u32,
         height: u32,
     ) {
+        let capabilities = surface.get_capabilities(&self.adapter);
+        let has_copy_src =
+            capabilities.usages.contains(wgpu::TextureUsages::COPY_SRC);
+        let usage = if has_copy_src {
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+                | wgpu::TextureUsages::COPY_SRC
+        } else {
+            wgpu::TextureUsages::RENDER_ATTACHMENT
+        };
+
         surface.configure(
             &self.engine.device,
             &wgpu::SurfaceConfiguration {
-                usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+                usage,
                 format: self.format,
                 present_mode: self.settings.present_mode,
                 width,
