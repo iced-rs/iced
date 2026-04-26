@@ -326,19 +326,22 @@ impl Span {
                         .border(style.inline_code_highlight.border)
                         .padding(style.inline_code_padding)
                 } else if *strong || *emphasis {
+                    let use_underline = *emphasis && style.emphasis_as_underline;
+
                     span.font(Font {
                         weight: if *strong {
                             font::Weight::Bold
                         } else {
                             font::Weight::Normal
                         },
-                        style: if *emphasis {
+                        style: if *emphasis && !use_underline {
                             font::Style::Italic
                         } else {
                             font::Style::Normal
                         },
                         ..style.font
                     })
+                    .underline(use_underline)
                 } else {
                     span.font(style.font)
                 };
@@ -1123,6 +1126,11 @@ pub struct Style {
     pub link_color: Color,
     /// The [`Color`] to be applied to text selection.
     pub selection_color: Color,
+    /// When `true`, emphasis (`_text_`) renders as underline instead of italic.
+    ///
+    /// Useful for documents converted from HTML where `<u>` tags were mapped to
+    /// markdown emphasis. Defaults to `false`.
+    pub emphasis_as_underline: bool,
 }
 
 impl Style {
@@ -1147,6 +1155,7 @@ impl Style {
                 palette.primary.b,
                 0.3,
             ),
+            emphasis_as_underline: false,
         }
     }
 }
