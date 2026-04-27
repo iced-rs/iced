@@ -1571,6 +1571,18 @@ fn run_action<'a, P, C>(
                     let _ = channel.send(size);
                 }
             }
+            window::Action::GetMonitorPosition(id, channel) => {
+                if let Some(window) = window_manager.get(id) {
+                    let position = window.raw.current_monitor().map(|monitor| {
+                        let scale = window.state.scale_factor();
+                        let position = monitor.position().to_logical(f64::from(scale));
+
+                        Point::new(position.x, position.y)
+                    });
+
+                    let _ = channel.send(position);
+                }
+            }
             window::Action::SetAllowAutomaticTabbing(enabled) => {
                 control_sender
                     .start_send(Control::SetAutomaticWindowTabbing(enabled))
