@@ -177,6 +177,12 @@ pub enum Action {
     /// Get the logical dimensions of the monitor containing the window with the given [`Id`].
     GetMonitorSize(Id, oneshot::Sender<Option<Size>>),
 
+    /// Get the logical top-left position of the monitor containing the
+    /// window with the given [`Id`]. In multi-monitor setups, lets the
+    /// caller align the window to its current monitor's edge instead of
+    /// `(0, 0)`, which lives on the primary monitor.
+    GetMonitorPosition(Id, oneshot::Sender<Option<Point>>),
+
     /// Set whether the system can automatically organize windows into tabs.
     ///
     /// See <https://developer.apple.com/documentation/appkit/nswindow/1646657-allowsautomaticwindowtabbing>
@@ -478,6 +484,14 @@ pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
 /// Gets the logical dimensions of the monitor containing the window with the given [`Id`].
 pub fn monitor_size(id: Id) -> Task<Option<Size>> {
     task::oneshot(move |channel| crate::Action::Window(Action::GetMonitorSize(id, channel)))
+}
+
+/// Gets the logical top-left position of the monitor containing the
+/// window with the given [`Id`]. Pair with [`monitor_size`] to align a
+/// window flush with the current monitor's edge in a multi-monitor
+/// setup, where `(0, 0)` is the primary monitor.
+pub fn monitor_position(id: Id) -> Task<Option<Point>> {
+    task::oneshot(move |channel| crate::Action::Window(Action::GetMonitorPosition(id, channel)))
 }
 
 /// Sets whether the system can automatically organize windows into tabs.
