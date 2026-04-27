@@ -135,7 +135,7 @@
 //! There is no unified layout system in iced. Instead, each widget implements
 //! its own layout strategy.
 //!
-//! Building your layout will often consist in using a combination of
+//! Building your layout will often consist of using a combination of
 //! [rows], [columns], and [containers]:
 //!
 //! ```standalone_crate
