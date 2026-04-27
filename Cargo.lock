@@ -2313,6 +2313,7 @@ dependencies = [
  "serde",
  "smol_str 0.2.2",
  "thiserror 2.0.18",
+ "unicode-segmentation",
  "web-time",
 ]
 
