@@ -4,7 +4,7 @@ use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 use iced::alignment;
 use iced::mouse;
 use iced::widget::{canvas, scrollable, stack, text};
-use iced::{Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme};
+use iced::{Color, Direction, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme};
 use iced_wgpu::Renderer;
 use iced_wgpu::wgpu;
 
@@ -121,6 +121,7 @@ fn benchmark<'a>(
             viewport.logical_size(),
             cache.take().unwrap(),
             &mut renderer,
+            Direction::LeftToRight,
         );
 
         user_interface.draw(

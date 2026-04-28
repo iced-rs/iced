@@ -20,7 +20,7 @@ use crate::Element;
 
 use crate::layout::{Limits, Node};
 use crate::widget;
-use crate::{Alignment, Length, Padding, Point, Size};
+use crate::{Alignment, Direction, Length, Padding, Point, Size};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -68,6 +68,7 @@ pub fn resolve<Message, Theme, Renderer>(
     padding: Padding,
     spacing: f32,
     align_items: Alignment,
+    direction: Direction,
     items: &mut [Element<'_, Message, Theme, Renderer>],
     trees: &mut [widget::Tree],
 ) -> Node
@@ -120,7 +121,9 @@ where
             let child_limits =
                 Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
 
-            let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
+            let layout = child
+                .as_widget_mut()
+                .layout(tree, renderer, &child_limits, direction);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -165,7 +168,9 @@ where
                     compression,
                 );
 
-                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
+                let layout = child
+                    .as_widget_mut()
+                    .layout(tree, renderer, &child_limits, direction);
                 let size = layout.size();
 
                 available -= axis.main(size);
@@ -220,7 +225,9 @@ where
                     compression,
                 );
 
-                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
+                let layout = child
+                    .as_widget_mut()
+                    .layout(tree, renderer, &child_limits, direction);
                 cross = cross.max(axis.cross(layout.size()));
 
                 nodes[i] = layout;
@@ -249,7 +256,9 @@ where
 
                 let child_limits = Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
+                let layout = child
+                    .as_widget_mut()
+                    .layout(tree, renderer, &child_limits, direction);
                 let size = layout.size();
 
                 cross = cross.max(axis.cross(size));
@@ -289,6 +298,22 @@ where
 
     let (intrinsic_width, intrinsic_height) = axis.pack(main - pad.0, cross);
     let size = limits.resolve(width, height, Size::new(intrinsic_width, intrinsic_height));
+
+    // Mirror child positions horizontally for RTL layouts.
+    // For Row (Horizontal): reverses visual order of children.
+    // For Column (Vertical): right-aligns all children.
+    if matches!(direction, Direction::RightToLeft) {
+        let container_width = size.expand(padding).width;
+
+        for node in &mut nodes {
+            let bounds = node.bounds();
+
+            node.move_to_mut(Point::new(
+                container_width - bounds.x - bounds.width,
+                bounds.y,
+            ));
+        }
+    }
 
     Node::with_children(size.expand(padding), nodes)
 }

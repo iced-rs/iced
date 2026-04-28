@@ -1,4 +1,5 @@
 use crate::container;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -155,6 +156,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         if let Some(title_bar) = &mut self.title_bar {
             let max_size = limits.max();
@@ -163,6 +165,7 @@ where
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
+                direction,
             );
 
             let title_bar_size = title_bar_layout.size();
@@ -174,6 +177,7 @@ where
                     Size::ZERO,
                     Size::new(max_size.width, max_size.height - title_bar_size.height),
                 ),
+                direction,
             );
 
             layout::Node::with_children(
@@ -186,7 +190,7 @@ where
         } else {
             self.body
                 .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
+                .layout(&mut tree.children[0], renderer, limits, direction)
         }
     }
 

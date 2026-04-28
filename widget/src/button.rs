@@ -27,8 +27,8 @@ use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size,
-    Theme, Vector, Widget,
+    Background, Color, Direction, Element, Event, Layout, Length, Padding, Rectangle, Shadow,
+    Shell, Size, Theme, Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
@@ -233,11 +233,12 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         layout::padded(limits, self.width, self.height, self.padding, |limits| {
             self.content
                 .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
+                .layout(&mut tree.children[0], renderer, limits, direction)
         })
     }
 

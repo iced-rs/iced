@@ -6,8 +6,8 @@ use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
-    Widget,
+    Alignment, Direction, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A container that distributes its contents vertically while keeping continuity.
@@ -240,6 +240,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits
             .max_width(self.max_width)
@@ -255,6 +256,7 @@ where
             self.padding,
             self.spacing,
             self.align_items,
+            direction,
             &mut self.children,
             &mut tree.children,
         )

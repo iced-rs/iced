@@ -38,8 +38,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Theme, Widget,
+    self, Background, Color, Direction, Element, Event, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -93,6 +93,7 @@ where
     on_release: Option<Message>,
     width: Length,
     height: f32,
+    direction: Direction,
     class: Theme::Class<'a>,
     status: Option<Status>,
 }
@@ -140,6 +141,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
+            direction: Direction::default(),
             class: Theme::default(),
             status: None,
         }
@@ -236,7 +238,9 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
+        self.direction = direction;
         layout::atomic(limits, self.width, self.height)
     }
 
@@ -255,13 +259,23 @@ where
         let mut update = || {
             let current_value = self.value;
 
+            let is_rtl = matches!(self.direction, Direction::RightToLeft);
+
             let locate = |cursor_position: Point| -> Option<T> {
                 let bounds = layout.bounds();
 
                 if cursor_position.x <= bounds.x {
-                    Some(*self.range.start())
+                    Some(if is_rtl {
+                        *self.range.end()
+                    } else {
+                        *self.range.start()
+                    })
                 } else if cursor_position.x >= bounds.x + bounds.width {
-                    Some(*self.range.end())
+                    Some(if is_rtl {
+                        *self.range.start()
+                    } else {
+                        *self.range.end()
+                    })
                 } else {
                     let step = if state.keyboard_modifiers.shift() {
                         self.shift_step.unwrap_or(self.step)
@@ -273,7 +287,13 @@ where
                     let start = (*self.range.start()).into();
                     let end = (*self.range.end()).into();
 
-                    let percent = f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
+                    let raw_percent =
+                        f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
+                    let percent = if is_rtl {
+                        1.0 - raw_percent
+                    } else {
+                        raw_percent
+                    };
 
                     let steps = (percent * (end - start) / step).round();
                     let value = steps * step + start;
@@ -449,16 +469,51 @@ where
             (bounds.width - handle_width) * (value - range_start) / (range_end - range_start)
         };
 
+        let is_rtl = matches!(self.direction, Direction::RightToLeft);
+
+        let handle_x = if is_rtl {
+            bounds.x + bounds.width - handle_width - offset
+        } else {
+            bounds.x + offset
+        };
+
         let rail_y = bounds.y + bounds.height / 2.0;
+
+        let filled_rail = if is_rtl {
+            Rectangle {
+                x: handle_x + handle_width / 2.0,
+                y: rail_y - style.rail.width / 2.0,
+                width: bounds.x + bounds.width - (handle_x + handle_width / 2.0),
+                height: style.rail.width,
+            }
+        } else {
+            Rectangle {
+                x: bounds.x,
+                y: rail_y - style.rail.width / 2.0,
+                width: offset + handle_width / 2.0,
+                height: style.rail.width,
+            }
+        };
+
+        let empty_rail = if is_rtl {
+            Rectangle {
+                x: bounds.x,
+                y: rail_y - style.rail.width / 2.0,
+                width: handle_x + handle_width / 2.0 - bounds.x,
+                height: style.rail.width,
+            }
+        } else {
+            Rectangle {
+                x: bounds.x + offset + handle_width / 2.0,
+                y: rail_y - style.rail.width / 2.0,
+                width: bounds.width - offset - handle_width / 2.0,
+                height: style.rail.width,
+            }
+        };
 
         renderer.fill_quad(
             renderer::Quad {
-                bounds: Rectangle {
-                    x: bounds.x,
-                    y: rail_y - style.rail.width / 2.0,
-                    width: offset + handle_width / 2.0,
-                    height: style.rail.width,
-                },
+                bounds: filled_rail,
                 border: style.rail.border,
                 ..renderer::Quad::default()
             },
@@ -467,12 +522,7 @@ where
 
         renderer.fill_quad(
             renderer::Quad {
-                bounds: Rectangle {
-                    x: bounds.x + offset + handle_width / 2.0,
-                    y: rail_y - style.rail.width / 2.0,
-                    width: bounds.width - offset - handle_width / 2.0,
-                    height: style.rail.width,
-                },
+                bounds: empty_rail,
                 border: style.rail.border,
                 ..renderer::Quad::default()
             },
@@ -482,7 +532,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle {
-                    x: bounds.x + offset,
+                    x: handle_x,
                     y: rail_y - handle_height / 2.0,
                     width: handle_width,
                     height: handle_height,

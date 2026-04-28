@@ -7,7 +7,8 @@ use crate::core::theme;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Background, Color, Direction, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A widget that applies any `Theme` to its contents.
@@ -87,8 +88,11 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
-        self.content.as_widget_mut().layout(tree, renderer, limits)
+        self.content
+            .as_widget_mut()
+            .layout(tree, renderer, limits, direction)
     }
 
     fn operate(
@@ -188,8 +192,15 @@ where
             AnyTheme: theme::Base,
             Renderer: crate::core::Renderer,
         {
-            fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-                self.content.as_overlay_mut().layout(renderer, bounds)
+            fn layout(
+                &mut self,
+                renderer: &Renderer,
+                bounds: Size,
+                direction: Direction,
+            ) -> layout::Node {
+                self.content
+                    .as_overlay_mut()
+                    .layout(renderer, bounds, direction)
             }
 
             fn draw(

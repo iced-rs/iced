@@ -4,10 +4,12 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
+use crate::core::Direction;
 use crate::core::theme;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
+use crate::directional::Directional;
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::overlay;
@@ -624,8 +626,11 @@ where
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
+            direction: Direction,
         ) -> layout::Node {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+            self.content
+                .as_widget_mut()
+                .layout(tree, renderer, limits, direction)
         }
 
         fn draw(
@@ -776,16 +781,20 @@ where
             tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
+            direction: Direction,
         ) -> layout::Node {
-            let base = self
-                .base
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            let base = self.base.as_widget_mut().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+                direction,
+            );
 
             let top = self.top.as_widget_mut().layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, base.size()),
+                direction,
             );
 
             layout::Node::with_children(base.size(), vec![base, top])
@@ -1983,6 +1992,21 @@ where
     Renderer: core::Renderer,
 {
     Themer::new(theme, content)
+}
+
+/// Creates a new [`Directional`] widget that lays out the given content
+/// using the provided [`Direction`].
+///
+/// This is useful to embed a subtree with a reading direction different
+/// from the rest of the application.
+pub fn directional<'a, Message, Theme, Renderer>(
+    direction: Direction,
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Directional<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Directional::new(direction, content)
 }
 
 /// Creates a [`PaneGrid`] with the given [`pane_grid::State`] and view function.

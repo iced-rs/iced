@@ -30,8 +30,8 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shadow,
-    Shell, Size, Theme, Vector, Widget, color,
+    self, Background, Color, Direction, Element, Event, Layout, Length, Padding, Pixels, Rectangle,
+    Shadow, Shell, Size, Theme, Vector, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.
@@ -67,6 +67,7 @@ where
     max_width: f32,
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
+    horizontal_alignment_set: bool,
     vertical_alignment: alignment::Vertical,
     clip: bool,
     content: Element<'a, Message, Theme, Renderer>,
@@ -91,6 +92,7 @@ where
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
+            horizontal_alignment_set: false,
             vertical_alignment: alignment::Vertical::Top,
             clip: false,
             class: Theme::default(),
@@ -180,6 +182,7 @@ where
     /// Sets the content alignment for the horizontal axis of the [`Container`].
     pub fn align_x(mut self, alignment: impl Into<alignment::Horizontal>) -> Self {
         self.horizontal_alignment = alignment.into();
+        self.horizontal_alignment_set = true;
         self
     }
 
@@ -187,6 +190,16 @@ where
     pub fn align_y(mut self, alignment: impl Into<alignment::Vertical>) -> Self {
         self.vertical_alignment = alignment.into();
         self
+    }
+
+    fn effective_horizontal_alignment(&self, direction: Direction) -> alignment::Horizontal {
+        if self.horizontal_alignment_set {
+            self.horizontal_alignment
+        } else if matches!(direction, Direction::RightToLeft) {
+            alignment::Horizontal::Right
+        } else {
+            alignment::Horizontal::Left
+        }
     }
 
     /// Sets whether the contents of the [`Container`] should be clipped on
@@ -248,6 +261,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         layout(
             limits,
@@ -256,9 +270,13 @@ where
             self.max_width,
             self.max_height,
             self.padding,
-            self.horizontal_alignment,
+            self.effective_horizontal_alignment(direction),
             self.vertical_alignment,
-            |limits| self.content.as_widget_mut().layout(tree, renderer, limits),
+            |limits| {
+                self.content
+                    .as_widget_mut()
+                    .layout(tree, renderer, limits, direction)
+            },
         )
     }
 

@@ -7,7 +7,9 @@ mod rainbow {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
+    use iced::{
+        Direction, Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector,
+    };
 
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
@@ -29,6 +31,7 @@ mod rainbow {
             _tree: &mut widget::Tree,
             _renderer: &Renderer,
             limits: &layout::Limits,
+            _direction: Direction,
         ) -> layout::Node {
             let width = limits.max().width;
 

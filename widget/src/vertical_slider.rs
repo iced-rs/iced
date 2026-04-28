@@ -32,6 +32,7 @@ use std::ops::RangeInclusive;
 
 pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn, default};
 
+use crate::core::Direction;
 use crate::core::border::Border;
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -236,6 +237,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.width, self.height)
     }

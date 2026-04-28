@@ -52,7 +52,9 @@ mod loupe {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Color, Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation};
+    use iced::{
+        Color, Direction, Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation,
+    };
 
     pub fn loupe<'a, Message>(
         zoom: f32,
@@ -98,8 +100,11 @@ mod loupe {
             tree: &mut widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
+            direction: Direction,
         ) -> layout::Node {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+            self.content
+                .as_widget_mut()
+                .layout(tree, renderer, limits, direction)
         }
 
         fn update(
