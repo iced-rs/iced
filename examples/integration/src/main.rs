@@ -68,9 +68,9 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                 let backend = wgpu::Backends::from_env().unwrap_or_default();
 
-                let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+                let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
                     backends: backend,
-                    ..Default::default()
+                    ..wgpu::InstanceDescriptor::new_without_display_handle()
                 });
                 let surface = instance
                     .create_surface(window.clone())
@@ -224,7 +224,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     }
 
                     match surface.get_current_texture() {
-                        Ok(frame) => {
+                        wgpu::CurrentSurfaceTexture::Success(frame) => {
                             let view = frame
                                 .texture
                                 .create_view(&wgpu::TextureViewDescriptor::default());
@@ -293,18 +293,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             // Present the frame
                             frame.present();
                         }
-                        Err(error) => match error {
-                            wgpu::SurfaceError::OutOfMemory => {
-                                panic!(
-                                    "Swapchain error: {error}. \
-                                        Rendering cannot continue."
-                                )
-                            }
-                            _ => {
-                                // Try rendering again next frame.
-                                window.request_redraw();
-                            }
-                        },
+                        _ => {
+                            // Try rendering again next frame.
+                            window.request_redraw();
+                        }
                     }
                 }
                 WindowEvent::CursorMoved { position, .. } => {

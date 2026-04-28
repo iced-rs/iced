@@ -52,14 +52,14 @@ impl Compositor {
         compatible_window: Option<W>,
         shell: Shell,
     ) -> Result<Self, Error> {
-        let instance = wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor {
+        let instance = wgpu::util::new_instance_with_webgpu_detection(wgpu::InstanceDescriptor {
             backends: settings.backends,
             flags: if cfg!(feature = "strict-assertions") {
                 wgpu::InstanceFlags::debugging()
             } else {
                 wgpu::InstanceFlags::empty()
             },
-            ..Default::default()
+            ..wgpu::InstanceDescriptor::new_without_display_handle()
         })
         .await;
 
@@ -223,7 +223,7 @@ pub fn present(
     on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     match surface.get_current_texture() {
-        Ok(frame) => {
+        wgpu::CurrentSurfaceTexture::Success(frame) => {
             let view = &frame
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
@@ -241,13 +241,13 @@ pub fn present(
 
             Ok(())
         }
-        Err(error) => match error {
-            wgpu::SurfaceError::Timeout => Err(compositor::SurfaceError::Timeout),
-            wgpu::SurfaceError::Outdated => Err(compositor::SurfaceError::Outdated),
-            wgpu::SurfaceError::Lost => Err(compositor::SurfaceError::Lost),
-            wgpu::SurfaceError::OutOfMemory => Err(compositor::SurfaceError::OutOfMemory),
-            wgpu::SurfaceError::Other => Err(compositor::SurfaceError::Other),
-        },
+        wgpu::CurrentSurfaceTexture::Suboptimal(_) | wgpu::CurrentSurfaceTexture::Outdated => {
+            Err(compositor::SurfaceError::Outdated)
+        }
+        wgpu::CurrentSurfaceTexture::Timeout => Err(compositor::SurfaceError::Timeout),
+        wgpu::CurrentSurfaceTexture::Occluded => Err(compositor::SurfaceError::Occluded),
+        wgpu::CurrentSurfaceTexture::Lost => Err(compositor::SurfaceError::Lost),
+        wgpu::CurrentSurfaceTexture::Validation => Err(compositor::SurfaceError::Other),
     }
 }
 
