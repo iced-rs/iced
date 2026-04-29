@@ -17,7 +17,7 @@ impl Default for Camera {
             eye: vec3(0.0, 2.0, 3.0),
             target: glam::Vec3::ZERO,
             up: glam::Vec3::Y,
-            fov_y: 45.0,
+            fov_y: 45.0f32.to_radians(),
             near: 0.1,
             far: 100.0,
         }
