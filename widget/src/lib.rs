@@ -19,6 +19,7 @@ mod mouse_area;
 mod opacity;
 mod pin;
 mod responsive;
+mod shortcut;
 mod stack;
 mod themer;
 
@@ -105,6 +106,8 @@ pub use rule::Rule;
 pub use scrollable::Scrollable;
 #[doc(no_inline)]
 pub use sensor::Sensor;
+#[doc(no_inline)]
+pub use shortcut::{Shortcut, shortcut};
 #[doc(no_inline)]
 pub use slider::Slider;
 #[doc(no_inline)]
