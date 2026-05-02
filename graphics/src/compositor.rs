@@ -157,9 +157,9 @@ impl<T> Window for T where T: HasWindowHandle + Debug + MaybeSend + MaybeSync + 
 ///
 /// This is just a convenient super trait of the `raw-window-handle`
 /// trait.
-pub trait Display: HasDisplayHandle + Debug + MaybeSend + MaybeSync + 'static {}
+pub trait Display: HasDisplayHandle + Debug + Send + Sync + 'static {}
 
-impl<T> Display for T where T: HasDisplayHandle + Debug + MaybeSend + MaybeSync + 'static {}
+impl<T> Display for T where T: HasDisplayHandle + Debug + Send + Sync + 'static {}
 
 /// Defines the default compositor of a renderer.
 pub trait Default {
