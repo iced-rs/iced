@@ -40,6 +40,8 @@ impl Ice {
     /// click "What needs to be done?"
     /// type "Create the universe"
     /// type enter
+    /// click role=button label="Create"
+    /// expect test_id="task-list"
     /// type "Make an apple pie"
     /// type enter
     /// expect "2 tasks left"

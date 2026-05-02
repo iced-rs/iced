@@ -16,6 +16,7 @@ use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::scrollable::{self, Scrollable};
+use crate::semantics::Semantics;
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
@@ -990,6 +991,17 @@ where
     Renderer: core::Renderer,
 {
     Sensor::new(content)
+}
+
+/// Creates a new [`Semantics`] widget with the given role and content.
+pub fn semantics<'a, Message, Theme, Renderer>(
+    role: core::widget::metadata::Role,
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Semantics<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Semantics::new(role, content)
 }
 
 /// Creates a new [`Scrollable`] with the provided content.

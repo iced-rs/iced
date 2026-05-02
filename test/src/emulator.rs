@@ -313,6 +313,79 @@ impl<P: Program + 'static> Emulator<P> {
                             _ => None,
                         }
                     }
+                    instruction::Target::Role(role) => {
+                        use widget::Operation;
+
+                        let mut operation = Selector::find(crate::selector::by_role(role.clone()));
+
+                        user_interface.operate(
+                            &self.renderer,
+                            &mut widget::operation::black_box(&mut operation),
+                        );
+
+                        match operation.finish() {
+                            widget::operation::Outcome::Some(target) => {
+                                Some(target?.visible_bounds()?.center())
+                            }
+                            _ => None,
+                        }
+                    }
+                    instruction::Target::Label(label) => {
+                        use widget::Operation;
+
+                        let mut operation =
+                            Selector::find(crate::selector::by_label(label.clone()));
+
+                        user_interface.operate(
+                            &self.renderer,
+                            &mut widget::operation::black_box(&mut operation),
+                        );
+
+                        match operation.finish() {
+                            widget::operation::Outcome::Some(target) => {
+                                Some(target?.visible_bounds()?.center())
+                            }
+                            _ => None,
+                        }
+                    }
+                    instruction::Target::TestId(test_id) => {
+                        use widget::Operation;
+
+                        let mut operation =
+                            Selector::find(crate::selector::by_test_id(test_id.clone()));
+
+                        user_interface.operate(
+                            &self.renderer,
+                            &mut widget::operation::black_box(&mut operation),
+                        );
+
+                        match operation.finish() {
+                            widget::operation::Outcome::Some(target) => {
+                                Some(target?.visible_bounds()?.center())
+                            }
+                            _ => None,
+                        }
+                    }
+                    instruction::Target::RoleLabel { role, label } => {
+                        use widget::Operation;
+
+                        let mut operation = Selector::find(crate::selector::by_role_and_label(
+                            role.clone(),
+                            label.clone(),
+                        ));
+
+                        user_interface.operate(
+                            &self.renderer,
+                            &mut widget::operation::black_box(&mut operation),
+                        );
+
+                        match operation.finish() {
+                            widget::operation::Outcome::Some(target) => {
+                                Some(target?.visible_bounds()?.center())
+                            }
+                            _ => None,
+                        }
+                    }
                     instruction::Target::Point(position) => Some(*position),
                 }) else {
                     self.runtime.send(Event::Failed(instruction.clone()));
@@ -360,6 +433,115 @@ impl<P: Program + 'static> Emulator<P> {
                         _ => {
                             self.runtime.send(Event::Failed(instruction.clone()));
                         }
+                    }
+
+                    self.cache = Some(user_interface.into_cache());
+                }
+                instruction::Expectation::Target(target) => {
+                    let found = match target {
+                        instruction::Target::Id(id) => {
+                            use widget::Operation;
+
+                            let mut operation = Selector::find(widget::Id::from(id.to_owned()));
+
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
+
+                            matches!(
+                                operation.finish(),
+                                widget::operation::Outcome::Some(Some(_))
+                            )
+                        }
+                        instruction::Target::Text(text) => {
+                            use widget::Operation;
+
+                            let mut operation = Selector::find(text.as_str());
+
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
+
+                            matches!(
+                                operation.finish(),
+                                widget::operation::Outcome::Some(Some(_))
+                            )
+                        }
+                        instruction::Target::Role(role) => {
+                            use widget::Operation;
+
+                            let mut operation =
+                                Selector::find(crate::selector::by_role(role.clone()));
+
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
+
+                            matches!(
+                                operation.finish(),
+                                widget::operation::Outcome::Some(Some(_))
+                            )
+                        }
+                        instruction::Target::Label(label) => {
+                            use widget::Operation;
+
+                            let mut operation =
+                                Selector::find(crate::selector::by_label(label.clone()));
+
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
+
+                            matches!(
+                                operation.finish(),
+                                widget::operation::Outcome::Some(Some(_))
+                            )
+                        }
+                        instruction::Target::TestId(test_id) => {
+                            use widget::Operation;
+
+                            let mut operation =
+                                Selector::find(crate::selector::by_test_id(test_id.clone()));
+
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
+
+                            matches!(
+                                operation.finish(),
+                                widget::operation::Outcome::Some(Some(_))
+                            )
+                        }
+                        instruction::Target::RoleLabel { role, label } => {
+                            use widget::Operation;
+
+                            let mut operation = Selector::find(crate::selector::by_role_and_label(
+                                role.clone(),
+                                label.clone(),
+                            ));
+
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
+
+                            matches!(
+                                operation.finish(),
+                                widget::operation::Outcome::Some(Some(_))
+                            )
+                        }
+                        instruction::Target::Point(_) => true,
+                    };
+
+                    if found {
+                        self.runtime.send(Event::Ready);
+                    } else {
+                        self.runtime.send(Event::Failed(instruction.clone()));
                     }
 
                     self.cache = Some(user_interface.into_cache());
