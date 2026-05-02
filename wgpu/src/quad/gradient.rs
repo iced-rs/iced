@@ -74,7 +74,7 @@ impl Pipeline {
         {
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("iced_wgpu.quad.gradient.pipeline"),
-                bind_group_layouts: &[constants_layout],
+                bind_group_layouts: &[Some(constants_layout)],
                 immediate_size: 0,
             });
 

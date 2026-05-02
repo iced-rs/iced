@@ -325,9 +325,9 @@ where
         }
     }
 
-    fn create_surface<W: compositor::Window + Clone>(
+    fn create_surface(
         &mut self,
-        window: W,
+        window: impl compositor::Window + Clone,
         width: u32,
         height: u32,
     ) -> Self::Surface {

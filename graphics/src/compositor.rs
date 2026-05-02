@@ -11,6 +11,7 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 
 use std::borrow::Cow;
+use std::fmt::Debug;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
@@ -48,9 +49,9 @@ pub trait Compositor: Sized {
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface<W: Window + Clone>(
+    fn create_surface(
         &mut self,
-        window: W,
+        window: impl Window + Clone,
         width: u32,
         height: u32,
     ) -> Self::Surface;
@@ -148,17 +149,17 @@ impl From<&core::Settings> for Settings {
 ///
 /// This is just a convenient super trait of the `raw-window-handle`
 /// traits.
-pub trait Window: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+pub trait Window: HasWindowHandle + Debug + MaybeSend + MaybeSync + 'static {}
 
-impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+impl<T> Window for T where T: HasWindowHandle + Debug + MaybeSend + MaybeSync + 'static {}
 
 /// An owned display handle that can be used in a [`Compositor`].
 ///
 /// This is just a convenient super trait of the `raw-window-handle`
 /// trait.
-pub trait Display: HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+pub trait Display: HasDisplayHandle + Debug + Send + Sync + 'static {}
 
-impl<T> Display for T where T: HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+impl<T> Display for T where T: HasDisplayHandle + Debug + Send + Sync + 'static {}
 
 /// Defines the default compositor of a renderer.
 pub trait Default {
@@ -181,6 +182,9 @@ pub enum SurfaceError {
     /// There is no more memory left to allocate a new frame.
     #[error("There is no more memory left to allocate a new frame")]
     OutOfMemory,
+    /// The surface is occluded and must not be drawn to.
+    #[error("The surface is occluded and must not be drawn to")]
+    Occluded,
     /// Acquiring a texture failed with a generic error.
     #[error("Acquiring a texture failed with a generic error")]
     Other,
@@ -212,9 +216,9 @@ impl Compositor for () {
 
     fn create_renderer(&self, _settings: renderer::Settings) -> Self::Renderer {}
 
-    fn create_surface<W: Window + Clone>(
+    fn create_surface(
         &mut self,
-        _window: W,
+        _window: impl Window + Clone,
         _width: u32,
         _height: u32,
     ) -> Self::Surface {

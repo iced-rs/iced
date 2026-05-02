@@ -688,7 +688,7 @@ mod solid {
 
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("iced_wgpu.triangle.solid.pipeline_layout"),
-                bind_group_layouts: &[&constants_layout],
+                bind_group_layouts: &[Some(&constants_layout)],
                 immediate_size: 0,
             });
 
@@ -820,7 +820,7 @@ mod gradient {
 
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("iced_wgpu.triangle.gradient.pipeline_layout"),
-                bind_group_layouts: &[&constants_layout],
+                bind_group_layouts: &[Some(&constants_layout)],
                 immediate_size: 0,
             });
 
