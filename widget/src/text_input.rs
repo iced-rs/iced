@@ -53,6 +53,7 @@ use crate::core::text::{self, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
+use crate::core::widget::metadata::{Metadata, Role};
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -637,6 +638,11 @@ where
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
+        operation.metadata(
+            self.id.as_ref(),
+            layout.bounds(),
+            &Metadata::new(Role::TextInput),
+        );
         operation.text_input(self.id.as_ref(), layout.bounds(), state);
         operation.focusable(self.id.as_ref(), layout.bounds(), state);
     }

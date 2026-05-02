@@ -1,4 +1,5 @@
 //! Create custom widgets and operate on them.
+pub mod metadata;
 pub mod operation;
 pub mod text;
 pub mod tree;
@@ -6,6 +7,7 @@ pub mod tree;
 mod id;
 
 pub use id::Id;
+pub use metadata::Metadata;
 pub use operation::Operation;
 pub use text::Text;
 pub use tree::Tree;

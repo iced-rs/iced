@@ -32,6 +32,7 @@ pub mod radio;
 pub mod row;
 pub mod rule;
 pub mod scrollable;
+pub mod semantics;
 pub mod sensor;
 pub mod slider;
 pub mod space;
@@ -87,6 +88,7 @@ pub use row::Row;
 pub use rule::Rule;
 #[doc(no_inline)]
 pub use scrollable::Scrollable;
+pub use semantics::Semantics;
 #[doc(no_inline)]
 pub use sensor::Sensor;
 #[doc(no_inline)]
