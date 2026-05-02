@@ -366,11 +366,16 @@ where
         layout: Layout<'_>,
         value: &Value,
     ) -> InputMethod<&'b str> {
+        #[cfg(not(target_arch = "wasm32"))]
         let Some(Focus {
             is_window_focused: true,
             ..
         }) = &state.is_focused
         else {
+            return InputMethod::Disabled;
+        };
+        #[cfg(target_arch = "wasm32")]
+        if state.is_focused.is_none() {
             return InputMethod::Disabled;
         };
 
@@ -1242,10 +1247,10 @@ where
             Event::Window(window::Event::RedrawRequested(now)) => {
                 let state = state::<Renderer>(tree);
 
-                if let Some(focus) = &mut state.is_focused
-                    && focus.is_window_focused
-                {
-                    if matches!(state.cursor.state(&self.value), cursor::State::Index(_)) {
+                if let Some(focus) = &mut state.is_focused {
+                    if focus.is_window_focused
+                        && matches!(state.cursor.state(&self.value), cursor::State::Index(_))
+                    {
                         focus.now = *now;
 
                         let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
@@ -1256,6 +1261,11 @@ where
                         );
                     }
 
+                    #[cfg(not(target_arch = "wasm32"))]
+                    if focus.is_window_focused {
+                        shell.request_input_method(&self.input_method(state, layout, &self.value));
+                    }
+                    #[cfg(target_arch = "wasm32")]
                     shell.request_input_method(&self.input_method(state, layout, &self.value));
                 }
             }
