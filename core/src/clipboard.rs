@@ -6,10 +6,10 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct Clipboard {
     /// The read requests the runtime must fulfill.
-    pub reads: Vec<Kind>,
+    pub reads: Vec<(ClipboardKind, Kind)>,
     /// The content that must be written to the clipboard by the runtime,
     /// if any.
-    pub write: Option<Content>,
+    pub write: Option<(ClipboardKind, Content)>,
 }
 
 impl Clipboard {
@@ -32,6 +32,18 @@ impl Default for Clipboard {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// The kind of [`Clipboard`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClipboardKind {
+    /// The standard clipboard.
+    Standard,
+
+    /// The primary clipboard.
+    ///
+    /// Normally only present in X11 and Wayland.
+    Primary,
 }
 
 /// A clipboard event.

@@ -1,5 +1,5 @@
 //! Access the clipboard.
-use crate::core::clipboard::{Content, Error, Kind};
+use crate::core::clipboard::{ClipboardKind, Content, Error, Kind};
 
 pub use platform::*;
 
@@ -11,6 +11,9 @@ impl Default for Clipboard {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod platform {
+    #[cfg(target_os = "linux")]
+    use arboard::{GetExtLinux, SetExtLinux};
+
     use super::*;
 
     use std::sync::{Arc, Mutex};
@@ -47,6 +50,7 @@ mod platform {
         /// Reads the current content of the [`Clipboard`] as text.
         pub fn read(
             &self,
+            clipboard_kind: ClipboardKind,
             kind: Kind,
             callback: impl FnOnce(Result<Content, Error>) + Send + 'static,
         ) {
@@ -63,7 +67,7 @@ mod platform {
                     return;
                 };
 
-                let get = clipboard.get();
+                let get = get_clipboard(&mut clipboard, clipboard_kind);
 
                 let result = match kind {
                     Kind::Text => get.text().map(Content::Text),
@@ -94,6 +98,7 @@ mod platform {
         /// Writes the given text contents to the [`Clipboard`].
         pub fn write(
             &mut self,
+            clipboard_kind: ClipboardKind,
             content: Content,
             callback: impl FnOnce(Result<(), Error>) + Send + 'static,
         ) {
@@ -110,7 +115,7 @@ mod platform {
                     return;
                 };
 
-                let set = clipboard.set();
+                let set = set_clipboard(&mut clipboard, clipboard_kind);
 
                 let result = match content {
                     Content::Text(text) => set.text(text),
@@ -133,6 +138,34 @@ mod platform {
                 callback(result);
             });
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn get_clipboard(clipboard: &mut arboard::Clipboard, kind: ClipboardKind) -> arboard::Get<'_> {
+        clipboard.get().clipboard(match kind {
+            ClipboardKind::Standard => arboard::LinuxClipboardKind::Clipboard,
+            ClipboardKind::Primary => arboard::LinuxClipboardKind::Primary,
+        })
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn get_clipboard(clipboard: &mut arboard::Clipboard, kind: ClipboardKind) -> arboard::Get<'_> {
+        let _ = kind;
+        clipboard.get()
+    }
+
+    #[cfg(target_os = "linux")]
+    fn set_clipboard(clipboard: &mut arboard::Clipboard, kind: ClipboardKind) -> arboard::Set<'_> {
+        clipboard.set().clipboard(match kind {
+            ClipboardKind::Standard => arboard::LinuxClipboardKind::Clipboard,
+            ClipboardKind::Primary => arboard::LinuxClipboardKind::Primary,
+        })
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn set_clipboard(clipboard: &mut arboard::Clipboard, kind: ClipboardKind) -> arboard::Set<'_> {
+        let _ = kind;
+        clipboard.set()
     }
 
     fn to_error(error: arboard::Error) -> Error {
@@ -167,12 +200,22 @@ mod platform {
         }
 
         /// Reads the current content of the [`Clipboard`] as text.
-        pub fn read(&self, _kind: Kind, callback: impl FnOnce(Result<Content, Error>)) {
+        pub fn read(
+            &self,
+            _clipboard_kind: ClipboardKind,
+            _kind: Kind,
+            callback: impl FnOnce(Result<Content, Error>),
+        ) {
             callback(Err(Error::ClipboardUnavailable));
         }
 
         /// Writes the given text contents to the [`Clipboard`].
-        pub fn write(&mut self, _content: Content, callback: impl FnOnce(Result<(), Error>)) {
+        pub fn write(
+            &mut self,
+            _clipboard_kind: ClipboardKind,
+            _content: Content,
+            callback: impl FnOnce(Result<(), Error>),
+        ) {
             callback(Err(Error::ClipboardUnavailable));
         }
     }
