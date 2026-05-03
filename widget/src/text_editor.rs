@@ -707,17 +707,29 @@ where
         ) {
             match update {
                 Update::Click(click) => {
-                    let action = match click.kind() {
-                        mouse::click::Kind::Single => Action::Click(click.position()),
-                        mouse::click::Kind::Double => Action::SelectWord,
-                        mouse::click::Kind::Triple => Action::SelectLine,
-                    };
-
                     state.focus = Some(Focus::now());
                     state.last_click = Some(click);
-                    state.drag_click = Some(click.kind());
 
-                    shell.publish(on_edit(action));
+                    match click.button() {
+                        mouse::Button::Left => {
+                            let action = match click.kind() {
+                                mouse::click::Kind::Single => Action::Click(click.position()),
+                                mouse::click::Kind::Double => Action::SelectWord,
+                                mouse::click::Kind::Triple => Action::SelectLine,
+                            };
+
+                            state.drag_click = Some(click.kind());
+
+                            shell.publish(on_edit(action));
+                        }
+                        mouse::Button::Middle if cfg!(target_os = "linux") => {
+                            shell.publish(on_edit(Action::Click(click.position())));
+
+                            shell.read_clipboard_primary(clipboard::Kind::Text);
+                        }
+                        _ => (),
+                    }
+
                     shell.capture_event();
                 }
                 Update::Drag(position) => {
@@ -725,6 +737,12 @@ where
                 }
                 Update::Release => {
                     state.drag_click = None;
+
+                    if cfg!(target_os = "linux") && state.focus.is_some() {
+                        shell.write_clipboard_primary(clipboard::Content::Text(
+                            self.content.selection().unwrap_or_default(),
+                        ));
+                    }
                 }
                 Update::Scroll(lines) => {
                     let bounds = self.content.0.borrow().editor.bounds();
@@ -1213,16 +1231,16 @@ impl<Message> Update<Message> {
 
         match event {
             Event::Mouse(event) => match event {
-                mouse::Event::ButtonPressed(mouse::Button::Left) => {
+                mouse::Event::ButtonPressed(button)
+                    if matches!(button, mouse::Button::Left)
+                        || (cfg!(target_os = "linux")
+                            && matches!(button, mouse::Button::Middle)) =>
+                {
                     if let Some(cursor_position) = cursor.position_in(bounds) {
                         let cursor_position =
                             cursor_position - Vector::new(padding.left, padding.top);
 
-                        let click = mouse::Click::new(
-                            cursor_position,
-                            mouse::Button::Left,
-                            state.last_click,
-                        );
+                        let click = mouse::Click::new(cursor_position, *button, state.last_click);
 
                         Some(Update::Click(click))
                     } else if state.focus.is_some() {
@@ -1301,6 +1319,9 @@ impl<Message> Update<Message> {
                     Binding::from_key_press(key_press)
                 }
                 .map(Self::Binding)
+            }
+            Event::Keyboard(keyboard::Event::KeyReleased { .. }) if cfg!(target_os = "linux") => {
+                Some(Update::Release)
             }
             _ => None,
         }

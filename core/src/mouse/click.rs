@@ -66,6 +66,11 @@ impl Click {
         self.kind
     }
 
+    /// Returns the [`Button`] of [`Click`].
+    pub fn button(&self) -> Button {
+        self.button
+    }
+
     /// Returns the position of the [`Click`].
     pub fn position(&self) -> Point {
         self.position
