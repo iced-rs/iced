@@ -2,6 +2,8 @@
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/master/runtime
+
+use crate::core::gesture;
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
@@ -199,6 +201,50 @@ pub fn window_event(
                 }))
             }
         },
+        WindowEvent::PanGesture {
+            delta: physical_delta,
+            phase: touch_phase,
+            ..
+        } => {
+            let phase = match touch_phase {
+                winit::event::TouchPhase::Started => gesture::Phase::Started,
+                winit::event::TouchPhase::Moved => gesture::Phase::Moved,
+                winit::event::TouchPhase::Ended => gesture::Phase::Ended,
+                winit::event::TouchPhase::Cancelled => gesture::Phase::Cancelled,
+            };
+            let delta = gesture::Delta {
+                x: physical_delta.x,
+                y: physical_delta.y,
+            };
+            Some(Event::Gesture(gesture::Event::Pan { delta, phase }))
+        }
+        WindowEvent::PinchGesture {
+            delta,
+            phase: touch_phase,
+            ..
+        } => {
+            let phase = match touch_phase {
+                winit::event::TouchPhase::Started => gesture::Phase::Started,
+                winit::event::TouchPhase::Moved => gesture::Phase::Moved,
+                winit::event::TouchPhase::Ended => gesture::Phase::Ended,
+                winit::event::TouchPhase::Cancelled => gesture::Phase::Cancelled,
+            };
+            Some(Event::Gesture(gesture::Event::Pinch { delta, phase }))
+        }
+        WindowEvent::RotationGesture {
+            delta,
+            phase: touch_phase,
+            ..
+        } => {
+            let phase = match touch_phase {
+                winit::event::TouchPhase::Started => gesture::Phase::Started,
+                winit::event::TouchPhase::Moved => gesture::Phase::Moved,
+                winit::event::TouchPhase::Ended => gesture::Phase::Ended,
+                winit::event::TouchPhase::Cancelled => gesture::Phase::Cancelled,
+            };
+            Some(Event::Gesture(gesture::Event::Rotate { delta, phase }))
+        }
+        WindowEvent::DoubleTapGesture { .. } => Some(Event::Gesture(gesture::Event::DoubleTap)),
         // Ignore keyboard presses/releases during window focus/unfocus
         WindowEvent::KeyboardInput { is_synthetic, .. } if is_synthetic => None,
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
