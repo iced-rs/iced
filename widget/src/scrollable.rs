@@ -1355,6 +1355,7 @@ where
                 shaping: text::Shaping::Basic,
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
+                letter_spacing: crate::core::Em::default(),
                 hint_factor: None,
             };
 

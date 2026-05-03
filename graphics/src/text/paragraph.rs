@@ -2,7 +2,7 @@
 use crate::core;
 use crate::core::alignment;
 use crate::core::text::{Alignment, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping};
-use crate::core::{Font, Pixels, Point, Rectangle, Size};
+use crate::core::{Em, Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
 use std::fmt;
@@ -24,6 +24,7 @@ struct Internal {
     bounds: Size,
     min_bounds: Size,
     version: text::Version,
+    letter_spacing: Em,
     hint: bool,
     hint_factor: f32,
 }
@@ -98,7 +99,7 @@ impl core::text::Paragraph for Paragraph {
 
         buffer.set_text(
             text.content,
-            &text::to_attributes(text.font),
+            &text::to_attributes(text.font, text.letter_spacing),
             text::to_shaping(text.shaping, text.content),
             None,
         );
@@ -119,6 +120,7 @@ impl core::text::Paragraph for Paragraph {
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
+            letter_spacing: text.letter_spacing,
         }))
     }
 
@@ -153,7 +155,10 @@ impl core::text::Paragraph for Paragraph {
 
         buffer.set_rich_text(
             text.content.iter().enumerate().map(|(i, span)| {
-                let attrs = text::to_attributes(span.font.unwrap_or(text.font));
+                let attrs = text::to_attributes(
+                    span.font.unwrap_or(text.font),
+                    span.letter_spacing.unwrap_or(text.letter_spacing),
+                );
 
                 let attrs = match (span.size, span.line_height) {
                     (None, None) => attrs,
@@ -179,7 +184,7 @@ impl core::text::Paragraph for Paragraph {
 
                 (span.text.as_ref(), attrs.metadata(i))
             }),
-            &text::to_attributes(text.font),
+            &text::to_attributes(text.font, text.letter_spacing),
             cosmic_text::Shaping::Advanced,
             None,
         );
@@ -201,6 +206,7 @@ impl core::text::Paragraph for Paragraph {
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
+            letter_spacing: text.letter_spacing,
         }))
     }
 
@@ -237,6 +243,7 @@ impl core::text::Paragraph for Paragraph {
             || paragraph.shaping != text.shaping
             || paragraph.wrapping != text.wrapping
             || paragraph.ellipsis != text.ellipsis
+            || paragraph.letter_spacing != text.letter_spacing
             || paragraph.align_x != text.align_x
             || paragraph.align_y != text.align_y
             || paragraph.hint.then_some(paragraph.hint_factor)
@@ -286,6 +293,10 @@ impl core::text::Paragraph for Paragraph {
 
     fn shaping(&self) -> Shaping {
         self.0.shaping
+    }
+
+    fn letter_spacing(&self) -> Em {
+        self.0.letter_spacing
     }
 
     fn bounds(&self) -> Size {
@@ -477,6 +488,7 @@ impl Default for Internal {
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
             version: text::Version::default(),
+            letter_spacing: Em::ZERO,
             hint: false,
             hint_factor: 1.0,
         }

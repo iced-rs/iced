@@ -8,7 +8,7 @@ pub use highlighter::Highlighter;
 pub use paragraph::Paragraph;
 
 use crate::alignment;
-use crate::{Background, Border, Color, Padding, Pixels, Point, Rectangle, Size};
+use crate::{Background, Border, Color, Em, Padding, Pixels, Point, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -46,6 +46,9 @@ pub struct Text<Content = String, Font = crate::Font> {
     /// The [`Ellipsis`] strategy of the [`Text`].
     pub ellipsis: Ellipsis,
 
+    /// The letter spacing of the [`Text`].
+    pub letter_spacing: Em,
+
     /// The scale factor that may be used to internally scale the layout
     /// calculation of the [`Paragraph`] and leverage metrics hinting.
     ///
@@ -75,6 +78,7 @@ where
             shaping: self.shaping,
             wrapping: self.wrapping,
             ellipsis: self.ellipsis,
+            letter_spacing: self.letter_spacing,
             hint_factor: self.hint_factor,
         }
     }
@@ -428,6 +432,8 @@ pub struct Span<'a, Link = (), Font = crate::Font> {
     pub underline: bool,
     /// Whether the [`Span`] should be struck through or not.
     pub strikethrough: bool,
+    /// The letter spacing of the [`Span`].
+    pub letter_spacing: Option<Em>,
 }
 
 /// A text highlight.
@@ -572,6 +578,12 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
         self
     }
 
+    /// Sets the letter spacing of the [`Span`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Em>) -> Self {
+        self.letter_spacing = Some(letter_spacing.into());
+        self
+    }
+
     /// Turns the [`Span`] into a static one.
     pub fn to_static(self) -> Span<'static, Link, Font> {
         Span {
@@ -585,6 +597,7 @@ impl<'a, Link, Font> Span<'a, Link, Font> {
             padding: self.padding,
             underline: self.underline,
             strikethrough: self.strikethrough,
+            letter_spacing: self.letter_spacing,
         }
     }
 }
@@ -602,6 +615,7 @@ impl<Link, Font> Default for Span<'_, Link, Font> {
             padding: Padding::default(),
             underline: false,
             strikethrough: false,
+            letter_spacing: None,
         }
     }
 }
@@ -619,6 +633,7 @@ impl<Link, Font: PartialEq> PartialEq for Span<'_, Link, Font> {
             && self.line_height == other.line_height
             && self.font == other.font
             && self.color == other.color
+            && self.letter_spacing == other.letter_spacing
     }
 }
 
