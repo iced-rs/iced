@@ -24,7 +24,10 @@ pub mod time {
     ///
     /// The first message is produced after a `duration`, and then continues to
     /// produce more messages every `duration` after that.
-    pub fn every(duration: std::time::Duration) -> Subscription<Instant> {
+    pub fn every<Custom>(duration: std::time::Duration) -> Subscription<Instant, Custom>
+    where
+        Custom: 'static + Send,
+    {
         Subscription::run_with(duration, |duration| {
             use futures::stream::StreamExt;
 
