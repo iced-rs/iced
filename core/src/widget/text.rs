@@ -233,6 +233,10 @@ struct Internal<P: Paragraph> {
     ///
     /// [`Operation::selectable`]: crate::widget::operation::Operation::selectable
     externally_managed: bool,
+    /// Most recent left-click; chained into `mouse::Click::new` so
+    /// repeated presses within iced's threshold escalate Single →
+    /// Double → Triple.
+    last_click: Option<mouse::Click>,
 }
 
 impl<P: Paragraph> Default for Internal<P> {
@@ -244,6 +248,7 @@ impl<P: Paragraph> Default for Internal<P> {
             selecting: false,
             focused: false,
             externally_managed: false,
+            last_click: None,
         }
     }
 }
@@ -403,14 +408,38 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 if !externally_managed =>
             {
+                use crate::widget::operation::Selectable;
+
                 let state = tree.state.downcast_mut::<Internal<Renderer::Paragraph>>();
 
                 if let Some(position) = cursor_in_bounds
                     && let Some(hit) = state.paragraph.raw().hit_test(position)
                 {
                     let cursor_at = hit.cursor();
-                    state.selection = Some((cursor_at, cursor_at));
-                    state.selecting = true;
+                    let click =
+                        mouse::Click::new(position, mouse::Button::Left, state.last_click);
+
+                    match click.kind() {
+                        mouse::click::Kind::Single => {
+                            state.selection = Some((cursor_at, cursor_at));
+                            state.selecting = true;
+                        }
+                        mouse::click::Kind::Double => {
+                            let start = state.step_byte_word(cursor_at, -1);
+                            let end = state.step_byte_word(cursor_at, 1);
+                            state.selection = Some((start, end));
+                            state.selecting = false;
+                        }
+                        mouse::click::Kind::Triple => {
+                            let len = state.text.len();
+                            let start = state.line_edge_byte(cursor_at, -1).unwrap_or(0);
+                            let end = state.line_edge_byte(cursor_at, 1).unwrap_or(len);
+                            state.selection = Some((start, end));
+                            state.selecting = false;
+                        }
+                    }
+
+                    state.last_click = Some(click);
                     state.focused = true;
                     shell.capture_event();
                     shell.request_redraw();
@@ -418,6 +447,7 @@ where
                     // Press outside this widget's text drops focus, so
                     // siblings can self-clear on the same event.
                     state.focused = false;
+                    state.last_click = None;
                     shell.request_redraw();
                 }
             }

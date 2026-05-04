@@ -70,6 +70,10 @@ struct GroupState {
     modifiers: keyboard::Modifiers,
     /// Whether the user is currently extending a selection by drag.
     selecting: bool,
+    /// Most recent left-click; chained into `mouse::Click::new` so
+    /// repeated presses within iced's threshold escalate Single →
+    /// Double → Triple.
+    last_click: Option<mouse::Click>,
 }
 
 impl<'a, Link, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -187,8 +191,10 @@ where
                 tree.state.downcast_mut::<GroupState>().modifiers = *m;
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let extend = tree.state.downcast_ref::<GroupState>().modifiers.shift();
-                let prior_anchor = tree.state.downcast_ref::<GroupState>().anchor;
+                let (extend, prior_anchor, last_click) = {
+                    let group = tree.state.downcast_ref::<GroupState>();
+                    (group.modifiers.shift(), group.anchor, group.last_click)
+                };
 
                 let mut hit_index = None;
                 let mut hit_byte = 0usize;
@@ -215,12 +221,63 @@ where
                 }
 
                 if let Some(focus_idx) = hit_index {
-                    let focus = (focus_idx, hit_byte);
-                    let anchor = if extend {
-                        prior_anchor.unwrap_or(focus)
+                    let click_point = cursor_position.unwrap_or(core::Point::ORIGIN);
+                    let click = mouse::Click::new(click_point, mouse::Button::Left, last_click);
+                    // Extend (Shift+click) takes priority over count
+                    // escalation — Single starts/extends a drag,
+                    // Double selects word, Triple selects line.
+                    let kind = if extend {
+                        mouse::click::Kind::Single
                     } else {
-                        focus
+                        click.kind()
                     };
+
+                    let mut word_or_line: Option<(usize, usize)> = None;
+                    if matches!(
+                        kind,
+                        mouse::click::Kind::Double | mouse::click::Kind::Triple
+                    ) {
+                        visit_selectables(
+                            &mut self.content,
+                            &mut tree.children[0],
+                            layout,
+                            renderer,
+                            |index, _, state| {
+                                if index != focus_idx {
+                                    return;
+                                }
+                                let len = state.text_len();
+                                word_or_line = Some(match kind {
+                                    mouse::click::Kind::Double => (
+                                        state.step_byte_word(hit_byte, -1),
+                                        state.step_byte_word(hit_byte, 1),
+                                    ),
+                                    mouse::click::Kind::Triple => (
+                                        state.line_edge_byte(hit_byte, -1).unwrap_or(0),
+                                        state.line_edge_byte(hit_byte, 1).unwrap_or(len),
+                                    ),
+                                    mouse::click::Kind::Single => unreachable!(),
+                                });
+                            },
+                        );
+                    }
+
+                    let (anchor, focus, selecting) =
+                        if let Some((start, end)) = word_or_line {
+                            ((focus_idx, start), (focus_idx, end), false)
+                        } else if extend {
+                            (
+                                prior_anchor.unwrap_or((focus_idx, hit_byte)),
+                                (focus_idx, hit_byte),
+                                true,
+                            )
+                        } else {
+                            (
+                                (focus_idx, hit_byte),
+                                (focus_idx, hit_byte),
+                                true,
+                            )
+                        };
                     let (a_idx, a_byte) = anchor;
                     let (f_idx, f_byte) = focus;
 
@@ -241,7 +298,8 @@ where
                     group.anchor = Some(anchor);
                     group.focus = Some(focus);
                     group.preferred_x = cursor_position.map(|p| p.x);
-                    group.selecting = true;
+                    group.selecting = selecting;
+                    group.last_click = Some(click);
                     shell.capture_event();
                     shell.request_redraw();
                 } else {
@@ -257,6 +315,7 @@ where
                     group.focus = None;
                     group.preferred_x = None;
                     group.selecting = false;
+                    group.last_click = None;
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
@@ -376,10 +435,19 @@ where
                 key: keyboard::Key::Character(c),
                 modifiers,
                 ..
-            }) if modifiers.command() && matches!(c.as_str(), "a" | "A") => {
+            }) if modifiers.command()
+                && matches!(c.as_str(), "a" | "A")
+                && {
+                    let group = tree.state.downcast_ref::<GroupState>();
+                    group.anchor.is_some() || group.focus.is_some()
+                } =>
+            {
                 // Select all selectables in tree order. The anchor
                 // becomes the start of the first one, focus the end
-                // of the last.
+                // of the last. Only fires when this group has an
+                // existing selection / caret — without that gate every
+                // sibling group would steal `Ctrl+A` from each other
+                // and from focused `text_editor` widgets.
                 let mut total_count = 0usize;
                 let mut last_len = 0usize;
 
@@ -549,10 +617,14 @@ fn apply_keyboard_action<Message, Theme, Renderer>(
                     let stepped = state.step_byte_word(focus_byte, dir);
                     (stepped != focus_byte).then_some((index, stepped))
                 }
-                KeyAction::Line(dir) => state.step_byte_line(focus_byte, dir).map(|b| (index, b)),
-                KeyAction::LineEdge(dir) => {
-                    state.line_edge_byte(focus_byte, dir).map(|b| (index, b))
-                }
+                KeyAction::Line(dir) => state
+                    .step_byte_line(focus_byte, dir)
+                    .filter(|&b| b != focus_byte)
+                    .map(|b| (index, b)),
+                KeyAction::LineEdge(dir) => state
+                    .line_edge_byte(focus_byte, dir)
+                    .filter(|&b| b != focus_byte)
+                    .map(|b| (index, b)),
                 KeyAction::DocEdge(_) => None,
             };
         },
