@@ -717,6 +717,7 @@ impl<P: Program + 'static> Tester<P> {
                                             }
                                             _ => None,
                                         },
+                                        ..text::Style::default()
                                     })
                                     .into()
                             }),
@@ -882,6 +883,7 @@ where
             text(label).size(14).style(|theme: &core::Theme| {
                 text::Style {
                     color: Some(theme.palette().background.weak.text),
+                    ..text::Style::default()
                 }
             }),
             space::horizontal(),

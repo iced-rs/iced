@@ -30,6 +30,7 @@ num-traits.workspace = true
 rustc-hash.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
+unicode-segmentation.workspace = true
 web-time.workspace = true
 
 serde.workspace = true

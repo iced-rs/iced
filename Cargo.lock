@@ -2286,6 +2286,7 @@ dependencies = [
  "serde",
  "smol_str 0.2.2",
  "thiserror 2.0.18",
+ "unicode-segmentation",
  "web-time",
 ]
 
@@ -5676,6 +5677,13 @@ dependencies = [
 
 [[package]]
 name = "text"
+version = "0.1.0"
+dependencies = [
+ "iced",
+]
+
+[[package]]
+name = "text_selection_test"
 version = "0.1.0"
 dependencies = [
  "iced",
