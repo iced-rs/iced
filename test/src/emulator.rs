@@ -21,6 +21,7 @@ use crate::runtime::user_interface;
 use crate::runtime::{Task, UserInterface};
 use crate::{Instruction, Selector};
 
+use std::borrow::Cow;
 use std::fmt;
 
 /// A headless runtime that can run iced applications and execute
@@ -86,6 +87,10 @@ impl<P: Program + 'static> Emulator<P> {
         use renderer::Headless;
 
         let settings = program.settings();
+
+        for font in &settings.fonts {
+            load_font(font.clone()).expect("Font must be valid");
+        }
 
         // TODO: Error handling
         let executor = P::Executor::new().expect("Create emulator executor");
@@ -237,8 +242,14 @@ impl<P: Program + 'static> Emulator<P> {
                     dbg!(action);
                 }
                 runtime::Action::Font(action) => {
-                    // TODO
-                    dbg!(action);
+                    use crate::runtime::font;
+                    match action {
+                        font::Action::Load { bytes, channel } => {
+                            let _ = load_font(bytes);
+                            let _ = channel.send(Ok(()));
+                        }
+                        _ => {}
+                    }
                 }
                 runtime::Action::Image(action) => {
                     // TODO
@@ -538,4 +549,13 @@ impl fmt::Display for Mode {
             Self::Immediate => "Immediate",
         })
     }
+}
+
+fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), crate::error::Error> {
+    crate::renderer::graphics::text::font_system()
+        .write()
+        .expect("Write to font system")
+        .load_font(font.into());
+
+    Ok(())
 }
