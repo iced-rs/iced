@@ -1,5 +1,5 @@
 //! Access the clipboard.
-use crate::core::clipboard::{Content, Error, Kind};
+use crate::core::clipboard::{ClipboardKind, Content, Error, Kind};
 
 pub use platform::*;
 
@@ -11,6 +11,12 @@ impl Default for Clipboard {
 
 #[cfg(not(target_arch = "wasm32"))]
 mod platform {
+    #[cfg(all(
+        unix,
+        not(any(target_os = "macos", target_os = "android", target_os = "emscripten")),
+    ))]
+    use arboard::{GetExtLinux, SetExtLinux};
+
     use super::*;
 
     use std::sync::{Arc, Mutex};
@@ -47,6 +53,7 @@ mod platform {
         /// Reads the current content of the [`Clipboard`] as text.
         pub fn read(
             &self,
+            clipboard_kind: ClipboardKind,
             kind: Kind,
             callback: impl FnOnce(Result<Content, Error>) + Send + 'static,
         ) {
@@ -63,6 +70,27 @@ mod platform {
                     return;
                 };
 
+                #[cfg(all(
+                    unix,
+                    not(any(
+                        target_os = "macos",
+                        target_os = "android",
+                        target_os = "emscripten"
+                    )),
+                ))]
+                let get = clipboard.get().clipboard(match clipboard_kind {
+                    ClipboardKind::Standard => arboard::LinuxClipboardKind::Clipboard,
+                    ClipboardKind::Primary => arboard::LinuxClipboardKind::Primary,
+                });
+
+                #[cfg(not(all(
+                    unix,
+                    not(any(
+                        target_os = "macos",
+                        target_os = "android",
+                        target_os = "emscripten"
+                    )),
+                )))]
                 let get = clipboard.get();
 
                 let result = match kind {
@@ -94,6 +122,7 @@ mod platform {
         /// Writes the given text contents to the [`Clipboard`].
         pub fn write(
             &mut self,
+            clipboard_kind: ClipboardKind,
             content: Content,
             callback: impl FnOnce(Result<(), Error>) + Send + 'static,
         ) {
@@ -110,6 +139,27 @@ mod platform {
                     return;
                 };
 
+                #[cfg(all(
+                    unix,
+                    not(any(
+                        target_os = "macos",
+                        target_os = "android",
+                        target_os = "emscripten"
+                    )),
+                ))]
+                let set = clipboard.set().clipboard(match clipboard_kind {
+                    ClipboardKind::Standard => arboard::LinuxClipboardKind::Clipboard,
+                    ClipboardKind::Primary => arboard::LinuxClipboardKind::Primary,
+                });
+
+                #[cfg(not(all(
+                    unix,
+                    not(any(
+                        target_os = "macos",
+                        target_os = "android",
+                        target_os = "emscripten"
+                    )),
+                )))]
                 let set = clipboard.set();
 
                 let result = match content {
@@ -167,12 +217,22 @@ mod platform {
         }
 
         /// Reads the current content of the [`Clipboard`] as text.
-        pub fn read(&self, _kind: Kind, callback: impl FnOnce(Result<Content, Error>)) {
+        pub fn read(
+            &self,
+            _clipboard_kind: ClipboardKind,
+            _kind: Kind,
+            callback: impl FnOnce(Result<Content, Error>),
+        ) {
             callback(Err(Error::ClipboardUnavailable));
         }
 
         /// Writes the given text contents to the [`Clipboard`].
-        pub fn write(&mut self, _content: Content, callback: impl FnOnce(Result<(), Error>)) {
+        pub fn write(
+            &mut self,
+            _clipboard_kind: ClipboardKind,
+            _content: Content,
+            callback: impl FnOnce(Result<(), Error>),
+        ) {
             callback(Err(Error::ClipboardUnavailable));
         }
     }
