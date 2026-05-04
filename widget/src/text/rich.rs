@@ -225,6 +225,10 @@ struct State<Link, P: Paragraph> {
     selecting: bool,
     focused: bool,
     externally_managed: bool,
+    /// Most recent left-click; chained into `mouse::Click::new` so
+    /// repeated presses within iced's threshold escalate Single →
+    /// Double → Triple.
+    last_click: Option<mouse::Click>,
 }
 
 impl<Link, P: Paragraph> core::widget::operation::Selectable for State<Link, P> {
@@ -294,6 +298,7 @@ where
             selecting: false,
             focused: false,
             externally_managed: false,
+            last_click: None,
         })
     }
 
@@ -531,8 +536,30 @@ where
                     && let Some(hit) = state.paragraph.hit_test(position)
                 {
                     let cursor_at = hit.cursor();
-                    state.selection = Some((cursor_at, cursor_at));
-                    state.selecting = true;
+                    let click =
+                        mouse::Click::new(position, mouse::Button::Left, state.last_click);
+
+                    match click.kind() {
+                        mouse::click::Kind::Single => {
+                            state.selection = Some((cursor_at, cursor_at));
+                            state.selecting = true;
+                        }
+                        mouse::click::Kind::Double => {
+                            let start = state.step_byte_word(cursor_at, -1);
+                            let end = state.step_byte_word(cursor_at, 1);
+                            state.selection = Some((start, end));
+                            state.selecting = false;
+                        }
+                        mouse::click::Kind::Triple => {
+                            let len = state.text_len();
+                            let start = state.line_edge_byte(cursor_at, -1).unwrap_or(0);
+                            let end = state.line_edge_byte(cursor_at, 1).unwrap_or(len);
+                            state.selection = Some((start, end));
+                            state.selecting = false;
+                        }
+                    }
+
+                    state.last_click = Some(click);
                     state.focused = true;
                     shell.capture_event();
                     shell.request_redraw();
@@ -540,6 +567,7 @@ where
                     // Press outside this widget's text drops focus, so
                     // siblings can self-clear on the same event.
                     state.focused = false;
+                    state.last_click = None;
                     shell.request_redraw();
                 }
             }
@@ -665,8 +693,14 @@ where
                     }
                     keyboard::key::Named::ArrowLeft => Some(state.step_byte(focus, -1)),
                     keyboard::key::Named::ArrowRight => Some(state.step_byte(focus, 1)),
-                    keyboard::key::Named::ArrowUp => state.step_byte_line(focus, -1).or(Some(0)),
-                    keyboard::key::Named::ArrowDown => state.step_byte_line(focus, 1).or(Some(len)),
+                    keyboard::key::Named::ArrowUp => state
+                        .step_byte_line(focus, -1)
+                        .filter(|&b| b != focus)
+                        .or(Some(0)),
+                    keyboard::key::Named::ArrowDown => state
+                        .step_byte_line(focus, 1)
+                        .filter(|&b| b != focus)
+                        .or(Some(len)),
                     keyboard::key::Named::Home if modifiers.command() => Some(0),
                     keyboard::key::Named::End if modifiers.command() => Some(len),
                     keyboard::key::Named::Home => state.line_edge_byte(focus, -1).or(Some(0)),
