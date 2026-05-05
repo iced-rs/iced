@@ -1,5 +1,6 @@
 /// A 2D vector.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Vector<T = f32> {
     /// The X component of the [`Vector`]
     pub x: T,

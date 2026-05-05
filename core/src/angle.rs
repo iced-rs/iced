@@ -73,6 +73,7 @@ impl num_traits::FromPrimitive for Degrees {
 
 /// Radians
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Radians(pub f32);
 
 impl Radians {
