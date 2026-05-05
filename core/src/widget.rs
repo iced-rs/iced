@@ -96,6 +96,14 @@ where
         tree.children.clear();
     }
 
+    /// Returns the [`Id`] of the [`Widget`], if any.
+    fn id(&self) -> Option<Id> {
+        None
+    }
+
+    /// Sets the [`Id`] of the [`Widget`].
+    fn set_id(&mut self, _id: Id) {}
+
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
         &mut self,
