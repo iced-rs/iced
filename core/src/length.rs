@@ -3,7 +3,7 @@ use crate::Pixels;
 /// The strategy used to fill space in a specific dimension.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
-    /// Fill all the remaining space
+    /// Fill all the remaining space.
     Fill,
 
     /// Fill a portion of the remaining space relative to other elements.
@@ -15,14 +15,62 @@ pub enum Length {
     /// `Length::Fill` is equivalent to `Length::FillPortion(1)`.
     FillPortion(u16),
 
-    /// Fill the least amount of space
+    /// Take the least amount of space.
     Shrink,
 
-    /// Fill a fixed amount of space
+    /// Take a fixed amount of space.
     Fixed(f32),
+
+    /// Take a certain amount of space, with minimum and maximum bounds.
+    Bounded {
+        /// The minimum length to take.
+        min: Option<f32>,
+        /// The maximum length to take.
+        max: Option<f32>,
+        /// Whether the contents should be compressed.
+        compression: bool,
+    },
 }
 
 impl Length {
+    /// Creates a bounded [`Length`] that must take at least the given minimum amount of
+    /// space.
+    pub fn min(self, min: impl Into<Pixels>) -> Self {
+        let (max, compression) = match self {
+            Length::Fixed(_) | Length::FillPortion(_) => return self,
+            Length::Fill => (None, false),
+            Length::Shrink => (None, true),
+            Length::Bounded {
+                max, compression, ..
+            } => (max, compression),
+        };
+
+        Self::Bounded {
+            min: Some(min.into().0),
+            max,
+            compression,
+        }
+    }
+
+    /// Creates a bounded [`Length`] that can take up to the given maximum amount of
+    /// space.
+    pub fn max(self, max: impl Into<Pixels>) -> Self {
+        let (min, compression) = match self {
+            Length::Fixed(_) | Length::FillPortion(_) => return self,
+            Length::Fill => (None, false),
+            Length::Shrink => (None, true),
+            Length::Bounded {
+                min, compression, ..
+            } => (min, compression),
+        };
+
+        Self::Bounded {
+            min,
+            max: Some(max.into().0),
+            compression,
+        }
+    }
+
     /// Returns the _fill factor_ of the [`Length`].
     ///
     /// The _fill factor_ is a relative unit describing how much of the
@@ -34,6 +82,7 @@ impl Length {
             Length::FillPortion(factor) => *factor,
             Length::Shrink => 0,
             Length::Fixed(_) => 0,
+            Length::Bounded { .. } => 0,
         }
     }
 
@@ -51,7 +100,7 @@ impl Length {
     pub fn fluid(&self) -> Self {
         match self {
             Length::Fill | Length::FillPortion(_) => Length::Fill,
-            Length::Shrink | Length::Fixed(_) => Length::Shrink,
+            Length::Shrink | Length::Fixed(_) | Length::Bounded { .. } => Length::Shrink,
         }
     }
 
