@@ -437,14 +437,14 @@
 //!                     }
 //!                  }
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!         Message::Conversation(message) => {
 //!             if let Screen::Conversation(conversation) = &mut state.screen {
 //!                 conversation.update(message).map(Message::Conversation)
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!     }
@@ -624,6 +624,11 @@ pub mod overlay {
 pub mod touch {
     //! Listen and react to touch events.
     pub use crate::core::touch::{Event, Finger};
+}
+
+pub mod gestures {
+    //! Listen and react to gesture events.
+    pub use crate::core::gesture::{Delta, Event, Phase};
 }
 
 #[allow(hidden_glob_reexports)]
