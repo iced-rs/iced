@@ -74,10 +74,15 @@ pub struct Settings {
     /// [`Settings::transparent`] and set a proper opacity value to the background color with
     /// `Application::style`.
     ///
-    /// This option is only supported on macOS and Linux. Please read the [winit document][winit]
-    /// for more details.
+    /// This option is supported on macOS, Windows 11 and Linux (please read the [winit
+    /// document][winit_set_blur] for more details).
     ///
-    /// [winit]: https://docs.rs/winit/0.30/winit/window/struct.Window.html#method.set_blur
+    /// On Windows, it sets the [backdrop][winit_backdrop] to `TransientWindow`, making the
+    /// window [acrylic][acrylic].
+    ///
+    /// [winit_set_blur]: https://docs.rs/winit/0.30/winit/window/struct.Window.html#method.set_blur
+    /// [winit_backdrop]: https://docs.rs/winit/0.30/winit/platform/windows/enum.BackdropType.html
+    /// [acrylic]: https://learn.microsoft.com/en-us/windows/apps/design/style/acrylic
     pub blur: bool,
 
     /// The window [`Level`].
