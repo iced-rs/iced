@@ -71,9 +71,10 @@ impl Limits {
 
                 if let Some(max) = max {
                     self.max.width = max.min(self.max.width).max(self.min.width);
+                    self.compression.width = compression;
+                } else {
+                    self.compression.width |= compression;
                 }
-
-                self.compression.width = compression;
             }
             Length::Fill | Length::FillPortion(_) => {}
         }
@@ -105,9 +106,10 @@ impl Limits {
 
                 if let Some(max) = max {
                     self.max.height = max.min(self.max.height).max(self.min.height);
+                    self.compression.height = compression;
+                } else {
+                    self.compression.height |= compression;
                 }
-
-                self.compression.height = compression;
             }
             Length::Fill | Length::FillPortion(_) => {}
         }
