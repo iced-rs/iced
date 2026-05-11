@@ -171,6 +171,18 @@ impl Color {
         }
     }
 
+    /// Linearly interpolates between `self` and `other` by factor `t` (0.0–1.0).
+    ///
+    /// At `t = 0.0` returns `self`, at `t = 1.0` returns `other`.
+    pub const fn lerp(self, other: Self, t: f32) -> Self {
+        Self {
+            r: self.r + (other.r - self.r) * t,
+            g: self.g + (other.g - self.g) * t,
+            b: self.b + (other.b - self.b) * t,
+            a: self.a + (other.a - self.a) * t,
+        }
+    }
+
     /// Returns the relative luminance of the [`Color`].
     /// <https://www.w3.org/TR/WCAG21/#dfn-relative-luminance>
     #[must_use]

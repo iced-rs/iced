@@ -16,6 +16,7 @@
 //!     button("Press me!").on_press(Message::ButtonPressed).into()
 //! }
 //! ```
+use crate::core::animation::Easing;
 use crate::core::border::{self, Border};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
@@ -24,6 +25,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
+use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
@@ -83,6 +85,7 @@ where
     clip: bool,
     class: Theme::Class<'a>,
     status: Option<Status>,
+    animate_background: Option<(Duration, Easing)>,
 }
 
 enum OnPress<'a, Message> {
@@ -118,6 +121,7 @@ where
             clip: false,
             class: Theme::default(),
             status: None,
+            animate_background: None,
         }
     }
 
@@ -193,12 +197,35 @@ where
         self.class = class.into();
         self
     }
+
+    /// Enables smooth background color animation over the given duration.
+    ///
+    /// When enabled, background color changes (e.g. on hover/press) will
+    /// smoothly interpolate instead of snapping instantly.
+    ///
+    /// Uses [`Easing::EaseOutCubic`] by default.
+    #[must_use]
+    pub fn animate_background(mut self, duration: Duration) -> Self {
+        self.animate_background = Some((duration, Easing::EaseOutCubic));
+        self
+    }
+
+    /// Enables smooth background color animation with a custom [`Easing`].
+    #[must_use]
+    pub fn animate_background_with_easing(mut self, duration: Duration, easing: Easing) -> Self {
+        self.animate_background = Some((duration, easing));
+        self
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 struct State {
     is_pressed: bool,
     is_focused: bool,
+    /// The previous status before the last transition (for animation).
+    previous_status: Option<Status>,
+    /// When the last status transition started.
+    transition_start: Option<Instant>,
 }
 
 impl operation::Focusable for State {
@@ -376,8 +403,25 @@ where
         };
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            // If animating background, check if transition is still in progress
+            if let Some((duration, _)) = self.animate_background {
+                let state = tree.state.downcast_ref::<State>();
+                if let Some(start) = state.transition_start
+                    && start.elapsed() < duration
+                {
+                    shell.request_redraw();
+                }
+            }
+
             self.status = Some(current_status);
         } else if self.status.is_none_or(|status| status != current_status) {
+            // Status changed — record transition for animation
+            if self.animate_background.is_some() {
+                let state = tree.state.downcast_mut::<State>();
+                state.previous_status = self.status;
+                state.transition_start = Some(Instant::now());
+            }
+
             shell.request_redraw();
         }
     }
@@ -394,9 +438,32 @@ where
     ) {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
-        let style = theme.style(&self.class, self.status.unwrap_or(Status::Disabled));
+        let current_status = self.status.unwrap_or(Status::Disabled);
+        let style = theme.style(&self.class, current_status);
 
-        if style.background.is_some() || style.border.width > 0.0 || style.shadow.color.a > 0.0 {
+        // Determine the effective background, interpolating if animating
+        let effective_bg = if let Some((duration, easing)) = self.animate_background {
+            let state = tree.state.downcast_ref::<State>();
+
+            match (state.transition_start, state.previous_status) {
+                (Some(start), Some(prev_status)) if start.elapsed() < duration => {
+                    let progress =
+                        (start.elapsed().as_secs_f32() / duration.as_secs_f32()).min(1.0);
+                    let eased = easing.value(progress);
+
+                    let prev_style = theme.style(&self.class, prev_status);
+                    let from = bg_color(prev_style.background);
+                    let to = bg_color(style.background);
+
+                    Some(Background::Color(from.lerp(to, eased)))
+                }
+                _ => style.background,
+            }
+        } else {
+            style.background
+        };
+
+        if effective_bg.is_some() || style.border.width > 0.0 || style.shadow.color.a > 0.0 {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
@@ -405,9 +472,7 @@ where
                     snap: style.snap,
                     border_only: false,
                 },
-                style
-                    .background
-                    .unwrap_or(Background::Color(Color::TRANSPARENT)),
+                effective_bg.unwrap_or(Background::Color(Color::TRANSPARENT)),
             );
         }
 
@@ -763,5 +828,13 @@ fn disabled(style: Style) -> Style {
             .map(|background| background.scale_alpha(0.5)),
         text_color: style.text_color.scale_alpha(0.5),
         ..style
+    }
+}
+
+/// Extracts the [`Color`] from an optional [`Background`], defaulting to transparent.
+fn bg_color(bg: Option<Background>) -> Color {
+    match bg {
+        Some(Background::Color(c)) => c,
+        _ => Color::TRANSPARENT,
     }
 }
