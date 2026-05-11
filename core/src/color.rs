@@ -52,28 +52,43 @@ impl Color {
 
     /// Creates a new [`Color`].
     ///
-    /// In debug mode, it will panic if the values are not in the correct
-    /// range: 0.0 - 1.0
-    const fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
-        debug_assert!(
-            r >= 0.0 && r <= 1.0,
-            "Red component must be in [0, 1] range."
-        );
-        debug_assert!(
-            g >= 0.0 && g <= 1.0,
-            "Green component must be in [0, 1] range."
-        );
-        debug_assert!(
-            b >= 0.0 && b <= 1.0,
-            "Blue component must be in [0, 1] range."
-        );
-
-        Self { r, g, b, a }
+    /// Values outside the `[0.0, 1.0]` range are clamped.
+    pub const fn new(r: f32, g: f32, b: f32, a: f32) -> Color {
+        Self {
+            r: if r < 0.0 {
+                0.0
+            } else if r > 1.0 {
+                1.0
+            } else {
+                r
+            },
+            g: if g < 0.0 {
+                0.0
+            } else if g > 1.0 {
+                1.0
+            } else {
+                g
+            },
+            b: if b < 0.0 {
+                0.0
+            } else if b > 1.0 {
+                1.0
+            } else {
+                b
+            },
+            a: if a < 0.0 {
+                0.0
+            } else if a > 1.0 {
+                1.0
+            } else {
+                a
+            },
+        }
     }
 
     /// Creates a [`Color`] from its RGB components.
     pub const fn from_rgb(r: f32, g: f32, b: f32) -> Self {
-        Self::from_rgba(r, g, b, 1.0f32)
+        Self::new(r, g, b, 1.0)
     }
 
     /// Creates a [`Color`] from its RGBA components.
@@ -88,7 +103,12 @@ impl Color {
 
     /// Creates a [`Color`] from its RGB8 components and an alpha value.
     pub const fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Self {
-        Self::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
+        Self {
+            r: r as f32 / 255.0,
+            g: g as f32 / 255.0,
+            b: b as f32 / 255.0,
+            a,
+        }
     }
 
     /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`.
@@ -118,7 +138,7 @@ impl Color {
             }
         }
 
-        Self::new(
+        Self::from_rgba(
             gamma_component(r),
             gamma_component(g),
             gamma_component(b),
@@ -135,7 +155,12 @@ impl Color {
 
     /// Returns the inverted [`Color`].
     pub const fn inverse(self) -> Self {
-        Self::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
+        Self {
+            r: 1.0f32 - self.r,
+            g: 1.0f32 - self.g,
+            b: 1.0f32 - self.b,
+            a: self.a,
+        }
     }
 
     /// Scales the alpha channel of the [`Color`] by the given factor.
