@@ -4,7 +4,9 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{
+    Alignment, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+};
 
 /// Controls how a [`Stack`] determines its intrinsic size.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -41,6 +43,8 @@ pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> 
     clip: bool,
     base_layer: usize,
     sizing_mode: SizingMode,
+    align_x: Alignment,
+    align_y: Alignment,
 }
 
 impl<'a, Message, Theme, Renderer> Stack<'a, Message, Theme, Renderer>
@@ -81,6 +85,8 @@ where
             clip: false,
             base_layer: 0,
             sizing_mode: SizingMode::default(),
+            align_x: Alignment::Start,
+            align_y: Alignment::Start,
         }
     }
 
@@ -150,6 +156,50 @@ where
         self.sizing_mode = mode;
         self
     }
+
+    /// Sets the horizontal alignment of children within the [`Stack`].
+    ///
+    /// Children smaller than the stack's width will be positioned according
+    /// to this alignment. By default, children are aligned to the start (left).
+    pub fn align_x(mut self, alignment: impl Into<Alignment>) -> Self {
+        self.align_x = alignment.into();
+        self
+    }
+
+    /// Sets the vertical alignment of children within the [`Stack`].
+    ///
+    /// Children smaller than the stack's height will be positioned according
+    /// to this alignment. By default, children are aligned to the start (top).
+    pub fn align_y(mut self, alignment: impl Into<Alignment>) -> Self {
+        self.align_y = alignment.into();
+        self
+    }
+
+    fn align_nodes(&self, nodes: &mut [layout::Node], size: Size) {
+        if self.align_x == Alignment::Start && self.align_y == Alignment::Start {
+            return;
+        }
+
+        for node in nodes.iter_mut() {
+            let child_size = node.size();
+
+            let offset_x = match self.align_x {
+                Alignment::Start => 0.0,
+                Alignment::Center => (size.width - child_size.width) / 2.0,
+                Alignment::End => size.width - child_size.width,
+            };
+
+            let offset_y = match self.align_y {
+                Alignment::Start => 0.0,
+                Alignment::Center => (size.height - child_size.height) / 2.0,
+                Alignment::End => size.height - child_size.height,
+            };
+
+            if offset_x != 0.0 || offset_y != 0.0 {
+                node.translate_mut(Vector::new(offset_x, offset_y));
+            }
+        }
+    }
 }
 
 impl<Message, Renderer> Default for Stack<'_, Message, Renderer>
@@ -212,7 +262,7 @@ where
                 let (under, above) = self.children.split_at_mut(self.base_layer);
                 let (tree_under, tree_above) = tree.children.split_at_mut(self.base_layer);
 
-                let nodes =
+                let mut nodes: Vec<layout::Node> =
                     under
                         .iter_mut()
                         .zip(tree_under)
@@ -222,6 +272,8 @@ where
                             |(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits),
                         ))
                         .collect();
+
+                self.align_nodes(&mut nodes, size);
 
                 layout::Node::with_children(size, nodes)
             }
@@ -285,8 +337,16 @@ where
                 );
 
                 // SECOND PASS: Re-layout all children with the computed size (no compression)
-                // This allows Spacer elements to expand to fill the computed size
-                let final_limits = layout::Limits::new(size, size);
+                // This allows Spacer elements to expand to fill the computed size.
+                // When alignment is used, don't force children to expand (min=0)
+                // so they retain intrinsic size and can be positioned by alignment.
+                let final_min =
+                    if self.align_x != Alignment::Start || self.align_y != Alignment::Start {
+                        Size::ZERO
+                    } else {
+                        size
+                    };
+                let final_limits = layout::Limits::new(final_min, size);
 
                 for ((child, child_tree), node) in self
                     .children
@@ -298,6 +358,8 @@ where
                         .as_widget_mut()
                         .layout(child_tree, renderer, &final_limits);
                 }
+
+                self.align_nodes(&mut nodes, size);
 
                 layout::Node::with_children(size, nodes)
             }
