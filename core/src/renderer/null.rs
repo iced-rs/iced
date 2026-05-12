@@ -202,6 +202,8 @@ impl text::Editor for () {
         0.0
     }
 
+    fn scroll_to_vertical_offset(&mut self, _offset: f32) {}
+
     fn hint_factor(&self) -> Option<f32> {
         None
     }

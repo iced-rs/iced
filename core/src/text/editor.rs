@@ -44,6 +44,10 @@ pub trait Editor: Sized + Default {
     /// Returns the current vertical scroll offset of the [`Editor`].
     fn vertical_scroll_offset(&self) -> f32;
 
+    /// Scrolls the [`Editor`] to the given vertical offset in pixels.
+    /// 将 [`Editor`] 滚动到给定的纵向像素偏移量。
+    fn scroll_to_vertical_offset(&mut self, offset: f32);
+
     /// Returns the minimum boundaries to fit the current contents of
     /// the [`Editor`].
     fn min_bounds(&self) -> Size;

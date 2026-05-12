@@ -407,6 +407,14 @@ where
         )
     }
 
+    /// Scrolls the current editor viewport to the given vertical offset in pixels.
+    /// 将当前编辑器视口滚动到给定的纵向像素偏移量。
+    pub fn scroll_to_plain_text_offset(&mut self, offset: f32) {
+        let internal = self.0.get_mut();
+
+        internal.editor.scroll_to_vertical_offset(offset);
+    }
+
     /// Returns the amount of lines of the [`Content`].
     pub fn line_count(&self) -> usize {
         self.0.borrow().editor.line_count()

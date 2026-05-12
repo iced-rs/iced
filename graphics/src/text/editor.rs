@@ -148,44 +148,42 @@ impl editor::Editor for Editor {
             Some((start, end)) => {
                 let line_height = buffer.metrics().line_height;
                 let selected_lines = end.line - start.line + 1;
+                let mut visual_line_offset = visual_lines_offset(start.line, buffer);
+                let mut regions = Vec::new();
 
-                let visual_lines_offset = visual_lines_offset(start.line, buffer);
-
-                let regions = buffer
+                for (i, line) in buffer
                     .lines
                     .iter()
                     .skip(start.line)
                     .take(selected_lines)
                     .enumerate()
-                    .flat_map(|(i, line)| {
-                        highlight_line(
-                            line,
-                            if i == 0 { start.index } else { 0 },
-                            if i == selected_lines - 1 {
-                                end.index
-                            } else {
-                                line.text().len()
-                            },
-                        )
-                    })
-                    .enumerate()
-                    .filter_map(|(visual_line, (x, width))| {
+                {
+                    let line_start = if i == 0 { start.index } else { 0 };
+                    let line_end = if i == selected_lines - 1 {
+                        end.index
+                    } else {
+                        line.text().len()
+                    };
+
+                    for (visual_line, (x, width)) in
+                        highlight_line(line, line_start, line_end).enumerate()
+                    {
                         if width > 0.0 {
-                            Some(
+                            regions.push(
                                 Rectangle {
                                     x,
                                     width,
-                                    y: (visual_line as i32 + visual_lines_offset) as f32
+                                    y: (visual_line_offset + visual_line as i32) as f32
                                         * line_height
                                         - buffer.scroll().vertical,
                                     height: line_height,
                                 } * (1.0 / internal.hint_factor),
-                            )
-                        } else {
-                            None
+                            );
                         }
-                    })
-                    .collect();
+                    }
+
+                    visual_line_offset += cached_visual_line_count(line) as i32;
+                }
 
                 Selection::Range(regions)
             }
@@ -496,8 +494,43 @@ impl editor::Editor for Editor {
 
     fn vertical_scroll_offset(&self) -> f32 {
         let internal = self.internal();
+        let buffer = buffer_from_editor(&internal.editor);
+        let scroll = buffer.scroll();
+        let line_height = buffer.metrics().line_height;
+        let visual_lines_before_scroll = buffer.lines[..scroll.line]
+            .iter()
+            .map(cached_visual_line_count)
+            .sum::<usize>() as f32;
 
-        buffer_from_editor(&internal.editor).scroll().vertical / internal.hint_factor
+        ((visual_lines_before_scroll * line_height) + scroll.vertical) / internal.hint_factor
+    }
+
+    fn scroll_to_vertical_offset(&mut self, offset: f32) {
+        self.with_internal_mut(|internal| {
+            let buffer = buffer_mut_from_editor(&mut internal.editor);
+            let line_height = buffer.metrics().line_height.max(1.0);
+            let target_offset = offset.max(0.0) * internal.hint_factor;
+            let mut remaining_offset = target_offset;
+            let mut scroll_line = 0usize;
+
+            for (index, line) in buffer.lines.iter().enumerate() {
+                let line_visual_height = cached_visual_line_count(line) as f32 * line_height;
+
+                if remaining_offset < line_visual_height {
+                    scroll_line = index;
+                    break;
+                }
+
+                remaining_offset -= line_visual_height;
+                scroll_line = index.saturating_add(1);
+            }
+
+            let clamped_line = scroll_line.min(buffer.lines.len().saturating_sub(1));
+            let mut scroll = buffer.scroll();
+            scroll.line = clamped_line;
+            scroll.vertical = remaining_offset.max(0.0);
+            buffer.set_scroll(scroll);
+        });
     }
 
     fn min_bounds(&self) -> Size {
@@ -821,10 +854,19 @@ fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
     let visual_lines_offset: usize = buffer.lines[start..]
         .iter()
         .take(end - start)
-        .map(|line| line.layout_opt().map(Vec::len).unwrap_or_default())
+        .map(cached_visual_line_count)
         .sum();
 
     visual_lines_offset as i32 * if scroll.line < line { 1 } else { -1 }
+}
+
+/// Returns the currently cached visual-line count for one buffer line with a safe fallback.
+/// 返回单个缓冲区逻辑行当前缓存的可视行数量，并在缺失布局缓存时提供安全回退。
+fn cached_visual_line_count(line: &cosmic_text::BufferLine) -> usize {
+    line.layout_opt()
+        .map(Vec::len)
+        .filter(|count| *count > 0)
+        .unwrap_or(1)
 }
 
 fn to_motion(motion: Motion) -> cosmic_text::Motion {
