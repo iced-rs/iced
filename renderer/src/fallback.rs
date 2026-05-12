@@ -251,65 +251,39 @@ where
     type Renderer = Renderer<A::Renderer, B::Renderer>;
     type Surface = Surface<A::Surface, B::Surface>;
 
-    async fn with_backend(
+    async fn new(
         settings: compositor::Settings,
         display: impl compositor::Display + Clone,
         compatible_window: impl compositor::Window + Clone,
         shell: Shell,
-        backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
-        use std::env;
-
-        let backends = backend
-            .map(str::to_owned)
-            .or_else(|| env::var("ICED_BACKEND").ok());
-
-        let mut candidates: Vec<_> = backends
-            .map(|backends| {
-                backends
-                    .split(',')
-                    .filter(|candidate| !candidate.is_empty())
-                    .map(str::to_owned)
-                    .map(Some)
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        if candidates.is_empty() {
-            candidates.push(None);
-        }
-
         let mut errors = vec![];
 
-        for backend in candidates.iter().map(Option::as_deref) {
-            match A::with_backend(
-                settings,
-                display.clone(),
-                compatible_window.clone(),
-                shell.clone(),
-                backend,
-            )
-            .await
-            {
-                Ok(compositor) => return Ok(Self::Primary(compositor)),
-                Err(error) => {
-                    errors.push(error);
-                }
+        match A::new(
+            settings.clone(),
+            display.clone(),
+            compatible_window.clone(),
+            shell.clone(),
+        )
+        .await
+        {
+            Ok(compositor) => return Ok(Self::Primary(compositor)),
+            Err(error) => {
+                errors.push(error);
             }
+        }
 
-            match B::with_backend(
-                settings,
-                display.clone(),
-                compatible_window.clone(),
-                shell.clone(),
-                backend,
-            )
-            .await
-            {
-                Ok(compositor) => return Ok(Self::Secondary(compositor)),
-                Err(error) => {
-                    errors.push(error);
-                }
+        match B::new(
+            settings,
+            display.clone(),
+            compatible_window.clone(),
+            shell.clone(),
+        )
+        .await
+        {
+            Ok(compositor) => return Ok(Self::Secondary(compositor)),
+            Err(error) => {
+                errors.push(error);
             }
         }
 

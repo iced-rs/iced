@@ -558,6 +558,7 @@ async fn run_instance<P>(
 
                     let create_compositor = {
                         let window = window.clone();
+                        let compositor_settings = compositor_settings.clone();
                         let display_handle = display_handle.clone();
                         let proxy = proxy.clone();
                         let default_fonts = default_fonts.clone();

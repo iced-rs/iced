@@ -30,22 +30,22 @@ impl crate::graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = Surface;
 
-    async fn with_backend(
-        _settings: compositor::Settings,
+    async fn new(
+        settings: compositor::Settings,
         display: impl compositor::Display,
         _compatible_window: impl compositor::Window,
         _shell: Shell,
-        backend: Option<&str>,
     ) -> Result<Self, Error> {
-        match backend {
-            None | Some("tiny-skia") | Some("tiny_skia") => Ok(new(display)),
-            Some(backend) => Err(Error::GraphicsAdapterNotFound {
+        if !settings.backend.is_software() && !settings.backend.matches("tiny-skia") {
+            return Err(Error::GraphicsAdapterNotFound {
                 backend: "tiny-skia",
                 reason: error::Reason::DidNotMatch {
-                    preferred_backend: backend.to_owned(),
+                    preferred_backend: settings.backend,
                 },
-            }),
+            });
         }
+
+        Ok(new(display))
     }
 
     fn create_renderer(&self, settings: renderer::Settings) -> Self::Renderer {
