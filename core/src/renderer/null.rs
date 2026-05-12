@@ -198,6 +198,10 @@ impl text::Editor for () {
         Size::ZERO
     }
 
+    fn vertical_scroll_offset(&self) -> f32 {
+        0.0
+    }
+
     fn hint_factor(&self) -> Option<f32> {
         None
     }

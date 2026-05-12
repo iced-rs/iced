@@ -397,6 +397,16 @@ where
         self.0.borrow().editor.cursor()
     }
 
+    /// Returns the current viewport bounds and vertical scroll offset of the [`Content`].
+    pub fn plain_text_scroll_metrics(&self) -> (Size, f32) {
+        let internal = self.0.borrow();
+
+        (
+            internal.editor.bounds(),
+            internal.editor.vertical_scroll_offset(),
+        )
+    }
+
     /// Returns the amount of lines of the [`Content`].
     pub fn line_count(&self) -> usize {
         self.0.borrow().editor.line_count()
@@ -439,6 +449,44 @@ where
         }
 
         contents
+    }
+
+    /// Measures the plain-text layout bounds and caret position using the native editor engine.
+    /// 使用原生编辑器引擎测量纯文本布局边界与光标位置。
+    pub fn measure_plain_text_layout(
+        &self,
+        bounds: Size,
+        font: R::Font,
+        text_size: Pixels,
+        line_height: text::LineHeight,
+        wrapping: Wrapping,
+        hint_factor: Option<f32>,
+    ) -> (Size, Point) {
+        let text = self.text();
+        let cursor = self.cursor();
+        let mut editor = R::Editor::with_text(&text);
+        let mut highlighter = highlighter::PlainText::new(&());
+
+        editor.move_to(cursor);
+        editor.update(
+            bounds,
+            font,
+            text_size,
+            line_height,
+            wrapping,
+            hint_factor,
+            &mut highlighter,
+        );
+
+        let caret_position = match editor.selection() {
+            Selection::Caret(position) => position,
+            Selection::Range(ranges) => ranges
+                .first()
+                .map(|range| range.position())
+                .unwrap_or(Point::ORIGIN),
+        };
+
+        (editor.min_bounds(), caret_position)
     }
 
     /// Returns the selected text of the [`Content`].

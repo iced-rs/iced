@@ -199,7 +199,17 @@ impl editor::Editor for Editor {
                     .get(cursor.line)
                     .expect("Cursor line should be present");
 
-                let layout = line.layout_opt().expect("Line layout should be cached");
+                let Some(layout) = line.layout_opt() else {
+                    let fallback_y = ((visual_lines_offset as f32 * line_height)
+                        - buffer.scroll().vertical)
+                        / internal.hint_factor;
+
+                    let cursor = Selection::Caret(Point::new(0.0, fallback_y));
+                    *internal.selection.write().expect("Write to cursor cache") =
+                        Some(cursor.clone());
+
+                    return cursor;
+                };
 
                 let mut lines = layout.iter().enumerate();
 
@@ -484,6 +494,12 @@ impl editor::Editor for Editor {
         self.internal().bounds
     }
 
+    fn vertical_scroll_offset(&self) -> f32 {
+        let internal = self.internal();
+
+        buffer_from_editor(&internal.editor).scroll().vertical / internal.hint_factor
+    }
+
     fn min_bounds(&self) -> Size {
         let internal = self.internal();
 
@@ -623,8 +639,8 @@ impl editor::Editor for Editor {
                 let visible_lines = line
                     .layout_opt()
                     .as_ref()
-                    .expect("Line layout should be cached")
-                    .len() as i32;
+                    .map(|layout| layout.len() as i32)
+                    .unwrap_or(1);
 
                 if window > visible_lines {
                     window -= visible_lines;
