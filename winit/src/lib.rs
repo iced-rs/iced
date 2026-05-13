@@ -1300,13 +1300,21 @@ fn run_action<'a, P, C>(
             messages.push(message);
         }
         Action::Clipboard(action) => match action {
-            clipboard::Action::Read { kind, channel } => {
-                clipboard.read(kind, move |result| {
+            clipboard::Action::Read {
+                clipboard_kind,
+                kind,
+                channel,
+            } => {
+                clipboard.read(clipboard_kind, kind, move |result| {
                     let _ = channel.send(result);
                 });
             }
-            clipboard::Action::Write { content, channel } => {
-                clipboard.write(content, move |result| {
+            clipboard::Action::Write {
+                clipboard_kind,
+                content,
+                channel,
+            } => {
+                clipboard.write(clipboard_kind, content, move |result| {
                     let _ = channel.send(result);
                 });
             }
@@ -1843,10 +1851,10 @@ fn run_clipboard<Message: Send>(
     requests: core::Clipboard,
     window: window::Id,
 ) {
-    for kind in requests.reads {
+    for (clipboard_kind, kind) in requests.reads {
         let proxy = proxy.clone();
 
-        clipboard.read(kind, move |result| {
+        clipboard.read(clipboard_kind, kind, move |result| {
             proxy.send_action(Action::Event {
                 window,
                 event: core::Event::Clipboard(core::clipboard::Event::Read(result.map(Arc::new))),
@@ -1854,10 +1862,10 @@ fn run_clipboard<Message: Send>(
         });
     }
 
-    if let Some(content) = requests.write {
+    if let Some((clipboard_kind, content)) = requests.write {
         let proxy = proxy.clone();
 
-        clipboard.write(content, move |result| {
+        clipboard.write(clipboard_kind, content, move |result| {
             proxy.send_action(Action::Event {
                 window,
                 event: core::Event::Clipboard(core::clipboard::Event::Written(result)),

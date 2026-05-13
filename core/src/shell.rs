@@ -97,14 +97,32 @@ impl<'a, Message> Shell<'a, Message> {
     ///
     /// The runtime will produce a [`clipboard::Event::Read`] when the contents have been read.
     pub fn read_clipboard(&mut self, kind: clipboard::Kind) {
-        self.clipboard.reads.push(kind);
+        self.clipboard
+            .reads
+            .push((clipboard::ClipboardKind::Standard, kind));
+    }
+
+    /// Requests the runtime to read the primary clipboard contents expecting the given [`clipboard::Kind`].
+    ///
+    /// The runtime will produce a [`clipboard::Event::Read`] when the contents have been read.
+    pub fn read_clipboard_primary(&mut self, kind: clipboard::Kind) {
+        self.clipboard
+            .reads
+            .push((clipboard::ClipboardKind::Primary, kind));
     }
 
     /// Requests the runtime to write the given [`clipboard::Content`] to the clipboard.
     ///
     /// The runtime will produce a [`clipboard::Event::Written`] when the contents have been written.
     pub fn write_clipboard(&mut self, content: clipboard::Content) {
-        self.clipboard.write = Some(content);
+        self.clipboard.write = Some((clipboard::ClipboardKind::Standard, content));
+    }
+
+    /// Requests the runtime to write the given [`clipboard::Content`] to the primary clipboard.
+    ///
+    /// The runtime will produce a [`clipboard::Event::Written`] when the contents have been written.
+    pub fn write_clipboard_primary(&mut self, content: clipboard::Content) {
+        self.clipboard.write = Some((clipboard::ClipboardKind::Primary, content));
     }
 
     /// Returns the [`Clipboard`] requests of the [`Shell`], mutably.

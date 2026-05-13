@@ -763,10 +763,97 @@ where
                     shell.capture_event();
                 }
             }
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))
+                if cfg!(target_os = "linux") =>
+            {
+                let Some(on_input) = &self.on_input else {
+                    return;
+                };
+
+                let state = state::<Renderer>(tree);
+
+                let click_position = cursor.position_over(layout.bounds());
+
+                state.is_focused = if click_position.is_some() {
+                    let now = Instant::now();
+
+                    Some(Focus {
+                        updated_at: now,
+                        now,
+                        is_window_focused: true,
+                    })
+                } else {
+                    None
+                };
+
+                if let Some(cursor_position) = click_position {
+                    let text_layout = layout.children().next().unwrap();
+
+                    let target = {
+                        let text_bounds = text_layout.bounds();
+
+                        let alignment_offset = alignment_offset(
+                            text_bounds.width,
+                            state.value.raw().min_width(),
+                            self.alignment,
+                        );
+
+                        cursor_position.x - text_bounds.x - alignment_offset
+                    };
+
+                    let position = if target > 0.0 {
+                        let value = if self.is_secure {
+                            self.value.secure()
+                        } else {
+                            self.value.clone()
+                        };
+
+                        find_cursor_position(text_layout.bounds(), &value, state, target)
+                    } else {
+                        None
+                    }
+                    .unwrap_or(0);
+
+                    state.cursor.move_to(position);
+
+                    let content = match &state.is_pasting {
+                        Some(Paste::Pasting(content)) => content,
+                        Some(Paste::Reading) => return,
+                        None => {
+                            shell.read_clipboard_primary(clipboard::Kind::Text);
+                            state.is_pasting = Some(Paste::Reading);
+                            return;
+                        }
+                    };
+
+                    let mut editor = Editor::new(&mut self.value, &mut state.cursor);
+                    editor.paste(content.clone());
+
+                    let message = if let Some(paste) = &self.on_paste {
+                        (paste)(editor.contents())
+                    } else {
+                        (on_input)(editor.contents())
+                    };
+                    shell.publish(message);
+                    shell.capture_event();
+
+                    update_cache(state, &self.value);
+                }
+            }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. })
             | Event::Touch(touch::Event::FingerLost { .. }) => {
-                state::<Renderer>(tree).is_dragging = None;
+                let state = state::<Renderer>(tree);
+
+                state.is_dragging = None;
+
+                if cfg!(target_os = "linux")
+                    && let Some((start, end)) = state.cursor.selection(&self.value)
+                {
+                    shell.write_clipboard_primary(clipboard::Content::Text(
+                        self.value.select(start, end).to_string(),
+                    ));
+                }
             }
             Event::Mouse(mouse::Event::CursorMoved { position })
             | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
@@ -1080,6 +1167,14 @@ where
                                 focus.updated_at = Instant::now();
 
                                 shell.request_redraw();
+
+                                if cfg!(target_os = "linux")
+                                    && let Some((start, end)) = state.cursor.selection(&self.value)
+                                {
+                                    shell.write_clipboard_primary(clipboard::Content::Text(
+                                        self.value.select(start, end).to_string(),
+                                    ));
+                                }
                             }
 
                             shell.capture_event();
@@ -1112,6 +1207,14 @@ where
                                 focus.updated_at = Instant::now();
 
                                 shell.request_redraw();
+
+                                if cfg!(target_os = "linux")
+                                    && let Some((start, end)) = state.cursor.selection(&self.value)
+                                {
+                                    shell.write_clipboard_primary(clipboard::Content::Text(
+                                        self.value.select(start, end).to_string(),
+                                    ));
+                                }
                             }
 
                             shell.capture_event();
