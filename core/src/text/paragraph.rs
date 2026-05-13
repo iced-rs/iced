@@ -73,6 +73,27 @@ pub trait Paragraph: Sized + Default {
     /// Returns the distance to the given grapheme index in the [`Paragraph`].
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
 
+    /// Returns the visual rectangles covering the byte range
+    /// `start..end` of the [`Paragraph`]'s source text. Used to paint
+    /// selection highlights.
+    fn selection_bounds(&self, _start: usize, _end: usize) -> Vec<Rectangle> {
+        Vec::new()
+    }
+
+    /// Returns the visual position of the given byte offset in the
+    /// [`Paragraph`]'s source text. Used by `Shift+Up`/`Down` and
+    /// `Shift+Home`/`End` to hit-test targets relative to the focus.
+    fn byte_position(&self, _byte: usize) -> Option<Point> {
+        None
+    }
+
+    /// The visual line height the [`Paragraph`] is rendered with —
+    /// the distance to step for `Shift+Up`/`Down`. Returns `None`
+    /// when the renderer doesn't track per-line geometry.
+    fn visual_line_height(&self) -> Option<f32> {
+        None
+    }
+
     /// Returns the minimum width that can fit the contents of the [`Paragraph`].
     fn min_width(&self) -> f32 {
         self.min_bounds().width

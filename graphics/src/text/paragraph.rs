@@ -387,6 +387,117 @@ impl core::text::Paragraph for Paragraph {
         bounds
     }
 
+    fn selection_bounds(&self, start: usize, end: usize) -> Vec<Rectangle> {
+        if start >= end {
+            return Vec::new();
+        }
+
+        let internal = self.internal();
+        let buffer = &internal.buffer;
+        let line_height = buffer.metrics().line_height;
+        let scroll_y = buffer.scroll().vertical;
+
+        let mut rects = Vec::new();
+        let mut visual_line: i32 = 0;
+
+        for buffer_line in buffer.lines.iter() {
+            let layout = buffer_line
+                .layout_opt()
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+
+            for vline in layout {
+                let glyph_start = vline.glyphs.first().map(|g| g.start).unwrap_or(0);
+                let glyph_end = vline.glyphs.last().map(|g| g.end).unwrap_or(0);
+
+                let range_start = glyph_start.max(start);
+                let range_end = glyph_end.min(end);
+
+                if range_start < range_end {
+                    let (x, width) = if range_start == glyph_start && range_end == glyph_end {
+                        (0.0, vline.w)
+                    } else {
+                        let first_glyph_idx = vline
+                            .glyphs
+                            .iter()
+                            .position(|g| range_start <= g.start)
+                            .unwrap_or(0);
+                        let mut iter = vline.glyphs.iter();
+                        let x: f32 = iter.by_ref().take(first_glyph_idx).map(|g| g.w).sum();
+                        let w: f32 = iter.take_while(|g| range_end > g.start).map(|g| g.w).sum();
+                        (x, w)
+                    };
+
+                    if width > 0.0 {
+                        let y = visual_line as f32 * line_height - scroll_y;
+                        rects.push(
+                            Rectangle {
+                                x,
+                                y,
+                                width,
+                                height: line_height,
+                            } * (1.0 / self.0.hint_factor),
+                        );
+                    }
+                }
+
+                visual_line += 1;
+            }
+        }
+
+        rects
+    }
+
+    fn byte_position(&self, byte: usize) -> Option<Point> {
+        let internal = self.internal();
+        let buffer = &internal.buffer;
+        let line_height = buffer.metrics().line_height;
+        let scroll_y = buffer.scroll().vertical;
+        let inv = 1.0 / self.0.hint_factor;
+
+        let mut visual_line: i32 = 0;
+        let mut last_line_end: Option<(f32, i32)> = None;
+
+        for buffer_line in buffer.lines.iter() {
+            let layout = buffer_line
+                .layout_opt()
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            for vline in layout {
+                for glyph in &vline.glyphs {
+                    if byte < glyph.start {
+                        let y = visual_line as f32 * line_height - scroll_y;
+                        return Some(Point::new(glyph.x * inv, y * inv));
+                    }
+                    if byte >= glyph.start && byte <= glyph.end {
+                        let span = glyph.end.saturating_sub(glyph.start);
+                        let frac = if span == 0 {
+                            0.0
+                        } else {
+                            (byte - glyph.start) as f32 / span as f32
+                        };
+                        let x = glyph.x + glyph.w * frac;
+                        let y = visual_line as f32 * line_height - scroll_y;
+                        return Some(Point::new(x * inv, y * inv));
+                    }
+                }
+                if let Some(last) = vline.glyphs.last() {
+                    last_line_end = Some((last.x + last.w, visual_line));
+                }
+                visual_line += 1;
+            }
+        }
+
+        last_line_end.map(|(x, line)| {
+            let y = line as f32 * line_height - scroll_y;
+            Point::new(x * inv, y * inv)
+        })
+    }
+
+    fn visual_line_height(&self) -> Option<f32> {
+        Some(self.internal().buffer.metrics().line_height / self.0.hint_factor)
+    }
+
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point> {
         use unicode_segmentation::UnicodeSegmentation;
 
