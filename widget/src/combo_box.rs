@@ -919,7 +919,8 @@ where
 {
     let query: Vec<String> = query
         .to_lowercase()
-        .split(|c: char| !c.is_ascii_alphanumeric())
+        .split(char::is_whitespace)
+        .filter(|s| !s.is_empty())
         .map(String::from)
         .collect();
 
@@ -947,7 +948,5 @@ fn build_matcher<T>(option: T) -> String
 where
     T: Display,
 {
-    let mut matcher = option.to_string();
-    matcher.retain(|c| c.is_ascii_alphanumeric());
-    matcher.to_lowercase()
+    option.to_string().to_lowercase()
 }
