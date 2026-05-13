@@ -37,6 +37,7 @@ pub use clipboard::Clipboard;
 pub use error::Error;
 pub use proxy::Proxy;
 
+use crate::core::backend;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::theme;
@@ -57,7 +58,6 @@ use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Action, Task};
 
 use program::Program;
-use window::WindowManager;
 
 use rustc_hash::FxHashMap;
 use std::borrow::Cow;
@@ -81,7 +81,7 @@ where
         .build()
         .expect("Create event loop");
 
-    let compositor_settings = compositor::Settings::from(&settings);
+    let backend_settings = backend::Settings::from(&settings);
     let renderer_settings = renderer::Settings::from(&settings);
     let display_handle = event_loop.owned_display_handle();
 
@@ -136,7 +136,7 @@ where
         control_sender,
         display_handle,
         is_daemon,
-        compositor_settings,
+        backend_settings,
         renderer_settings,
         settings.fonts,
         system_theme_receiver,
@@ -476,7 +476,7 @@ async fn run_instance<P>(
     mut control_sender: mpsc::UnboundedSender<Control>,
     display_handle: winit::event_loop::OwnedDisplayHandle,
     is_daemon: bool,
-    compositor_settings: compositor::Settings,
+    backend_settings: backend::Settings,
     mut renderer_settings: renderer::Settings,
     default_fonts: Vec<Cow<'static, [u8]>>,
     mut _system_theme: oneshot::Receiver<theme::Mode>,
@@ -487,7 +487,7 @@ async fn run_instance<P>(
     use winit::event;
     use winit::event_loop::ControlFlow;
 
-    let mut window_manager = WindowManager::new();
+    let mut window_manager = window::Manager::new();
     let mut is_window_opening = !is_daemon;
 
     let mut compositor = None;
@@ -558,7 +558,7 @@ async fn run_instance<P>(
 
                     let create_compositor = {
                         let window = window.clone();
-                        let compositor_settings = compositor_settings.clone();
+                        let backend_settings = backend_settings.clone();
                         let display_handle = display_handle.clone();
                         let proxy = proxy.clone();
                         let default_fonts = default_fonts.clone();
@@ -568,7 +568,7 @@ async fn run_instance<P>(
 
                             let mut compositor =
                                 <P::Renderer as compositor::Default>::Compositor::new(
-                                    compositor_settings,
+                                    backend_settings,
                                     display_handle,
                                     window,
                                     shell,
@@ -723,6 +723,7 @@ async fn run_instance<P>(
                         run_action(
                             action,
                             &program,
+                            &proxy,
                             &mut runtime,
                             &mut compositor,
                             &mut events,
@@ -840,6 +841,7 @@ async fn run_instance<P>(
                                     run_action(
                                         action,
                                         &program,
+                                        &proxy,
                                         &mut runtime,
                                         &mut compositor,
                                         &mut events,
@@ -1030,6 +1032,7 @@ async fn run_instance<P>(
                             run_action(
                                 Action::Window(runtime::window::Action::Close(id)),
                                 &program,
+                                &proxy,
                                 &mut runtime,
                                 &mut compositor,
                                 &mut events,
@@ -1159,6 +1162,7 @@ async fn run_instance<P>(
                                 run_action(
                                     action,
                                     &program,
+                                    &proxy,
                                     &mut runtime,
                                     &mut compositor,
                                     &mut events,
@@ -1275,6 +1279,7 @@ where
 fn run_action<'a, P, C>(
     action: Action<P::Message>,
     program: &'a program::Instance<P>,
+    proxy: &Proxy<P::Message>,
     runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
@@ -1282,7 +1287,7 @@ fn run_action<'a, P, C>(
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     interfaces: &mut FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>,
-    window_manager: &mut WindowManager<P, C>,
+    window_manager: &mut window::Manager<P, C>,
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
     is_window_opening: &mut bool,
     system_theme: &mut theme::Mode,
@@ -1293,6 +1298,7 @@ fn run_action<'a, P, C>(
     P::Theme: theme::Base,
 {
     use crate::core::Renderer as _;
+    use crate::runtime::backend;
     use crate::runtime::clipboard;
     use crate::runtime::window;
 
@@ -1710,6 +1716,47 @@ fn run_action<'a, P, C>(
                 }
             }
         },
+        Action::Backend(action) => match action {
+            backend::Action::Configure(settings, sender) => {
+                let shell = Shell::new(proxy.clone());
+
+                let mut new_compositor = if let Some(window) = window_manager.first() {
+                    match crate::futures::futures::executor::block_on(C::new(
+                        settings,
+                        window.raw.clone(),
+                        window.raw.clone(),
+                        shell,
+                    )) {
+                        Ok(compositor) => compositor,
+                        Err(error) => {
+                            let _ = sender.send(Err(error));
+                            return;
+                        }
+                    }
+                } else {
+                    return;
+                };
+
+                graphics::cache::invalidate_all();
+
+                window_manager.replace_with(|mut window| {
+                    let size = window.state.physical_size();
+
+                    drop(window.renderer);
+                    drop(window.surface);
+
+                    window.renderer = new_compositor.create_renderer(*renderer_settings);
+                    window.surface =
+                        new_compositor.create_surface(window.raw.clone(), size.width, size.height);
+
+                    window
+                });
+
+                *compositor = Some(new_compositor);
+
+                let _ = sender.send(Ok(()));
+            }
+        },
         Action::Event { window, event } => {
             events.push((window, event));
         }
@@ -1746,7 +1793,7 @@ fn run_action<'a, P, C>(
 /// Build the user interface for every window.
 pub fn build_user_interfaces<'a, P: Program, C>(
     program: &'a program::Instance<P>,
-    window_manager: &mut WindowManager<P, C>,
+    window_manager: &mut window::Manager<P, C>,
     mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
 ) -> FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>
 where

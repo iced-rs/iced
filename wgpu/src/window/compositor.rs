@@ -4,7 +4,6 @@ use crate::core::backend;
 use crate::core::renderer;
 use crate::graphics::color;
 use crate::graphics::compositor;
-use crate::graphics::error;
 use crate::graphics::{self, Antialiasing, Shell, Viewport};
 use crate::{Engine, Renderer};
 
@@ -35,11 +34,11 @@ pub enum Error {
     RequestDeviceFailed(Vec<(wgpu::Limits, wgpu::RequestDeviceError)>),
 }
 
-impl From<Error> for graphics::Error {
+impl From<Error> for backend::Error {
     fn from(error: Error) -> Self {
         Self::GraphicsAdapterNotFound {
             backend: "wgpu",
-            reason: error::Reason::RequestFailed(error.to_string()),
+            reason: backend::Reason::RequestFailed(error.to_string()),
         }
     }
 }
@@ -260,15 +259,15 @@ impl graphics::Compositor for Compositor {
     type Surface = wgpu::Surface<'static>;
 
     async fn new(
-        settings: compositor::Settings,
+        settings: backend::Settings,
         display: impl compositor::Display,
         compatible_window: impl compositor::Window,
         shell: Shell,
-    ) -> Result<Self, graphics::Error> {
+    ) -> Result<Self, backend::Error> {
         if settings.backend.hardware().is_none() && !settings.backend.matches("wgpu") {
-            return Err(graphics::Error::GraphicsAdapterNotFound {
+            return Err(backend::Error::GraphicsAdapterNotFound {
                 backend: "wgpu",
-                reason: error::Reason::DidNotMatch {
+                reason: backend::Reason::DidNotMatch {
                     preferred_backend: settings.backend,
                 },
             });
@@ -388,8 +387,8 @@ impl Default for Settings {
     }
 }
 
-impl From<compositor::Settings> for Settings {
-    fn from(settings: compositor::Settings) -> Self {
+impl From<backend::Settings> for Settings {
+    fn from(settings: backend::Settings) -> Self {
         let backends = settings
             .backend
             .hardware()

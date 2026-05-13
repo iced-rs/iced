@@ -243,7 +243,11 @@ impl<P: Program + 'static> Emulator<P> {
                     // TODO
                     dbg!(action);
                 }
-                iced_runtime::Action::Event { window, event } => {
+                runtime::Action::Backend(action) => {
+                    // TODO
+                    dbg!(action);
+                }
+                runtime::Action::Event { window, event } => {
                     // TODO
                     dbg!(window, event);
                 }

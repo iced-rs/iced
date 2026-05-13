@@ -1,4 +1,5 @@
 //! Compose existing renderers and create type-safe fallback strategies.
+use crate::core::backend;
 use crate::core::font;
 use crate::core::image;
 use crate::core::renderer;
@@ -252,11 +253,11 @@ where
     type Surface = Surface<A::Surface, B::Surface>;
 
     async fn new(
-        settings: compositor::Settings,
+        settings: backend::Settings,
         display: impl compositor::Display + Clone,
         compatible_window: impl compositor::Window + Clone,
         shell: Shell,
-    ) -> Result<Self, graphics::Error> {
+    ) -> Result<Self, backend::Error> {
         let mut errors = vec![];
 
         match A::new(
@@ -287,7 +288,7 @@ where
             }
         }
 
-        Err(graphics::Error::List(errors))
+        Err(backend::Error::List(errors))
     }
 
     fn create_renderer(&self, settings: renderer::Settings) -> Self::Renderer {
