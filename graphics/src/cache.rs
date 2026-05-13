@@ -10,7 +10,7 @@ use std::sync::atomic::{self, AtomicU64};
 pub struct Cache<T> {
     group: Group,
     state: RefCell<State<T>>,
-    version: u64,
+    version: RefCell<u64>,
 }
 
 static VERSION: AtomicU64 = AtomicU64::new(0);
@@ -21,7 +21,7 @@ impl<T> Cache<T> {
         Cache {
             group: Group::singleton(),
             state: RefCell::new(State::Empty { previous: None }),
-            version: VERSION.load(atomic::Ordering::Relaxed),
+            version: RefCell::new(VERSION.load(atomic::Ordering::Relaxed)),
         }
     }
 
@@ -40,7 +40,7 @@ impl<T> Cache<T> {
         Cache {
             group,
             state: RefCell::new(State::Empty { previous: None }),
-            version: VERSION.load(atomic::Ordering::Relaxed),
+            version: RefCell::new(VERSION.load(atomic::Ordering::Relaxed)),
         }
     }
 
@@ -60,8 +60,11 @@ impl<T> Cache<T> {
 
     /// Returns a reference cell to the internal [`State`] of the [`Cache`].
     pub fn state(&self) -> &RefCell<State<T>> {
-        if self.version != VERSION.load(atomic::Ordering::Relaxed) {
+        let version = VERSION.load(atomic::Ordering::Relaxed);
+
+        if *self.version.borrow() != version {
             *self.state.borrow_mut() = State::Empty { previous: None };
+            let _ = self.version.replace(version);
         }
 
         &self.state
