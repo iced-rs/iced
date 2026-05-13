@@ -204,7 +204,10 @@ impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle {}
 ///
 /// In any case, this [`Subscription`] is useful to smoothly draw application-driven
 /// animations without missing any frames.
-pub fn frames() -> Subscription<Instant> {
+pub fn frames<Custom>() -> Subscription<Instant, Custom>
+where
+    Custom: 'static + Send,
+{
     event::listen_raw(|event, _status, _window| match event {
         crate::core::Event::Window(Event::RedrawRequested(at)) => Some(at),
         _ => None,
@@ -212,7 +215,10 @@ pub fn frames() -> Subscription<Instant> {
 }
 
 /// Subscribes to all window events of the running application.
-pub fn events() -> Subscription<(Id, Event)> {
+pub fn events<Custom>() -> Subscription<(Id, Event), Custom>
+where
+    Custom: 'static + Send,
+{
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(event) = event {
             Some((id, event))
@@ -223,7 +229,10 @@ pub fn events() -> Subscription<(Id, Event)> {
 }
 
 /// Subscribes to all [`Event::Opened`] occurrences in the running application.
-pub fn open_events() -> Subscription<Id> {
+pub fn open_events<Custom>() -> Subscription<Id, Custom>
+where
+    Custom: 'static + Send,
+{
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(Event::Opened { .. }) = event {
             Some(id)
@@ -234,7 +243,10 @@ pub fn open_events() -> Subscription<Id> {
 }
 
 /// Subscribes to all [`Event::Closed`] occurrences in the running application.
-pub fn close_events() -> Subscription<Id> {
+pub fn close_events<Custom>() -> Subscription<Id, Custom>
+where
+    Custom: 'static + Send,
+{
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(Event::Closed) = event {
             Some(id)
@@ -245,7 +257,10 @@ pub fn close_events() -> Subscription<Id> {
 }
 
 /// Subscribes to all [`Event::Resized`] occurrences in the running application.
-pub fn resize_events() -> Subscription<(Id, Size)> {
+pub fn resize_events<Custom>() -> Subscription<(Id, Size), Custom>
+where
+    Custom: 'static + Send,
+{
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(Event::Resized(size)) = event {
             Some((id, size))
@@ -256,7 +271,10 @@ pub fn resize_events() -> Subscription<(Id, Size)> {
 }
 
 /// Subscribes to all [`Event::CloseRequested`] occurrences in the running application.
-pub fn close_requests() -> Subscription<Id> {
+pub fn close_requests<Custom>() -> Subscription<Id, Custom>
+where
+    Custom: 'static + Send,
+{
     event::listen_with(|event, _status, id| {
         if let crate::core::Event::Window(Event::CloseRequested) = event {
             Some(id)

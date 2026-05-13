@@ -54,6 +54,7 @@ where
     type Theme = Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
+    type Custom = P::Custom;
 
     fn name() -> &'static str {
         P::name()

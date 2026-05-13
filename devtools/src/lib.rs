@@ -49,6 +49,7 @@ where
     type Theme = P::Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
+    type Custom = P::Custom;
 
     fn name() -> &'static str {
         P::name()
@@ -88,7 +89,7 @@ where
         state.title(&self.program, window)
     }
 
-    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
         state.subscription(&self.program)
     }
 
@@ -355,7 +356,7 @@ where
             .into()
     }
 
-    pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
+    pub fn subscription(&self, program: &P) -> Subscription<Event<P>, P::Custom> {
         let subscription = program.subscription(&self.state).map(Event::Program);
         debug::subscriptions_tracked(subscription.units());
 

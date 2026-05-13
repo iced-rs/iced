@@ -4,9 +4,9 @@ use crate::program;
 use crate::theme;
 use crate::time::Instant;
 use crate::window;
-use crate::{Element, Program, Settings, Subscription, Task};
-
+use crate::{Element, PlatformSpecific, Program, Settings, Task};
 use iced_debug as debug;
+use iced_futures::Subscription;
 
 /// Creates an [`Application`] with an `update` function that also
 /// takes the [`Instant`] of each `Message`.
@@ -22,9 +22,11 @@ use iced_debug as debug;
 pub fn timed<State, Message, Theme, Renderer>(
     boot: impl BootFn<State, Message>,
     update: impl UpdateFn<State, Message>,
-    subscription: impl Fn(&State) -> Subscription<Message>,
+    subscription: impl Fn(&State) -> Subscription<Message, PlatformSpecific>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
-) -> Application<impl Program<State = State, Message = (Message, Instant), Theme = Theme>>
+) -> Application<
+    impl Program<State = State, Message = (Message, Instant), Theme = Theme, Custom = PlatformSpecific>,
+>
 where
     State: 'static,
     Message: Send + 'static,
@@ -52,13 +54,14 @@ where
         Renderer: program::Renderer + 'static,
         Boot: self::BootFn<State, Message>,
         Update: self::UpdateFn<State, Message>,
-        Subscription: Fn(&State) -> self::Subscription<Message>,
+        Subscription: Fn(&State) -> self::Subscription<Message, PlatformSpecific>,
         View: for<'a> self::ViewFn<'a, State, Message, Theme, Renderer>,
     {
         type State = State;
         type Message = (Message, Instant);
         type Theme = Theme;
         type Renderer = Renderer;
+        type Custom = PlatformSpecific;
         type Executor = iced_futures::backend::default::Executor;
 
         fn name() -> &'static str {
@@ -106,7 +109,10 @@ where
             })
         }
 
-        fn subscription(&self, state: &Self::State) -> self::Subscription<Self::Message> {
+        fn subscription(
+            &self,
+            state: &Self::State,
+        ) -> self::Subscription<Self::Message, Self::Custom> {
             debug::hot(|| (self.subscription)(state).map(|message| (message, Instant::now())))
         }
     }

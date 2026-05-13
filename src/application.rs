@@ -35,11 +35,10 @@ use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{
-    Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task, Theme,
-};
+use crate::{Element, Executor, Font, Never, Preset, Result, Settings, Size, Task, Theme};
 
 use iced_debug as debug;
+use iced_futures::Subscription;
 
 use std::borrow::Cow;
 
@@ -79,7 +78,9 @@ pub fn application<State, Message, Theme, Renderer>(
     boot: impl BootFn<State, Message>,
     update: impl UpdateFn<State, Message>,
     view: impl for<'a> ViewFn<'a, State, Message, Theme, Renderer>,
-) -> Application<impl Program<State = State, Message = Message, Theme = Theme>>
+) -> Application<
+    impl Program<State = State, Message = Message, Theme = Theme, Custom = iced_winit::PlatformSpecific>,
+>
 where
     State: 'static,
     Message: Send + 'static,
@@ -112,6 +113,7 @@ where
         type Message = Message;
         type Theme = Theme;
         type Renderer = Renderer;
+        type Custom = iced_winit::PlatformSpecific;
         type Executor = iced_futures::backend::default::Executor;
 
         fn name() -> &'static str {
@@ -176,7 +178,7 @@ pub struct Application<P: Program> {
     presets: Vec<Preset<P::State, P::Message>>,
 }
 
-impl<P: Program> Application<P> {
+impl<P: Program<Custom = iced_winit::PlatformSpecific>> Application<P> {
     /// Runs the [`Application`].
     pub fn run(self) -> Result
     where
@@ -341,7 +343,9 @@ impl<P: Program> Application<P> {
     pub fn title(
         self,
         title: impl TitleFn<P::State>,
-    ) -> Application<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Application {
             raw: program::with_title(self.raw, move |state, _window| title.title(state)),
             settings: self.settings,
@@ -353,8 +357,10 @@ impl<P: Program> Application<P> {
     /// Sets the subscription logic of the [`Application`].
     pub fn subscription(
         self,
-        f: impl Fn(&P::State) -> Subscription<P::Message>,
-    ) -> Application<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+        f: impl Fn(&P::State) -> Subscription<P::Message, P::Custom>,
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Application {
             raw: program::with_subscription(self.raw, f),
             settings: self.settings,
@@ -367,7 +373,9 @@ impl<P: Program> Application<P> {
     pub fn theme(
         self,
         f: impl ThemeFn<P::State, P::Theme>,
-    ) -> Application<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Application {
             raw: program::with_theme(self.raw, move |state, _window| f.theme(state)),
             settings: self.settings,
@@ -380,7 +388,9 @@ impl<P: Program> Application<P> {
     pub fn style(
         self,
         f: impl Fn(&P::State, &P::Theme) -> theme::Style,
-    ) -> Application<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Application {
             raw: program::with_style(self.raw, f),
             settings: self.settings,
@@ -393,7 +403,9 @@ impl<P: Program> Application<P> {
     pub fn scale_factor(
         self,
         f: impl Fn(&P::State) -> f32,
-    ) -> Application<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>> {
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    > {
         Application {
             raw: program::with_scale_factor(self.raw, move |state, _window| f(state)),
             settings: self.settings,
@@ -405,7 +417,9 @@ impl<P: Program> Application<P> {
     /// Sets the executor of the [`Application`].
     pub fn executor<E>(
         self,
-    ) -> Application<impl Program<State = P::State, Message = P::Message, Theme = P::Theme>>
+    ) -> Application<
+        impl Program<State = P::State, Message = P::Message, Theme = P::Theme, Custom = P::Custom>,
+    >
     where
         E: Executor,
     {
@@ -436,6 +450,7 @@ impl<P: Program> Program for Application<P> {
     type Theme = P::Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
+    type Custom = P::Custom;
 
     fn name() -> &'static str {
         P::name()
@@ -469,7 +484,7 @@ impl<P: Program> Program for Application<P> {
         debug::hot(|| self.raw.title(state, window))
     }
 
-    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
+    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message, Self::Custom> {
         debug::hot(|| self.raw.subscription(state))
     }
 

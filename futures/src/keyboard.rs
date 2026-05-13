@@ -1,10 +1,14 @@
 //! Listen to keyboard events.
+
 use crate::core;
 use crate::core::keyboard::Event;
 use crate::subscription::{self, Subscription};
 
 /// Returns a [`Subscription`] that listens to ignored keyboard events.
-pub fn listen() -> Subscription<Event> {
+pub fn listen<Custom>() -> Subscription<Event, Custom>
+where
+    Custom: Send + 'static,
+{
     #[derive(Hash)]
     struct Listen;
 

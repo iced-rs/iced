@@ -33,7 +33,7 @@ use std::fmt;
 /// instead.
 pub struct Emulator<P: Program> {
     state: P::State,
-    runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>>,
+    runtime: Runtime<P::Executor, mpsc::Sender<Event<P>>, Event<P>, P::Custom>,
     renderer: P::Renderer,
     mode: Mode,
     size: Size,

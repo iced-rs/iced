@@ -35,7 +35,10 @@ pub mod time {
     ///
     /// The first message is produced after a `duration`, and then continues to
     /// produce more messages every `duration` after that.
-    pub fn every(duration: Duration) -> Subscription<Instant> {
+    pub fn every<Custom>(duration: Duration) -> Subscription<Instant, Custom>
+    where
+        Custom: 'static + Send,
+    {
         Subscription::run_with(duration, |duration| {
             use futures::stream::StreamExt;
 
@@ -56,10 +59,11 @@ pub mod time {
 
     /// Returns a [`Subscription`] that runs the given async function at a
     /// set interval; producing the result of the function as output.
-    pub fn repeat<F, T>(f: fn() -> F, interval: Duration) -> Subscription<T>
+    pub fn repeat<F, T, Custom>(f: fn() -> F, interval: Duration) -> Subscription<T, Custom>
     where
         F: Future<Output = T> + MaybeSend + 'static,
         T: MaybeSend + 'static,
+        Custom: 'static + Send,
     {
         Subscription::run_with((f, interval), |(f, interval)| {
             let f = *f;
