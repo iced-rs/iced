@@ -769,6 +769,120 @@ where
                 }
             };
 
+            let child_captured_event = shell.is_event_captured();
+
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+                    if child_captured_event
+                        && cursor_over_scrollable.is_some()
+                        && !mouse_over_x_scrollbar
+                        && !mouse_over_y_scrollbar =>
+                {
+                    state.child_drag_auto_scroll =
+                        cursor
+                            .position_including_levitation()
+                            .map(|current| ChildDragAutoScroll {
+                                current,
+                                last_frame: None,
+                            });
+                }
+                Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                    if let Some(mut child_drag_auto_scroll) = state.child_drag_auto_scroll {
+                        child_drag_auto_scroll.current = *position;
+                        child_drag_auto_scroll.last_frame = None;
+                        state.child_drag_auto_scroll = Some(child_drag_auto_scroll);
+
+                        let outside_bounds = position.x < bounds.x
+                            || position.x > bounds.x + bounds.width
+                            || position.y < bounds.y
+                            || position.y > bounds.y + bounds.height;
+
+                        if child_captured_event && outside_bounds {
+                            shell.request_redraw();
+                        }
+                    }
+                }
+                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                    state.child_drag_auto_scroll = None;
+                }
+                Event::Window(window::Event::RedrawRequested(now)) => {
+                    if let Some(mut child_drag_auto_scroll) = state.child_drag_auto_scroll {
+                        if child_drag_auto_scroll.last_frame == Some(*now) {
+                            shell.request_redraw();
+                            return;
+                        }
+
+                        let current = child_drag_auto_scroll.current;
+                        let mut delta = Vector::new(
+                            if current.x < bounds.x {
+                                current.x - bounds.x
+                            } else if current.x > bounds.x + bounds.width {
+                                current.x - (bounds.x + bounds.width)
+                            } else {
+                                0.0
+                            },
+                            if current.y < bounds.y {
+                                current.y - bounds.y
+                            } else if current.y > bounds.y + bounds.height {
+                                current.y - (bounds.y + bounds.height)
+                            } else {
+                                0.0
+                            },
+                        );
+
+                        if delta.x.abs() < AUTOSCROLL_DEADZONE {
+                            delta.x = 0.0;
+                        }
+
+                        if delta.y.abs() < AUTOSCROLL_DEADZONE {
+                            delta.y = 0.0;
+                        }
+
+                        if delta.x != 0.0 || delta.y != 0.0 {
+                            let time_delta =
+                                if let Some(last_frame) = child_drag_auto_scroll.last_frame {
+                                    *now - last_frame
+                                } else {
+                                    Duration::ZERO
+                                };
+                            let scroll_factor = time_delta.as_secs_f32();
+
+                            state.scroll(
+                                self.direction.align(Vector::new(
+                                    delta.x.signum()
+                                        * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
+                                    delta.y.signum()
+                                        * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
+                                )),
+                                bounds,
+                                content_bounds,
+                            );
+
+                            let has_scrolled = notify_scroll(
+                                state,
+                                &self.on_scroll,
+                                bounds,
+                                content_bounds,
+                                shell,
+                            );
+
+                            if has_scrolled || time_delta.is_zero() {
+                                child_drag_auto_scroll.last_frame = Some(*now);
+                                state.child_drag_auto_scroll = Some(child_drag_auto_scroll);
+                                shell.request_redraw();
+                                return;
+                            }
+                        } else {
+                            child_drag_auto_scroll.last_frame = None;
+                            state.child_drag_auto_scroll = Some(child_drag_auto_scroll);
+                        }
+                    }
+                }
+                _ => {}
+            }
+
             if matches!(
                 event,
                 Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
@@ -777,10 +891,11 @@ where
                     )
             ) {
                 state.interaction = Interaction::None;
+                state.child_drag_auto_scroll = None;
                 return;
             }
 
-            if shell.is_event_captured() {
+            if child_captured_event {
                 return;
             }
 
@@ -1503,6 +1618,7 @@ struct State {
     offset_y: Offset,
     offset_x: Offset,
     interaction: Interaction,
+    child_drag_auto_scroll: Option<ChildDragAutoScroll>,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
@@ -1522,12 +1638,21 @@ enum Interaction {
     },
 }
 
+/// One active child-owned drag auto-scroll loop driven by the parent scrollable viewport.
+/// 一条由父级滚动容器视口驱动、但由子组件拖拽拥有的自动滚动循环。
+#[derive(Debug, Clone, Copy)]
+struct ChildDragAutoScroll {
+    current: Point,
+    last_frame: Option<Instant>,
+}
+
 impl Default for State {
     fn default() -> Self {
         Self {
             offset_y: Offset::Absolute(0.0),
             offset_x: Offset::Absolute(0.0),
             interaction: Interaction::None,
+            child_drag_auto_scroll: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
             last_scrolled: None,

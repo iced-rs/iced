@@ -23,6 +23,15 @@ impl Cursor {
         }
     }
 
+    /// Returns the absolute position of the [`Cursor`] while preserving levitating pointers.
+    /// 返回 [`Cursor`] 的绝对位置，并在指针处于悬浮层状态时继续保留其坐标。
+    pub fn position_including_levitation(self) -> Option<Point> {
+        match self {
+            Cursor::Available(position) | Cursor::Levitating(position) => Some(position),
+            Cursor::Unavailable => None,
+        }
+    }
+
     /// Returns the absolute position of the [`Cursor`], if available and inside
     /// the given bounds.
     ///
@@ -46,6 +55,14 @@ impl Cursor {
     /// if available.
     pub fn position_from(self, origin: Point) -> Option<Point> {
         self.position().map(|p| p - Vector::new(origin.x, origin.y))
+    }
+
+    /// Returns the relative position of the [`Cursor`] from the given origin while
+    /// preserving levitating pointers.
+    /// 返回 [`Cursor`] 相对给定原点的位置，并在指针处于悬浮层状态时继续保留其坐标。
+    pub fn position_from_including_levitation(self, origin: Point) -> Option<Point> {
+        self.position_including_levitation()
+            .map(|p| p - Vector::new(origin.x, origin.y))
     }
 
     /// Returns true if the [`Cursor`] is over the given `bounds`.
@@ -108,5 +125,40 @@ impl std::ops::Mul<Transformation> for Cursor {
             Self::Levitating(position) => Self::Levitating(position * transformation),
             Self::Unavailable => Self::Unavailable,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Cursor;
+    use crate::Point;
+
+    /// Preserves levitating cursor coordinates through the dedicated drag helper.
+    /// 通过专用拖拽辅助接口保留悬浮层光标的坐标。
+    #[test]
+    fn position_including_levitation_keeps_levitating_coordinates() {
+        let cursor = Cursor::Levitating(Point::new(32.0, 48.0));
+
+        assert_eq!(
+            cursor.position_including_levitation(),
+            Some(Point::new(32.0, 48.0))
+        );
+        assert_eq!(
+            cursor.position_from_including_levitation(Point::new(2.0, 8.0)),
+            Some(Point::new(30.0, 40.0))
+        );
+    }
+
+    /// Keeps unavailable cursors unresolved even when levitating coordinates are requested.
+    /// 即使请求悬浮层坐标，不可用光标仍然保持无法解析。
+    #[test]
+    fn position_including_levitation_keeps_unavailable_cursor_empty() {
+        let cursor = Cursor::Unavailable;
+
+        assert_eq!(cursor.position_including_levitation(), None);
+        assert_eq!(
+            cursor.position_from_including_levitation(Point::new(1.0, 1.0)),
+            None
+        );
     }
 }

@@ -397,6 +397,16 @@ where
         self.0.borrow().editor.cursor()
     }
 
+    /// Returns the current viewport bounds and vertical scroll offset of the [`Content`].
+    pub fn plain_text_scroll_metrics(&self) -> (Size, f32) {
+        let internal = self.0.borrow();
+
+        (
+            internal.editor.bounds(),
+            internal.editor.vertical_scroll_offset(),
+        )
+    }
+
     /// Returns the amount of lines of the [`Content`].
     pub fn line_count(&self) -> usize {
         self.0.borrow().editor.line_count()
@@ -439,6 +449,44 @@ where
         }
 
         contents
+    }
+
+    /// Measures the plain-text layout bounds and caret position using the native editor engine.
+    /// 使用原生编辑器引擎测量纯文本布局边界与光标位置。
+    pub fn measure_plain_text_layout(
+        &self,
+        bounds: Size,
+        font: R::Font,
+        text_size: Pixels,
+        line_height: text::LineHeight,
+        wrapping: Wrapping,
+        hint_factor: Option<f32>,
+    ) -> (Size, Point) {
+        let text = self.text();
+        let cursor = self.cursor();
+        let mut editor = R::Editor::with_text(&text);
+        let mut highlighter = highlighter::PlainText::new(&());
+
+        editor.move_to(cursor);
+        editor.update(
+            bounds,
+            font,
+            text_size,
+            line_height,
+            wrapping,
+            hint_factor,
+            &mut highlighter,
+        );
+
+        let caret_position = match editor.selection() {
+            Selection::Caret(position) => position,
+            Selection::Range(ranges) => ranges
+                .first()
+                .map(|range| range.position())
+                .unwrap_or(Point::ORIGIN),
+        };
+
+        (editor.min_bounds(), caret_position)
     }
 
     /// Returns the selected text of the [`Content`].
@@ -496,6 +544,8 @@ pub struct State<Highlighter: text::Highlighter> {
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
+    drag_cursor_position: Option<Point>,
+    drag_redraw_at: Option<Instant>,
     partial_scroll: f32,
     last_theme: RefCell<Option<String>>,
     highlighter: RefCell<Highlighter>,
@@ -568,6 +618,8 @@ where
             preedit: None,
             last_click: None,
             drag_click: None,
+            drag_cursor_position: None,
+            drag_redraw_at: None,
             partial_scroll: 0.0,
             last_theme: RefCell::default(),
             highlighter: RefCell::new(Highlighter::new(&self.highlighter_settings)),
@@ -656,6 +708,27 @@ where
 
         let state = tree.state.downcast_mut::<State<Highlighter>>();
         let is_redraw = matches!(event, Event::Window(window::Event::RedrawRequested(_now)),);
+        let bounds = layout.bounds();
+        let visible_bounds = bounds.intersection(_viewport).unwrap_or(bounds);
+        let publish_scroll =
+            |shell: &mut Shell<'_, Message>, state: &mut State<Highlighter>, lines: f32| -> bool {
+                let editor_bounds = self.content.0.borrow().editor.bounds();
+
+                if editor_bounds.height >= i32::MAX as f32 {
+                    return false;
+                }
+
+                let lines = lines + state.partial_scroll;
+                state.partial_scroll = lines.fract();
+
+                let whole_lines = lines as i32;
+
+                if whole_lines != 0 {
+                    shell.publish(on_edit(Action::Scroll { lines: whole_lines }));
+                }
+
+                true
+            };
 
         match event {
             Event::Window(window::Event::Unfocused) => {
@@ -685,6 +758,43 @@ where
                         focus.now + Duration::from_millis(millis_until_redraw as u64),
                     );
                 }
+
+                if matches!(state.drag_click, Some(mouse::click::Kind::Single))
+                    && let Some(pointer_position) = state.drag_cursor_position
+                {
+                    let overshoot = if pointer_position.y < visible_bounds.y {
+                        pointer_position.y - visible_bounds.y
+                    } else if pointer_position.y > visible_bounds.y + visible_bounds.height {
+                        pointer_position.y - (visible_bounds.y + visible_bounds.height)
+                    } else {
+                        0.0
+                    };
+
+                    if overshoot.abs() > 0.0 {
+                        let previous_frame = state
+                            .drag_redraw_at
+                            .unwrap_or(*now - Duration::from_millis(16));
+                        let elapsed = (*now - previous_frame).min(Duration::from_millis(32));
+                        let speed_factor = (overshoot.abs() / 160.0).clamp(0.0, 1.0);
+                        let lines_per_second = 12.0 + speed_factor * 36.0;
+                        let lines = overshoot.signum() * lines_per_second * elapsed.as_secs_f32();
+
+                        if publish_scroll(shell, state, lines) {
+                            shell.publish(on_edit(Action::Drag(
+                                pointer_position
+                                    - Vector::new(
+                                        bounds.x + self.padding.left,
+                                        bounds.y + self.padding.top,
+                                    ),
+                            )));
+                            shell.request_redraw();
+
+                            state.drag_redraw_at = Some(*now);
+                        }
+                    } else {
+                        state.drag_redraw_at = None;
+                    }
+                }
             }
             Event::Clipboard(clipboard::Event::Read(Ok(content))) => {
                 if let clipboard::Content::Text(text) = content.as_ref()
@@ -700,7 +810,7 @@ where
         if let Some(update) = Update::from_event(
             event,
             state,
-            layout.bounds(),
+            bounds,
             self.padding,
             cursor,
             self.key_binding.as_deref(),
@@ -716,30 +826,35 @@ where
                     state.focus = Some(Focus::now());
                     state.last_click = Some(click);
                     state.drag_click = Some(click.kind());
+                    state.drag_cursor_position = cursor.position_including_levitation();
+                    state.drag_redraw_at = None;
 
                     shell.publish(on_edit(action));
                     shell.capture_event();
                 }
                 Update::Drag(position) => {
+                    state.drag_cursor_position = cursor.position_including_levitation();
+                    state.drag_redraw_at = None;
+
                     shell.publish(on_edit(Action::Drag(position)));
+                    shell.capture_event();
+
+                    if state.drag_cursor_position.is_some_and(|pointer| {
+                        pointer.y < visible_bounds.y
+                            || pointer.y > visible_bounds.y + visible_bounds.height
+                    }) {
+                        shell.request_redraw();
+                    }
                 }
                 Update::Release => {
                     state.drag_click = None;
+                    state.drag_cursor_position = None;
+                    state.drag_redraw_at = None;
                 }
                 Update::Scroll(lines) => {
-                    let bounds = self.content.0.borrow().editor.bounds();
-
-                    if bounds.height >= i32::MAX as f32 {
-                        return;
+                    if publish_scroll(shell, state, lines) {
+                        shell.capture_event();
                     }
-
-                    let lines = lines + state.partial_scroll;
-                    state.partial_scroll = lines.fract();
-
-                    shell.publish(on_edit(Action::Scroll {
-                        lines: lines as i32,
-                    }));
-                    shell.capture_event();
                 }
                 Update::InputMethod(update) => match update {
                     Ime::Toggle(is_open) => {
@@ -774,6 +889,8 @@ where
                             Binding::Unfocus => {
                                 state.focus = None;
                                 state.drag_click = None;
+                                state.drag_cursor_position = None;
+                                state.drag_redraw_at = None;
                             }
                             Binding::Copy => {
                                 if let Some(selection) = content.selection() {
@@ -1234,8 +1351,9 @@ impl<Message> Update<Message> {
                 mouse::Event::ButtonReleased(mouse::Button::Left) => Some(Update::Release),
                 mouse::Event::CursorMoved { .. } => match state.drag_click {
                     Some(mouse::click::Kind::Single) => {
-                        let cursor_position =
-                            cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
+                        let cursor_position = cursor
+                            .position_from_including_levitation(bounds.position())?
+                            - Vector::new(padding.left, padding.top);
 
                         Some(Update::Drag(cursor_position))
                     }

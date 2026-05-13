@@ -41,6 +41,9 @@ pub trait Editor: Sized + Default {
     /// Returns the current boundaries of the [`Editor`].
     fn bounds(&self) -> Size;
 
+    /// Returns the current vertical scroll offset of the [`Editor`].
+    fn vertical_scroll_offset(&self) -> f32;
+
     /// Returns the minimum boundaries to fit the current contents of
     /// the [`Editor`].
     fn min_bounds(&self) -> Size;
