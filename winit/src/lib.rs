@@ -33,6 +33,12 @@ mod error;
 mod proxy;
 mod window;
 
+#[cfg(target_arch = "wasm32")]
+pub mod text_agent;
+
+#[cfg(target_arch = "wasm32")]
+pub use text_agent::TextAgent;
+
 pub use clipboard::Clipboard;
 pub use error::Error;
 pub use proxy::Proxy;
@@ -42,7 +48,9 @@ use crate::core::renderer;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Point, Size};
+#[cfg(feature = "hinting")]
+use crate::core::Renderer as _;
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -495,6 +503,10 @@ async fn run_instance<P>(
     let mut messages = Vec::new();
     let mut actions = 0;
 
+    #[cfg(target_arch = "wasm32")]
+    let (ime_sender, mut ime_receiver) =
+        mpsc::unbounded::<(window::Id, core::Event)>();
+
     let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::new();
@@ -636,6 +648,21 @@ async fn run_instance<P>(
                     exit_on_close_request,
                     system_theme,
                 );
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    let raw_window = window.raw.clone();
+                    match TextAgent::new(id, ime_sender.clone(), move || {
+                        raw_window.request_redraw();
+                    }) {
+                        Ok(agent) => {
+                            window.text_agent = Some(agent);
+                        }
+                        Err(e) => {
+                            log::warn!("TextAgent creation failed: {e:?}");
+                        }
+                    }
+                }
 
                 window
                     .raw
@@ -1050,6 +1077,22 @@ async fn run_instance<P>(
                                 window.state.scale_factor(),
                                 window.state.modifiers(),
                             ) {
+                                #[cfg(target_arch = "wasm32")]
+                                if window
+                                    .text_agent
+                                    .as_ref()
+                                    .map_or(false, |a| a.is_active())
+                                    && matches!(
+                                        event,
+                                        core::Event::Window(window::Event::Unfocused)
+                                    )
+                                {
+                                    // Drop the event — the keyboard is still active.
+                                } else {
+                                    events.push((id, event));
+                                }
+
+                                #[cfg(not(target_arch = "wasm32"))]
                                 events.push((id, event));
                             }
                         }
@@ -1058,6 +1101,11 @@ async fn run_instance<P>(
                         if actions > 0 {
                             proxy.free_slots(actions);
                             actions = 0;
+                        }
+
+                        #[cfg(target_arch = "wasm32")]
+                        while let Ok(event) = ime_receiver.try_recv() {
+                            events.push(event);
                         }
 
                         if events.is_empty() && messages.is_empty() && window_manager.is_idle() {
