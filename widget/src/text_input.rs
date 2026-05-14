@@ -325,9 +325,9 @@ where
     /// When set, the border color will smoothly animate between states
     /// (active, hovered, focused) over the given duration.
     ///
-    /// Uses [`Easing::EaseOutCubic`] by default.
+    /// Uses [`Easing::EaseOutExpo`] by default.
     pub fn border_transition(mut self, duration: Duration) -> Self {
-        self.border_transition = Some((duration, Easing::EaseOutCubic));
+        self.border_transition = Some((duration, Easing::EaseOutExpo));
         self
     }
 
