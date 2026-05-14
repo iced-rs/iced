@@ -41,6 +41,7 @@ pub use value::Value;
 use editor::Editor;
 
 use crate::core::alignment;
+use crate::core::animation::Easing;
 use crate::core::clipboard;
 use crate::core::input_method;
 use crate::core::keyboard;
@@ -118,6 +119,7 @@ where
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
+    border_transition: Option<(Duration, Easing)>,
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -153,6 +155,7 @@ where
             icon: None,
             class: Theme::default(),
             last_status: None,
+            border_transition: None,
         }
     }
 
@@ -314,6 +317,23 @@ where
     #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();
+        self
+    }
+
+    /// Sets the border color transition duration.
+    ///
+    /// When set, the border color will smoothly animate between states
+    /// (active, hovered, focused) over the given duration.
+    ///
+    /// Uses [`Easing::EaseOutCubic`] by default.
+    pub fn border_transition(mut self, duration: Duration) -> Self {
+        self.border_transition = Some((duration, Easing::EaseOutCubic));
+        self
+    }
+
+    /// Sets the border color transition with a custom [`Easing`].
+    pub fn border_transition_with_easing(mut self, duration: Duration, easing: Easing) -> Self {
+        self.border_transition = Some((duration, easing));
         self
     }
 
@@ -487,6 +507,23 @@ where
 
         let style = theme.style(&self.class, self.last_status.unwrap_or(Status::Disabled));
 
+        // Determine the effective border color, interpolating if animating
+        let effective_border_color = if let Some((duration, easing)) = self.border_transition {
+            match (state.border_transition_start, state.previous_status) {
+                (Some(start), Some(prev_status)) if start.elapsed() < duration => {
+                    let progress =
+                        (start.elapsed().as_secs_f32() / duration.as_secs_f32()).min(1.0);
+                    let eased = easing.value(progress);
+
+                    let prev_style = theme.style(&self.class, prev_status);
+                    lerp_color(prev_style.border.color, style.border.color, eased)
+                }
+                _ => style.border.color,
+            }
+        } else {
+            style.border.color
+        };
+
         if let Some(outline) = style.outline {
             renderer.draw_outline(bounds, outline);
         }
@@ -494,7 +531,10 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: style.border,
+                border: Border {
+                    color: effective_border_color,
+                    ..style.border
+                },
                 ..renderer::Quad::default()
             },
             style.background,
@@ -1548,11 +1588,25 @@ where
         };
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+            // If animating border, check if transition is still in progress
+            if let Some((duration, _)) = self.border_transition
+                && let Some(start) = state.border_transition_start
+                && start.elapsed() < duration
+            {
+                shell.request_redraw();
+            }
+
             self.last_status = Some(status);
         } else if self
             .last_status
             .is_some_and(|last_status| status != last_status)
         {
+            // Status changed — record transition for border animation
+            if self.border_transition.is_some() {
+                state.previous_status = self.last_status;
+                state.border_transition_start = Some(Instant::now());
+            }
+
             shell.request_redraw();
         }
     }
@@ -1667,6 +1721,10 @@ pub struct State<P: text::Paragraph> {
     pending_edit_kind: Option<EditKind>,
     /// Timestamp of last edit for time-based debouncing
     last_edit_at: Option<Instant>,
+    /// The previous status before the last border color transition (for animation).
+    previous_status: Option<Status>,
+    /// When the last border status transition started.
+    border_transition_start: Option<Instant>,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1679,6 +1737,16 @@ struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
+}
+
+/// Linearly interpolates between two colors.
+fn lerp_color(a: Color, b: Color, t: f32) -> Color {
+    Color {
+        r: a.r + (b.r - a.r) * t,
+        g: a.g + (b.g - a.g) * t,
+        b: a.b + (b.b - a.b) * t,
+        a: a.a + (b.a - a.a) * t,
+    }
 }
 
 #[derive(Debug, Clone)]
