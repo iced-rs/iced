@@ -13,8 +13,13 @@ use crate::core::{
 };
 
 /// A bunch of [`Rich`] text.
-pub struct Rich<'a, Link, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
+pub struct Rich<
+    'a,
+    Message,
+    Link = crate::core::Never,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
     Link: Clone + 'static,
     Theme: Catalog,
     Renderer: core::text::Renderer,
@@ -34,7 +39,7 @@ where
     on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
-impl<'a, Link, Message, Theme, Renderer> Rich<'a, Link, Message, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer> Rich<'a, Message, Link, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -176,7 +181,7 @@ where
     }
 }
 
-impl<'a, Link, Message, Theme, Renderer> Default for Rich<'a, Link, Message, Theme, Renderer>
+impl<'a, Link, Message, Theme, Renderer> Default for Rich<'a, Message, Link, Theme, Renderer>
 where
     Link: Clone + 'a,
     Theme: Catalog,
@@ -195,7 +200,7 @@ struct State<Link, P: Paragraph> {
 }
 
 impl<Link, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rich<'_, Link, Message, Theme, Renderer>
+    for Rich<'_, Message, Link, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -507,7 +512,7 @@ where
 }
 
 impl<'a, Link, Message, Theme, Renderer> FromIterator<Span<'a, Link, Renderer::Font>>
-    for Rich<'a, Link, Message, Theme, Renderer>
+    for Rich<'a, Message, Link, Theme, Renderer>
 where
     Link: Clone + 'a,
     Theme: Catalog,
@@ -519,7 +524,7 @@ where
     }
 }
 
-impl<'a, Link, Message, Theme, Renderer> From<Rich<'a, Link, Message, Theme, Renderer>>
+impl<'a, Link, Message, Theme, Renderer> From<Rich<'a, Message, Link, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -528,7 +533,7 @@ where
     Renderer: core::text::Renderer + 'a,
 {
     fn from(
-        text: Rich<'a, Link, Message, Theme, Renderer>,
+        text: Rich<'a, Message, Link, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }
