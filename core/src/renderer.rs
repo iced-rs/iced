@@ -191,6 +191,55 @@ pub trait Renderer {
         self.end_cached_scale();
     }
 
+    /// Starts recording a cached draw region.
+    ///
+    /// All primitives drawn until [`end_cached_draw`](Self::end_cached_draw) is called
+    /// will be rendered normally AND captured to a persistent offscreen texture keyed
+    /// by `key`. The cached texture can later be replayed via [`draw_cached`](Self::draw_cached)
+    /// without re-executing draw calls.
+    ///
+    /// This is used for crossfade transitions: on each non-transitioning frame the
+    /// content is rendered + cached. When a transition starts, the cached texture
+    /// represents the "old" page and can be composited at decreasing opacity while
+    /// the new page fades in.
+    ///
+    /// # Arguments
+    /// * `key` - Stable identifier for this cached surface (unique per widget instance)
+    /// * `bounds` - The logical bounds of the content being cached
+    fn start_cached_draw(&mut self, _key: u64, _bounds: Rectangle) {}
+
+    /// Ends recording the current cached draw region.
+    ///
+    /// The captured layers are rendered to the persistent texture identified by the
+    /// key provided to [`start_cached_draw`](Self::start_cached_draw), and then
+    /// composited to the main render target at full opacity.
+    fn end_cached_draw(&mut self) {}
+
+    /// Draws content while caching it for later replay.
+    ///
+    /// Convenience wrapper around [`start_cached_draw`](Self::start_cached_draw)
+    /// and [`end_cached_draw`](Self::end_cached_draw).
+    fn with_cached_draw(&mut self, key: u64, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
+        self.start_cached_draw(key, bounds);
+        f(self);
+        self.end_cached_draw();
+    }
+
+    /// Composites a previously cached texture at the given opacity.
+    ///
+    /// Draws the content that was captured by a previous
+    /// [`start_cached_draw`](Self::start_cached_draw)/[`end_cached_draw`](Self::end_cached_draw)
+    /// pair with the same `key`. The cached texture is composited with the given opacity
+    /// (0.0 = transparent, 1.0 = fully opaque).
+    ///
+    /// Returns silently if no cached content exists for the given key.
+    ///
+    /// # Arguments
+    /// * `key` - The identifier used in the corresponding `start_cached_draw` call
+    /// * `bounds` - The logical bounds at which to composite the cached content
+    /// * `opacity` - Opacity for compositing (0.0 to 1.0)
+    fn draw_cached(&mut self, _key: u64, _bounds: Rectangle, _opacity: f32) {}
+
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
 

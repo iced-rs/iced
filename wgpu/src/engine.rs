@@ -1,4 +1,5 @@
 use crate::blur;
+use crate::cached_draw;
 use crate::cached_scale;
 use crate::gradient_fade;
 use crate::graphics::{Antialiasing, Shell};
@@ -22,6 +23,7 @@ pub struct Engine {
     pub(crate) image_pipeline: crate::image::Pipeline,
     pub(crate) gradient_fade_pipeline: gradient_fade::Pipeline,
     pub(crate) cached_scale_pipeline: cached_scale::Pipeline,
+    pub(crate) cached_draw_pipeline: cached_draw::Pipeline,
     pub(crate) blur_pipeline: blur::Pipeline,
     pub(crate) primitive_storage: Arc<RwLock<primitive::Storage>>,
     _shell: Shell,
@@ -52,6 +54,7 @@ impl Engine {
 
             gradient_fade_pipeline: gradient_fade::Pipeline::new(&device, format),
             cached_scale_pipeline: cached_scale::Pipeline::new(&device, format),
+            cached_draw_pipeline: cached_draw::Pipeline::new(&device, format),
             blur_pipeline: blur::Pipeline::new(&device, format),
             primitive_storage: Arc::new(RwLock::new(primitive::Storage::default())),
 

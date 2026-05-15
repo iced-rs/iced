@@ -23,6 +23,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![allow(missing_docs)]
 pub mod blur;
+pub mod cached_draw;
 pub mod cached_scale;
 pub mod gradient_fade;
 pub mod layer;
@@ -102,6 +103,9 @@ pub struct Renderer {
     /// Cached scale state for GPU-accelerated scale animations
     cached_scale_state: cached_scale::State,
 
+    /// Cached draw state for persistent offscreen texture caching
+    cached_draw_state: cached_draw::State,
+
     /// Backdrop blur state
     blur_state: blur::State,
     /// Backdrop blur texture cache
@@ -133,6 +137,8 @@ impl Renderer {
             gradient_fade: gradient_fade::State::new(),
 
             cached_scale_state: cached_scale::State::new(),
+
+            cached_draw_state: cached_draw::State::new(),
 
             blur_state: blur::State::new(),
             blur_cache: blur::TextureCache::new(),
@@ -554,6 +560,11 @@ impl Renderer {
         let scale_regions = self.cached_scale_state.take_regions();
         let mut scale_applied = vec![false; scale_regions.len()];
 
+        // Take cached draw regions and composite requests
+        let cached_draw_regions = self.cached_draw_state.take_regions();
+        let cached_draw_composites = self.cached_draw_state.take_composites();
+        let mut composites_applied = vec![false; cached_draw_composites.len()];
+
         let layer_count = self.layers.as_slice().len();
 
         // Use index-based loop so we can call &mut self methods for gradient
@@ -576,6 +587,13 @@ impl Renderer {
                         break;
                     }
                 }
+                // Check for cached draw composites that need to be inserted at this layer
+                for (i, composite) in cached_draw_composites.iter().enumerate() {
+                    if !composites_applied[i] && layer_index >= composite.at_layer {
+                        needs_offscreen = true;
+                        break;
+                    }
+                }
                 if needs_offscreen {
                     let _ = ManuallyDrop::into_inner(render_pass);
                     for (i, region) in fade_regions.iter().enumerate() {
@@ -588,6 +606,12 @@ impl Renderer {
                         if !scale_applied[i] && layer_index >= region.end_layer {
                             self.apply_cached_scale_region(encoder, frame, region, viewport);
                             scale_applied[i] = true;
+                        }
+                    }
+                    for (i, composite) in cached_draw_composites.iter().enumerate() {
+                        if !composites_applied[i] && layer_index >= composite.at_layer {
+                            self.apply_cached_draw_composite(encoder, frame, composite, viewport);
+                            composites_applied[i] = true;
                         }
                     }
                     render_pass =
@@ -875,6 +899,18 @@ impl Renderer {
             if !scale_applied[i] {
                 self.apply_cached_scale_region(encoder, frame, region, viewport);
             }
+        }
+
+        // Apply any remaining cached draw composites.
+        for (i, composite) in cached_draw_composites.iter().enumerate() {
+            if !composites_applied[i] {
+                self.apply_cached_draw_composite(encoder, frame, composite, viewport);
+            }
+        }
+
+        // Capture cached_draw regions to persistent textures for future replay.
+        for region in &cached_draw_regions {
+            self.capture_cached_draw_region(encoder, region, viewport);
         }
 
         debug::layers_rendered(|| {
@@ -1676,6 +1712,191 @@ impl Renderer {
             );
         }
     }
+
+    /// Composite a cached texture onto the main target with opacity.
+    fn apply_cached_draw_composite(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        composite: &cached_draw::CachedDrawComposite,
+        viewport: &Viewport,
+    ) {
+        if let Some(texture_view) = self.cached_draw_state.texture_view(composite.key) {
+            self.engine.cached_draw_pipeline.render(
+                &self.engine.device,
+                encoder,
+                texture_view,
+                target,
+                composite.bounds,
+                composite.opacity,
+                viewport,
+            );
+        }
+    }
+
+    /// Capture a cached_draw region's layers to a persistent texture.
+    fn capture_cached_draw_region(
+        &mut self,
+        encoder: &mut wgpu::CommandEncoder,
+        region: &cached_draw::CachedDrawRegion,
+        viewport: &Viewport,
+    ) {
+        let physical_size = viewport.physical_size();
+        let scale_factor = viewport.scale_factor();
+        let physical_bounds =
+            Rectangle::<f32>::from(Rectangle::with_size(viewport.physical_size()));
+
+        let total_layers = self.layers.as_slice().len();
+        let start = region.start_layer.min(total_layers);
+        let end = region.end_layer.min(total_layers);
+
+        // Ensure the persistent texture exists for this key
+        {
+            let _ = self.cached_draw_state.get_or_create_texture(
+                region.key,
+                &self.engine.device,
+                self.engine.format,
+                physical_size,
+            );
+        }
+
+        // Clear the texture
+        {
+            let view = self.cached_draw_state.texture_view(region.key).unwrap();
+            let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu.cached_draw.clear_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view,
+                    depth_slice: None,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+                multiview_mask: None,
+            });
+        }
+
+        // Render layers to the persistent texture
+        {
+            use std::mem::ManuallyDrop;
+
+            let view = self.cached_draw_state.texture_view(region.key).unwrap();
+            let mut render_pass =
+                ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("iced_wgpu.cached_draw.layer_render_pass"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view,
+                        depth_slice: None,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Load,
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                    multiview_mask: None,
+                }));
+
+            render_pass.set_viewport(
+                0.0,
+                0.0,
+                physical_size.width as f32,
+                physical_size.height as f32,
+                0.0,
+                1.0,
+            );
+            render_pass.set_scissor_rect(0, 0, physical_size.width, physical_size.height);
+
+            let layers_slice = self.layers.as_slice();
+
+            // Count primitives in layers before our range to calculate offsets
+            let mut quad_offset = 0usize;
+            let mut text_offset = 0usize;
+            #[cfg(any(feature = "svg", feature = "image"))]
+            let mut image_offset = 0usize;
+
+            for layer in &layers_slice[..start] {
+                if physical_bounds
+                    .intersection(&(layer.bounds * scale_factor))
+                    .and_then(Rectangle::snap)
+                    .is_none()
+                {
+                    continue;
+                }
+                if !layer.quads.is_empty() {
+                    quad_offset += 1;
+                }
+                text_offset += layer
+                    .text
+                    .iter()
+                    .filter(|item| matches!(item, text::Item::Group { .. }))
+                    .count();
+                #[cfg(any(feature = "svg", feature = "image"))]
+                if !layer.images.is_empty() {
+                    image_offset += 1;
+                }
+            }
+
+            let mut quad_layer = quad_offset;
+            let mut text_layer = text_offset;
+            #[cfg(any(feature = "svg", feature = "image"))]
+            let mut image_layer = image_offset;
+
+            for layer in &layers_slice[start..end] {
+                let Some(layer_physical_bounds) =
+                    physical_bounds.intersection(&(layer.bounds * scale_factor))
+                else {
+                    continue;
+                };
+
+                let Some(scissor_rect) = layer_physical_bounds.snap() else {
+                    continue;
+                };
+
+                if !layer.quads.is_empty() {
+                    self.quad.render(
+                        &self.engine.quad_pipeline,
+                        quad_layer,
+                        scissor_rect,
+                        &layer.quads,
+                        &mut render_pass,
+                    );
+                    quad_layer += 1;
+                }
+
+                #[cfg(any(feature = "svg", feature = "image"))]
+                if !layer.images.is_empty() {
+                    self.image.render(
+                        &self.engine.image_pipeline,
+                        image_layer,
+                        scissor_rect,
+                        &mut render_pass,
+                    );
+                    image_layer += 1;
+                }
+
+                if !layer.text.is_empty() {
+                    text_layer += self.text.render(
+                        &self.engine.text_pipeline,
+                        &self.text_viewport,
+                        text_layer,
+                        &layer.text,
+                        scissor_rect,
+                        &mut render_pass,
+                    );
+                }
+            }
+
+            let _ = ManuallyDrop::into_inner(render_pass);
+        }
+    }
 }
 
 /// Applies opacity to a background, quad border, and shadow, returning the modified values.
@@ -1784,6 +2005,7 @@ impl core::Renderer for Renderer {
         self.opacity_stack.push(1.0);
         self.gradient_fade.clear();
         self.cached_scale_state.clear();
+        self.cached_draw_state.clear_frame();
         self.blur_state.clear();
     }
 
@@ -1903,6 +2125,32 @@ impl core::Renderer for Renderer {
         self.layers.flush();
         let layer_count = self.layers.active_count();
         let _ = self.cached_scale_state.end(layer_count);
+    }
+
+    fn start_cached_draw(&mut self, key: u64, bounds: Rectangle) {
+        self.layers.flush();
+        let layer_count = self.layers.active_count();
+        self.cached_draw_state.start(key, bounds, layer_count);
+        // Push a dedicated clip layer so content gets its own layer slot
+        // (otherwise it draws into the current layer and active_count won't change)
+        self.start_layer(bounds);
+    }
+
+    fn end_cached_draw(&mut self) {
+        // Pop the clip layer we pushed in start_cached_draw
+        self.end_layer();
+        self.layers.flush();
+        let layer_count = self.layers.active_count();
+        self.cached_draw_state.end(layer_count);
+    }
+
+    fn draw_cached(&mut self, key: u64, bounds: Rectangle, opacity: f32) {
+        // Record a composite request at the current layer position.
+        // The actual compositing happens during the render phase.
+        self.layers.flush();
+        let at_layer = self.layers.active_count();
+        self.cached_draw_state
+            .request_composite(key, bounds, opacity, at_layer);
     }
 
     fn draw_backdrop_blur(

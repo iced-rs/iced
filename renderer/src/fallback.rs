@@ -101,6 +101,18 @@ where
         delegate!(self, renderer, renderer.end_cached_scale());
     }
 
+    fn start_cached_draw(&mut self, key: u64, bounds: Rectangle) {
+        delegate!(self, renderer, renderer.start_cached_draw(key, bounds));
+    }
+
+    fn end_cached_draw(&mut self) {
+        delegate!(self, renderer, renderer.end_cached_draw());
+    }
+
+    fn draw_cached(&mut self, key: u64, bounds: Rectangle, opacity: f32) {
+        delegate!(self, renderer, renderer.draw_cached(key, bounds, opacity));
+    }
+
     fn draw_backdrop_blur(
         &mut self,
         bounds: Rectangle,
