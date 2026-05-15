@@ -17,7 +17,6 @@ use crate::{Error, Selector};
 use std::borrow::Cow;
 use std::env;
 use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -234,20 +233,43 @@ impl Snapshot {
     /// If the PNG image does not exist, it will be created by the [`Snapshot`] for future
     /// testing and `true` will be returned.
     pub fn matches_image(&self, path: impl AsRef<Path>) -> Result<bool, Error> {
+        Ok(self
+            .image_diff_score(path)?
+            .map(|score| score == 1.0)
+            .unwrap_or(true))
+    }
+
+    /// Compares the [`Snapshot`] with the PNG image found in the given path, returning
+    /// their similarity score, which is 1.0 only if they are identical.
+    ///
+    /// If the PNG image does not exist, it will be created by the [`Snapshot`] for future
+    /// testing and `None` will be returned.
+    pub fn image_diff_score(&self, path: impl AsRef<Path>) -> Result<Option<f64>, Error> {
         let path = self.path(path, "png");
 
         if path.exists() {
-            let file = fs::File::open(&path)?;
-            let decoder = png::Decoder::new(io::BufReader::new(file));
+            let mut image1 = vec![];
+            let mut encoder = png::Encoder::new(
+                &mut image1,
+                self.screenshot.size.width,
+                self.screenshot.size.height,
+            );
+            encoder.set_color(png::ColorType::Rgba);
+            let mut writer = encoder.write_header()?;
+            writer.write_image_data(&self.screenshot.rgba)?;
+            writer.finish()?;
 
-            let mut reader = decoder.read_info()?;
-            let n = reader
-                .output_buffer_size()
-                .expect("snapshot should fit in memory");
-            let mut bytes = vec![0; n];
-            let info = reader.next_frame(&mut bytes)?;
+            let image1 = image::load_from_memory_with_format(&image1, image::ImageFormat::Png)?;
+            let image2 = image::open(&path)?;
 
-            Ok(self.screenshot.rgba == bytes[..info.buffer_size()])
+            let Ok(result) =
+                image_compare::rgba_hybrid_compare(&image1.into_rgba8(), &image2.into_rgba8())
+            else {
+                // Images had different dimensions
+                return Ok(Some(0.0));
+            };
+
+            Ok(Some(result.score))
         } else {
             if let Some(directory) = path.parent() {
                 fs::create_dir_all(directory)?;
@@ -266,7 +288,7 @@ impl Snapshot {
             writer.write_image_data(&self.screenshot.rgba)?;
             writer.finish()?;
 
-            Ok(true)
+            Ok(None)
         }
     }
 
