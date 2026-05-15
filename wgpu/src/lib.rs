@@ -2160,12 +2160,21 @@ impl core::Renderer for Renderer {
         border_radius: [f32; 4],
         fade_start: f32,
     ) {
+        // Transform bounds from content-space to screen-space so the blur region
+        // is placed correctly when drawn inside a with_translation/with_transformation.
+        let transformation = self.layers.transformation();
+        let screen_bounds = bounds * transformation;
+
         log::trace!(
-            "draw_backdrop_blur: bounds=({:.1},{:.1},{:.1},{:.1}), radius={:.1}, layer_count={}",
+            "draw_backdrop_blur: bounds=({:.1},{:.1},{:.1},{:.1}), screen_bounds=({:.1},{:.1},{:.1},{:.1}), radius={:.1}, layer_count={}",
             bounds.x,
             bounds.y,
             bounds.width,
             bounds.height,
+            screen_bounds.x,
+            screen_bounds.y,
+            screen_bounds.width,
+            screen_bounds.height,
             radius,
             self.layers.active_count()
         );
@@ -2174,9 +2183,13 @@ impl core::Renderer for Renderer {
         self.layers.flush();
         let layer_count = self.layers.active_count();
 
-        // Record this blur region with the current layer index
-        let blur =
-            blur::BackdropBlur::with_border_radius(bounds, radius, border_radius, fade_start);
+        // Record this blur region with the current layer index (using screen-space bounds)
+        let blur = blur::BackdropBlur::with_border_radius(
+            screen_bounds,
+            radius,
+            border_radius,
+            fade_start,
+        );
         self.blur_state.add_region(blur, layer_count);
 
         log::trace!(
@@ -2187,12 +2200,20 @@ impl core::Renderer for Renderer {
     }
 
     fn start_post_blur_layer(&mut self, bounds: Rectangle) {
+        // Transform bounds from content-space to screen-space
+        let transformation = self.layers.transformation();
+        let screen_bounds = bounds * transformation;
+
         log::trace!(
-            "start_post_blur_layer: bounds=({:.1},{:.1},{:.1},{:.1})",
+            "start_post_blur_layer: bounds=({:.1},{:.1},{:.1},{:.1}), screen_bounds=({:.1},{:.1},{:.1},{:.1})",
             bounds.x,
             bounds.y,
             bounds.width,
-            bounds.height
+            bounds.height,
+            screen_bounds.x,
+            screen_bounds.y,
+            screen_bounds.width,
+            screen_bounds.height
         );
 
         // Expand bounds to accommodate shadows that extend beyond the blur region.
@@ -2220,7 +2241,9 @@ impl core::Renderer for Renderer {
 
         // Start recording post-blur content - use the new layer's index
         // The new layer is at index (layer_count - 1)
-        self.blur_state.start_post_blur(bounds, layer_count - 1);
+        // Use screen_bounds so it matches the blur region's coordinate space
+        self.blur_state
+            .start_post_blur(screen_bounds, layer_count - 1);
     }
 
     fn end_post_blur_layer(&mut self) {
