@@ -132,6 +132,7 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
+    id: Option<widget::Id>,
     state: &'a State<T>,
     text_input: TextInput<'a, TextInputEvent, Theme, Renderer>,
     font: Option<Renderer::Font>,
@@ -171,6 +172,7 @@ where
         let selection = selection.map(T::to_string).unwrap_or_default();
 
         Self {
+            id: None,
             state,
             text_input,
             font: None,
@@ -187,6 +189,12 @@ where
             menu_class: <Theme as Catalog>::default_menu(),
             menu_height: Length::Shrink,
         }
+    }
+
+    /// Sets the [`widget::Id`] of the [`ComboBox`].
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
+        self.id = Some(id.into());
+        self
     }
 
     /// Sets the message that should be produced when some text is typed into
@@ -766,6 +774,21 @@ where
     ) -> mouse::Interaction {
         self.text_input
             .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut widget::Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        let text_input_state = tree.children[0]
+            .state
+            .downcast_mut::<text_input::State<Renderer::Paragraph>>();
+
+        operation.text_input(self.id.as_ref(), layout.bounds(), text_input_state);
+        operation.focusable(self.id.as_ref(), layout.bounds(), text_input_state);
     }
 
     fn draw(
