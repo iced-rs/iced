@@ -31,6 +31,7 @@ use crate::core::text;
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
+use crate::core::widget::metadata::{Metadata, Role};
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -535,6 +536,7 @@ where
         let content_bounds = content_layout.bounds();
         let translation = state.translation(self.direction, bounds, content_bounds);
 
+        operation.metadata(self.id.as_ref(), bounds, &Metadata::new(Role::Scrollable));
         operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
 
         operation.traverse(&mut |operation| {

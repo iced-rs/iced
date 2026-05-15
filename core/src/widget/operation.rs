@@ -7,7 +7,7 @@ pub use focusable::Focusable;
 pub use scrollable::Scrollable;
 pub use text_input::TextInput;
 
-use crate::widget::Id;
+use crate::widget::{Id, Metadata};
 use crate::{Rectangle, Vector};
 
 use std::any::Any;
@@ -28,6 +28,9 @@ pub trait Operation<T = ()>: Send {
 
     /// Operates on a widget that contains other widgets.
     fn container(&mut self, _id: Option<&Id>, _bounds: Rectangle) {}
+
+    /// Operates on a widget that exposes semantic metadata.
+    fn metadata(&mut self, _id: Option<&Id>, _bounds: Rectangle, _metadata: &Metadata) {}
 
     /// Operates on a widget that can be scrolled.
     fn scrollable(
@@ -68,6 +71,10 @@ where
 
     fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
         self.as_mut().container(id, bounds);
+    }
+
+    fn metadata(&mut self, id: Option<&Id>, bounds: Rectangle, metadata: &Metadata) {
+        self.as_mut().metadata(id, bounds, metadata);
     }
 
     fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
@@ -151,6 +158,10 @@ where
             self.operation.container(id, bounds);
         }
 
+        fn metadata(&mut self, id: Option<&Id>, bounds: Rectangle, metadata: &Metadata) {
+            self.operation.metadata(id, bounds, metadata);
+        }
+
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
             self.operation.focusable(id, bounds, state);
         }
@@ -225,6 +236,10 @@ where
                     operation.container(id, bounds);
                 }
 
+                fn metadata(&mut self, id: Option<&Id>, bounds: Rectangle, metadata: &Metadata) {
+                    self.operation.metadata(id, bounds, metadata);
+                }
+
                 fn scrollable(
                     &mut self,
                     id: Option<&Id>,
@@ -271,6 +286,10 @@ where
 
         fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
             self.operation.container(id, bounds);
+        }
+
+        fn metadata(&mut self, id: Option<&Id>, bounds: Rectangle, metadata: &Metadata) {
+            self.operation.metadata(id, bounds, metadata);
         }
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
@@ -352,6 +371,10 @@ where
 
         fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
             self.operation.container(id, bounds);
+        }
+
+        fn metadata(&mut self, id: Option<&Id>, bounds: Rectangle, metadata: &Metadata) {
+            self.operation.metadata(id, bounds, metadata);
         }
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {

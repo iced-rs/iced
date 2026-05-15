@@ -26,6 +26,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
+use crate::widget::metadata::{Metadata, Role};
 use crate::widget::tree::{self, Tree};
 use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
@@ -257,6 +258,11 @@ where
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
+        operation.metadata(
+            None,
+            layout.bounds(),
+            &Metadata::new(Role::Text).label(self.fragment.clone()),
+        );
         operation.text(None, layout.bounds(), &self.fragment);
     }
 }

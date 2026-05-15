@@ -24,6 +24,7 @@ use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget::Operation;
+use crate::core::widget::metadata::{Metadata, Role};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -248,6 +249,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        operation.metadata(None, layout.bounds(), &Metadata::new(Role::Button));
         operation.container(None, layout.bounds());
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
