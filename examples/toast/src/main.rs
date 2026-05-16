@@ -430,7 +430,7 @@ mod toast {
             );
 
             let toasts = (!self.toasts.is_empty()).then(|| {
-                overlay::Element::new(Box::new(Overlay {
+                overlay::Element::new(Overlay {
                     position: layout.bounds().position() + translation,
                     viewport: *viewport,
                     toasts: &mut self.toasts,
@@ -438,7 +438,7 @@ mod toast {
                     instants,
                     on_close: &self.on_close,
                     timeout_secs: self.timeout_secs,
-                }))
+                })
             });
             let overlays = content.into_iter().chain(toasts).collect::<Vec<_>>();
 
