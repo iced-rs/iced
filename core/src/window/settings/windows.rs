@@ -1,7 +1,7 @@
 //! Platform specific settings for Windows.
 
 /// The platform specific window settings of an application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct PlatformSpecific {
     /// Drag and drop support
     pub drag_and_drop: bool,
@@ -19,6 +19,10 @@ pub struct PlatformSpecific {
     ///
     /// Supported starting with Windows 11 Build 22000.
     pub corner_preference: CornerPreference,
+
+    /// Set the application's taskbar icon, also known as `ICON_BIG`. A reasonable ceiling
+    /// is a size of 256x256px.
+    pub taskbar_icon: Option<crate::window::Icon>,
 }
 
 impl Default for PlatformSpecific {
@@ -28,6 +32,7 @@ impl Default for PlatformSpecific {
             skip_taskbar: false,
             undecorated_shadow: false,
             corner_preference: Default::default(),
+            taskbar_icon: None,
         }
     }
 }
