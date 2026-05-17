@@ -346,19 +346,24 @@ where
         };
 
         let spans = match &preedit.selection {
-            Some(selection) => {
-                vec![
-                    text::Span::new(&preedit.content[..selection.start]),
+            Some(selection) => match (
+                preedit.content.get(..selection.start),
+                preedit.content.get(selection.start..selection.end),
+                preedit.content.get(selection.end..),
+            ) {
+                (Some(prefix), Some(selected), Some(suffix)) => vec![
+                    text::Span::new(prefix),
                     text::Span::new(if selection.start == selection.end {
                         "\u{200A}"
                     } else {
-                        &preedit.content[selection.start..selection.end]
+                        selected
                     })
                     .color(background),
-                    text::Span::new(&preedit.content[selection.end..]),
-                ]
-            }
-            _ => vec![text::Span::new(&preedit.content)],
+                    text::Span::new(suffix),
+                ],
+                _ => vec![text::Span::new(&preedit.content)],
+            },
+            None => vec![text::Span::new(&preedit.content)],
         };
 
         if spans != self.spans.as_slice() {
