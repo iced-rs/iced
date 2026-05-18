@@ -317,7 +317,20 @@ where
     ) {
         let bounds = layout.bounds();
 
-        let style = Catalog::style(theme, self.class);
+        let mut style = Catalog::style(theme, self.class);
+
+        // If the menu opened upward (above the pick list), flip the border
+        // radius so that the squared corners face the input widget.
+        let opens_upward = bounds.y < self.position.y;
+        if opens_upward {
+            let r = style.border.radius;
+            style.border.radius = border::Radius {
+                top_left: r.bottom_left,
+                top_right: r.bottom_right,
+                bottom_left: r.top_left,
+                bottom_right: r.top_right,
+            };
+        }
 
         renderer.fill_quad(
             renderer::Quad {

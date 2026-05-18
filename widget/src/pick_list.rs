@@ -444,7 +444,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
@@ -536,7 +536,15 @@ where
             if self.on_select.is_none() {
                 Status::Disabled
             } else if state.is_open {
-                Status::Opened { is_hovered }
+                let bounds = layout.bounds();
+                let space_below = (viewport.y + viewport.height) - (bounds.y + bounds.height);
+                let space_above = bounds.y - viewport.y;
+                let opens_upward = space_above > space_below;
+
+                Status::Opened {
+                    is_hovered,
+                    opens_upward,
+                }
             } else if is_hovered {
                 Status::Hovered
             } else {
@@ -868,6 +876,8 @@ pub enum Status {
     Opened {
         /// Whether the [`PickList`] is hovered, while open.
         is_hovered: bool,
+        /// Whether the dropdown menu opens upward (above the pick list).
+        opens_upward: bool,
     },
     /// The [`PickList`] is disabled.
     Disabled,
