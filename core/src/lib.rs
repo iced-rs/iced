@@ -16,6 +16,7 @@ pub mod clipboard;
 pub mod color;
 pub mod event;
 pub mod font;
+pub mod gesture;
 pub mod gradient;
 pub mod image;
 pub mod input_method;
