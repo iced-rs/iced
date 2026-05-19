@@ -1,7 +1,7 @@
 //! Build window-based GUI applications.
 use crate::core::time::Instant;
 use crate::core::window::{
-    Direction, Event, Icon, Id, Level, Mode, Screenshot, Settings, UserAttention,
+    Direction, Event, Icon, Id, Level, Mode, Screenshot, Settings, UserAttention, cursor,
 };
 use crate::core::{Point, Size};
 use crate::futures::Subscription;
@@ -9,6 +9,7 @@ use crate::futures::event;
 use crate::futures::futures::channel::oneshot;
 use crate::task::{self, Task};
 
+use iced_core::Vector;
 pub use raw_window_handle;
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
@@ -187,6 +188,18 @@ pub enum Action {
 
     /// Recompute the layouts of all the windows.
     RelayoutAll,
+
+    /// Creates a new cursor
+    CreateCursor {
+        /// Cursor pixels
+        rgba: Vec<u8>,
+        /// Cursor size
+        size: Size<u16>,
+        /// Actual cursor position relative to top left corner.
+        hotspot: Vector<u16>,
+        /// Channel
+        channel: oneshot::Sender<cursor::Id>,
+    },
 }
 
 /// A window managed by iced.
@@ -487,4 +500,20 @@ pub fn allow_automatic_tabbing<T>(enabled: bool) -> Task<T> {
     task::effect(crate::Action::Window(Action::SetAllowAutomaticTabbing(
         enabled,
     )))
+}
+
+/// Creates a new cursor and returns its [`cursor::Id`].
+pub fn create_cursor(
+    rgba: impl Into<Vec<u8>>,
+    size: Size<u16>,
+    hotspot: Vector<u16>,
+) -> Task<cursor::Id> {
+    task::oneshot(move |channel| {
+        crate::Action::Window(Action::CreateCursor {
+            rgba: rgba.into(),
+            size,
+            hotspot,
+            channel,
+        })
+    })
 }

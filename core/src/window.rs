@@ -1,4 +1,5 @@
 //! Build window-based GUI applications.
+pub mod cursor;
 pub mod icon;
 pub mod screenshot;
 pub mod settings;
