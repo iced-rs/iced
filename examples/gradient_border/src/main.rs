@@ -162,6 +162,7 @@ impl App {
                         color: Color::WHITE,
                         width: border_width,
                         radius: border_radius.into(),
+                        ..Default::default()
                     },
                     border_only: true,
                     ..Default::default()
@@ -204,6 +205,7 @@ impl App {
                         color: Color::WHITE,
                         width: border_width,
                         radius: border_radius.into(),
+                        ..Default::default()
                     },
                     border_only: false, // Full gradient fill
                     ..Default::default()

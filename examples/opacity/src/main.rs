@@ -228,6 +228,7 @@ impl App {
                         color: Color::from_rgb(0.4, 0.4, 0.5),
                         width: 2.0,
                         radius: 12.0.into(),
+                        ..Default::default()
                     },
                     ..Default::default()
                 }),
@@ -278,6 +279,7 @@ impl App {
                     color: Color::from_rgb(0.5, 0.5, 0.6),
                     width: 1.0,
                     radius: 12.0.into(),
+                    ..Default::default()
                 },
                 shadow: Shadow {
                     color: Color::BLACK,
@@ -312,6 +314,7 @@ impl App {
                         color: Color::WHITE,
                         width: 2.0,
                         radius: 8.0.into(),
+                        ..Default::default()
                     },
                     ..Default::default()
                 });
@@ -326,6 +329,7 @@ impl App {
                         color: Color::WHITE,
                         width: 2.0,
                         radius: 8.0.into(),
+                        ..Default::default()
                     },
                     ..Default::default()
                 });
@@ -402,6 +406,7 @@ fn demo_card<'a, Message: 'a>(label: &'a str, color: Color) -> Element<'a, Messa
             color: Color::WHITE,
             width: 2.0,
             radius: 10.0.into(),
+            ..Default::default()
         },
         ..Default::default()
     })

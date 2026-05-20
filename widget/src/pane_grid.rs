@@ -1249,6 +1249,7 @@ pub fn default(theme: &Theme) -> Style {
                 width: 2.0,
                 color: palette.primary.strong.color,
                 radius: 0.0.into(),
+                ..Default::default()
             },
         },
         hovered_split: Line {

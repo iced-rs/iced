@@ -49,7 +49,11 @@ impl Layer {
             size: [bounds.width, bounds.height],
             border_color: color::pack(quad.border.color),
             border_radius: (quad.border.radius * transformation.scale_factor()).into(),
-            border_width: quad.border.width * transformation.scale_factor(),
+            border_widths: {
+                let w = quad.border.widths();
+                let s = transformation.scale_factor();
+                [w[0] * s, w[1] * s, w[2] * s, w[3] * s]
+            },
             shadow_color: color::pack(quad.shadow.color),
             shadow_offset: (quad.shadow.offset * transformation.scale_factor()).into(),
             shadow_blur_radius: quad.shadow.blur_radius * transformation.scale_factor(),

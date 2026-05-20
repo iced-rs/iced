@@ -5,7 +5,7 @@ struct SolidVertexInput {
     @location(2) scale: vec2<f32>,
     @location(3) border_color: vec4<f32>,
     @location(4) border_radius: vec4<f32>,
-    @location(5) border_width: f32,
+    @location(5) border_widths: vec4<f32>,
     @location(6) shadow_color: vec4<f32>,
     @location(7) shadow_offset: vec2<f32>,
     @location(8) shadow_blur_radius: f32,
@@ -21,7 +21,7 @@ struct SolidVertexOutput {
     @location(2) pos: vec2<f32>,
     @location(3) scale: vec2<f32>,
     @location(4) border_radius: vec4<f32>,
-    @location(5) border_width: f32,
+    @location(5) border_widths: vec4<f32>,
     @location(6) shadow_color: vec4<f32>,
     @location(7) shadow_offset: vec2<f32>,
     @location(8) shadow_blur_radius: f32,
@@ -70,7 +70,7 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     out.pos = input.pos * globals.scale + pos_snap;
     out.scale = input.scale * globals.scale + scale_snap;
     out.border_radius = border_radius * globals.scale;
-    out.border_width = input.border_width * globals.scale;
+    out.border_widths = input.border_widths * globals.scale;
     out.shadow_color = premultiply(input.shadow_color);
     out.shadow_offset = input.shadow_offset * globals.scale;
     out.shadow_blur_radius = input.shadow_blur_radius * globals.scale;
@@ -92,12 +92,38 @@ fn solid_fs_main(
         input.border_radius * 2.0
     ) / 2.0;
 
-    if (input.border_width > 0.0) {
-        mixed_color = mix(
-            input.color,
-            input.border_color,
-            clamp(0.5 + dist + input.border_width, 0.0, 1.0)
-        );
+    let max_border_width = max(max(input.border_widths.x, input.border_widths.y), max(input.border_widths.z, input.border_widths.w));
+
+    if (max_border_width > 0.0) {
+        // Check if all sides are equal (uniform border - use original SDF approach)
+        let all_equal = input.border_widths.x == input.border_widths.y
+            && input.border_widths.y == input.border_widths.z
+            && input.border_widths.z == input.border_widths.w;
+
+        if all_equal {
+            mixed_color = mix(
+                input.color,
+                input.border_color,
+                clamp(0.5 + dist + input.border_widths.x, 0.0, 1.0)
+            );
+        } else {
+            // Per-side border: compute distance from each edge
+            let local = input.position.xy - input.pos;
+            let edge_top = local.y;
+            let edge_bottom = input.scale.y - local.y;
+            let edge_left = local.x;
+            let edge_right = input.scale.x - local.x;
+
+            // For each side, compute a 0-1 border factor with anti-aliasing
+            let factor_top = clamp(input.border_widths.x - edge_top + 0.5, 0.0, 1.0);
+            let factor_right = clamp(input.border_widths.y - edge_right + 0.5, 0.0, 1.0);
+            let factor_bottom = clamp(input.border_widths.z - edge_bottom + 0.5, 0.0, 1.0);
+            let factor_left = clamp(input.border_widths.w - edge_left + 0.5, 0.0, 1.0);
+
+            let border_factor = max(max(factor_top, factor_right), max(factor_bottom, factor_left));
+
+            mixed_color = mix(input.color, input.border_color, border_factor);
+        }
     }
 
     var quad_alpha: f32 = clamp(0.5-dist, 0.0, 1.0);

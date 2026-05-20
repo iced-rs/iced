@@ -177,6 +177,7 @@ impl Effects {
                     color: Color::from_rgba(1.0, 1.0, 1.0, 0.4),
                     width: 1.0,
                     radius: 12.0.into(),
+                    ..Default::default()
                 },
                 ..Default::default()
             }
@@ -201,6 +202,7 @@ impl Effects {
                 color: Color::from_rgba(1.0, 1.0, 1.0, 0.3),
                 width: 1.0,
                 radius: 12.0.into(),
+                ..Default::default()
             },
             shadow: Shadow::inset(
                 Color::from_rgba(0.0, 0.0, 0.0, shadow_opacity),
@@ -234,6 +236,7 @@ impl Effects {
                     color: Color::from_rgba(1.0, 1.0, 1.0, 0.4),
                     width: 1.0,
                     radius: 12.0.into(),
+                    ..Default::default()
                 },
                 shadow: Shadow::inset(
                     Color::from_rgba(0.0, 0.0, 0.0, 0.10),
@@ -263,6 +266,7 @@ impl Effects {
                 color: Color::from_rgba(1.0, 1.0, 1.0, 0.2),
                 width: 1.0,
                 radius: 12.0.into(),
+                ..Default::default()
             },
             shadow: Shadow::new(
                 Color::from_rgba(0.0, 0.0, 0.0, 0.5),

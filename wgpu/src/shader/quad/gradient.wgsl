@@ -11,7 +11,7 @@ struct GradientVertexInput {
     @location(8) position_and_scale: vec4<f32>,
     @location(9) border_color: vec4<f32>,
     @location(10) border_radius: vec4<f32>,
-    @location(11) border_width: f32,
+    @location(11) border_widths: vec4<f32>,
     @location(12) shadow_color: vec4<f32>,
     @location(13) shadow_offset: vec2<f32>,
     @location(14) shadow_blur_radius: f32,
@@ -31,7 +31,7 @@ struct GradientVertexOutput {
     @location(7) position_and_scale: vec4<f32>,
     @location(8) border_color: vec4<f32>,
     @location(9) border_radius: vec4<f32>,
-    @location(10) border_width: f32,
+    @location(10) border_widths: vec4<f32>,
     @location(11) shadow_color: vec4<f32>,
     @location(12) shadow_offset: vec2<f32>,
     // Packed: x = shadow_blur_radius, y = shadow_spread_radius
@@ -104,7 +104,7 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     out.position_and_scale = vec4<f32>(input.position_and_scale.xy * globals.scale + pos_snap, input.position_and_scale.zw * globals.scale + scale_snap);
     out.border_color = premultiply(input.border_color);
     out.border_radius = border_radius * globals.scale;
-    out.border_width = input.border_width * globals.scale;
+    out.border_widths = input.border_widths * globals.scale;
     out.shadow_color = premultiply(input.shadow_color);
     out.shadow_offset = input.shadow_offset * globals.scale;
     out.shadow_blur_and_spread = vec2<f32>(input.shadow_blur_radius * globals.scale, shadow_spread_radius * globals.scale);
@@ -338,10 +338,11 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     ) / 2.0;
 
     // Handle border_only mode: gradient fills only the border region
-    if (bool(input.border_only) && input.border_width > 0.0) {
+    let max_border_width = max(max(input.border_widths.x, input.border_widths.y), max(input.border_widths.z, input.border_widths.w));
+    if (bool(input.border_only) && max_border_width > 0.0) {
         // dist is negative inside the quad, positive outside
         // Calculate inner boundary distance (where interior starts)
-        let inner_dist = dist + input.border_width;
+        let inner_dist = dist + max_border_width;
         
         // outer_alpha: 1.0 inside quad edge, 0.0 outside  
         // This fades in as we cross the outer boundary (dist goes from positive to negative)
@@ -360,12 +361,35 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
         return mixed_color * border_alpha;
     }
 
-    if (input.border_width > 0.0) {
-        mixed_color = mix(
-            mixed_color,
-            input.border_color,
-            clamp(0.5 + dist + input.border_width, 0.0, 1.0)
-        );
+    if (max_border_width > 0.0) {
+        // Check if all sides are equal (uniform border - use original SDF approach)
+        let all_equal = input.border_widths.x == input.border_widths.y
+            && input.border_widths.y == input.border_widths.z
+            && input.border_widths.z == input.border_widths.w;
+
+        if all_equal {
+            mixed_color = mix(
+                mixed_color,
+                input.border_color,
+                clamp(0.5 + dist + input.border_widths.x, 0.0, 1.0)
+            );
+        } else {
+            // Per-side border: compute distance from each edge
+            let local = input.position.xy - pos;
+            let edge_top = local.y;
+            let edge_bottom = scale.y - local.y;
+            let edge_left = local.x;
+            let edge_right = scale.x - local.x;
+
+            let factor_top = clamp(input.border_widths.x - edge_top + 0.5, 0.0, 1.0);
+            let factor_right = clamp(input.border_widths.y - edge_right + 0.5, 0.0, 1.0);
+            let factor_bottom = clamp(input.border_widths.z - edge_bottom + 0.5, 0.0, 1.0);
+            let factor_left = clamp(input.border_widths.w - edge_left + 0.5, 0.0, 1.0);
+
+            let border_factor = max(max(factor_top, factor_right), max(factor_bottom, factor_left));
+
+            mixed_color = mix(mixed_color, input.border_color, border_factor);
+        }
     }
 
     var quad_alpha: f32 = clamp(0.5-dist, 0.0, 1.0);

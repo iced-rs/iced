@@ -147,6 +147,7 @@ fn grid_container(theme: &Theme) -> container::Style {
             radius: 8.0.into(),
             width: 1.0,
             color: color!(0x444444),
+            ..Default::default()
         },
         ..Default::default()
     }

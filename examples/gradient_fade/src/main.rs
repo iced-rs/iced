@@ -188,6 +188,7 @@ impl App {
                 color: Color::from_rgb(0.4, 0.4, 0.4),
                 width: 1.0,
                 radius: 8.0.into(),
+                ..Default::default()
             },
             ..Default::default()
         });
@@ -238,6 +239,7 @@ impl App {
                 color: Color::from_rgb(0.4, 0.4, 0.4),
                 width: 1.0,
                 radius: 8.0.into(),
+                ..Default::default()
             },
             ..Default::default()
         });
@@ -303,6 +305,7 @@ impl App {
                 color: Color::from_rgb(0.4, 0.4, 0.4),
                 width: 1.0,
                 radius: 8.0.into(),
+                ..Default::default()
             },
             ..Default::default()
         });

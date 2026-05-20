@@ -7,11 +7,16 @@ pub struct Border {
     /// The color of the border.
     pub color: Color,
 
-    /// The width of the border.
+    /// The uniform width of the border (used when `sides` is `None`).
     pub width: f32,
 
     /// The [`Radius`] of the border.
     pub radius: Radius,
+
+    /// Per-side border widths \[top, right, bottom, left\].
+    /// When `None` (default), all sides use `self.width`.
+    /// When `Some`, each side uses its own value.
+    pub sides: Option<[f32; 4]>,
 }
 
 /// Creates a new [`Border`] with the given [`Radius`].
@@ -66,12 +71,46 @@ impl Border {
         }
     }
 
-    /// Sets the width of the [`Border`].
+    /// Sets the width of the [`Border`] uniformly on all sides.
     pub fn width(self, width: impl Into<Pixels>) -> Self {
         Self {
             width: width.into().0,
+            sides: None,
             ..self
         }
+    }
+
+    /// Sets the top border width.
+    pub fn top(mut self, width: impl Into<Pixels>) -> Self {
+        let sides = self.sides.get_or_insert([self.width; 4]);
+        sides[0] = width.into().0;
+        self
+    }
+
+    /// Sets the right border width.
+    pub fn right(mut self, width: impl Into<Pixels>) -> Self {
+        let sides = self.sides.get_or_insert([self.width; 4]);
+        sides[1] = width.into().0;
+        self
+    }
+
+    /// Sets the bottom border width.
+    pub fn bottom(mut self, width: impl Into<Pixels>) -> Self {
+        let sides = self.sides.get_or_insert([self.width; 4]);
+        sides[2] = width.into().0;
+        self
+    }
+
+    /// Sets the left border width.
+    pub fn left(mut self, width: impl Into<Pixels>) -> Self {
+        let sides = self.sides.get_or_insert([self.width; 4]);
+        sides[3] = width.into().0;
+        self
+    }
+
+    /// Returns the resolved per-side border widths [top, right, bottom, left].
+    pub fn widths(&self) -> [f32; 4] {
+        self.sides.unwrap_or([self.width; 4])
     }
 }
 

@@ -151,6 +151,7 @@ impl App {
                     color: Color::from_rgba(1.0, 1.0, 1.0, 1.0),
                     width: 1.0,
                     radius: 20.0.into(),
+                    ..Default::default()
                 },
                 shadow: iced::Shadow {
                     color: Color::from_rgba(0.0, 0.0, 0.0, 0.9),
@@ -175,6 +176,7 @@ impl App {
                             color: Color::TRANSPARENT,
                             width: 0.0,
                             radius: 20.0.into(),
+                            ..Default::default()
                         },
                         shadow: iced::Shadow {
                             color: Color::from_rgba(0.0, 0.0, 0.0, 0.9),

@@ -30,8 +30,8 @@ pub struct Quad {
     /// The border radii of the [`Quad`].
     pub border_radius: [f32; 4],
 
-    /// The border width of the [`Quad`].
-    pub border_width: f32,
+    /// The border widths of the [`Quad`] [top, right, bottom, left].
+    pub border_widths: [f32; 4],
 
     /// The shadow color of the [`Quad`].
     pub shadow_color: color::Packed,

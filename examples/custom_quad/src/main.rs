@@ -198,6 +198,7 @@ mod quad {
                         radius: self.radius,
                         width: self.border_width,
                         color: Color::from_rgb(1.0, 0.0, 0.0),
+                        ..Default::default()
                     },
                     shadow: self.shadow,
                     snap: self.snap,

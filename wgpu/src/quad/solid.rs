@@ -101,8 +101,8 @@ impl Pipeline {
                         3 => Float32x4,
                         // Border radius
                         4 => Float32x4,
-                        // Border width
-                        5 => Float32,
+                        // Border widths [top, right, bottom, left]
+                        5 => Float32x4,
                         // Shadow color
                         6 => Float32x4,
                         // Shadow offset

@@ -162,32 +162,32 @@ impl Pipeline {
                         },
                         // Border width (offset 160)
                         wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32,
+                            format: wgpu::VertexFormat::Float32x4,
                             offset: 160,
                             shader_location: 8,
                         },
-                        // Shadow color (offset 164)
+                        // Shadow color (offset 176)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Float32x4,
-                            offset: 164,
+                            offset: 176,
                             shader_location: 9,
                         },
-                        // Shadow offset (offset 180)
+                        // Shadow offset (offset 192)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Float32x2,
-                            offset: 180,
+                            offset: 192,
                             shader_location: 10,
                         },
-                        // Shadow blur radius (offset 188)
+                        // Shadow blur radius (offset 200)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Float32,
-                            offset: 188,
+                            offset: 200,
                             shader_location: 11,
                         },
-                        // Shadow inset + spread_radius(f32 bits) + snap + border_only (offset 192)
+                        // Shadow inset + spread_radius(f32 bits) + snap + border_only (offset 204)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Uint32x4,
-                            offset: 192,
+                            offset: 204,
                             shader_location: 12,
                         },
                     ],
@@ -263,32 +263,32 @@ impl Pipeline {
                         },
                         // Border width (offset 160)
                         wgpu::VertexAttribute {
-                            format: wgpu::VertexFormat::Float32,
+                            format: wgpu::VertexFormat::Float32x4,
                             offset: 160,
                             shader_location: 11,
                         },
-                        // Shadow color (offset 164)
+                        // Shadow color (offset 176)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Float32x4,
-                            offset: 164,
+                            offset: 176,
                             shader_location: 12,
                         },
-                        // Shadow offset (offset 180)
+                        // Shadow offset (offset 192)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Float32x2,
-                            offset: 180,
+                            offset: 192,
                             shader_location: 13,
                         },
-                        // Shadow blur radius (offset 188)
+                        // Shadow blur radius (offset 200)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Float32,
-                            offset: 188,
+                            offset: 200,
                             shader_location: 14,
                         },
-                        // Shadow inset + spread_radius(f32 bits) + snap + border_only (offset 192)
+                        // Shadow inset + spread_radius(f32 bits) + snap + border_only (offset 204)
                         wgpu::VertexAttribute {
                             format: wgpu::VertexFormat::Uint32x4,
-                            offset: 192,
+                            offset: 204,
                             shader_location: 15,
                         },
                     ],

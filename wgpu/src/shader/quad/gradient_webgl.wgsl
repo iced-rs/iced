@@ -17,7 +17,7 @@ struct GradientVertexInput {
     @location(5) position_and_scale: vec4<f32>,
     @location(6) border_color: vec4<f32>,
     @location(7) border_radius: vec4<f32>,
-    @location(8) border_width: f32,
+    @location(8) border_widths: vec4<f32>,
     @location(9) shadow_color: vec4<f32>,
     @location(10) shadow_offset: vec2<f32>,
     @location(11) shadow_blur_radius: f32,
@@ -131,7 +131,8 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     // Premultiply before packing
     out.border_color_packed = pack_color_to_u32(premultiply(input.border_color));
     out.border_radius = border_radius * globals.scale;
-    out.border_width = input.border_width * globals.scale;
+    // WebGL2: pass max border width as uniform (per-side not supported due to varying limit)
+    out.border_width = max(max(input.border_widths.x, input.border_widths.y), max(input.border_widths.z, input.border_widths.w)) * globals.scale;
     out.shadow_color_packed = pack_color_to_u32(premultiply(input.shadow_color));
     out.shadow_offset = input.shadow_offset * globals.scale;
     out.shadow_blur_radius = input.shadow_blur_radius * globals.scale;
