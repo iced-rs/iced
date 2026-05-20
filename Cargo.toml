@@ -200,6 +200,7 @@ glam = "0.25"
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
+jxl-oxide = { version = "0.12", default-features = false, features = ["image"] }
 kamadak-exif = "0.6"
 kurbo = "0.10"
 lilt = "0.8"

@@ -19,7 +19,7 @@ all-features = true
 
 [features]
 geometry = ["lyon_path"]
-image = ["dep:image", "kamadak-exif"]
+image = ["dep:image", "dep:jxl-oxide", "kamadak-exif"]
 svg = []
 web-colors = []
 fira-sans = []
@@ -40,6 +40,9 @@ unicode-segmentation.workspace = true
 
 image.workspace = true
 image.optional = true
+
+jxl-oxide.workspace = true
+jxl-oxide.optional = true
 
 kamadak-exif.workspace = true
 kamadak-exif.optional = true

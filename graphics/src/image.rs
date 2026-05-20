@@ -112,7 +112,7 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
 
     let (width, height, pixels) = match handle {
         image::Handle::Path(_, path) => {
-            let image = ::image::open(path).map_err(to_error)?;
+            let image = open_image(path).map_err(to_error)?;
 
             let operation = std::fs::File::open(path)
                 .ok()
@@ -125,7 +125,7 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
             (rgba.width(), rgba.height(), Bytes::from(rgba.into_raw()))
         }
         image::Handle::Bytes(_, bytes) => {
-            let image = ::image::load_from_memory(bytes).map_err(to_error)?;
+            let image = load_from_memory(bytes).map_err(to_error)?;
 
             let operation = Operation::from_exif(&mut std::io::Cursor::new(bytes))
                 .ok()
@@ -160,4 +160,82 @@ fn to_error(error: ::image::ImageError) -> image::Error {
         ::image::ImageError::IoError(error) => image::Error::Inaccessible(Arc::new(error)),
         error => image::Error::Invalid(Arc::new(error)),
     }
+}
+
+/// JPEG XL naked codestream magic bytes.
+#[cfg(feature = "image")]
+const JXL_CODESTREAM_MAGIC: [u8; 2] = [0xFF, 0x0A];
+
+/// JPEG XL ISO BMFF container magic bytes.
+#[cfg(feature = "image")]
+const JXL_CONTAINER_MAGIC: [u8; 8] = [0x00, 0x00, 0x00, 0x0C, 0x4A, 0x58, 0x4C, 0x20];
+
+/// Open an image from a file path, with JPEG XL support.
+/// Detects JXL by magic bytes (not just extension) for robustness.
+#[cfg(feature = "image")]
+fn open_image(path: &std::path::Path) -> Result<::image::DynamicImage, ::image::ImageError> {
+    // Read first 12 bytes to detect JXL by magic (handles extensionless/misnamed files)
+    let is_jxl = std::fs::File::open(path)
+        .and_then(|mut f| {
+            use std::io::Read;
+            let mut header = [0u8; 12];
+            f.read_exact(&mut header).map(|_| header)
+        })
+        .map(|h| h.starts_with(&JXL_CODESTREAM_MAGIC) || h.starts_with(&JXL_CONTAINER_MAGIC))
+        .unwrap_or_else(|_| {
+            // Fallback to extension if we can't read the header
+            path.extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("jxl"))
+        });
+
+    if is_jxl {
+        return decode_jxl_file(path);
+    }
+
+    ::image::open(path)
+}
+
+/// Load an image from memory bytes, with JPEG XL support.
+#[cfg(feature = "image")]
+fn load_from_memory(bytes: &[u8]) -> Result<::image::DynamicImage, ::image::ImageError> {
+    let is_jxl =
+        bytes.starts_with(&JXL_CONTAINER_MAGIC) || bytes.starts_with(&JXL_CODESTREAM_MAGIC);
+
+    if is_jxl {
+        return decode_jxl_bytes(bytes);
+    }
+
+    ::image::load_from_memory(bytes)
+}
+
+/// Decode a JPEG XL file from disk via jxl-oxide.
+#[cfg(feature = "image")]
+fn decode_jxl_file(path: &std::path::Path) -> Result<::image::DynamicImage, ::image::ImageError> {
+    let file = std::fs::File::open(path).map_err(::image::ImageError::IoError)?;
+    let reader = std::io::BufReader::new(file);
+    decode_jxl(reader)
+}
+
+/// Decode JPEG XL from memory bytes via jxl-oxide.
+#[cfg(feature = "image")]
+fn decode_jxl_bytes(bytes: &[u8]) -> Result<::image::DynamicImage, ::image::ImageError> {
+    decode_jxl(std::io::Cursor::new(bytes))
+}
+
+/// Shared JXL decode logic — accepts any `BufRead + Seek` reader.
+#[cfg(feature = "image")]
+fn decode_jxl<R: std::io::BufRead + std::io::Seek>(
+    reader: R,
+) -> Result<::image::DynamicImage, ::image::ImageError> {
+    use jxl_oxide::integration::JxlDecoder;
+
+    let decoder = JxlDecoder::new(reader).map_err(|e| {
+        ::image::ImageError::Decoding(::image::error::DecodingError::new(
+            ::image::error::ImageFormatHint::Name("jxl".to_string()),
+            e,
+        ))
+    })?;
+
+    ::image::DynamicImage::from_decoder(decoder)
 }

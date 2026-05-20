@@ -359,12 +359,16 @@ impl Engine {
                 };
 
                 // Create a clip mask from the rounded rectangle shape
-                let mut temp_pixmap =
-                    tiny_skia::Pixmap::new(quad.bounds.width as u32 + 1, quad.bounds.height as u32 + 1)
-                        .unwrap();
-                let mut quad_mask =
-                    tiny_skia::Mask::new(quad.bounds.width as u32 + 1, quad.bounds.height as u32 + 1)
-                        .unwrap();
+                let mut temp_pixmap = tiny_skia::Pixmap::new(
+                    quad.bounds.width as u32 + 1,
+                    quad.bounds.height as u32 + 1,
+                )
+                .unwrap();
+                let mut quad_mask = tiny_skia::Mask::new(
+                    quad.bounds.width as u32 + 1,
+                    quad.bounds.height as u32 + 1,
+                )
+                .unwrap();
 
                 let zero_bounds = Rectangle {
                     x: 0.0,
@@ -380,30 +384,74 @@ impl Engine {
 
                 if top_w > 0.0 {
                     let mut pb = tiny_skia::PathBuilder::new();
-                    pb.push_rect(tiny_skia::Rect::from_xywh(0.0, 0.0, quad.bounds.width, top_w).unwrap());
+                    pb.push_rect(
+                        tiny_skia::Rect::from_xywh(0.0, 0.0, quad.bounds.width, top_w).unwrap(),
+                    );
                     if let Some(path) = pb.finish() {
-                        temp_pixmap.fill_path(&path, &paint, tiny_skia::FillRule::Winding, transform, Some(&quad_mask));
+                        temp_pixmap.fill_path(
+                            &path,
+                            &paint,
+                            tiny_skia::FillRule::Winding,
+                            transform,
+                            Some(&quad_mask),
+                        );
                     }
                 }
                 if bottom_w > 0.0 {
                     let mut pb = tiny_skia::PathBuilder::new();
-                    pb.push_rect(tiny_skia::Rect::from_xywh(0.0, quad.bounds.height - bottom_w, quad.bounds.width, bottom_w).unwrap());
+                    pb.push_rect(
+                        tiny_skia::Rect::from_xywh(
+                            0.0,
+                            quad.bounds.height - bottom_w,
+                            quad.bounds.width,
+                            bottom_w,
+                        )
+                        .unwrap(),
+                    );
                     if let Some(path) = pb.finish() {
-                        temp_pixmap.fill_path(&path, &paint, tiny_skia::FillRule::Winding, transform, Some(&quad_mask));
+                        temp_pixmap.fill_path(
+                            &path,
+                            &paint,
+                            tiny_skia::FillRule::Winding,
+                            transform,
+                            Some(&quad_mask),
+                        );
                     }
                 }
                 if left_w > 0.0 {
                     let mut pb = tiny_skia::PathBuilder::new();
-                    pb.push_rect(tiny_skia::Rect::from_xywh(0.0, 0.0, left_w, quad.bounds.height).unwrap());
+                    pb.push_rect(
+                        tiny_skia::Rect::from_xywh(0.0, 0.0, left_w, quad.bounds.height).unwrap(),
+                    );
                     if let Some(path) = pb.finish() {
-                        temp_pixmap.fill_path(&path, &paint, tiny_skia::FillRule::Winding, transform, Some(&quad_mask));
+                        temp_pixmap.fill_path(
+                            &path,
+                            &paint,
+                            tiny_skia::FillRule::Winding,
+                            transform,
+                            Some(&quad_mask),
+                        );
                     }
                 }
                 if right_w > 0.0 {
                     let mut pb = tiny_skia::PathBuilder::new();
-                    pb.push_rect(tiny_skia::Rect::from_xywh(quad.bounds.width - right_w, 0.0, right_w, quad.bounds.height).unwrap());
+                    pb.push_rect(
+                        tiny_skia::Rect::from_xywh(
+                            quad.bounds.width - right_w,
+                            0.0,
+                            right_w,
+                            quad.bounds.height,
+                        )
+                        .unwrap(),
+                    );
                     if let Some(path) = pb.finish() {
-                        temp_pixmap.fill_path(&path, &paint, tiny_skia::FillRule::Winding, transform, Some(&quad_mask));
+                        temp_pixmap.fill_path(
+                            &path,
+                            &paint,
+                            tiny_skia::FillRule::Winding,
+                            transform,
+                            Some(&quad_mask),
+                        );
                     }
                 }
 
