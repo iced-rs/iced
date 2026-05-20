@@ -107,20 +107,35 @@ fn solid_fs_main(
                 clamp(0.5 + dist + input.border_widths.x, 0.0, 1.0)
             );
         } else {
-            // Per-side border: compute distance from each edge
-            let local = input.position.xy - input.pos;
-            let edge_top = local.y;
-            let edge_bottom = input.scale.y - local.y;
-            let edge_left = local.x;
-            let edge_right = input.scale.x - local.x;
+            // Per-side border using inner rounded rect SDF.
+            // The border region is between the outer and inner rounded rects,
+            // so borders naturally curve with the corner radii.
+            let bw = input.border_widths; // [top, right, bottom, left]
 
-            // For each side, compute a 0-1 border factor with anti-aliasing
-            let factor_top = clamp(input.border_widths.x - edge_top + 0.5, 0.0, 1.0);
-            let factor_right = clamp(input.border_widths.y - edge_right + 0.5, 0.0, 1.0);
-            let factor_bottom = clamp(input.border_widths.z - edge_bottom + 0.5, 0.0, 1.0);
-            let factor_left = clamp(input.border_widths.w - edge_left + 0.5, 0.0, 1.0);
+            // Inner rect is inset by per-side widths.
+            let inner_scale = input.scale - vec2(bw.w + bw.y, bw.x + bw.z);
+            let inner_pos = input.pos + vec2(bw.w, bw.x);
 
-            let border_factor = max(max(factor_top, factor_right), max(factor_bottom, factor_left));
+            // Inner corner radii shrink by the max of the two adjacent border widths.
+            let inner_radii = max(vec4(0.0), input.border_radius - vec4(
+                max(bw.x, bw.w), // top-left
+                max(bw.x, bw.y), // top-right
+                max(bw.z, bw.y), // bottom-right
+                max(bw.z, bw.w)  // bottom-left
+            ));
+
+            let inner_dist = rounded_box_sdf(
+                -(input.position.xy - inner_pos - inner_scale * 0.5) * 2.0,
+                inner_scale,
+                inner_radii * 2.0
+            ) / 2.0;
+
+            // Border coverage = fraction of visible pixel in border region.
+            // Where inner and outer edges coincide (0-width sides), both coverages
+            // cancel out, producing no border artifact.
+            let outer_coverage = clamp(0.5 - dist, 0.0, 1.0);
+            let inner_coverage = clamp(0.5 - inner_dist, 0.0, 1.0);
+            let border_factor = max(0.0, outer_coverage - inner_coverage) / max(outer_coverage, 0.001);
 
             mixed_color = mix(input.color, input.border_color, border_factor);
         }
