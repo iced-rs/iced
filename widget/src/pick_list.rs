@@ -81,6 +81,9 @@ use crate::overlay::menu::{self, Menu};
 use std::borrow::Borrow;
 use std::f32;
 
+/// The default gap between an icon and text in a [`PickList`] item.
+pub const ICON_TEXT_GAP: f32 = 6.0;
+
 /// A widget for selecting a single value from a list of options.
 ///
 /// # Example
@@ -172,6 +175,8 @@ where
     menu_class: <Theme as menu::Catalog>::Class<'a>,
     last_status: Option<Status>,
     menu_height: Length,
+    render_icon: Option<Box<dyn Fn(&T, &mut Renderer, Rectangle, &Rectangle) + 'a>>,
+    icon_size: Option<f32>,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer> PickList<'a, T, L, V, Message, Theme, Renderer>
@@ -207,6 +212,8 @@ where
             menu_class: <Theme as Catalog>::default_menu(),
             last_status: None,
             menu_height: Length::Shrink,
+            render_icon: None,
+            icon_size: None,
         }
     }
 
@@ -225,6 +232,23 @@ where
     /// Sets the height of the [`Menu`].
     pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
         self.menu_height = menu_height.into();
+        self
+    }
+
+    /// Sets the icon rendering callback and icon size for the [`PickList`].
+    ///
+    /// The callback receives the item, the renderer, the icon bounds, and the
+    /// viewport (clip bounds). It should draw an icon into the given bounds.
+    ///
+    /// When set, each option (and the selected value) will have an icon area
+    /// of `icon_size × icon_size` to the left of its text label.
+    pub fn render_icon(
+        mut self,
+        icon_size: f32,
+        render_icon: impl Fn(&T, &mut Renderer, Rectangle, &Rectangle) + 'a,
+    ) -> Self {
+        self.icon_size = Some(icon_size);
+        self.render_icon = Some(Box::new(render_icon));
         self
     }
 
@@ -687,6 +711,22 @@ where
 
         let label = selected.map(&self.to_string);
 
+        // Calculate icon offset
+        let icon_offset = self.icon_size.map(|s| s + ICON_TEXT_GAP).unwrap_or(0.0);
+
+        // Render icon for selected item
+        if let (Some(selected_item), Some(render_icon), Some(icon_size)) =
+            (selected, self.render_icon.as_deref(), self.icon_size)
+        {
+            let icon_bounds = Rectangle {
+                x: bounds.x + self.padding.left,
+                y: bounds.center_y() - icon_size / 2.0,
+                width: icon_size,
+                height: icon_size,
+            };
+            render_icon(selected_item, renderer, icon_bounds, viewport);
+        }
+
         if let Some(label) = label.or_else(|| self.placeholder.clone()) {
             let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
@@ -697,7 +737,7 @@ where
                     line_height: self.line_height,
                     font,
                     bounds: Size::new(
-                        bounds.width - self.padding.x() - handle_width,
+                        bounds.width - self.padding.x() - handle_width - icon_offset,
                         f32::from(self.line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,
@@ -708,7 +748,10 @@ where
                     hint_factor: renderer.scale_factor(),
                     letter_spacing: self.letter_spacing.map(|p| p.0),
                 },
-                Point::new(bounds.x + self.padding.left, bounds.center_y()),
+                Point::new(
+                    bounds.x + self.padding.left + icon_offset,
+                    bounds.center_y(),
+                ),
                 if selected.is_some() {
                     style.text_color
                 } else {
@@ -755,6 +798,10 @@ where
             .font(font)
             .ellipsis(self.ellipsis)
             .shaping(self.shaping);
+
+            if let Some(render_icon) = self.render_icon.as_deref() {
+                menu = menu.render_icon(self.icon_size.unwrap_or(0.0), render_icon);
+            }
 
             if let Some(text_size) = self.text_size {
                 menu = menu.text_size(text_size);

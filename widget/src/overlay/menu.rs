@@ -38,6 +38,8 @@ where
     ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
+    render_icon: Option<&'a dyn Fn(&T, &mut Renderer, Rectangle, &Rectangle)>,
+    icon_size: f32,
 }
 
 impl<'a, 'b, T, Message, Theme, Renderer> Menu<'a, 'b, T, Message, Theme, Renderer>
@@ -75,6 +77,8 @@ where
             ellipsis: text::Ellipsis::default(),
             font: None,
             class,
+            render_icon: None,
+            icon_size: 0.0,
         }
     }
 
@@ -123,6 +127,17 @@ where
     /// Sets the font of the [`Menu`].
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
+        self
+    }
+
+    /// Sets the icon rendering callback and icon size for the [`Menu`].
+    pub fn render_icon(
+        mut self,
+        icon_size: f32,
+        render_icon: &'a dyn Fn(&T, &mut Renderer, Rectangle, &Rectangle),
+    ) -> Self {
+        self.icon_size = icon_size;
+        self.render_icon = Some(render_icon);
         self
     }
 
@@ -217,6 +232,8 @@ where
             shaping,
             ellipsis,
             class,
+            render_icon,
+            icon_size,
         } = menu;
 
         let list = Scrollable::new(List {
@@ -233,6 +250,8 @@ where
             ellipsis,
             padding,
             class,
+            render_icon,
+            icon_size,
         })
         .height(menu_height);
 
@@ -366,6 +385,8 @@ where
     ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
+    render_icon: Option<&'a dyn Fn(&T, &mut Renderer, Rectangle, &Rectangle)>,
+    icon_size: f32,
 }
 
 struct ListState {
@@ -519,6 +540,8 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        use crate::pick_list::ICON_TEXT_GAP;
+
         let style = Catalog::style(theme, self.class);
         let bounds = layout.bounds();
 
@@ -530,6 +553,12 @@ where
         let end = ((offset + viewport.height) / option_height).ceil() as usize;
 
         let visible_options = &self.options[start..end.min(self.options.len())];
+
+        let icon_offset = if self.render_icon.is_some() && self.icon_size > 0.0 {
+            self.icon_size + ICON_TEXT_GAP
+        } else {
+            0.0
+        };
 
         for (i, option) in visible_options.iter().enumerate() {
             let i = start + i;
@@ -559,10 +588,23 @@ where
                 );
             }
 
+            // Render icon if callback is provided
+            if let Some(render_icon) = &self.render_icon
+                && self.icon_size > 0.0
+            {
+                let icon_bounds = Rectangle {
+                    x: bounds.x + self.padding.left,
+                    y: bounds.center_y() - self.icon_size / 2.0,
+                    width: self.icon_size,
+                    height: self.icon_size,
+                };
+                render_icon(option, renderer, icon_bounds, viewport);
+            }
+
             renderer.fill_text(
                 Text {
                     content: (self.to_string)(option),
-                    bounds: Size::new(bounds.width - self.padding.x(), bounds.height),
+                    bounds: Size::new(bounds.width - self.padding.x() - icon_offset, bounds.height),
                     size: text_size,
                     line_height: self.line_height,
                     font: self.font.unwrap_or_else(|| renderer.default_font()),
@@ -574,7 +616,10 @@ where
                     hint_factor: renderer.scale_factor(),
                     letter_spacing: self.letter_spacing.map(|p| p.0),
                 },
-                Point::new(bounds.x + self.padding.left, bounds.center_y()),
+                Point::new(
+                    bounds.x + self.padding.left + icon_offset,
+                    bounds.center_y(),
+                ),
                 if is_selected {
                     style.selected_text_color
                 } else {
