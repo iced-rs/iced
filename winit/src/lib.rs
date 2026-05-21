@@ -1717,11 +1717,12 @@ fn run_action<'a, P, C>(
             }
         },
         Action::Backend(action) => match action {
+            #[cfg(not(target_arch = "wasm32"))]
             backend::Action::Configure(settings, sender) => {
                 let shell = Shell::new(proxy.clone());
 
                 let mut new_compositor = if let Some(window) = window_manager.first() {
-                    match crate::futures::futures::executor::block_on(C::new(
+                    match runtime.block_on(C::new(
                         settings,
                         window.raw.clone(),
                         window.raw.clone(),
@@ -1756,6 +1757,8 @@ fn run_action<'a, P, C>(
 
                 let _ = sender.send(Ok(()));
             }
+            #[cfg(target_arch = "wasm32")]
+            backend::Action::Configure(_, _) => {}
         },
         Action::Event { window, event } => {
             events.push((window, event));
