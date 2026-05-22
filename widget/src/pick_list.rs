@@ -84,6 +84,9 @@ use std::f32;
 /// The default gap between an icon and text in a [`PickList`] item.
 pub const ICON_TEXT_GAP: f32 = 6.0;
 
+/// The gap between the label text and the handle (dropdown arrow).
+const HANDLE_TEXT_GAP: f32 = 4.0;
+
 /// A widget for selecting a single value from a list of options.
 ///
 /// # Example
@@ -477,8 +480,13 @@ where
                     _ => text_size.0,
                 }
             };
+            let handle_gap = if handle_width > 0.0 {
+                HANDLE_TEXT_GAP
+            } else {
+                0.0
+            };
             let intrinsic = Size::new(
-                max_width + handle_width + self.padding.left + icon_offset,
+                (max_width + handle_width + handle_gap + icon_offset).ceil(),
                 f32::from(self.line_height.to_absolute(text_size)),
             );
 
@@ -788,7 +796,15 @@ where
                     line_height: self.line_height,
                     font,
                     bounds: Size::new(
-                        bounds.width - self.padding.x() - handle_width - icon_offset,
+                        bounds.width
+                            - self.padding.x()
+                            - handle_width
+                            - icon_offset
+                            - if handle_width > 0.0 {
+                                HANDLE_TEXT_GAP
+                            } else {
+                                0.0
+                            },
                         f32::from(self.line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,
