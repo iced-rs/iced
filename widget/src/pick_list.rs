@@ -445,8 +445,9 @@ where
         };
 
         let size = {
+            let icon_offset = self.icon_size.map(|s| s + ICON_TEXT_GAP).unwrap_or(0.0);
             let intrinsic = Size::new(
-                max_width + text_size.0 + self.padding.left,
+                max_width + text_size.0 + self.padding.left + icon_offset,
                 f32::from(self.line_height.to_absolute(text_size)),
             );
 
