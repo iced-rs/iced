@@ -177,6 +177,9 @@ where
     menu_height: Length,
     render_icon: Option<Box<dyn Fn(&T, &mut Renderer, Rectangle, &Rectangle) + 'a>>,
     icon_size: Option<f32>,
+    #[allow(clippy::type_complexity)]
+    render_handle: Option<Box<dyn Fn(bool, &mut Renderer, Rectangle, Color, &Rectangle) + 'a>>,
+    render_handle_size: f32,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer> PickList<'a, T, L, V, Message, Theme, Renderer>
@@ -214,6 +217,8 @@ where
             menu_height: Length::Shrink,
             render_icon: None,
             icon_size: None,
+            render_handle: None,
+            render_handle_size: 0.0,
         }
     }
 
@@ -249,6 +254,24 @@ where
     ) -> Self {
         self.icon_size = Some(icon_size);
         self.render_icon = Some(Box::new(render_icon));
+        self
+    }
+
+    /// Sets a custom render callback for the handle (dropdown arrow).
+    ///
+    /// The callback receives `(is_open, renderer, bounds, handle_color, viewport)`.
+    /// When set, this replaces the default font-based handle rendering entirely.
+    /// Use [`Handle::None`] together with this to suppress the default arrow.
+    ///
+    /// `size` is the width/height reserved for the handle in the layout.
+    pub fn render_handle(
+        mut self,
+        size: f32,
+        render_handle: impl Fn(bool, &mut Renderer, Rectangle, Color, &Rectangle) + 'a,
+    ) -> Self {
+        self.render_handle_size = size;
+        self.render_handle = Some(Box::new(render_handle));
+        self.handle = Handle::None;
         self
     }
 
@@ -446,8 +469,16 @@ where
 
         let size = {
             let icon_offset = self.icon_size.map(|s| s + ICON_TEXT_GAP).unwrap_or(0.0);
+            let handle_width = if self.render_handle.is_some() {
+                self.render_handle_size
+            } else {
+                match &self.handle {
+                    Handle::None => 0.0,
+                    _ => text_size.0,
+                }
+            };
             let intrinsic = Size::new(
-                max_width + text_size.0 + self.padding.left + icon_offset,
+                max_width + handle_width + self.padding.left + icon_offset,
                 f32::from(self.line_height.to_absolute(text_size)),
             );
 
@@ -679,7 +710,26 @@ where
 
         // Track the width reserved for the handle icon so we can
         // prevent the label text from overlapping it.
-        let handle_width = if let Some((font, code_point, size, line_height, shaping)) = handle {
+        let handle_width = if let Some(render_handle) = self.render_handle.as_deref() {
+            let icon_size = self.render_handle_size;
+
+            let icon_bounds = Rectangle {
+                x: bounds.x + bounds.width - self.padding.right - icon_size,
+                y: bounds.center_y() - icon_size / 2.0,
+                width: icon_size,
+                height: icon_size,
+            };
+
+            render_handle(
+                state.is_open,
+                renderer,
+                icon_bounds,
+                style.handle_color,
+                viewport,
+            );
+
+            icon_size
+        } else if let Some((font, code_point, size, line_height, shaping)) = handle {
             let size = size.unwrap_or_else(|| renderer.default_size());
 
             renderer.fill_text(
