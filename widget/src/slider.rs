@@ -553,9 +553,9 @@ where
 
 #[derive(Debug, Clone, Copy, Default)]
 struct State {
-    last_click: Option<mouse::Click>,
     is_dragging: bool,
     keyboard_modifiers: keyboard::Modifiers,
+    last_click: Option<mouse::Click>,
 }
 
 /// The possible status of a [`Slider`].
