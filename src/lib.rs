@@ -508,7 +508,7 @@ compile_error!(
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "wgpu-bare")]
 pub use iced_renderer::wgpu::wgpu;
 
 mod error;
