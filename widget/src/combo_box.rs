@@ -565,7 +565,8 @@ where
         let mut local_shell = Shell::new(&mut local_messages);
 
         // Provide it to the widget
-        self.text_input.update(
+        Widget::update(
+            &mut self.text_input,
             &mut tree.children[0],
             event,
             layout,
@@ -719,7 +720,8 @@ where
                 // Unfocus the input
                 let mut local_messages = Vec::new();
                 let mut local_shell = Shell::new(&mut local_messages);
-                self.text_input.update(
+                Widget::update(
+                    &mut self.text_input,
                     &mut tree.children[0],
                     &Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
                     layout,
