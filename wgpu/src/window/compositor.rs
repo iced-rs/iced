@@ -157,7 +157,12 @@ impl Compositor {
         });
 
         // Request SHADER_F16 only if the adapter supports it (e.g., not available in WebGL2)
-        let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
+        let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16)
+            && adapter
+                .get_downlevel_capabilities()
+                .flags
+                .contains(wgpu::DownlevelFlags::SHADER_F16_IN_F32)
+        {
             wgpu::Features::SHADER_F16
         } else {
             wgpu::Features::empty()
