@@ -17,8 +17,8 @@ use crate::core::{
 pub struct Sensor<'a, Key, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     key: Key,
-    on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
-    on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
+    on_show: Option<Box<dyn Fn(Size) -> Option<Message> + 'a>>,
+    on_resize: Option<Box<dyn Fn(Size) -> Option<Message> + 'a>>,
     on_hide: Option<Message>,
     anticipate: Pixels,
     delay: Duration,
@@ -50,7 +50,7 @@ where
     /// Sets the message to be produced when the content pops into view.
     ///
     /// The closure will receive the [`Size`] of the content in that moment.
-    pub fn on_show(mut self, on_show: impl Fn(Size) -> Message + 'a) -> Self {
+    pub fn on_show(mut self, on_show: impl Fn(Size) -> Option<Message> + 'a) -> Self {
         self.on_show = Some(Box::new(on_show));
         self
     }
@@ -58,7 +58,7 @@ where
     /// Sets the message to be produced when the content changes [`Size`] once its in view.
     ///
     /// The closure will receive the new [`Size`] of the content.
-    pub fn on_resize(mut self, on_resize: impl Fn(Size) -> Message + 'a) -> Self {
+    pub fn on_resize(mut self, on_resize: impl Fn(Size) -> Option<Message> + 'a) -> Self {
         self.on_resize = Some(Box::new(on_resize));
         self
     }
@@ -198,7 +198,9 @@ where
 
                     if Some(size) != state.last_size {
                         state.last_size = Some(size);
-                        shell.publish(on_resize(size));
+                        if let Some(message) = on_resize(size) {
+                            shell.publish(message);
+                        }
                     }
                 }
             } else if state.has_popped_in {
@@ -208,7 +210,9 @@ where
 
                         if Some(size) != state.last_size {
                             state.last_size = Some(size);
-                            shell.publish(on_resize(size));
+                            if let Some(message) = on_resize(size) {
+                                shell.publish(message);
+                            }
                         }
                     }
                 } else if self.on_hide.is_some() {
@@ -226,8 +230,10 @@ where
             match &state.should_notify_at {
                 Some((has_popped_in, at)) if at <= now => {
                     if *has_popped_in {
-                        if let Some(on_show) = &self.on_show {
-                            shell.publish(on_show(layout.bounds().size()));
+                        if let Some(on_show) = &self.on_show
+                            && let Some(message) = on_show(layout.bounds().size())
+                        {
+                            shell.publish(message);
                         }
                     } else if let Some(on_hide) = self.on_hide.take() {
                         shell.publish(on_hide);
