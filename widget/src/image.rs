@@ -66,6 +66,7 @@ pub struct Image<Handle = image::Handle> {
     opacity: f32,
     scale: f32,
     expand: bool,
+    load_blocking: bool,
 }
 
 impl<Handle> Image<Handle> {
@@ -83,6 +84,7 @@ impl<Handle> Image<Handle> {
             opacity: 1.0,
             scale: 1.0,
             expand: false,
+            load_blocking: false,
         }
     }
 
@@ -175,6 +177,13 @@ impl<Handle> Image<Handle> {
         self.border_radius = border_radius.into();
         self
     }
+
+    /// When set to `true`, the renderer will block until the image is
+    /// ready to display to prevent flickering. Defaults to `false`.
+    pub fn load_blocking(mut self, load_blocking: bool) -> Self {
+        self.load_blocking = load_blocking;
+        self
+    }
 }
 
 /// Computes the layout of an [`Image`].
@@ -188,10 +197,17 @@ pub fn layout<Renderer, Handle>(
     content_fit: ContentFit,
     rotation: Rotation,
     expand: bool,
+    load_blocking: bool,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
 {
+    // When load_blocking is true, ensure the image is loaded synchronously
+    // before measuring so that `measure_image` returns the correct dimensions
+    if load_blocking {
+        let _ = renderer.load_image(handle);
+    }
+
     // The raw w/h of the underlying image
     let image_size = crop(renderer.measure_image(handle).unwrap_or_default(), region);
 
@@ -315,6 +331,7 @@ pub fn draw<Renderer, Handle>(
     rotation: Rotation,
     opacity: f32,
     scale: f32,
+    load_blocking: bool,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -330,6 +347,7 @@ pub fn draw<Renderer, Handle>(
             filter_method,
             rotation: rotation.radians(),
             opacity,
+            load_blocking,
         },
         drawing_bounds,
         bounds,
@@ -364,6 +382,7 @@ where
             self.content_fit,
             self.rotation,
             self.expand,
+            self.load_blocking,
         )
     }
 
@@ -388,6 +407,7 @@ where
             self.rotation,
             self.opacity,
             self.scale,
+            self.load_blocking,
         );
     }
 }

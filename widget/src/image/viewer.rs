@@ -334,6 +334,7 @@ where
                         filter_method: self.filter_method,
                         rotation: Radians(0.0),
                         opacity: 1.0,
+                        load_blocking: false,
                     },
                     drawing_bounds,
                     *viewport - translation,

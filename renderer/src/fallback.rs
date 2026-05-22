@@ -182,6 +182,10 @@ where
     }
 
     fn draw_image(&mut self, image: Image<A::Handle>, bounds: Rectangle, clip_bounds: Rectangle) {
+        if image.load_blocking {
+            let _ = self.load_image(&image.handle);
+        }
+
         delegate!(
             self,
             renderer,

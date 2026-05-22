@@ -30,6 +30,9 @@ pub struct Image<H = Handle> {
     ///
     /// 0 means transparent. 1 means opaque.
     pub opacity: f32,
+
+    /// Don't render the next frame until the image is ready to display.
+    pub load_blocking: bool,
 }
 
 impl Image<Handle> {
@@ -41,6 +44,7 @@ impl Image<Handle> {
             rotation: Radians(0.0),
             border_radius: border::Radius::default(),
             opacity: 1.0,
+            load_blocking: false,
         }
     }
 
@@ -59,6 +63,13 @@ impl Image<Handle> {
     /// Sets the opacity of the [`Image`].
     pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
         self.opacity = opacity.into();
+        self
+    }
+
+    /// When set to `true`, the renderer will block until the image is
+    /// ready to display to prevent flickering. Defaults to `false`.
+    pub fn load_blocking(mut self, load_blocking: bool) -> Self {
+        self.load_blocking = load_blocking;
         self
     }
 }
