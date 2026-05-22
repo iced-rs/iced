@@ -398,6 +398,8 @@ where
             if span.highlight.is_some() || span.underline || span.strikethrough || is_hovered_link {
                 let translation = layout.position() - Point::ORIGIN;
                 let regions = state.paragraph.span_bounds(index);
+                let layout_width = layout.bounds().width;
+                let is_truncated = state.paragraph.is_truncated();
 
                 if let Some(highlight) = span.highlight {
                     for bounds in &regions {
@@ -432,12 +434,16 @@ where
 
                     if span.underline || is_hovered_link {
                         for bounds in &regions {
+                            let width = bounds.width.min(layout_width - bounds.x);
+                            if width <= 0.0 {
+                                continue;
+                            }
                             renderer.fill_quad(
                                 renderer::Quad {
                                     bounds: Rectangle::new(
                                         bounds.position() + baseline
                                             - Vector::new(0.0, size.0 * 0.08),
-                                        Size::new(bounds.width, 1.0),
+                                        Size::new(width, 1.0),
                                     ),
                                     ..Default::default()
                                 },
@@ -447,13 +453,23 @@ where
                     }
 
                     if span.strikethrough {
-                        for bounds in &regions {
+                        let region_count = regions.len();
+                        for (i, bounds) in regions.iter().enumerate() {
+                            let mut width = bounds.width.min(layout_width - bounds.x);
+                            // When truncated, trim the last region to avoid
+                            // drawing through the gap before the ellipsis.
+                            if is_truncated && i == region_count - 1 {
+                                width -= size.0 * 0.25;
+                            }
+                            if width <= 0.0 {
+                                continue;
+                            }
                             renderer.fill_quad(
                                 renderer::Quad {
                                     bounds: Rectangle::new(
                                         bounds.position() + baseline
                                             - Vector::new(0.0, size.0 / 2.0),
-                                        Size::new(bounds.width, 1.0),
+                                        Size::new(width, 1.0),
                                     ),
                                     ..Default::default()
                                 },

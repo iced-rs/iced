@@ -177,7 +177,7 @@ impl core::text::Paragraph for Paragraph {
         buffer.set_size(
             font_system.raw(),
             Some(text.bounds.width * hint_factor),
-            Some(text.bounds.height * hint_factor),
+            None,
         );
 
         buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
@@ -223,7 +223,27 @@ impl core::text::Paragraph for Paragraph {
             None,
         );
 
+        // Measure without ellipsis to get natural bounds (for truncation detection)
+        let (natural_min_bounds, _) = text::measure(&buffer);
+        let natural_min_bounds = natural_min_bounds / hint_factor;
+
+        // Restore height limit and apply ellipsis truncation
+        buffer.set_size(
+            font_system.raw(),
+            Some(text.bounds.width * hint_factor),
+            Some(text.bounds.height * hint_factor),
+        );
+        buffer.set_ellipsize(
+            font_system.raw(),
+            text::to_ellipsize(text.ellipsis, text.bounds.height * hint_factor),
+        );
+
         let min_bounds = text::align(&mut buffer, font_system.raw(), text.align_x) / hint_factor;
+
+        let truncated = text.ellipsis != Ellipsis::None
+            && (natural_min_bounds.width > text.bounds.width
+                || natural_min_bounds.height >= text.bounds.height
+                || natural_min_bounds != min_bounds);
 
         Self(Arc::new(Internal {
             buffer,
@@ -237,7 +257,7 @@ impl core::text::Paragraph for Paragraph {
             ellipsis: text.ellipsis,
             bounds: text.bounds,
             min_bounds,
-            truncated: false,
+            truncated,
             version: font_system.version(),
             letter_spacing: text.letter_spacing,
         }))
@@ -427,7 +447,9 @@ impl core::text::Paragraph for Paragraph {
                     .map(move |glyph| (line_top, line_height, glyph))
             })
             .skip_while(|(_, _, glyph)| glyph.metadata != index)
-            .take_while(|(_, _, glyph)| glyph.metadata == index);
+            .take_while(|(_, _, glyph)| glyph.metadata == index)
+            // Skip ellipsis glyphs (they have start == end set to the elision boundary)
+            .filter(|(_, _, glyph)| !internal.truncated || glyph.start != glyph.end);
 
         for (line_top, line_height, glyph) in glyphs {
             let y = line_top + glyph.y;
