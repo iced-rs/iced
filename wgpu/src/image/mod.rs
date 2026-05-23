@@ -93,7 +93,7 @@ impl Pipeline {
 
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("iced_wgpu::image pipeline layout"),
-            bind_group_layouts: &[&constant_layout, &texture_layout],
+            bind_group_layouts: &[Some(&constant_layout), Some(&texture_layout)],
             immediate_size: 0,
         });
 

@@ -25,7 +25,7 @@ use winit::monitor::MonitorHandle;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-pub struct WindowManager<P, C>
+pub struct Manager<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
@@ -35,7 +35,7 @@ where
     entries: BTreeMap<Id, Window<P, C>>,
 }
 
-impl<P, C> WindowManager<P, C>
+impl<P, C> Manager<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
@@ -149,9 +149,16 @@ where
 
         Some(window)
     }
+
+    pub fn replace_with(&mut self, mut f: impl FnMut(Window<P, C>) -> Window<P, C>) {
+        self.entries = std::mem::take(&mut self.entries)
+            .into_iter()
+            .map(|(id, window)| (id, f(window)))
+            .collect();
+    }
 }
 
-impl<P, C> Default for WindowManager<P, C>
+impl<P, C> Default for Manager<P, C>
 where
     P: Program,
     C: Compositor<Renderer = P::Renderer>,
