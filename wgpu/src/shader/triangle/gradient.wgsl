@@ -35,55 +35,6 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     return output;
 }
 
-/// Returns the current interpolated color with a max 8-stop gradient
-fn gradient(
-    raw_position: vec2<f32>,
-    direction: vec4<f32>,
-    colors: array<vec4<f32>, 8>,
-    offsets: array<f32, 8>,
-    last_index: i32
-) -> vec4<f32> {
-    let start = direction.xy;
-    let end = direction.zw;
-
-    let v1 = end - start;
-    let v2 = raw_position - start;
-    let unit = normalize(v1);
-    let coord_offset = dot(unit, v2) / length(v1);
-
-    //need to store these as a var to use dynamic indexing in a loop
-    //this is already added to wgsl spec but not in wgpu yet
-    var colors_arr = colors;
-    var offsets_arr = offsets;
-
-    var color: vec4<f32>;
-
-    let noise_granularity: f32 = 0.3/255.0;
-
-    for (var i: i32 = 0; i < last_index; i++) {
-        let curr_offset = offsets_arr[i];
-        let next_offset = offsets_arr[i+1];
-
-        if (coord_offset <= offsets_arr[0]) {
-            color = colors_arr[0];
-        }
-
-        if (curr_offset <= coord_offset && coord_offset <= next_offset) {
-            let from_ = colors_arr[i];
-            let to_ = colors_arr[i+1];
-            let factor = smoothstep(curr_offset, next_offset, coord_offset);
-
-            color = interpolate_color(from_, to_, factor);
-        }
-
-        if (coord_offset >= offsets_arr[last_index]) {
-            color = colors_arr[last_index];
-        }
-    }
-
-    return color + mix(-noise_granularity, noise_granularity, random(raw_position));
-}
-
 @fragment
 fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let colors = array<vec4<f32>, 8>(
@@ -119,7 +70,45 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
         }
     }
 
-    return gradient(input.raw_position, input.direction, colors, offsets, last_index);
+    let start = input.direction.xy;
+    let end = input.direction.zw;
+
+    let v1 = end - start;
+    let v2 = input.raw_position - start;
+    let unit = normalize(v1);
+    let coord_offset = dot(unit, v2) / length(v1);
+
+    //need to store these as a var to use dynamic indexing in a loop
+    //this is already added to wgsl spec but not in wgpu yet
+    var colors_arr = colors;
+    var offsets_arr = offsets;
+
+    var color: vec4<f32>;
+
+    let noise_granularity: f32 = 0.3/255.0;
+
+    for (var i: i32 = 0; i < last_index; i++) {
+        let curr_offset = offsets_arr[i];
+        let next_offset = offsets_arr[i+1];
+
+        if (coord_offset <= offsets_arr[0]) {
+            color = colors_arr[0];
+        }
+
+        if (curr_offset <= coord_offset && coord_offset <= next_offset) {
+            let from_ = colors_arr[i];
+            let to_ = colors_arr[i+1];
+            let factor = smoothstep(curr_offset, next_offset, coord_offset);
+
+            color = interpolate_color(from_, to_, factor);
+        }
+
+        if (coord_offset >= offsets_arr[last_index]) {
+            color = colors_arr[last_index];
+        }
+    }
+
+    return color + mix(-noise_granularity, noise_granularity, random(input.raw_position));
 }
 
 fn random(coords: vec2<f32>) -> f32 {
