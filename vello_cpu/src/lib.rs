@@ -16,15 +16,15 @@ mod vector;
 #[cfg(feature = "geometry")]
 mod geometry;
 
+use crate::core::backend;
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
 use crate::core::{Background, Color, Font, Gradient, Pixels, Rectangle, Size, Transformation};
 use crate::graphics::compositor;
-use crate::graphics::error;
 use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
-use crate::graphics::{Error, Shell, Text, Viewport};
+use crate::graphics::{Shell, Text, Viewport};
 
 use std::num::NonZeroU32;
 
@@ -611,7 +611,7 @@ impl compositor::Default for Renderer {
 
 pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Display>>,
-    settings: compositor::Settings,
+    settings: backend::Settings,
 }
 
 pub struct Surface {
@@ -623,37 +623,35 @@ impl graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = Surface;
 
-    async fn with_backend(
-        settings: compositor::Settings,
+    async fn new(
+        settings: backend::Settings,
         display: impl compositor::Display + Clone,
         _compatible_window: impl compositor::Window + Clone,
         _shell: Shell,
-        backend: Option<&str>,
-    ) -> Result<Self, Error> {
-        match backend {
-            None | Some("vello-cpu") | Some("vello_cpu") => {
-                #[allow(unsafe_code)]
-                let context = softbuffer::Context::new(Box::new(display) as _)
-                    .expect("Create softbuffer context");
-
-                Ok(Self { context, settings })
-            }
-            Some(backend) => Err(Error::GraphicsAdapterNotFound {
+    ) -> Result<Self, backend::Error> {
+        if !settings.backend.is_software() && !settings.backend.matches("vello-cpu") {
+            return Err(backend::Error::GraphicsAdapterNotFound {
                 backend: "vello-cpu",
-                reason: error::Reason::DidNotMatch {
-                    preferred_backend: backend.to_owned(),
+                reason: backend::Reason::DidNotMatch {
+                    preferred_backend: settings.backend,
                 },
-            }),
+            });
         }
+
+        #[allow(unsafe_code)]
+        let context =
+            softbuffer::Context::new(Box::new(display) as _).expect("Create softbuffer context");
+
+        Ok(Self { context, settings })
     }
 
     fn create_renderer(&self, settings: renderer::Settings) -> Renderer {
         Renderer::new(settings)
     }
 
-    fn create_surface<W: compositor::Window + Clone>(
+    fn create_surface(
         &mut self,
-        window: W,
+        window: impl compositor::Window + Clone,
         width: u32,
         height: u32,
     ) -> Self::Surface {

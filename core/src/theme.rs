@@ -177,7 +177,7 @@ pub struct Custom {
 
 impl Custom {
     /// Creates a [`Custom`] theme from the given [`Seed`](palette::Seed).
-    pub fn new(name: String, seed: palette::Seed) -> Self {
+    pub fn new(name: impl Into<Cow<'static, str>>, seed: palette::Seed) -> Self {
         Self::with_fn(name, seed, Palette::generate)
     }
 

@@ -765,7 +765,7 @@ where
                 if !had_input_method
                     && let InputMethod::Enabled { cursor, .. } = shell.input_method_mut()
                 {
-                    *cursor = *cursor - translation;
+                    *cursor -= translation;
                 }
             };
 
