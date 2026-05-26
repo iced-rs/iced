@@ -532,10 +532,10 @@ impl Engine {
                 // TODO: Border radius
                 adjust_clip_mask(_clip_mask, clip_bounds);
 
-                let center = physical_bounds.center();
+                let center = bounds.center();
                 let radians = f32::from(image.rotation);
 
-                let transform = into_transform(_transformation).post_rotate_at(
+                let transform = into_transform(_transformation).pre_rotate_at(
                     radians.to_degrees(),
                     center.x,
                     center.y,

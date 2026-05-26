@@ -1,11 +1,11 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
-use crate::core;
 use crate::core::Color;
+use crate::core::backend;
 use crate::core::font;
 use crate::core::renderer;
 use crate::futures::{MaybeSend, MaybeSync};
-use crate::{Antialiasing, Error, Shell, Viewport};
+use crate::{Shell, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
@@ -21,27 +21,13 @@ pub trait Compositor: Sized {
     /// The surface of the backend.
     type Surface;
 
-    /// Creates a new [`Compositor`].
+    /// Creates a new [`Compositor`] with the given [`backend::Settings`].
     fn new(
-        settings: Settings,
+        settings: backend::Settings,
         display: impl Display + Clone,
         compatible_window: impl Window + Clone,
         shell: Shell,
-    ) -> impl Future<Output = Result<Self, Error>> {
-        Self::with_backend(settings, display, compatible_window, shell, None)
-    }
-
-    /// Creates a new [`Compositor`] with a backend preference.
-    ///
-    /// If the backend does not match the preference, it will return
-    /// [`Error::GraphicsAdapterNotFound`].
-    fn with_backend(
-        settings: Settings,
-        display: impl Display + Clone,
-        compatible_window: impl Window + Clone,
-        shell: Shell,
-        backend: Option<&str>,
-    ) -> impl Future<Output = Result<Self, Error>>;
+    ) -> impl Future<Output = Result<Self, backend::Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
     fn create_renderer(&self, settings: renderer::Settings) -> Self::Renderer;
@@ -113,38 +99,6 @@ pub trait Compositor: Sized {
     ) -> Vec<u8>;
 }
 
-/// The settings of a [`Compositor`].
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Settings {
-    /// The antialiasing strategy that will be used for triangle primitives.
-    ///
-    /// By default, it is `None`.
-    pub antialiasing: Option<Antialiasing>,
-
-    /// Whether or not to synchronize frames.
-    ///
-    /// By default, it is `true`.
-    pub vsync: bool,
-}
-
-impl ::core::default::Default for Settings {
-    fn default() -> Settings {
-        Settings {
-            antialiasing: None,
-            vsync: true,
-        }
-    }
-}
-
-impl From<&core::Settings> for Settings {
-    fn from(settings: &core::Settings) -> Self {
-        Self {
-            antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
-            vsync: settings.vsync,
-        }
-    }
-}
-
 /// A window that can be used in a [`Compositor`].
 ///
 /// This is just a convenient super trait of the `raw-window-handle`
@@ -204,13 +158,12 @@ impl Compositor for () {
     type Renderer = ();
     type Surface = ();
 
-    async fn with_backend(
-        _settings: Settings,
+    async fn new(
+        _settings: backend::Settings,
         _display: impl Display,
         _compatible_window: impl Window + Clone,
         _shell: Shell,
-        _preferred_backend: Option<&str>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, backend::Error> {
         Ok(())
     }
 

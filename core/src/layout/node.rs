@@ -100,6 +100,6 @@ impl Node {
 
     /// Translates the [`Node`] by the given translation.
     pub fn translate_mut(&mut self, translation: impl Into<Vector>) {
-        self.bounds = self.bounds + translation.into();
+        self.bounds += translation.into();
     }
 }

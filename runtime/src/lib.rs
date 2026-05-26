@@ -9,6 +9,7 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub mod backend;
 pub mod clipboard;
 pub mod font;
 pub mod image;
@@ -24,7 +25,6 @@ pub use iced_futures as futures;
 
 pub use task::Task;
 pub use user_interface::UserInterface;
-pub use window::Window;
 
 use crate::core::Event;
 
@@ -52,6 +52,9 @@ pub enum Action<T> {
 
     /// Run an image action.
     Image(image::Action),
+
+    /// Run a backend action.
+    Backend(backend::Action),
 
     /// Produce an event.
     Event {
@@ -89,6 +92,7 @@ impl<T> Action<T> {
             Action::System(action) => Err(Action::System(action)),
             Action::Font(action) => Err(Action::Font(action)),
             Action::Image(action) => Err(Action::Image(action)),
+            Action::Backend(action) => Err(Action::Backend(action)),
             Action::Event { window, event } => Err(Action::Event { window, event }),
             Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
@@ -115,7 +119,8 @@ where
             Action::Font(action) => {
                 write!(f, "Action::Font({action:?})")
             }
-            Action::Image(_) => write!(f, "Action::Image"),
+            Action::Image(action) => write!(f, "Action::Image({action:?})"),
+            Action::Backend(action) => write!(f, "Action::Backend({action:?})"),
             Action::Event { window, event } => write!(
                 f,
                 "Action::Event {{ window: {window:?}, event: {event:?} }}"

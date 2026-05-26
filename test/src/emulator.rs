@@ -2,6 +2,7 @@
 use crate::core;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget;
 use crate::core::window;
@@ -243,7 +244,11 @@ impl<P: Program + 'static> Emulator<P> {
                     // TODO
                     dbg!(action);
                 }
-                iced_runtime::Action::Event { window, event } => {
+                runtime::Action::Backend(action) => {
+                    // TODO
+                    dbg!(action);
+                }
+                runtime::Action::Event { window, event } => {
                     // TODO
                     dbg!(window, event);
                 }
@@ -326,8 +331,14 @@ impl<P: Program + 'static> Emulator<P> {
                     }
                 }
 
-                let (_state, _status) =
-                    user_interface.update(&events, self.cursor, &mut self.renderer, &mut messages);
+                let (_state, _status) = user_interface.update(
+                    &window::Headless,
+                    &shell::Waker::noop(),
+                    &events,
+                    self.cursor,
+                    &mut self.renderer,
+                    &mut messages,
+                );
 
                 self.cache = Some(user_interface.into_cache());
 
@@ -450,6 +461,8 @@ impl<P: Program + 'static> Emulator<P> {
 
         // TODO: Nested redraws!
         let _ = user_interface.update(
+            &window::Headless,
+            &shell::Waker::noop(),
             &[core::Event::Window(window::Event::RedrawRequested(
                 Instant::now(),
             ))],
