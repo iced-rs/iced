@@ -1,6 +1,6 @@
 //! Configure your application.
 use crate::renderer;
-use crate::{Font, Pixels};
+use crate::{Backend, Font, Pixels};
 
 use std::borrow::Cow;
 
@@ -25,6 +25,11 @@ pub struct Settings {
     ///
     /// The default value is `16.0`.
     pub default_text_size: Pixels,
+
+    /// The graphical backend to use.
+    ///
+    /// It defaults to [`Backend::Best`].
+    pub backend: Backend,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -52,6 +57,7 @@ impl Default for Settings {
             fonts: Vec::new(),
             default_font: renderer.default_font,
             default_text_size: renderer.default_text_size,
+            backend: Backend::default(),
             antialiasing: true,
             vsync: true,
         }

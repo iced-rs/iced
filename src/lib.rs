@@ -472,7 +472,6 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/bdf0430880f5c29443f5f0a0ae4895866dfef4c6/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-use iced_widget::graphics;
 use iced_widget::renderer;
 use iced_winit as shell;
 use iced_winit::core;
@@ -509,7 +508,7 @@ compile_error!(
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "wgpu-bare")]
 pub use iced_renderer::wgpu::wgpu;
 
 mod error;
@@ -632,7 +631,7 @@ pub mod widget {
     pub use iced_runtime::widget::*;
     pub use iced_widget::*;
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image-without-codecs")]
     pub mod image {
         //! Images display raster graphics in different formats (PNG, JPG, etc.).
         pub use iced_runtime::image::{Allocation, Error, allocate};
@@ -645,7 +644,14 @@ pub mod widget {
     mod renderer {}
 }
 
+pub mod backend {
+    //! Graphical backends are designed to aid in rendering computer graphics to a monitor.
+    pub use iced_core::backend::*;
+    pub use iced_runtime::backend::*;
+}
+
 pub use application::Application;
+pub use backend::Backend;
 pub use daemon::Daemon;
 pub use error::Error;
 pub use event::Event;
