@@ -102,7 +102,6 @@ where
             instant: Instant::now(),
             key: self.key,
             should_reset: false,
-            target_value: self.target_value,
         })
     }
 
@@ -162,22 +161,15 @@ where
             animation,
             instant,
             should_reset,
-            target_value,
             ..
         } = tree.state.downcast_mut();
 
-        let mut target_changed = *target_value != self.target_value;
         let was_animating = animation.is_animating(*instant);
 
         if let core::Event::Window(core::window::Event::RedrawRequested(redraw)) = event {
             if *should_reset {
                 *animation = (self.init)();
                 *should_reset = false;
-            }
-
-            if target_changed {
-                *target_value = self.target_value;
-                target_changed = false;
             }
 
             *instant = *redraw;
@@ -187,7 +179,7 @@ where
         let is_animating = animation.is_animating(*instant);
         let just_finished = was_animating && !is_animating;
 
-        if is_animating || *should_reset || target_changed {
+        if is_animating || *should_reset {
             shell.invalidate_layout();
             shell.request_redraw();
         } else if just_finished {
@@ -304,7 +296,6 @@ where
     instant: Instant,
     key: Key,
     should_reset: bool,
-    target_value: I,
 }
 
 #[derive(Default, Clone, Copy, Hash, PartialEq, Eq)]
