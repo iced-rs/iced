@@ -2,15 +2,13 @@
 //!
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use iced_renderer::core::widget::tree;
-
 use crate::core::animation::{Animation, Float};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::time::Instant;
-use crate::core::widget::{self, Operation, Tree};
+use crate::core::widget::{self, Operation, Tree, tree};
 use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::space;
 
@@ -160,16 +158,6 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.element.as_widget_mut().update(
-            &mut tree.children[0],
-            event,
-            layout.children().next().unwrap(),
-            cursor,
-            renderer,
-            shell,
-            viewport,
-        );
-
         let State::<I> {
             animation,
             instant,
@@ -179,6 +167,7 @@ where
         } = tree.state.downcast_mut();
 
         let mut target_changed = *target_value != self.target_value;
+        let was_animating = animation.is_animating(*instant);
 
         if let core::Event::Window(core::window::Event::RedrawRequested(redraw)) = event {
             if *should_reset {
@@ -195,10 +184,26 @@ where
             animation.go_mut(self.target_value, *instant);
         }
 
-        if animation.is_animating(*instant) || *should_reset || target_changed {
+        let is_animating = animation.is_animating(*instant);
+        let just_finished = was_animating && !is_animating;
+
+        if is_animating || *should_reset || target_changed {
+            shell.invalidate_layout();
+            shell.request_redraw();
+        } else if just_finished {
             shell.invalidate_layout();
             shell.request_redraw();
         }
+
+        self.element.as_widget_mut().update(
+            &mut tree.children[0],
+            event,
+            layout.children().next().unwrap(),
+            cursor,
+            renderer,
+            shell,
+            viewport,
+        );
     }
 
     fn draw(
