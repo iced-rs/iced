@@ -22,9 +22,11 @@ use crate::core::image;
 use crate::core::renderer;
 use crate::core::{Background, Color, Font, Gradient, Pixels, Rectangle, Size, Transformation};
 use crate::graphics::compositor;
+use crate::graphics::damage;
 use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::{Shell, Text, Viewport};
+use crate::layer::Layer;
 
 use std::num::NonZeroU32;
 
@@ -55,297 +57,313 @@ impl Renderer {
         }
     }
 
+    pub fn layers(&mut self) -> &[Layer] {
+        self.layers.merge();
+        self.layers.as_slice()
+    }
+
     pub fn draw(
         &mut self,
         renderer: &mut vello_cpu::RenderContext,
         viewport: &Viewport,
         background_color: Color,
+        regions: &[Rectangle],
     ) {
         use vello_cpu::kurbo::Shape;
 
         let scale = vello_cpu::kurbo::Affine::scale(f64::from(viewport.scale_factor()));
 
-        renderer.set_transform(scale);
-        renderer.set_paint(into_color(background_color));
-        renderer.fill_rect(&into_rect(Rectangle::with_size(viewport.logical_size())));
-
-        self.layers.merge();
-
-        for layer in self.layers.iter() {
+        for region in regions {
             renderer.set_transform(scale);
-            renderer.push_clip_path(&into_rect(layer.bounds).to_path(ACCURACY));
+            renderer.set_paint(into_color(background_color));
+            renderer.fill_rect(&into_rect(*region));
 
-            for (quad, background) in &layer.quads {
-                renderer.set_paint(into_background(background, quad.bounds));
-
-                let shadow = quad.shadow;
-
-                if shadow.color.a > 0.0 {
-                    renderer.set_filter_effect(
-                        vello_common::filter_effects::Filter::from_primitive(
-                            vello_common::filter_effects::FilterPrimitive::DropShadow {
-                                dx: shadow.offset.x,
-                                dy: shadow.offset.y,
-                                std_deviation: shadow.blur_radius,
-                                color: into_color(shadow.color),
-                                edge_mode: vello_common::filter_effects::EdgeMode::None,
-                            },
-                        ),
-                    );
-                }
-
-                if quad.border.radius == border::Radius::default() {
-                    renderer.fill_rect(&into_rect(quad.bounds));
-
-                    if quad.border.width > 0.0 && quad.border.color.a > 0.0 {
-                        renderer.set_paint(into_color(quad.border.color));
-                        renderer.set_stroke(vello_cpu::kurbo::Stroke::new(f64::from(
-                            quad.border.width,
-                        )));
-
-                        renderer
-                            .stroke_rect(&into_rect(quad.bounds.shrink(quad.border.width / 2.0)));
-                    }
-                } else {
-                    renderer.fill_path(&into_rounded_rect(quad.bounds, quad.border.radius));
-
-                    if quad.border.width > 0.0 && quad.border.color.a > 0.0 {
-                        renderer.set_paint(into_color(quad.border.color));
-                        renderer.set_stroke(vello_cpu::kurbo::Stroke::new(f64::from(
-                            quad.border.width,
-                        )));
-
-                        let border_rect = into_rounded_rect(
-                            quad.bounds.shrink(quad.border.width / 2.0),
-                            quad.border.radius,
-                        );
-
-                        renderer.stroke_path(&border_rect);
-                    }
-                }
-
-                renderer.reset_filter_effect();
-            }
-
-            renderer.reset_transform();
-
-            #[cfg(feature = "geometry")]
-            for group in &layer.primitives {
-                use vello_cpu::kurbo;
-
-                let Some(clip_bounds) = group.clip_bounds().intersection(&layer.bounds) else {
+            for layer in self.layers.iter() {
+                let Some(layer_bounds) = layer.bounds.intersection(region) else {
                     continue;
                 };
 
-                renderer.push_clip_path(
-                    &into_rect(clip_bounds * viewport.scale_factor()).to_path(ACCURACY),
-                );
-                renderer.set_transform(
-                    kurbo::Affine::scale(f64::from(viewport.scale_factor())).pre_translate(
-                        kurbo::Vec2 {
-                            x: f64::from(clip_bounds.x),
-                            y: f64::from(clip_bounds.y),
-                        },
-                    ),
-                );
+                renderer.set_transform(scale);
+                renderer.push_clip_path(&into_rect(layer_bounds).to_path(ACCURACY));
 
-                for primitive in group.as_slice() {
-                    match primitive {
-                        geometry::Primitive::Fill { path, paint, rule } => {
-                            renderer.set_paint(paint.clone());
-                            renderer.set_fill_rule(*rule);
-                            renderer.fill_path(path);
+                for (quad, background) in &layer.quads {
+                    if !quad.visual_bounds().intersects(&layer_bounds) {
+                        continue;
+                    }
+
+                    renderer.set_paint(into_background(background, quad.bounds));
+
+                    let shadow = quad.shadow;
+
+                    if shadow.color.a > 0.0 {
+                        renderer.set_filter_effect(
+                            vello_common::filter_effects::Filter::from_primitive(
+                                vello_common::filter_effects::FilterPrimitive::DropShadow {
+                                    dx: shadow.offset.x,
+                                    dy: shadow.offset.y,
+                                    std_deviation: shadow.blur_radius,
+                                    color: into_color(shadow.color),
+                                    edge_mode: vello_common::filter_effects::EdgeMode::None,
+                                },
+                            ),
+                        );
+                    }
+
+                    if quad.border.radius == border::Radius::default() {
+                        renderer.fill_rect(&into_rect(quad.bounds));
+
+                        if quad.border.width > 0.0 && quad.border.color.a > 0.0 {
+                            renderer.set_paint(into_color(quad.border.color));
+                            renderer.set_stroke(vello_cpu::kurbo::Stroke::new(f64::from(
+                                quad.border.width,
+                            )));
+
+                            renderer.stroke_rect(&into_rect(
+                                quad.bounds.shrink(quad.border.width / 2.0),
+                            ));
                         }
-                        geometry::Primitive::Stroke {
-                            path,
-                            paint,
-                            stroke,
-                        } => {
-                            renderer.set_paint(paint.clone());
-                            renderer.set_stroke(stroke.clone());
-                            renderer.stroke_path(path);
+                    } else {
+                        renderer.fill_path(&into_rounded_rect(quad.bounds, quad.border.radius));
+
+                        if quad.border.width > 0.0 && quad.border.color.a > 0.0 {
+                            renderer.set_paint(into_color(quad.border.color));
+                            renderer.set_stroke(vello_cpu::kurbo::Stroke::new(f64::from(
+                                quad.border.width,
+                            )));
+
+                            let border_rect = into_rounded_rect(
+                                quad.bounds.shrink(quad.border.width / 2.0),
+                                quad.border.radius,
+                            );
+
+                            renderer.stroke_path(&border_rect);
                         }
                     }
+
+                    renderer.reset_filter_effect();
                 }
 
                 renderer.reset_transform();
+
+                #[cfg(feature = "geometry")]
+                for group in &layer.primitives {
+                    use vello_cpu::kurbo;
+
+                    let Some(clip_bounds) = group.clip_bounds().intersection(&layer.bounds) else {
+                        continue;
+                    };
+
+                    renderer.push_clip_path(
+                        &into_rect(clip_bounds * viewport.scale_factor()).to_path(ACCURACY),
+                    );
+                    renderer.set_transform(
+                        kurbo::Affine::scale(f64::from(viewport.scale_factor())).pre_translate(
+                            kurbo::Vec2 {
+                                x: f64::from(clip_bounds.x),
+                                y: f64::from(clip_bounds.y),
+                            },
+                        ),
+                    );
+
+                    for primitive in group.as_slice() {
+                        match primitive {
+                            geometry::Primitive::Fill { path, paint, rule } => {
+                                renderer.set_paint(paint.clone());
+                                renderer.set_fill_rule(*rule);
+                                renderer.fill_path(path);
+                            }
+                            geometry::Primitive::Stroke {
+                                path,
+                                paint,
+                                stroke,
+                            } => {
+                                renderer.set_paint(paint.clone());
+                                renderer.set_stroke(stroke.clone());
+                                renderer.stroke_path(path);
+                            }
+                        }
+                    }
+
+                    renderer.reset_transform();
+                    renderer.pop_clip_path();
+                }
+
+                for image in &layer.images {
+                    match image {
+                        #[cfg(feature = "image")]
+                        iced_graphics::Image::Raster {
+                            image,
+                            bounds,
+                            clip_bounds,
+                        } => {
+                            renderer.push_clip_path(&into_rounded_rect(
+                                *clip_bounds * viewport.scale_factor(),
+                                image.border_radius * viewport.scale_factor(),
+                            ));
+
+                            self.raster
+                                .draw(image, *bounds, renderer, viewport.scale_factor());
+
+                            renderer.pop_clip_path();
+                        }
+                        #[cfg(feature = "svg")]
+                        iced_graphics::Image::Vector {
+                            svg,
+                            bounds,
+                            clip_bounds,
+                        } => {
+                            renderer.push_clip_path(
+                                &into_rect(*clip_bounds * viewport.scale_factor())
+                                    .to_path(ACCURACY),
+                            );
+
+                            self.vector
+                                .draw(svg, *bounds, renderer, viewport.scale_factor());
+
+                            renderer.pop_clip_path();
+                        }
+                        #[cfg(not(feature = "image"))]
+                        iced_graphics::Image::Raster { .. } => {}
+                        #[cfg(not(feature = "svg"))]
+                        iced_graphics::Image::Vector { .. } => {}
+                    }
+                }
+
+                for item in &layer.text {
+                    for text in item.as_slice() {
+                        match text {
+                            Text::Paragraph {
+                                paragraph,
+                                position,
+                                color,
+                                clip_bounds,
+                                transformation,
+                            } => {
+                                let transformation = Transformation::scale(viewport.scale_factor())
+                                    * *transformation;
+
+                                renderer.push_clip_path(
+                                    &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
+                                );
+
+                                self.text.draw_paragraph(
+                                    paragraph,
+                                    *position,
+                                    *color,
+                                    renderer,
+                                    transformation,
+                                );
+
+                                renderer.pop_clip_path();
+                            }
+                            Text::Editor {
+                                editor,
+                                position,
+                                color,
+                                clip_bounds,
+                                transformation,
+                            } => {
+                                let transformation = Transformation::scale(viewport.scale_factor())
+                                    * *transformation;
+
+                                renderer.push_clip_path(
+                                    &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
+                                );
+
+                                self.text.draw_editor(
+                                    editor,
+                                    *position,
+                                    *color,
+                                    renderer,
+                                    transformation,
+                                );
+
+                                renderer.pop_clip_path();
+                            }
+                            Text::Cached {
+                                content,
+                                bounds,
+                                color,
+                                size,
+                                line_height,
+                                font,
+                                align_x,
+                                align_y,
+                                shaping,
+                                wrapping,
+                                ellipsis,
+                                clip_bounds,
+                            } => {
+                                let transformation = Transformation::scale(viewport.scale_factor())
+                                    * item.transformation();
+
+                                let Some(clip_bounds) = (*clip_bounds * transformation)
+                                    .intersection(&(layer.bounds * transformation))
+                                else {
+                                    continue;
+                                };
+
+                                renderer.push_clip_path(&into_rect(clip_bounds).to_path(ACCURACY));
+
+                                self.text.draw_cached(
+                                    content,
+                                    *bounds,
+                                    *color,
+                                    *size,
+                                    *line_height,
+                                    *font,
+                                    *align_x,
+                                    *align_y,
+                                    *shaping,
+                                    *wrapping,
+                                    *ellipsis,
+                                    renderer,
+                                    transformation,
+                                );
+
+                                renderer.pop_clip_path();
+                            }
+                            Text::Raw {
+                                raw,
+                                transformation,
+                            } => {
+                                let Some(buffer) = raw.buffer.upgrade() else {
+                                    return;
+                                };
+
+                                let transformation = Transformation::scale(viewport.scale_factor())
+                                    * *transformation;
+
+                                let (width, height) = buffer.size();
+
+                                let clip_bounds = Rectangle::new(
+                                    raw.position,
+                                    Size::new(
+                                        width.unwrap_or(layer.bounds.width),
+                                        height.unwrap_or(layer.bounds.height),
+                                    ),
+                                );
+
+                                renderer.push_clip_path(
+                                    &into_rect(clip_bounds * transformation).to_path(ACCURACY),
+                                );
+
+                                self.text.draw_raw(
+                                    &buffer,
+                                    raw.position,
+                                    raw.color,
+                                    renderer,
+                                    transformation,
+                                );
+
+                                renderer.pop_clip_path();
+                            }
+                        }
+                    }
+                }
+
                 renderer.pop_clip_path();
             }
-
-            for image in &layer.images {
-                match image {
-                    #[cfg(feature = "image")]
-                    iced_graphics::Image::Raster {
-                        image,
-                        bounds,
-                        clip_bounds,
-                    } => {
-                        renderer.push_clip_path(&into_rounded_rect(
-                            *clip_bounds * viewport.scale_factor(),
-                            image.border_radius * viewport.scale_factor(),
-                        ));
-
-                        self.raster
-                            .draw(image, *bounds, renderer, viewport.scale_factor());
-
-                        renderer.pop_clip_path();
-                    }
-                    #[cfg(feature = "svg")]
-                    iced_graphics::Image::Vector {
-                        svg,
-                        bounds,
-                        clip_bounds,
-                    } => {
-                        renderer.push_clip_path(
-                            &into_rect(*clip_bounds * viewport.scale_factor()).to_path(ACCURACY),
-                        );
-
-                        self.vector
-                            .draw(svg, *bounds, renderer, viewport.scale_factor());
-
-                        renderer.pop_clip_path();
-                    }
-                    #[cfg(not(feature = "image"))]
-                    iced_graphics::Image::Raster { .. } => {}
-                    #[cfg(not(feature = "svg"))]
-                    iced_graphics::Image::Vector { .. } => {}
-                }
-            }
-
-            for item in &layer.text {
-                for text in item.as_slice() {
-                    match text {
-                        Text::Paragraph {
-                            paragraph,
-                            position,
-                            color,
-                            clip_bounds,
-                            transformation,
-                        } => {
-                            let transformation =
-                                Transformation::scale(viewport.scale_factor()) * *transformation;
-
-                            renderer.push_clip_path(
-                                &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
-                            );
-
-                            self.text.draw_paragraph(
-                                paragraph,
-                                *position,
-                                *color,
-                                renderer,
-                                transformation,
-                            );
-
-                            renderer.pop_clip_path();
-                        }
-                        Text::Editor {
-                            editor,
-                            position,
-                            color,
-                            clip_bounds,
-                            transformation,
-                        } => {
-                            let transformation =
-                                Transformation::scale(viewport.scale_factor()) * *transformation;
-
-                            renderer.push_clip_path(
-                                &into_rect(*clip_bounds * transformation).to_path(ACCURACY),
-                            );
-
-                            self.text.draw_editor(
-                                editor,
-                                *position,
-                                *color,
-                                renderer,
-                                transformation,
-                            );
-
-                            renderer.pop_clip_path();
-                        }
-                        Text::Cached {
-                            content,
-                            bounds,
-                            color,
-                            size,
-                            line_height,
-                            font,
-                            align_x,
-                            align_y,
-                            shaping,
-                            wrapping,
-                            ellipsis,
-                            clip_bounds,
-                        } => {
-                            let transformation = Transformation::scale(viewport.scale_factor())
-                                * item.transformation();
-
-                            let Some(clip_bounds) = (*clip_bounds * transformation)
-                                .intersection(&(layer.bounds * transformation))
-                            else {
-                                continue;
-                            };
-
-                            renderer.push_clip_path(&into_rect(clip_bounds).to_path(ACCURACY));
-
-                            self.text.draw_cached(
-                                content,
-                                *bounds,
-                                *color,
-                                *size,
-                                *line_height,
-                                *font,
-                                *align_x,
-                                *align_y,
-                                *shaping,
-                                *wrapping,
-                                *ellipsis,
-                                renderer,
-                                transformation,
-                            );
-
-                            renderer.pop_clip_path();
-                        }
-                        Text::Raw {
-                            raw,
-                            transformation,
-                        } => {
-                            let Some(buffer) = raw.buffer.upgrade() else {
-                                return;
-                            };
-
-                            let transformation =
-                                Transformation::scale(viewport.scale_factor()) * *transformation;
-
-                            let (width, height) = buffer.size();
-
-                            let clip_bounds = Rectangle::new(
-                                raw.position,
-                                Size::new(
-                                    width.unwrap_or(layer.bounds.width),
-                                    height.unwrap_or(layer.bounds.height),
-                                ),
-                            );
-
-                            renderer.push_clip_path(
-                                &into_rect(clip_bounds * transformation).to_path(ACCURACY),
-                            );
-
-                            self.text.draw_raw(
-                                &buffer,
-                                raw.position,
-                                raw.color,
-                                renderer,
-                                transformation,
-                            );
-
-                            renderer.pop_clip_path();
-                        }
-                    }
-                }
-            }
-
-            renderer.pop_clip_path();
         }
 
         self.text.trim_cache();
@@ -618,6 +636,14 @@ pub struct Surface {
     window: softbuffer::Surface<Box<dyn compositor::Display>, Box<dyn compositor::Window>>,
     renderer: vello_cpu::RenderContext,
     resources: vello_cpu::Resources,
+    last_frame: Frame,
+}
+
+#[derive(Clone)]
+struct Frame {
+    background: Color,
+    layers: Vec<Layer>,
+    pixels: vello_cpu::Pixmap,
 }
 
 impl graphics::Compositor for Compositor {
@@ -663,6 +689,11 @@ impl graphics::Compositor for Compositor {
             window,
             renderer: vello_cpu::RenderContext::new(1, 1),
             resources: vello_cpu::Resources::new(),
+            last_frame: Frame {
+                background: Color::TRANSPARENT,
+                layers: Vec::new(),
+                pixels: vello_cpu::Pixmap::new(0, 0),
+            },
         };
 
         if width > 0 && height > 0 {
@@ -682,6 +713,7 @@ impl graphics::Compositor for Compositor {
             .expect("Resize surface");
 
         surface.renderer = vello_cpu::RenderContext::new(width as u16, height as u16);
+        surface.last_frame.pixels = vello_cpu::Pixmap::new(width as u16, height as u16);
     }
 
     fn information(&self) -> compositor::Information {
@@ -693,28 +725,50 @@ impl graphics::Compositor for Compositor {
 
     fn present(
         &mut self,
-        renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
-        viewport: &iced_graphics::Viewport,
-        background_color: core::Color,
+        renderer: &mut Renderer,
+        surface: &mut Surface,
+        viewport: &Viewport,
+        background: Color,
         on_pre_present: impl FnOnce(),
     ) -> Result<(), compositor::SurfaceError> {
+        let layers = renderer.layers();
+
+        let damage = if surface.last_frame.background == background {
+            damage::diff(
+                &surface.last_frame.layers,
+                layers,
+                |layer| vec![layer.bounds],
+                Layer::damage,
+            )
+        } else {
+            vec![Rectangle::with_size(viewport.logical_size())]
+        };
+
+        if !damage.is_empty() {
+            let damage = damage::group(damage, Rectangle::with_size(viewport.logical_size()));
+
+            surface.last_frame.background = background;
+            surface.last_frame.layers = layers.to_vec();
+
+            surface.renderer.reset();
+            renderer.draw(&mut surface.renderer, viewport, background, &damage);
+            surface.renderer.flush();
+
+            surface.renderer.composite_to_pixmap_at_offset(
+                &surface.resources,
+                &mut surface.last_frame.pixels,
+                0,
+                0,
+            );
+        }
+
         let mut buffer = surface
             .window
             .buffer_mut()
             .map_err(|_| compositor::SurfaceError::Lost)?;
 
-        surface.renderer.reset();
-        renderer.draw(&mut surface.renderer, viewport, background_color);
-        surface.renderer.flush();
-
-        surface.renderer.render_to_buffer(
-            &mut surface.resources,
-            bytemuck::cast_slice_mut(&mut buffer),
-            surface.renderer.width(),
-            surface.renderer.height(),
-            vello_cpu::RenderMode::OptimizeSpeed,
-        );
+        bytemuck::cast_slice_mut(&mut buffer)
+            .copy_from_slice(surface.last_frame.pixels.data_as_u8_slice());
 
         on_pre_present();
         buffer.present().map_err(|_| compositor::SurfaceError::Lost)
@@ -767,7 +821,12 @@ fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Co
         viewport.physical_height() as u16,
     );
 
-    renderer.draw(&mut vello, viewport, background_color);
+    renderer.draw(
+        &mut vello,
+        viewport,
+        background_color,
+        &[Rectangle::with_size(viewport.logical_size())],
+    );
     vello.flush();
 
     let mut screenshot =

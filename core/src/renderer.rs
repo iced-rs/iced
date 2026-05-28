@@ -98,6 +98,20 @@ pub struct Quad {
     pub snap: bool,
 }
 
+impl Quad {
+    /// Returns the visual bounds of the [`Quad`], including its shadow if applicable.
+    pub fn visual_bounds(&self) -> Rectangle {
+        if self.shadow.color.a > 0.0 {
+            self.bounds.expand(
+                self.shadow.offset.x.abs().max(self.shadow.offset.y.abs())
+                    + self.shadow.blur_radius,
+            )
+        } else {
+            self.bounds
+        }
+    }
+}
+
 impl Default for Quad {
     fn default() -> Self {
         Self {
