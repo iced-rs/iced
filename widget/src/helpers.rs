@@ -4,7 +4,9 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
+use crate::core::animation::{self, Animation};
 use crate::core::theme;
+use crate::core::time::Instant;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
@@ -22,6 +24,7 @@ use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
+use crate::transition::Transition;
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
 
@@ -2057,4 +2060,20 @@ where
     Renderer: core::Renderer,
 {
     Responsive::new(f)
+}
+
+/// Creates a new [`Transition`] widget with a closure to initialize the [`Animation`],
+/// a value to transition to, and another closure to produce its contents.
+///
+/// TODO
+pub fn transition<'a, Message, Theme, Renderer, I>(
+    init: impl Fn() -> Animation<I> + 'a,
+    target_value: I,
+    view: impl Fn(&Animation<I>, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
+) -> Transition<'a, Message, Theme, Renderer, I>
+where
+    Renderer: core::Renderer,
+    I: animation::Float + Clone + Copy + PartialEq + 'static,
+{
+    Transition::new(init, target_value, view)
 }

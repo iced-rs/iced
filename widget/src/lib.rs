@@ -41,6 +41,7 @@ pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
+pub mod transition;
 pub mod vertical_slider;
 
 mod helpers;
