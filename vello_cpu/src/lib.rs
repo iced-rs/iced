@@ -617,6 +617,7 @@ pub struct Compositor {
 pub struct Surface {
     window: softbuffer::Surface<Box<dyn compositor::Display>, Box<dyn compositor::Window>>,
     renderer: vello_cpu::RenderContext,
+    resources: vello_cpu::Resources,
 }
 
 impl graphics::Compositor for Compositor {
@@ -661,6 +662,7 @@ impl graphics::Compositor for Compositor {
         let mut surface = Surface {
             window,
             renderer: vello_cpu::RenderContext::new(1, 1),
+            resources: vello_cpu::Resources::new(),
         };
 
         if width > 0 && height > 0 {
@@ -707,6 +709,7 @@ impl graphics::Compositor for Compositor {
         surface.renderer.flush();
 
         surface.renderer.render_to_buffer(
+            &mut surface.resources,
             bytemuck::cast_slice_mut(&mut buffer),
             surface.renderer.width(),
             surface.renderer.height(),
@@ -771,6 +774,7 @@ fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Co
         vec![0; (viewport.physical_width() * viewport.physical_height()) as usize * 4];
 
     vello.render_to_buffer(
+        &mut vello_cpu::Resources::new(),
         &mut screenshot,
         viewport.physical_width() as u16,
         viewport.physical_height() as u16,
