@@ -5,7 +5,6 @@ use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
 use iced::widget::{canvas, container, text};
 use iced::{
     Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size, Subscription, Theme,
-    Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -85,7 +84,6 @@ impl<Message> canvas::Program<Message> for Clock {
             frame.fill(&background, palette.secondary.strong.color);
 
             let short_hand = Path::line(Point::ORIGIN, Point::new(0.0, -0.5 * radius));
-
             let long_hand = Path::line(Point::ORIGIN, Point::new(0.0, -0.8 * radius));
 
             let width = radius / 100.0;
@@ -108,7 +106,7 @@ impl<Message> canvas::Program<Message> for Clock {
                 }
             };
 
-            frame.translate(Vector::new(center.x, center.y));
+            frame.translate(center - Point::ORIGIN);
             let minutes_portion = Radians::from(hand_rotation(self.now.minute(), 60)) / 12.0;
             let hour_hand_angle =
                 Radians::from(hand_rotation(self.now.hour(), 12)) + minutes_portion;
