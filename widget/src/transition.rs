@@ -213,10 +213,7 @@ where
         let is_animating = animation.is_animating(*instant);
         let just_finished = was_animating && !is_animating;
 
-        if is_animating || *should_reset {
-            shell.invalidate_layout();
-            shell.request_redraw();
-        } else if just_finished {
+        if is_animating || *should_reset || just_finished {
             shell.invalidate_layout();
             shell.request_redraw();
         }
@@ -357,7 +354,7 @@ pub fn reset_raw(id: impl Into<widget::Id>) -> impl Operation {
 
     impl Operation for Reset {
         fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<()>)) {
-            operate(self)
+            operate(self);
         }
 
         fn custom(
