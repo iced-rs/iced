@@ -13,30 +13,57 @@ use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, 
 use crate::space;
 
 /// TODO
-pub struct Transition<'a, Message, Theme, Renderer, I>
+pub trait Program: 'static {
+    /// TODO
+    type Target: Copy + 'static;
+
+    /// TODO
+    fn tick(&mut self, target: Self::Target, now: Instant);
+
+    /// TODO
+    fn is_animating(&self, now: Instant) -> bool;
+}
+
+impl<I> Program for Animation<I>
 where
     I: Float + Clone + Copy + PartialEq + 'static,
 {
-    init: Box<dyn Fn() -> Animation<I> + 'a>,
-    view: Box<dyn Fn(&Animation<I>, Instant) -> Element<'a, Message, Theme, Renderer> + 'a>,
+    type Target = I;
+
+    fn tick(&mut self, target: Self::Target, now: Instant) {
+        self.go_mut(target, now);
+    }
+
+    fn is_animating(&self, now: Instant) -> bool {
+        self.is_animating(now)
+    }
+}
+
+/// TODO
+pub struct Transition<'a, Message, Theme, Renderer, P>
+where
+    P: Program,
+{
+    init: Box<dyn Fn() -> P + 'a>,
+    view: Box<dyn Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a>,
     element: Element<'a, Message, Theme, Renderer>,
     width: Length,
     height: Length,
     key: Key,
     id: Option<widget::Id>,
-    target_value: I,
+    target_value: P::Target,
 }
 
-impl<'a, Message, Theme, Renderer, I> Transition<'a, Message, Theme, Renderer, I>
+impl<'a, Message, Theme, Renderer, P> Transition<'a, Message, Theme, Renderer, P>
 where
     Renderer: core::Renderer,
-    I: Float + Clone + Copy + PartialEq + 'static,
+    P: Program,
 {
     /// TODO
     pub fn new(
-        init: impl Fn() -> Animation<I> + 'a,
-        target_value: I,
-        view: impl Fn(&Animation<I>, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
+        init: impl Fn() -> P + 'a,
+        target_value: P::Target,
+        view: impl Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
     ) -> Self {
         Self {
             init: Box::new(init),
@@ -79,11 +106,11 @@ where
     }
 }
 
-impl<Message, Theme, Renderer, I> Widget<Message, Theme, Renderer>
-    for Transition<'_, Message, Theme, Renderer, I>
+impl<Message, Theme, Renderer, P> Widget<Message, Theme, Renderer>
+    for Transition<'_, Message, Theme, Renderer, P>
 where
     Renderer: core::Renderer,
-    I: Float + Clone + Copy + PartialEq + 'static,
+    P: Program,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -93,7 +120,7 @@ where
     }
 
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State<I>>()
+        tree::Tag::of::<State<P>>()
     }
 
     fn state(&self) -> tree::State {
@@ -106,7 +133,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let State::<I> {
+        let State::<P> {
             animation,
             key: old_key,
             should_reset,
@@ -128,7 +155,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let State::<I> {
+        let State::<P> {
             animation, instant, ..
         } = tree.state.downcast_ref();
 
@@ -157,7 +184,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let State::<I> {
+        let State::<P> {
             animation,
             instant,
             should_reset,
@@ -173,7 +200,7 @@ where
             }
 
             *instant = *redraw;
-            animation.go_mut(self.target_value, *instant);
+            animation.tick(self.target_value, *instant);
         }
 
         let is_animating = animation.is_animating(*instant);
@@ -243,7 +270,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let State::<I> { should_reset, .. } = tree.state.downcast_mut();
+        let State::<P> { should_reset, .. } = tree.state.downcast_mut();
         let mut should_reset_new = ShouldReset(*should_reset);
 
         operation.custom(self.id.as_ref(), layout.bounds(), &mut should_reset_new);
@@ -275,24 +302,21 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer, I> From<Transition<'a, Message, Theme, Renderer, I>>
+impl<'a, Message, Theme, Renderer, P> From<Transition<'a, Message, Theme, Renderer, P>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: core::Renderer + 'a,
-    I: Float + Clone + Copy + PartialEq + 'static,
+    P: Program,
 {
-    fn from(transition: Transition<'a, Message, Theme, Renderer, I>) -> Self {
+    fn from(transition: Transition<'a, Message, Theme, Renderer, P>) -> Self {
         Self::new(transition)
     }
 }
 
-struct State<I>
-where
-    I: Float + Clone + Copy + PartialEq + 'static,
-{
-    animation: Animation<I>,
+struct State<P: Program> {
+    animation: P,
     instant: Instant,
     key: Key,
     should_reset: bool,
@@ -335,4 +359,17 @@ pub fn reset(id: impl Into<widget::Id>) -> impl Operation {
     }
 
     Reset(id.into())
+}
+
+/// TODO
+pub fn grouped<'a, Message, Theme, Renderer, P>(
+    init: impl Fn() -> P + 'a,
+    target_value: P::Target,
+    view: impl Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
+) -> Transition<'a, Message, Theme, Renderer, P>
+where
+    Renderer: core::Renderer,
+    P: Program,
+{
+    Transition::new(init, target_value, view)
 }

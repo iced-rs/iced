@@ -2070,7 +2070,7 @@ pub fn transition<'a, Message, Theme, Renderer, I>(
     init: impl Fn() -> Animation<I> + 'a,
     target_value: I,
     view: impl Fn(&Animation<I>, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
-) -> Transition<'a, Message, Theme, Renderer, I>
+) -> Transition<'a, Message, Theme, Renderer, Animation<I>>
 where
     Renderer: core::Renderer,
     I: animation::Float + Clone + Copy + PartialEq + 'static,
