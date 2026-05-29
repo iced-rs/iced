@@ -274,11 +274,12 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let State::<P> { should_reset, .. } = tree.state.downcast_mut();
-        let mut should_reset_new = ShouldReset(*should_reset);
+        let mut should_reset = ShouldReset(false);
+        operation.custom(self.id.as_ref(), layout.bounds(), &mut should_reset);
 
-        operation.custom(self.id.as_ref(), layout.bounds(), &mut should_reset_new);
-        *should_reset = should_reset_new.0;
+        if should_reset.0 {
+            tree.state.downcast_mut::<State<P>>().should_reset = true;
+        }
 
         self.element.as_widget_mut().operate(
             &mut tree.children[0],
