@@ -342,8 +342,17 @@ impl Key {
 
 struct ShouldReset(bool);
 
-/// Reset the [`Animation`] state of the [`Transition`] widget.
-pub fn reset(id: impl Into<widget::Id>) -> impl Operation {
+/// Reset the [`Animation`] of a [`Transition`].
+pub fn reset<Message>(id: impl Into<widget::Id>) -> iced_runtime::Task<Message>
+where
+    Message: iced_runtime::futures::MaybeSend + 'static,
+{
+    let id = id.into();
+    iced_runtime::task::widget(reset_raw(id)).discard()
+}
+
+/// An [`Operation`] to reset the [`Animation`] of a [`Transition`].
+pub fn reset_raw(id: impl Into<widget::Id>) -> impl Operation {
     struct Reset(widget::Id);
 
     impl Operation for Reset {
