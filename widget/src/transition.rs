@@ -1,5 +1,4 @@
 //! A widget to make animated views.
-//!
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::core::animation::{Animation, Float};
@@ -12,15 +11,18 @@ use crate::core::widget::{self, Operation, Tree, tree};
 use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::space;
 
-/// TODO
+/// The logic of a [`Transition`].
+///
+/// A [`Program`] can be used to group several [`Animation`]s when used with [`grouped`].
 pub trait Program: 'static {
-    /// TODO
+    /// The type of value the [`Program`] transitions its state to.
     type Target: Copy + 'static;
 
-    /// TODO
+    /// Transitions the [`Program`] from its current state
+    /// towards the target value at the given time.
     fn tick(&mut self, target: Self::Target, now: Instant);
 
-    /// TODO
+    /// Returns true if the [`Program`] is currently in progress.
     fn is_animating(&self, now: Instant) -> bool;
 }
 
@@ -39,7 +41,7 @@ where
     }
 }
 
-/// TODO
+/// A widget that can be used to animate its contents.
 pub struct Transition<'a, Message, Theme, Renderer, P>
 where
     P: Program,
@@ -59,7 +61,12 @@ where
     Renderer: core::Renderer,
     P: Program,
 {
-    /// TODO
+    /// Creates a new [`Transition`].
+    ///
+    /// The `init` closure will be used to initialize an animation.
+    ///
+    /// The `view` closure will receive the animation and an [`Instant`], which can be used for interpolating values.
+    /// This will be called every frame until the given `target_value` is reached.
     pub fn new(
         init: impl Fn() -> P + 'a,
         target_value: P::Target,
@@ -89,9 +96,9 @@ where
         self
     }
 
-    /// Sets the [`Id`] of the [`Transition`].
+    /// Sets the [`widget::Id`] of the [`Transition`].
     ///
-    /// The [`Id`] can subsequently be used to reset the [`Animation`] via [`reset`].
+    /// The [`widget::Id`] can subsequently be used to reset the [`Animation`] via [`reset`].
     pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
         self.id = Some(id.into());
         self
@@ -361,7 +368,9 @@ pub fn reset(id: impl Into<widget::Id>) -> impl Operation {
     Reset(id.into())
 }
 
-/// TODO
+/// Creates a new [`Transition`] widget with a custom [`Program`].
+///
+/// This can be useful if you need to use multiple [`Animation`]s without resorting to nesting [`Transition`]s.
 pub fn grouped<'a, Message, Theme, Renderer, P>(
     init: impl Fn() -> P + 'a,
     target_value: P::Target,

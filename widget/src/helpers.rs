@@ -2062,10 +2062,12 @@ where
     Responsive::new(f)
 }
 
-/// Creates a new [`Transition`] widget with a closure to initialize the [`Animation`],
-/// a value to transition to, and another closure to produce its contents.
+/// Creates a new [`Transition`].
 ///
-/// TODO
+/// The `init` closure will be used to initialize the [`Animation`].
+///
+/// The `view` closure will receive the [`Animation`] and an [`Instant`], which can be used for interpolating values.
+/// This will be called every frame until the given `target_value` is reached.
 pub fn transition<'a, Message, Theme, Renderer, I>(
     init: impl Fn() -> Animation<I> + 'a,
     target_value: I,
