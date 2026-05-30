@@ -48,6 +48,7 @@ where
 {
     init: Box<dyn Fn() -> P + 'a>,
     view: Box<dyn Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a>,
+    on_finish: Option<Box<dyn Fn() -> Message + 'a>>,
     element: Element<'a, Message, Theme, Renderer>,
     width: Length,
     height: Length,
@@ -75,6 +76,7 @@ where
         Self {
             init: Box::new(init),
             view: Box::new(view),
+            on_finish: None,
             width: Length::Fill,
             height: Length::Fill,
             element: Element::new(space()),
@@ -109,6 +111,45 @@ where
     /// Changing the key will reset the [`Animation`].
     pub fn key(mut self, key: impl Hash) -> Self {
         self.key = Key::new(key);
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Transition`] has finished animating.
+    ///
+    /// Note that if an [`Animation`] is set to loop forever, the message will never be produced!
+    pub fn on_finish(self, on_finish: Message) -> Self
+    where
+        Message: Clone + 'a,
+    {
+        self.on_finish_maybe(on_finish)
+    }
+
+    /// Sets the message that will be produced when the [`Transition`] has finished animating, if [`Some`].
+    ///
+    /// Note that if an [`Animation`] is set to loop forever, the message will never be produced!
+    pub fn on_finish_maybe(mut self, on_finish: impl Into<Option<Message>>) -> Self
+    where
+        Message: Clone + 'a,
+    {
+        self.on_finish = on_finish
+            .into()
+            .map(|on_finish| Box::new(move || on_finish.clone()) as _);
+
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Transition`] has finished animating.
+    ///
+    /// This is analogous to [`Transition::on_finish`], but using a closure to produce
+    /// the message.
+    ///
+    /// This closure will only be called when the [`Transition`] has actually finished animating and,
+    /// therefore, this method is useful to reduce overhead if creating the resulting
+    /// message is slow.
+    ///
+    /// Note that if an [`Animation`] is set to loop forever, the message will never be produced!
+    pub fn on_finish_with(mut self, on_finish: impl Fn() -> Message + 'a) -> Self {
+        self.on_finish = Some(Box::new(on_finish));
         self
     }
 }
@@ -215,6 +256,10 @@ where
             if is_animating || just_finished {
                 shell.invalidate_layout();
                 shell.request_redraw();
+            }
+
+            if just_finished && let Some(on_finish) = &self.on_finish {
+                shell.publish(on_finish());
             }
         }
 
