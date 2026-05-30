@@ -600,7 +600,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::<Renderer::Paragraph>::new())
+        tree::State::new(State::<Renderer::Paragraph>::new(self.id.clone()))
     }
 
     fn diff(&mut self, tree: &mut Tree) {
@@ -609,6 +609,10 @@ where
         // Stop pasting if input becomes disabled
         if self.on_input.is_none() {
             state.is_pasting = None;
+        }
+
+        if state.last_id != self.id {
+            tree.state = self.state();
         }
     }
 
@@ -1371,6 +1375,7 @@ pub struct State<P: text::Paragraph> {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
+    last_id: Option<widget::Id>,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1399,8 +1404,11 @@ enum Paste {
 
 impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(last_id: Option<widget::Id>) -> Self {
+        Self {
+            last_id,
+            ..Self::default()
+        }
     }
 
     /// Returns whether the [`TextInput`] is currently focused or not.
