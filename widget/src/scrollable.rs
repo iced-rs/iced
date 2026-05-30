@@ -381,7 +381,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::new(self.id.clone()))
     }
 
     fn diff(&mut self, tree: &mut Tree) {
@@ -395,6 +395,10 @@ where
 
         if self.direction.vertical().is_none() {
             self.height = self.height.enclose(size.height);
+        }
+
+        if tree.state.downcast_mut::<State>().last_id != self.id {
+            tree.state = self.state();
         }
     }
 
@@ -1489,7 +1493,7 @@ fn notify_viewport<Message>(
     true
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct State {
     offset_y: Offset,
     offset_x: Offset,
@@ -1497,6 +1501,7 @@ struct State {
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
+    last_id: Option<widget::Id>,
     is_scrollbar_visible: bool,
 }
 
@@ -1511,20 +1516,6 @@ enum Interaction {
         current: Point,
         last_frame: Option<Instant>,
     },
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            offset_y: Offset::Absolute(0.0),
-            offset_x: Offset::Absolute(0.0),
-            interaction: Interaction::None,
-            keyboard_modifiers: keyboard::Modifiers::default(),
-            last_notified: None,
-            last_scrolled: None,
-            is_scrollbar_visible: true,
-        }
-    }
 }
 
 impl operation::Scrollable for State {
@@ -1623,8 +1614,17 @@ impl Viewport {
 }
 
 impl State {
-    fn new() -> Self {
-        State::default()
+    fn new(last_id: Option<widget::Id>) -> Self {
+        Self {
+            offset_y: Offset::Absolute(0.0),
+            offset_x: Offset::Absolute(0.0),
+            interaction: Interaction::None,
+            keyboard_modifiers: keyboard::Modifiers::default(),
+            last_notified: None,
+            last_scrolled: None,
+            last_id,
+            is_scrollbar_visible: true,
+        }
     }
 
     fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content_bounds: Rectangle) {
