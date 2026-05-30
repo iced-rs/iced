@@ -61,6 +61,7 @@ impl Font {
     }
 }
 
+/// Returns the cosmic_text attributes of the given [`Font`].
 impl From<Font> for cosmic_text::Attrs<'static> {
     fn from(font: Font) -> cosmic_text::Attrs<'static> {
         cosmic_text::Attrs::new()
@@ -206,7 +207,7 @@ pub enum Weight {
 }
 
 /// An error that results from trying to convert a cosmic_text::Weight into an
-/// Iced Weight. 
+/// Iced Weight.
 #[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 pub enum WeightConversionError {
     /// Iced only allows for certain predefined weight constants, and anything
