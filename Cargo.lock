@@ -2278,6 +2278,7 @@ version = "0.15.0-dev"
 dependencies = [
  "bitflags 2.11.1",
  "bytes",
+ "cosmic-text",
  "glam",
  "lilt",
  "log",

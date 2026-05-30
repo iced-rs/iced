@@ -23,6 +23,7 @@ advanced-shaping = []
 [dependencies]
 bitflags.workspace = true
 bytes.workspace = true
+cosmic-text.workspace = true
 glam.workspace = true
 lilt.workspace = true
 log.workspace = true
