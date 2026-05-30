@@ -191,16 +191,16 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let State::<P> {
-            animation,
-            instant,
-            should_reset,
-            ..
-        } = tree.state.downcast_mut();
-
-        let was_animating = animation.is_animating(*instant);
-
         if let core::Event::Window(core::window::Event::RedrawRequested(redraw)) = event {
+            let State::<P> {
+                animation,
+                instant,
+                should_reset,
+                ..
+            } = tree.state.downcast_mut();
+
+            let was_animating = animation.is_animating(*instant);
+
             if *should_reset {
                 *animation = (self.init)();
                 *should_reset = false;
@@ -208,14 +208,14 @@ where
 
             *instant = *redraw;
             animation.tick(self.target_value, *instant);
-        }
 
-        let is_animating = animation.is_animating(*instant);
-        let just_finished = was_animating && !is_animating;
+            let is_animating = animation.is_animating(*instant);
+            let just_finished = was_animating && !is_animating;
 
-        if is_animating || *should_reset || just_finished {
-            shell.invalidate_layout();
-            shell.request_redraw();
+            if is_animating || just_finished {
+                shell.invalidate_layout();
+                shell.request_redraw();
+            }
         }
 
         self.element.as_widget_mut().update(
