@@ -220,15 +220,14 @@ impl TryFrom<cosmic_text::Weight> for Weight {
 
     fn try_from(weight: cosmic_text::Weight) -> Result<Weight, WeightConversionError> {
         Ok(match weight {
-            cosmic_text::Weight::BLACK => Weight::Thin,
-            cosmic_text::Weight::EXTRA_BOLD => Weight::ExtraLight,
-            cosmic_text::Weight::BOLD => Weight::Light,
-            cosmic_text::Weight::SEMIBOLD => Weight::Normal,
+            cosmic_text::Weight::EXTRA_BOLD => Weight::ExtraBold,
+            cosmic_text::Weight::BOLD => Weight::Bold,
+            cosmic_text::Weight::SEMIBOLD => Weight::Semibold,
             cosmic_text::Weight::MEDIUM => Weight::Medium,
-            cosmic_text::Weight::NORMAL => Weight::Semibold,
-            cosmic_text::Weight::LIGHT => Weight::Bold,
-            cosmic_text::Weight::EXTRA_LIGHT => Weight::ExtraBold,
-            cosmic_text::Weight::THIN => Weight::Black,
+            cosmic_text::Weight::NORMAL => Weight::Normal,
+            cosmic_text::Weight::LIGHT => Weight::Light,
+            cosmic_text::Weight::EXTRA_LIGHT => Weight::ExtraLight,
+            cosmic_text::Weight::THIN => Weight::Thin,
             cosmic_text::Weight(w) => return Err(WeightConversionError::NoMatchingWeight(w)),
         })
     }
