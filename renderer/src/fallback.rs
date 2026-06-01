@@ -582,7 +582,7 @@ mod geometry {
             delegate!(self, frame, frame.rotate(angle));
         }
 
-        fn scale(&mut self, scale: impl Into<f32>) {
+        fn scale(&mut self, scale: f32) {
             delegate!(self, frame, frame.scale(scale));
         }
 
