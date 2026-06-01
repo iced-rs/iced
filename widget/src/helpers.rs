@@ -4,7 +4,6 @@ use crate::checkbox::{self, Checkbox};
 use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
-use crate::core::animation::{self, Animation};
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation::{self, Operation};
@@ -24,7 +23,7 @@ use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
-use crate::transition::Transition;
+use crate::transition::{self, Transition};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
 
@@ -2064,18 +2063,39 @@ where
 
 /// Creates a new [`Transition`].
 ///
-/// The `init` closure will be used to initialize the [`Animation`].
+/// The `init` closure will be used to initialize an implementor of [`Program`]. This is normally
+/// an [`Animation`](crate::core::Animation), but you can implement [`Program`] on your own types
+/// as well.
 ///
-/// The `view` closure will receive the [`Animation`] and an [`Instant`], which can be used for interpolating values.
-/// This will be called every frame until the given `target_value` is reached.
-pub fn transition<'a, Message, Theme, Renderer, I>(
-    init: impl Fn() -> Animation<I> + 'a,
-    target_value: I,
-    view: impl Fn(&Animation<I>, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
-) -> Transition<'a, Message, Theme, Renderer, Animation<I>>
+/// The `view` closure will receive the [`Program`] and the current [`Instant`], which can be used for interpolating values.
+/// When the `value` changes, this will be called every frame, until the [`Program`] stops animating.
+///
+/// [`Program`]: transition::Program
+///
+/// # Example
+///
+/// Here is how you could implement a smooth progress bar:
+///
+/// ```
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Animation; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{transition, progress_bar};
+/// use iced::Animation;
+///
+/// fn smooth_progress_bar<'a, Message: 'a>(progress: f32) -> Element<'a, Message> {
+///     transition(progress, || Animation::new(0.).quick(), |animation, now| {
+///         progress_bar(0.0..=1.0, animation.interpolate_with(std::convert::identity, now)).into()
+///     }).into()
+/// }
+/// ```
+pub fn transition<'a, Message, Theme, Renderer, P>(
+    value: P::Value,
+    init: impl Fn() -> P + 'a,
+    view: impl Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
+) -> Transition<'a, Message, Theme, Renderer, P>
 where
     Renderer: core::Renderer,
-    I: animation::Float + Clone + Copy + PartialEq + 'static,
+    P: transition::Program,
 {
-    Transition::new(init, target_value, view)
+    Transition::new(init, value, view)
 }

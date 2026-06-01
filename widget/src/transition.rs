@@ -12,15 +12,13 @@ use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, 
 use crate::space;
 
 /// The logic of a [`Transition`].
-///
-/// A [`Program`] can be used to group several [`Animation`]s when used with [`grouped`].
 pub trait Program: 'static {
-    /// The type of value the [`Program`] transitions its state to.
-    type Target: Copy + 'static;
+    /// The type of value that the [`Program`] animates.
+    type Value: Copy + 'static;
 
-    /// Transitions the [`Program`] from its current state
-    /// towards the target value at the given time.
-    fn tick(&mut self, target: Self::Target, now: Instant);
+    /// Transitions the [`Program`] from its current state towards the given value at
+    /// the given time.
+    fn go(&mut self, value: Self::Value, now: Instant);
 
     /// Returns true if the [`Program`] is currently in progress.
     fn is_animating(&self, now: Instant) -> bool;
@@ -30,10 +28,10 @@ impl<I> Program for Animation<I>
 where
     I: Float + Clone + Copy + PartialEq + 'static,
 {
-    type Target = I;
+    type Value = I;
 
-    fn tick(&mut self, target: Self::Target, now: Instant) {
-        self.go_mut(target, now);
+    fn go(&mut self, value: Self::Value, now: Instant) {
+        self.go_mut(value, now);
     }
 
     fn is_animating(&self, now: Instant) -> bool {
@@ -54,7 +52,7 @@ where
     height: Length,
     key: Key,
     id: Option<widget::Id>,
-    target_value: P::Target,
+    value: P::Value,
 }
 
 impl<'a, Message, Theme, Renderer, P> Transition<'a, Message, Theme, Renderer, P>
@@ -67,10 +65,10 @@ where
     /// The `init` closure will be used to initialize an animation.
     ///
     /// The `view` closure will receive the animation and an [`Instant`], which can be used for interpolating values.
-    /// This will be called every frame until the given `target_value` is reached.
+    /// This will be called every frame until the given `value` is reached.
     pub fn new(
         init: impl Fn() -> P + 'a,
-        target_value: P::Target,
+        value: P::Value,
         view: impl Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
     ) -> Self {
         Self {
@@ -82,7 +80,7 @@ where
             element: Element::new(space()),
             key: Key::default(),
             id: None,
-            target_value,
+            value,
         }
     }
 
@@ -248,7 +246,7 @@ where
             }
 
             *instant = *redraw;
-            animation.tick(self.target_value, *instant);
+            animation.go(self.value, *instant);
 
             let is_animating = animation.is_animating(*instant);
             let just_finished = was_animating && !is_animating;
@@ -418,19 +416,4 @@ pub fn reset_raw(id: impl Into<widget::Id>) -> impl Operation {
     }
 
     Reset(id.into())
-}
-
-/// Creates a new [`Transition`] widget with a custom [`Program`].
-///
-/// This can be useful if you need to use multiple [`Animation`]s without resorting to nesting [`Transition`]s.
-pub fn grouped<'a, Message, Theme, Renderer, P>(
-    init: impl Fn() -> P + 'a,
-    target_value: P::Target,
-    view: impl Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
-) -> Transition<'a, Message, Theme, Renderer, P>
-where
-    Renderer: core::Renderer,
-    P: Program,
-{
-    Transition::new(init, target_value, view)
 }
