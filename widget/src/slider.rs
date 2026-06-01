@@ -89,8 +89,8 @@ where
     Theme: Catalog,
 {
     range: RangeInclusive<T>,
-    step: T,
-    shift_step: Option<T>,
+    step: f64,
+    shift_step: Option<f64>,
     value: T,
     default: Option<T>,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
@@ -103,7 +103,7 @@ where
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
 where
-    T: Copy + From<u8> + PartialOrd,
+    T: Copy + PartialOrd,
     Message: Clone,
     Theme: Catalog,
 {
@@ -138,7 +138,7 @@ where
             value,
             default: None,
             range,
-            step: T::from(1),
+            step: 1.0,
             shift_step: None,
             on_change: Box::new(on_change),
             on_release: None,
@@ -181,16 +181,16 @@ where
     }
 
     /// Sets the step size of the [`Slider`].
-    pub fn step(mut self, step: impl Into<T>) -> Self {
-        self.step = step.into();
+    pub fn step(mut self, step: impl num_traits::AsPrimitive<f64>) -> Self {
+        self.step = step.as_();
         self
     }
 
     /// Sets the optional "shift" step for the [`Slider`].
     ///
     /// If set, this value is used as the step while the shift key is pressed.
-    pub fn shift_step(mut self, shift_step: impl Into<T>) -> Self {
-        self.shift_step = Some(shift_step.into());
+    pub fn shift_step(mut self, shift_step: impl num_traits::AsPrimitive<f64>) -> Self {
+        self.shift_step = Some(shift_step.as_());
         self
     }
 
@@ -271,8 +271,7 @@ where
                         self.shift_step.unwrap_or(self.step)
                     } else {
                         self.step
-                    }
-                    .as_();
+                    };
 
                     let start = (*self.range.start()).as_();
                     let end = (*self.range.end()).as_();
@@ -291,8 +290,7 @@ where
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
-                }
-                .as_();
+                };
 
                 let steps = (value.as_() / step).round();
                 let new_value = step * (steps + 1.0);
@@ -309,8 +307,7 @@ where
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
-                }
-                .as_();
+                };
 
                 let steps = (value.as_() / step).round();
                 let new_value = step * (steps - 1.0);
