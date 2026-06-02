@@ -19,6 +19,10 @@ debug = ["iced_debug/enable"]
 sysinfo = ["dep:sysinfo"]
 hinting = []
 unconditional-rendering = []
+# Experimental: drive the program (update/view/layout/draw/present) on a worker
+# thread so the main thread only services the winit/Wayland event loop, keeping
+# the compositor from dropping the client when a single frame is slow.
+off-thread-render = []
 linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 image = ["iced_runtime/image", "arboard/image-data"]
 x11 = ["winit/x11"]

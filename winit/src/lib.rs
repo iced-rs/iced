@@ -71,6 +71,51 @@ use std::mem::ManuallyDrop;
 use std::slice;
 use std::sync::Arc;
 
+/// Moves a payload across a thread boundary without requiring `Send`. Used by the
+/// `off-thread-render` path to hand the program's (effectively single-threaded)
+/// state to its dedicated worker thread, which owns it exclusively afterwards.
+#[cfg(feature = "off-thread-render")]
+struct AssertSend<T>(T);
+
+// SAFETY: the payload is consumed solely on the worker thread and is never
+// observed from any other thread after the move.
+#[cfg(feature = "off-thread-render")]
+#[allow(unsafe_code)]
+unsafe impl<T> Send for AssertSend<T> {}
+
+/// Drive a future to completion on the current thread by parking between polls.
+///
+/// Unlike `futures::executor::block_on`, this introduces no `LocalPool`, so it
+/// can host a future (`run_instance`) that itself enters iced's executor without
+/// the "cannot execute `LocalPool` from within another executor" panic. The
+/// non-off-thread path polls `run_instance` manually for the same reason.
+#[cfg(feature = "off-thread-render")]
+fn drive_to_completion<F: Future<Output = ()>>(future: F) {
+    use std::sync::Arc;
+    use std::task::{Context, Poll, Wake, Waker};
+
+    struct ThreadWaker(std::thread::Thread);
+    impl Wake for ThreadWaker {
+        fn wake(self: Arc<Self>) {
+            self.0.unpark();
+        }
+        fn wake_by_ref(self: &Arc<Self>) {
+            self.0.unpark();
+        }
+    }
+
+    let waker = Waker::from(Arc::new(ThreadWaker(std::thread::current())));
+    let mut context = Context::from_waker(&waker);
+    let mut future = Box::pin(future);
+
+    loop {
+        match future.as_mut().poll(&mut context) {
+            Poll::Ready(()) => break,
+            Poll::Pending => std::thread::park(),
+        }
+    }
+}
+
 /// Runs a [`Program`] with the provided settings.
 pub fn run<P>(program: P) -> Result<(), Error>
 where
@@ -133,6 +178,8 @@ where
     let (control_sender, control_receiver) = mpsc::unbounded();
     let (system_theme_sender, system_theme_receiver) = oneshot::channel();
 
+    // Default: the program future is driven inline on the main (platform) thread.
+    #[cfg(not(feature = "off-thread-render"))]
     let instance = Box::pin(run_instance::<P>(
         program,
         runtime,
@@ -145,6 +192,71 @@ where
         settings.fonts,
         system_theme_receiver,
     ));
+
+    // Experimental: drive the program (update/view/layout/draw/present) on a
+    // dedicated worker thread so the main thread does nothing but service the
+    // winit/Wayland event loop. A slow frame can then no longer stall the socket
+    // and get the client dropped by the compositor.
+    //
+    // The args are moved into the worker and owned exclusively by it for the rest
+    // of the run; the main thread never touches them again. `AssertSend` lets us
+    // move them across the spawn boundary without threading a `Send` bound
+    // through the whole public API (experiment-grade; a production version would
+    // use real `Send` bounds on `P`).
+    #[cfg(feature = "off-thread-render")]
+    let instance = {
+        let worker_proxy = proxy.clone();
+        let payload = AssertSend((
+            program,
+            runtime,
+            worker_proxy,
+            event_receiver,
+            control_sender,
+            display_handle,
+            is_daemon,
+            graphics_settings,
+            settings.fonts,
+            system_theme_receiver,
+        ));
+
+        let _ = std::thread::Builder::new()
+            .name("iced-render".into())
+            .spawn(move || {
+                // Force the closure to capture `payload` whole (so its `Send`
+                // wrapper applies) instead of disjointly capturing its !Send
+                // fields, which edition-2021 closures would otherwise do.
+                let payload = payload;
+                let AssertSend((
+                    program,
+                    runtime,
+                    proxy,
+                    event_receiver,
+                    control_sender,
+                    display_handle,
+                    is_daemon,
+                    graphics_settings,
+                    fonts,
+                    system_theme_receiver,
+                )) = payload;
+
+                drive_to_completion(run_instance::<P>(
+                    program,
+                    runtime,
+                    proxy,
+                    event_receiver,
+                    control_sender,
+                    display_handle,
+                    is_daemon,
+                    graphics_settings,
+                    fonts,
+                    system_theme_receiver,
+                ));
+            })
+            .expect("spawn iced render thread");
+
+        // The main-thread Runner no longer drives a program future.
+        Box::pin(std::future::pending::<()>())
+    };
 
     let context = task::Context::from_waker(task::noop_waker_ref());
 
@@ -321,6 +433,16 @@ where
                 event_loop,
                 Event::EventLoopAwakened(winit::event::Event::AboutToWait),
             );
+
+            // Off-thread mode: the worker emits `Control` requests (e.g. window
+            // creation) asynchronously and cannot wake the winit loop directly,
+            // so keep the main thread ticking to drain them promptly. (A
+            // production version would wake via the event-loop proxy instead of
+            // this small fixed-interval poll.)
+            #[cfg(feature = "off-thread-render")]
+            event_loop.set_control_flow(winit::event_loop::ControlFlow::WaitUntil(
+                std::time::Instant::now() + std::time::Duration::from_millis(4),
+            ));
         }
     }
 
@@ -340,7 +462,14 @@ where
             self.sender.start_send(event).expect("Send event");
 
             loop {
+                #[cfg(not(feature = "off-thread-render"))]
                 let poll = self.instance.as_mut().poll(&mut self.context);
+
+                // Off-thread mode: the worker thread drives the program future, so
+                // the main thread never polls it — it only pumps main-thread-only
+                // control requests (window creation, control-flow, popups).
+                #[cfg(feature = "off-thread-render")]
+                let poll = task::Poll::<()>::Pending;
 
                 match poll {
                     task::Poll::Pending => match self.receiver.try_recv() {
@@ -1157,6 +1286,23 @@ async fn run_instance<P>(
 
                         if physical_size.width == 0 || physical_size.height == 0 {
                             continue;
+                        }
+
+                        // Test hook: simulate a heavy/slow frame on the render
+                        // thread. With `off-thread-render` this sleep is on the
+                        // worker, so the main thread must stay responsive and the
+                        // Wayland connection must survive. Set ICED_SLOW_DRAW_MS.
+                        #[cfg(feature = "off-thread-render")]
+                        if let Some(ms) = std::env::var("ICED_SLOW_DRAW_MS")
+                            .ok()
+                            .and_then(|s| s.parse::<u64>().ok())
+                            .filter(|ms| *ms > 0)
+                        {
+                            eprintln!(
+                                "[slow-draw] sleeping {ms}ms on thread {:?} — main thread must stay alive",
+                                std::thread::current().name()
+                            );
+                            std::thread::sleep(std::time::Duration::from_millis(ms));
                         }
 
                         // Window was resized between redraws

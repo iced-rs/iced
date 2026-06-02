@@ -83,6 +83,8 @@ hinting = ["iced_winit/hinting"]
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
+# Experimental: drive the program on a worker thread (off the platform thread)
+off-thread-render = ["iced_winit/off-thread-render"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
 # Enables Linux system theme detection
