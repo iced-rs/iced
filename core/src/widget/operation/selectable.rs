@@ -50,9 +50,6 @@ pub trait Selectable {
     /// cross into a sibling.
     fn min_bounds_height(&self) -> f32;
 
-    /// Returns the layout-bounds width. Default line-edge stepping
-    /// clamps `Shift+End` against this.
-    fn bounds_width(&self) -> f32;
 
     /// Marks the widget as externally managed. While `true`, the
     /// widget's own event handlers should skip drag-select and
@@ -137,13 +134,19 @@ pub trait Selectable {
         self.hit_test(target)
     }
 
-    /// Returns the byte at the start (`dir < 0`) or end (`dir > 0`)
-    /// of the visual line containing `byte`.
+    /// Returns the byte at the start (`dir < 0`) or end (`dir > 0`) of
+    /// the logical, `\n`-delimited line containing `byte`. Logical
+    /// rather than visual, so triple-click and `Home`/`End` cover a
+    /// whole wrapped line instead of stopping at a soft wrap.
     fn line_edge_byte(&self, byte: usize, dir: i32) -> Option<usize> {
-        let position = self.byte_position(byte)?;
-        let target_x = if dir < 0 { 0.0 } else { self.bounds_width() };
+        let text = self.text();
+        let byte = byte.min(text.len());
 
-        self.hit_test(Point::new(target_x, position.y))
+        if dir < 0 {
+            Some(text[..byte].rfind('\n').map(|i| i + 1).unwrap_or(0))
+        } else {
+            Some(text[byte..].find('\n').map(|i| byte + i).unwrap_or(text.len()))
+        }
     }
 }
 

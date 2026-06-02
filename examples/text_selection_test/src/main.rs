@@ -6,6 +6,9 @@
 //! 2. `Ctrl+A` not leaking across separate `selectable_group`s nor
 //!    into a focused `text_editor`.
 //! 3. Single / Double / Triple click dispatch (drag / word / line).
+//! 4. Multi-line offsets and wrapped triple-click: a selection on one
+//!    `\n`-separated line must not paint the same columns on the
+//!    others, and triple-click must cover a whole wrapped logical line.
 //!
 //! The example mixes markdown views, a custom `selectable_group` of
 //! plain `text` + `rich_text`, standalone selectable widgets, and a
@@ -118,6 +121,19 @@ impl Test {
         .on_link_click(never)
         .selectable(true);
 
+        // Explicit `\n`-separated lines in a monospace font: dragging
+        // within one row must not highlight the same byte range on the
+        // others (the per-line vs global offset regression).
+        let multiline_plain = text(MULTILINE_PLAIN)
+            .font(iced::Font::MONOSPACE)
+            .selectable(true);
+
+        // A single long logical line forced to wrap: triple-click should
+        // select all of it, not stop at the soft wrap boundary.
+        let wrapped_logical_line = text(WRAPPED_LOGICAL_LINE)
+            .width(240)
+            .selectable(true);
+
         let editor = text_editor(&self.editor)
             .placeholder("text_editor — Ctrl+A here must NOT spill into the views above")
             .on_action(Message::EditorAction)
@@ -161,6 +177,18 @@ impl Test {
             row![
                 panel("standalone text(...).selectable(true)", standalone_text.into()),
                 panel("standalone rich_text![...].selectable(true)", standalone_rich.into()),
+            ]
+            .spacing(12)
+            .height(140),
+            row![
+                panel(
+                    "multi-line plain text (rows must not bleed into each other)",
+                    multiline_plain.into(),
+                ),
+                panel(
+                    "wrapped logical line (triple-click selects the whole line)",
+                    wrapped_logical_line.into(),
+                ),
             ]
             .spacing(12)
             .height(140),
@@ -213,6 +241,17 @@ react.
 
 The end.
 ";
+
+const MULTILINE_PLAIN: &str = "\
+Very fancy line here
+Any another one in here...
+Third one
+Lets add a final fancy line. ok bye";
+
+const WRAPPED_LOGICAL_LINE: &str =
+    "This is one long logical line with no newlines, so it wraps across \
+     several visual rows. Triple-clicking anywhere on it should select \
+     the entire logical line at once, not just the wrapped row.";
 
 const EDITOR_TEXT: &str = "\
 text_editor content. Click into me and press Ctrl+A — none of the \

@@ -285,10 +285,6 @@ impl<P: Paragraph> crate::widget::operation::Selectable for Internal<P> {
         self.paragraph.raw().min_bounds().height
     }
 
-    fn bounds_width(&self) -> f32 {
-        self.paragraph.raw().bounds().width
-    }
-
     fn set_externally_managed(&mut self, value: bool) {
         self.externally_managed = value;
         if value {

@@ -260,10 +260,6 @@ impl<Link, P: Paragraph> core::widget::operation::Selectable for State<Link, P> 
         self.paragraph.min_bounds().height
     }
 
-    fn bounds_width(&self) -> f32 {
-        self.paragraph.bounds().width
-    }
-
     fn set_externally_managed(&mut self, value: bool) {
         self.externally_managed = value;
     }
