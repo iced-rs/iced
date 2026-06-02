@@ -595,7 +595,7 @@ mod grid {
                     let columns = region.columns();
                     let (total_rows, total_columns) =
                         (rows.clone().count(), columns.clone().count());
-                    let width = 2.0 / Cell::SIZE as f32;
+                    let width = 2.0 / Cell::SIZE;
                     let color = Color::from_rgb8(70, 74, 83);
 
                     frame.translate(Vector::new(-width / 2.0, -width / 2.0));
@@ -791,11 +791,11 @@ mod grid {
     }
 
     impl Cell {
-        const SIZE: u16 = 20;
+        const SIZE: f32 = 20.0;
 
         fn at(position: Point) -> Cell {
-            let i = (position.y / Cell::SIZE as f32).ceil() as isize;
-            let j = (position.x / Cell::SIZE as f32).ceil() as isize;
+            let i = (position.y / Cell::SIZE).ceil() as isize;
+            let j = (position.x / Cell::SIZE).ceil() as isize;
 
             Cell {
                 i: i.saturating_sub(1),
@@ -826,17 +826,17 @@ mod grid {
 
     impl Region {
         fn rows(&self) -> RangeInclusive<isize> {
-            let first_row = (self.y / Cell::SIZE as f32).floor() as isize;
+            let first_row = (self.y / Cell::SIZE).floor() as isize;
 
-            let visible_rows = (self.height / Cell::SIZE as f32).ceil() as isize;
+            let visible_rows = (self.height / Cell::SIZE).ceil() as isize;
 
             first_row..=first_row + visible_rows
         }
 
         fn columns(&self) -> RangeInclusive<isize> {
-            let first_column = (self.x / Cell::SIZE as f32).floor() as isize;
+            let first_column = (self.x / Cell::SIZE).floor() as isize;
 
-            let visible_columns = (self.width / Cell::SIZE as f32).ceil() as isize;
+            let visible_columns = (self.width / Cell::SIZE).ceil() as isize;
 
             first_column..=first_column + visible_columns
         }
