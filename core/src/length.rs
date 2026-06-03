@@ -18,6 +18,10 @@ pub enum Length {
     /// Fill the least amount of space
     Shrink,
 
+    /// Fill the minimum amount of space based on the intrinsic size of the
+    /// element; normally defined by its contents.
+    Intrinsic,
+
     /// Fill a fixed amount of space
     Fixed(f32),
 }
@@ -32,8 +36,7 @@ impl Length {
         match self {
             Length::Fill => 1,
             Length::FillPortion(factor) => *factor,
-            Length::Shrink => 0,
-            Length::Fixed(_) => 0,
+            Length::Shrink | Length::Intrinsic | Length::Fixed(_) => 0,
         }
     }
 
@@ -41,6 +44,11 @@ impl Length {
     /// [`Length::FillPortion`].
     pub fn is_fill(&self) -> bool {
         self.fill_factor() != 0
+    }
+
+    /// Returns `true` if the [`Length`] is [`Intrinsic`](Self::Intrinsic).
+    pub fn is_intrinsic(&self) -> bool {
+        matches!(self, Self::Intrinsic)
     }
 
     /// Returns the "fluid" variant of the [`Length`].
@@ -51,7 +59,7 @@ impl Length {
     pub fn fluid(&self) -> Self {
         match self {
             Length::Fill | Length::FillPortion(_) => Length::Fill,
-            Length::Shrink | Length::Fixed(_) => Length::Shrink,
+            Length::Shrink | Length::Intrinsic | Length::Fixed(_) => Length::Shrink,
         }
     }
 
@@ -60,7 +68,7 @@ impl Length {
     #[inline]
     pub fn enclose(self, other: Length) -> Self {
         match (self, other) {
-            (Length::Shrink, Length::Fill | Length::FillPortion(_)) => other,
+            (Length::Intrinsic, Length::Fill | Length::FillPortion(_)) => other,
             _ => self,
         }
     }

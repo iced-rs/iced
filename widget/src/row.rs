@@ -34,8 +34,8 @@ use crate::core::{
 pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
-    width: Option<Length>,
-    height: Option<Length>,
+    width: Length,
+    height: Length,
     align: Alignment,
     clip: bool,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
@@ -75,8 +75,8 @@ where
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: None,
-            height: None,
+            width: Length::Intrinsic,
+            height: Length::Intrinsic,
             align: Alignment::Start,
             clip: false,
             children,
@@ -101,13 +101,13 @@ where
 
     /// Sets the width of the [`Row`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = Some(width.into());
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Row`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = Some(height.into());
+        self.height = height.into();
         self
     }
 
@@ -181,39 +181,20 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(&mut self.children);
 
-        let inherit_width = self.width.is_none();
-        let inherit_height = self.height.is_none();
-
-        if inherit_width || inherit_height {
-            let mut width = self.width.unwrap_or(Length::Shrink);
-            let mut height = self.height.unwrap_or(Length::Shrink);
-
+        if self.width.is_intrinsic() || self.height.is_intrinsic() {
             for child in &self.children {
                 let size = child.as_widget().size();
 
-                if inherit_width {
-                    width = width.enclose(size.width);
-                }
-
-                if inherit_height {
-                    height = height.enclose(size.height);
-                }
-            }
-
-            if inherit_width {
-                self.width = Some(width);
-            }
-
-            if inherit_height {
-                self.height = Some(height);
+                self.width = self.width.enclose(size.width);
+                self.height = self.height.enclose(size.height);
             }
         }
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width.unwrap_or(Length::Shrink),
-            height: self.height.unwrap_or(Length::Shrink),
+            width: self.width,
+            height: self.height,
         }
     }
 

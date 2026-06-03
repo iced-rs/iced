@@ -62,8 +62,8 @@ where
 {
     id: Option<widget::Id>,
     padding: Padding,
-    width: Option<Length>,
-    height: Option<Length>,
+    width: Length,
+    height: Length,
     max_width: f32,
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
@@ -85,8 +85,8 @@ where
         Container {
             id: None,
             padding: Padding::ZERO,
-            width: None,
-            height: None,
+            width: Length::Intrinsic,
+            height: Length::Intrinsic,
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
@@ -111,13 +111,13 @@ where
 
     /// Sets the width of the [`Container`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = Some(width.into());
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Container`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = Some(height.into());
+        self.height = height.into();
         self
     }
 
@@ -229,12 +229,16 @@ where
 
     fn diff(&mut self, tree: &mut Tree) {
         self.content.as_widget_mut().diff(tree);
+
+        let size = self.content.as_widget().size();
+        self.width = self.width.enclose(size.width);
+        self.height = self.height.enclose(size.height);
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width.unwrap_or(Length::Shrink),
-            height: self.height.unwrap_or(Length::Shrink),
+            width: self.width,
+            height: self.height,
         }
     }
 

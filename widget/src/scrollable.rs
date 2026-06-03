@@ -69,8 +69,8 @@ where
     Renderer: text::Renderer,
 {
     id: Option<widget::Id>,
-    width: Option<Length>,
-    height: Option<Length>,
+    width: Length,
+    height: Length,
     direction: Direction,
     auto_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
@@ -96,8 +96,8 @@ where
     ) -> Self {
         Scrollable {
             id: None,
-            width: None,
-            height: None,
+            width: Length::Intrinsic,
+            height: Length::Intrinsic,
             direction: direction.into(),
             auto_scroll: false,
             content: content.into(),
@@ -126,13 +126,13 @@ where
 
     /// Sets the width of the [`Scrollable`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = Some(width.into());
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Scrollable`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = Some(height.into());
+        self.height = height.into();
         self
     }
 
@@ -389,19 +389,19 @@ where
 
         let size = self.content.as_widget().size();
 
-        if self.width.is_none() || self.direction.horizontal().is_none() {
-            self.width = Some(size.width);
+        if self.direction.horizontal().is_none() {
+            self.width = self.width.enclose(size.width);
         }
 
-        if self.height.is_none() || self.direction.vertical().is_none() {
-            self.height = Some(size.height);
+        if self.direction.vertical().is_none() {
+            self.height = self.height.enclose(size.height);
         }
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width.unwrap_or(Length::Shrink),
-            height: self.height.unwrap_or(Length::Shrink),
+            width: self.width,
+            height: self.height,
         }
     }
 
