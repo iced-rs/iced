@@ -75,8 +75,8 @@ where
 {
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<OnPress<'a, Message>>,
-    width: Option<Length>,
-    height: Option<Length>,
+    width: Length,
+    height: Length,
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
@@ -109,8 +109,8 @@ where
         Button {
             content,
             on_press: None,
-            width: None,
-            height: None,
+            width: Length::Intrinsic,
+            height: Length::Intrinsic,
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
@@ -120,13 +120,13 @@ where
 
     /// Sets the width of the [`Button`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = Some(width.into());
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Button`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = Some(height.into());
+        self.height = height.into();
         self
     }
 
@@ -214,12 +214,16 @@ where
 
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_mut(&mut self.content));
+
+        let size = self.content.as_widget().size();
+        self.width = self.width.enclose(size.width);
+        self.height = self.height.enclose(size.height);
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width.unwrap_or(Length::Shrink),
-            height: self.height.unwrap_or(Length::Shrink),
+            width: self.width,
+            height: self.height,
         }
     }
 
@@ -229,15 +233,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let width = self
-            .width
-            .unwrap_or_else(|| self.content.as_widget().width());
-
-        let height = self
-            .height
-            .unwrap_or_else(|| self.content.as_widget().height());
-
-        layout::padded(limits, width, height, self.padding, |limits| {
+        layout::padded(limits, self.width, self.height, self.padding, |limits| {
             self.content
                 .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, limits)

@@ -133,18 +133,4 @@ where
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None
     }
-
-    /// Returns the width of the widget in [`Length`].
-    ///
-    /// This should match the `width` returned by [`size`](Self::size).
-    fn width(&self) -> Length {
-        self.size().width
-    }
-
-    /// Returns the height of the widget in [`Length`].
-    ///
-    /// This should match the `height` returned by [`size`](Self::size).
-    fn height(&self) -> Length {
-        self.size().height
-    }
 }
