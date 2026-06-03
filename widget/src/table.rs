@@ -88,7 +88,7 @@ where
         let columns = columns.into_iter();
         let rows = rows.into_iter();
 
-        let mut width = Length::Shrink;
+        let mut width = Length::Intrinsic;
         let mut cells = Vec::with_capacity(columns.size_hint().0 * (1 + rows.size_hint().0));
 
         let (mut columns, views): (Vec<_>, Vec<_>) = columns
@@ -125,7 +125,7 @@ where
             columns,
             cells,
             width,
-            height: Length::Shrink,
+            height: Length::Intrinsic,
             padding_x: 10.0,
             padding_y: 5.0,
             separator_x: 1.0,
