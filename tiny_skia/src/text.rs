@@ -195,13 +195,35 @@ fn draw(
     transformation: Transformation,
 ) {
     let position = position * transformation;
+    let scale = transformation.scale_factor();
 
     let mut swash = cosmic_text::SwashCache::new();
 
     for run in buffer.layout_runs() {
+        let baseline = position.y + run.line_y * scale;
+        let line_top = position.y + run.line_top * scale;
+        let line_height = run.line_height * scale;
+
+        // 1. Highlight backgrounds, drawn behind the glyphs of this run.
         for glyph in run.glyphs {
-            let physical_glyph =
-                glyph.physical((position.x, position.y), transformation.scale_factor());
+            if let Some(background) = glyph.background_opt {
+                let mut fill = from_color(background);
+                fill.a *= color.a;
+                fill_decoration_rect(
+                    pixels,
+                    position.x + glyph.x * scale,
+                    line_top,
+                    glyph.w * scale,
+                    line_height,
+                    fill,
+                    clip_mask,
+                );
+            }
+        }
+
+        // 2. Glyphs.
+        for glyph in run.glyphs {
+            let physical_glyph = glyph.physical((position.x, position.y), scale);
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,
@@ -218,8 +240,7 @@ fn draw(
 
                 pixels.draw_pixmap(
                     physical_glyph.x + placement.left,
-                    physical_glyph.y - placement.top
-                        + (run.line_y * transformation.scale_factor()).round() as i32,
+                    physical_glyph.y - placement.top + (run.line_y * scale).round() as i32,
                     pixmap,
                     &tiny_skia::PixmapPaint {
                         opacity,
@@ -230,7 +251,78 @@ fn draw(
                 );
             }
         }
+
+        // 3. Underline / strikethrough, drawn on top of the glyphs.
+        for glyph in run.glyphs {
+            if glyph.underline_opt.is_none() && glyph.strikethrough_opt.is_none() {
+                continue;
+            }
+
+            let x = position.x + glyph.x * scale;
+            let w = glyph.w * scale;
+            let font_size = glyph.font_size * scale;
+            let thickness = (font_size * 0.06).max(1.0);
+
+            // Decoration color: explicit decoration color, else the glyph color,
+            // else the run's text color (all scaled by element opacity).
+            let resolve = |decoration: cosmic_text::Decoration| -> Color {
+                match decoration.color_opt.or(glyph.color_opt) {
+                    Some(c) => {
+                        let mut fill = from_color(c);
+                        fill.a *= color.a;
+                        fill
+                    }
+                    None => color,
+                }
+            };
+
+            if let Some(underline) = glyph.underline_opt {
+                fill_decoration_rect(
+                    pixels,
+                    x,
+                    baseline + font_size * 0.1,
+                    w,
+                    thickness,
+                    resolve(underline),
+                    clip_mask,
+                );
+            }
+            if let Some(strikethrough) = glyph.strikethrough_opt {
+                fill_decoration_rect(
+                    pixels,
+                    x,
+                    baseline - font_size * 0.3,
+                    w,
+                    thickness,
+                    resolve(strikethrough),
+                    clip_mask,
+                );
+            }
+        }
     }
+}
+
+/// Fill a solid decoration rectangle (underline / strikethrough / highlight
+/// background) in the surface's color convention.
+fn fill_decoration_rect(
+    pixels: &mut tiny_skia::PixmapMut<'_>,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    color: Color,
+    clip_mask: Option<&tiny_skia::Mask>,
+) {
+    if width <= 0.0 || height <= 0.0 || color.a <= 0.0 {
+        return;
+    }
+    let Some(rect) = tiny_skia::Rect::from_xywh(x, y, width, height) else {
+        return;
+    };
+    let mut paint = tiny_skia::Paint::default();
+    paint.set_color(crate::engine::into_color(color));
+    paint.anti_alias = false;
+    pixels.fill_rect(rect, &paint, tiny_skia::Transform::identity(), clip_mask);
 }
 
 fn from_color(color: cosmic_text::Color) -> Color {

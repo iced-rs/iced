@@ -76,6 +76,12 @@ pub struct Format<Font> {
     pub color: Option<Color>,
     /// The `Font` of the text.
     pub font: Option<Font>,
+    /// Whether the text should be underlined.
+    pub underline: bool,
+    /// Whether the text should have a strikethrough.
+    pub strikethrough: bool,
+    /// An optional highlight [`Color`] drawn behind the text.
+    pub background: Option<Color>,
 }
 
 impl<Font> Default for Format<Font> {
@@ -83,6 +89,9 @@ impl<Font> Default for Format<Font> {
         Self {
             color: None,
             font: None,
+            underline: false,
+            strikethrough: false,
+            background: None,
         }
     }
 }

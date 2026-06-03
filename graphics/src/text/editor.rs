@@ -700,18 +700,26 @@ impl editor::Editor for Editor {
             for (range, highlight) in highlighter.highlight_line(line.text()) {
                 let format = format_highlight(&highlight);
 
-                if format.color.is_some() || format.font.is_some() {
-                    list.add_span(
-                        range,
-                        &cosmic_text::Attrs {
-                            color_opt: format.color.map(text::to_color),
-                            ..if let Some(font) = format.font {
-                                text::to_attributes(font)
-                            } else {
-                                attributes.clone()
-                            }
-                        },
-                    );
+                if format.color.is_some()
+                    || format.font.is_some()
+                    || format.underline
+                    || format.strikethrough
+                    || format.background.is_some()
+                {
+                    let mut attrs = if let Some(font) = format.font {
+                        text::to_attributes(font)
+                    } else {
+                        attributes.clone()
+                    };
+                    attrs.color_opt = format.color.map(text::to_color);
+                    if format.underline {
+                        attrs.underline_opt = Some(cosmic_text::Decoration::new());
+                    }
+                    if format.strikethrough {
+                        attrs.strikethrough_opt = Some(cosmic_text::Decoration::new());
+                    }
+                    attrs.background_opt = format.background.map(text::to_color);
+                    list.add_span(range, &attrs);
                 }
             }
 

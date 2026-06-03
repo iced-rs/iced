@@ -4,7 +4,7 @@ use crate::graphics::Mesh;
 use crate::graphics::color;
 use crate::graphics::layer;
 use crate::graphics::mesh;
-use crate::graphics::text::{Editor, Paragraph};
+use crate::graphics::text::{Editor, Paragraph, cosmic_text};
 use crate::image::{self, Image};
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
@@ -93,6 +93,10 @@ impl Layer {
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
+        // Quads render before text within a layer, so highlight backgrounds and
+        // underlines drawn here sit behind/below the glyphs (correct z-order).
+        self.add_text_decorations(editor.buffer(), position, color, transformation);
+
         let editor = Text::Editor {
             editor: editor.downgrade(),
             position,
@@ -102,6 +106,90 @@ impl Layer {
         };
 
         self.pending_text.push(editor);
+    }
+
+    /// Adds highlight-background and underline decoration quads for a laid-out
+    /// text `buffer` to this layer's quad batch.
+    ///
+    /// Because a layer renders its quads before its text, backgrounds sit behind
+    /// the glyphs and underlines below the baseline — both correct. Strikethrough
+    /// is intentionally not drawn here: it would be occluded by the glyphs (which
+    /// render after) and needs a dedicated post-text overlay pass.
+    fn add_text_decorations(
+        &mut self,
+        buffer: &cosmic_text::Buffer,
+        position: Point,
+        color: Color,
+        transformation: Transformation,
+    ) {
+        for run in buffer.layout_runs() {
+            // Highlight backgrounds (behind the glyphs).
+            for glyph in run.glyphs {
+                let Some(background) = glyph.background_opt else {
+                    continue;
+                };
+                let mut fill = from_cosmic_color(background);
+                fill.a *= color.a;
+                self.fill_decoration(
+                    Rectangle {
+                        x: position.x + glyph.x,
+                        y: position.y + run.line_top,
+                        width: glyph.w,
+                        height: run.line_height,
+                    },
+                    fill,
+                    transformation,
+                );
+            }
+
+            // Underlines (below the baseline).
+            for glyph in run.glyphs {
+                let Some(underline) = glyph.underline_opt else {
+                    continue;
+                };
+                let fill = match underline.color_opt.or(glyph.color_opt) {
+                    Some(c) => {
+                        let mut fill = from_cosmic_color(c);
+                        fill.a *= color.a;
+                        fill
+                    }
+                    None => color,
+                };
+                let thickness = (glyph.font_size * 0.06).max(1.0);
+                self.fill_decoration(
+                    Rectangle {
+                        x: position.x + glyph.x,
+                        y: position.y + run.line_y + glyph.font_size * 0.1,
+                        width: glyph.w,
+                        height: thickness,
+                    },
+                    fill,
+                    transformation,
+                );
+            }
+        }
+    }
+
+    fn fill_decoration(
+        &mut self,
+        bounds: Rectangle,
+        fill: Color,
+        transformation: Transformation,
+    ) {
+        if bounds.width <= 0.0 || bounds.height <= 0.0 || fill.a <= 0.0 {
+            return;
+        }
+        self.draw_quad(
+            renderer::Quad {
+                bounds,
+                border: core::Border::default(),
+                shadow: core::Shadow::default(),
+                snap: true,
+                border_only: false,
+            },
+            Background::Color(fill),
+            transformation,
+        );
     }
 
     pub fn draw_text(
@@ -382,4 +470,10 @@ impl Default for Layer {
             pending_text: Vec::new(),
         }
     }
+}
+
+/// Convert a cosmic-text color to an iced [`Color`].
+fn from_cosmic_color(color: cosmic_text::Color) -> Color {
+    let [r, g, b, a] = color.as_rgba();
+    Color::from_rgba8(r, g, b, a as f32 / 255.0)
 }

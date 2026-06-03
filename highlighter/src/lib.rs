@@ -255,6 +255,7 @@ impl Highlight {
         Format {
             color: self.color(),
             font: self.font(),
+            ..Format::default()
         }
     }
 }
