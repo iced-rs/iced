@@ -152,15 +152,8 @@ where
     Theme: container::Catalog,
     Renderer: text::Renderer,
 {
-    fn children(&self) -> Vec<widget::Tree> {
-        vec![
-            widget::Tree::new(&self.content),
-            widget::Tree::new(&self.tooltip),
-        ]
-    }
-
-    fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(&[self.content.as_widget(), self.tooltip.as_widget()]);
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        tree.diff_children(&mut [self.content.as_widget_mut(), self.tooltip.as_widget_mut()]);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -173,10 +166,6 @@ where
 
     fn size(&self) -> Size<Length> {
         self.content.as_widget().size()
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.content.as_widget().size_hint()
     }
 
     fn layout(

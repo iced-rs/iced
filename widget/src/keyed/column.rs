@@ -134,13 +134,12 @@ where
         child: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size_hint();
 
-        self.width = self.width.enclose(child_size.width);
-        self.height = self.height.enclose(child_size.height);
+        if !child.as_widget().size().is_void() {
+            self.keys.push(key);
+            self.children.push(child);
+        }
 
-        self.keys.push(key);
-        self.children.push(child);
         self
     }
 
@@ -201,11 +200,7 @@ where
         })
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let Tree {
             state, children, ..
         } = tree;
@@ -214,8 +209,8 @@ where
 
         tree::diff_children_custom_with_search(
             children,
-            &self.children,
-            |tree, child| child.as_widget().diff(tree),
+            &mut self.children,
+            |tree, child| child.as_widget_mut().diff(tree),
             |index| {
                 self.keys.get(index).or_else(|| self.keys.last()).copied()
                     != Some(state.keys[index])

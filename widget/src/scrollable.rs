@@ -69,8 +69,8 @@ where
     Renderer: text::Renderer,
 {
     id: Option<widget::Id>,
-    width: Length,
-    height: Length,
+    width: Option<Length>,
+    height: Option<Length>,
     direction: Direction,
     auto_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
@@ -96,8 +96,8 @@ where
     ) -> Self {
         Scrollable {
             id: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: None,
+            height: None,
             direction: direction.into(),
             auto_scroll: false,
             content: content.into(),
@@ -105,21 +105,6 @@ where
             class: Theme::default(),
             last_status: None,
         }
-        .enclose()
-    }
-
-    fn enclose(mut self) -> Self {
-        let size_hint = self.content.as_widget().size_hint();
-
-        if self.direction.horizontal().is_none() {
-            self.width = self.width.enclose(size_hint.width);
-        }
-
-        if self.direction.vertical().is_none() {
-            self.height = self.height.enclose(size_hint.height);
-        }
-
-        self
     }
 
     /// Makes the [`Scrollable`] scroll horizontally, with default [`Scrollbar`] settings.
@@ -130,7 +115,7 @@ where
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
-        self.enclose()
+        self
     }
 
     /// Sets the [`widget::Id`] of the [`Scrollable`].
@@ -141,13 +126,13 @@ where
 
     /// Sets the width of the [`Scrollable`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.width = Some(width.into());
         self
     }
 
     /// Sets the height of the [`Scrollable`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+        self.height = Some(height.into());
         self
     }
 
@@ -399,18 +384,24 @@ where
         tree::State::new(State::new())
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+        let size = self.content.as_widget().size();
+
+        if self.width.is_none() || self.direction.horizontal().is_none() {
+            self.width = Some(size.width);
+        }
+
+        if self.height.is_none() || self.direction.vertical().is_none() {
+            self.height = Some(size.height);
+        }
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width,
-            height: self.height,
+            width: self.width.unwrap_or(Length::Shrink),
+            height: self.height.unwrap_or(Length::Shrink),
         }
     }
 
@@ -420,11 +411,13 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let size = self.size();
+
         let mut layout = |right_padding, bottom_padding| {
             layout::padded(
                 limits,
-                self.width,
-                self.height,
+                size.width,
+                size.height,
                 Padding {
                     right: right_padding,
                     bottom: bottom_padding,

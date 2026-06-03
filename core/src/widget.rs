@@ -41,14 +41,6 @@ where
     /// Returns the [`Size`] of the [`Widget`] in lengths.
     fn size(&self) -> Size<Length>;
 
-    /// Returns a [`Size`] hint for laying out the [`Widget`].
-    ///
-    /// This hint may be used by some widget containers to adjust their sizing strategy
-    /// during construction.
-    fn size_hint(&self) -> Size<Length> {
-        self.size()
-    }
-
     /// Returns the [`layout::Node`] of the [`Widget`].
     ///
     /// This [`layout::Node`] is used by the runtime to compute the [`Layout`] of the
@@ -86,13 +78,8 @@ where
         tree::State::None
     }
 
-    /// Returns the state [`Tree`] of the children of the [`Widget`].
-    fn children(&self) -> Vec<Tree> {
-        Vec::new()
-    }
-
     /// Reconciles the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         tree.children.clear();
     }
 
@@ -145,5 +132,19 @@ where
         _translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None
+    }
+
+    /// Returns the width of the widget in [`Length`].
+    ///
+    /// This should match the `width` returned by [`size`](Self::size).
+    fn width(&self) -> Length {
+        self.size().width
+    }
+
+    /// Returns the height of the widget in [`Length`].
+    ///
+    /// This should match the `height` returned by [`size`](Self::size).
+    fn height(&self) -> Length {
+        self.size().height
     }
 }

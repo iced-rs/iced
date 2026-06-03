@@ -75,8 +75,8 @@ where
 {
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<OnPress<'a, Message>>,
-    width: Length,
-    height: Length,
+    width: Option<Length>,
+    height: Option<Length>,
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
@@ -105,13 +105,12 @@ where
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let content = content.into();
-        let size = content.as_widget().size_hint();
 
         Button {
             content,
             on_press: None,
-            width: size.width.fluid(),
-            height: size.height.fluid(),
+            width: None,
+            height: None,
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
@@ -121,13 +120,13 @@ where
 
     /// Sets the width of the [`Button`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.width = Some(width.into());
         self
     }
 
     /// Sets the height of the [`Button`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+        self.height = Some(height.into());
         self
     }
 
@@ -213,18 +212,14 @@ where
         tree::State::new(State::default())
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width,
-            height: self.height,
+            width: self.width.unwrap_or(Length::Shrink),
+            height: self.height.unwrap_or(Length::Shrink),
         }
     }
 
@@ -234,7 +229,15 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout::padded(limits, self.width, self.height, self.padding, |limits| {
+        let width = self
+            .width
+            .unwrap_or_else(|| self.content.as_widget().width());
+
+        let height = self
+            .height
+            .unwrap_or_else(|| self.content.as_widget().height());
+
+        layout::padded(limits, width, height, self.padding, |limits| {
             self.content
                 .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, limits)

@@ -603,20 +603,12 @@ where
             self.content.as_widget().state()
         }
 
-        fn children(&self) -> Vec<Tree> {
-            self.content.as_widget().children()
-        }
-
-        fn diff(&self, tree: &mut Tree) {
-            self.content.as_widget().diff(tree);
+        fn diff(&mut self, tree: &mut Tree) {
+            self.content.as_widget_mut().diff(tree);
         }
 
         fn size(&self) -> Size<Length> {
             self.content.as_widget().size()
-        }
-
-        fn size_hint(&self) -> Size<Length> {
-            self.content.as_widget().size_hint()
         }
 
         fn layout(
@@ -755,20 +747,12 @@ where
             tree::Tag::of::<Tag>()
         }
 
-        fn children(&self) -> Vec<Tree> {
-            vec![Tree::new(&self.base), Tree::new(&self.top)]
-        }
-
-        fn diff(&self, tree: &mut Tree) {
-            tree.diff_children(&[&self.base, &self.top]);
+        fn diff(&mut self, tree: &mut Tree) {
+            tree.diff_children(&mut [&mut self.base, &mut self.top]);
         }
 
         fn size(&self) -> Size<Length> {
             self.base.as_widget().size()
-        }
-
-        fn size_hint(&self) -> Size<Length> {
-            self.base.as_widget().size_hint()
         }
 
         fn layout(

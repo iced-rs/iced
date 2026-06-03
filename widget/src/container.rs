@@ -62,8 +62,8 @@ where
 {
     id: Option<widget::Id>,
     padding: Padding,
-    width: Length,
-    height: Length,
+    width: Option<Length>,
+    height: Option<Length>,
     max_width: f32,
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
@@ -81,13 +81,12 @@ where
     /// Creates a [`Container`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let content = content.into();
-        let size = content.as_widget().size_hint();
 
         Container {
             id: None,
             padding: Padding::ZERO,
-            width: size.width.fluid(),
-            height: size.height.fluid(),
+            width: None,
+            height: None,
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
@@ -112,13 +111,13 @@ where
 
     /// Sets the width of the [`Container`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.width = Some(width.into());
         self
     }
 
     /// Sets the height of the [`Container`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+        self.height = Some(height.into());
         self
     }
 
@@ -228,18 +227,14 @@ where
         self.content.as_widget().state()
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.content.as_widget().children()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        self.content.as_widget().diff(tree);
+    fn diff(&mut self, tree: &mut Tree) {
+        self.content.as_widget_mut().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width,
-            height: self.height,
+            width: self.width.unwrap_or(Length::Shrink),
+            height: self.height.unwrap_or(Length::Shrink),
         }
     }
 
@@ -249,10 +244,12 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let size = self.size();
+
         layout(
             limits,
-            self.width,
-            self.height,
+            size.width,
+            size.height,
             self.max_width,
             self.max_height,
             self.padding,

@@ -18,8 +18,8 @@ use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
 pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
-    width: Length,
-    height: Length,
+    width: Option<Length>,
+    height: Option<Length>,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
     clip: bool,
     base_layer: usize,
@@ -49,16 +49,10 @@ where
     }
 
     /// Creates a [`Stack`] from an already allocated [`Vec`].
-    ///
-    /// Keep in mind that the [`Stack`] will not inspect the [`Vec`], which means
-    /// it won't automatically adapt to the sizing strategy of its contents.
-    ///
-    /// If any of the children have a [`Length::Fill`] strategy, you will need to
-    /// call [`Stack::width`] or [`Stack::height`] accordingly.
     pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: None,
+            height: None,
             children,
             clip: false,
             base_layer: 0,
@@ -67,27 +61,22 @@ where
 
     /// Sets the width of the [`Stack`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.width = Some(width.into());
         self
     }
 
     /// Sets the height of the [`Stack`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+        self.height = Some(height.into());
         self
     }
 
     /// Adds an element on top of the [`Stack`].
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size_hint();
+        let child_size = child.as_widget().size();
 
         if !child_size.is_void() {
-            if self.children.is_empty() {
-                self.width = self.width.enclose(child_size.width);
-                self.height = self.height.enclose(child_size.height);
-            }
-
             self.children.push(child);
         }
 
@@ -134,18 +123,26 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(&mut self.children);
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children);
+        if let Some(base) = self.children.get(self.base_layer) {
+            let size = base.as_widget().size();
+
+            if self.width.is_none() {
+                self.width = Some(size.width);
+            }
+
+            if self.height.is_none() {
+                self.height = Some(size.height);
+            }
+        }
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width,
-            height: self.height,
+            width: self.width.unwrap_or(Length::Shrink),
+            height: self.height.unwrap_or(Length::Shrink),
         }
     }
 
@@ -155,10 +152,11 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
+        let size = self.size();
+        let limits = limits.width(size.width).height(size.height);
 
         if self.children.len() <= self.base_layer {
-            return layout::Node::new(limits.resolve(self.width, self.height, Size::ZERO));
+            return layout::Node::new(limits.resolve(size.width, size.height, Size::ZERO));
         }
 
         let base = self.children[self.base_layer].as_widget_mut().layout(
@@ -167,7 +165,7 @@ where
             &limits,
         );
 
-        let size = limits.resolve(self.width, self.height, base.size());
+        let size = limits.resolve(size.width, size.height, base.size());
         let limits = layout::Limits::new(Size::ZERO, size);
 
         let (under, above) = self.children.split_at_mut(self.base_layer);

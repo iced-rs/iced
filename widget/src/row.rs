@@ -34,8 +34,8 @@ use crate::core::{
 pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
-    width: Length,
-    height: Length,
+    width: Option<Length>,
+    height: Option<Length>,
     align: Alignment,
     clip: bool,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
@@ -75,8 +75,8 @@ where
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: None,
+            height: None,
             align: Alignment::Start,
             clip: false,
             children,
@@ -101,13 +101,13 @@ where
 
     /// Sets the width of the [`Row`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+        self.width = Some(width.into());
         self
     }
 
     /// Sets the height of the [`Row`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+        self.height = Some(height.into());
         self
     }
 
@@ -127,11 +127,9 @@ where
     /// Adds an [`Element`] to the [`Row`].
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size_hint();
+        let child_size = child.as_widget().size();
 
         if !child_size.is_void() {
-            self.width = self.width.enclose(child_size.width);
-            self.height = self.height.enclose(child_size.height);
             self.children.push(child);
         }
 
@@ -180,18 +178,42 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(&mut self.children);
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children);
+        let inherit_width = self.width.is_none();
+        let inherit_height = self.height.is_none();
+
+        if inherit_width || inherit_height {
+            let mut width = self.width.unwrap_or(Length::Shrink);
+            let mut height = self.height.unwrap_or(Length::Shrink);
+
+            for child in &self.children {
+                let size = child.as_widget().size();
+
+                if inherit_width {
+                    width = width.enclose(size.width);
+                }
+
+                if inherit_height {
+                    height = height.enclose(size.height);
+                }
+            }
+
+            if inherit_width {
+                self.width = Some(width);
+            }
+
+            if inherit_height {
+                self.height = Some(height);
+            }
+        }
     }
 
     fn size(&self) -> Size<Length> {
         Size {
-            width: self.width,
-            height: self.height,
+            width: self.width.unwrap_or(Length::Shrink),
+            height: self.height.unwrap_or(Length::Shrink),
         }
     }
 
@@ -201,12 +223,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let size = self.size();
+
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
             limits,
-            self.width,
-            self.height,
+            size.width,
+            size.height,
             self.padding,
             self.spacing,
             self.align,
@@ -372,11 +396,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.row.children()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         self.row.diff(tree);
     }
 
@@ -390,9 +410,11 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let size = self.size();
+
         let limits = limits
-            .width(self.row.width)
-            .height(self.row.height)
+            .width(size.width)
+            .height(size.height)
             .shrink(self.row.padding);
 
         let child_limits = limits.loose();
@@ -489,7 +511,7 @@ where
             }
         }
 
-        let size = limits.resolve(self.row.width, self.row.height, intrinsic_size);
+        let size = limits.resolve(size.width, size.height, intrinsic_size);
 
         layout::Node::with_children(size.expand(self.row.padding), children)
     }
