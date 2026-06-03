@@ -123,6 +123,12 @@ pub fn diff_children_custom_with_search<T>(
 
     if current_children.is_empty() {
         current_children.extend(new_children.iter().map(new_state));
+
+        // TODO: Merge loop with extend logic (?)
+        for (child_state, new) in current_children.iter_mut().zip(new_children.iter_mut()) {
+            diff(child_state, new);
+        }
+
         return;
     }
 

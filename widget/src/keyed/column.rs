@@ -64,8 +64,8 @@ where
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             max_width: f32::INFINITY,
             align_items: Alignment::Start,
             keys,
@@ -220,6 +220,15 @@ where
 
         if state.keys != self.keys {
             state.keys.clone_from(&self.keys);
+        }
+
+        if self.width.is_fit() || self.height.is_fit() {
+            for child in &self.children {
+                let size = child.as_widget().size();
+
+                self.width = self.width.enclose(size.width);
+                self.height = self.height.enclose(size.height);
+            }
         }
     }
 
