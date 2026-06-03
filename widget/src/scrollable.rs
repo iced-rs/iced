@@ -411,13 +411,11 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self.size();
-
         let mut layout = |right_padding, bottom_padding| {
             layout::padded(
                 limits,
-                size.width,
-                size.height,
+                self.width,
+                self.height,
                 Padding {
                     right: right_padding,
                     bottom: bottom_padding,

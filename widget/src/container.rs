@@ -248,12 +248,10 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self.size();
-
         layout(
             limits,
-            size.width,
-            size.height,
+            self.width,
+            self.height,
             self.max_width,
             self.max_height,
             self.padding,

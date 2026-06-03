@@ -206,15 +206,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self.size();
         let limits = limits.max_width(self.max_width);
 
         layout::flex::resolve(
             layout::flex::Axis::Vertical,
             renderer,
             &limits,
-            size.width,
-            size.height,
+            self.width,
+            self.height,
             self.padding,
             self.spacing,
             self.align,
@@ -395,10 +394,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self.size();
         let limits = limits
-            .width(size.width)
-            .height(size.height)
+            .width(self.column.width)
+            .height(self.column.height)
             .shrink(self.column.padding);
 
         let child_limits = limits.loose();
@@ -497,7 +495,7 @@ where
             }
         }
 
-        let size = limits.resolve(size.width, size.height, intrinsic_size);
+        let size = limits.resolve(self.column.width, self.column.height, intrinsic_size);
 
         layout::Node::with_children(size.expand(self.column.padding), children)
     }

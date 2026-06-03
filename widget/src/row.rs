@@ -204,14 +204,12 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self.size();
-
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
             limits,
-            size.width,
-            size.height,
+            self.width,
+            self.height,
             self.padding,
             self.spacing,
             self.align,
@@ -391,11 +389,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = self.size();
-
         let limits = limits
-            .width(size.width)
-            .height(size.height)
+            .width(self.row.width)
+            .height(self.row.height)
             .shrink(self.row.padding);
 
         let child_limits = limits.loose();
@@ -492,7 +488,7 @@ where
             }
         }
 
-        let size = limits.resolve(size.width, size.height, intrinsic_size);
+        let size = limits.resolve(self.row.width, self.row.height, intrinsic_size);
 
         layout::Node::with_children(size.expand(self.row.padding), children)
     }
