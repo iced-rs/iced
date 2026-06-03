@@ -85,8 +85,8 @@ where
         Container {
             id: None,
             padding: Padding::ZERO,
-            width: Length::Intrinsic,
-            height: Length::Intrinsic,
+            width: Length::Fit,
+            height: Length::Fit,
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,

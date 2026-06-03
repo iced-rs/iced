@@ -70,8 +70,8 @@ where
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Intrinsic,
-            height: Length::Intrinsic,
+            width: Length::Fit,
+            height: Length::Fit,
             max_width: f32::INFINITY,
             align: Alignment::Start,
             clip: false,
@@ -183,7 +183,7 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(&mut self.children);
 
-        if self.width.is_intrinsic() || self.height.is_intrinsic() {
+        if self.width.is_fit() || self.height.is_fit() {
             for child in &self.children {
                 let size = child.as_widget().size();
 

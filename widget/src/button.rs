@@ -109,8 +109,8 @@ where
         Button {
             content,
             on_press: None,
-            width: Length::Intrinsic,
-            height: Length::Intrinsic,
+            width: Length::Fit,
+            height: Length::Fit,
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),

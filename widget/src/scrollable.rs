@@ -96,8 +96,8 @@ where
     ) -> Self {
         Scrollable {
             id: None,
-            width: Length::Intrinsic,
-            height: Length::Intrinsic,
+            width: Length::Fit,
+            height: Length::Fit,
             direction: direction.into(),
             auto_scroll: false,
             content: content.into(),
