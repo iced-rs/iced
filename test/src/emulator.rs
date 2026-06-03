@@ -496,6 +496,11 @@ impl<P: Program + 'static> Emulator<P> {
         }
     }
 
+    /// Returns a reference to the state of the [`Emulator`].
+    pub fn state(&self) -> &P::State {
+        &self.state
+    }
+
     /// Turns the [`Emulator`] into its internal state.
     pub fn into_state(self) -> (P::State, core::window::Id) {
         (self.state, self.window)
