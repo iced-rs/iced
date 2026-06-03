@@ -21,6 +21,9 @@ pub struct Layer {
     pub primitives: primitive::Batch,
     pub images: image::Batch,
     pub text: text::Batch,
+    /// Quads drawn *after* the text of this layer (e.g. strikethrough), so they
+    /// overlay the glyphs instead of being occluded by them.
+    pub overlay_quads: quad::Batch,
     pending_meshes: Vec<Mesh>,
     pending_text: Vec<Text>,
 }
@@ -32,6 +35,7 @@ impl Layer {
             && self.primitives.is_empty()
             && self.images.is_empty()
             && self.text.is_empty()
+            && self.overlay_quads.is_empty()
             && self.pending_meshes.is_empty()
             && self.pending_text.is_empty()
     }
@@ -42,28 +46,8 @@ impl Layer {
         background: Background,
         transformation: Transformation,
     ) {
-        let bounds = quad.bounds * transformation;
-
-        let quad = Quad {
-            position: [bounds.x, bounds.y],
-            size: [bounds.width, bounds.height],
-            border_color: color::pack(quad.border.color),
-            border_radius: (quad.border.radius * transformation.scale_factor()).into(),
-            border_widths: {
-                let w = quad.border.widths();
-                let s = transformation.scale_factor();
-                [w[0] * s, w[1] * s, w[2] * s, w[3] * s]
-            },
-            shadow_color: color::pack(quad.shadow.color),
-            shadow_offset: (quad.shadow.offset * transformation.scale_factor()).into(),
-            shadow_blur_radius: quad.shadow.blur_radius * transformation.scale_factor(),
-            shadow_inset: quad.shadow.inset as u32,
-            shadow_spread_radius: quad.shadow.spread_radius * transformation.scale_factor(),
-            snap: quad.snap as u32,
-            border_only: quad.border_only as u32,
-        };
-
-        self.quads.add(quad, &background);
+        self.quads
+            .add(to_gpu_quad(quad, transformation), &background);
     }
 
     pub fn draw_paragraph(
@@ -111,10 +95,10 @@ impl Layer {
     /// Adds highlight-background and underline decoration quads for a laid-out
     /// text `buffer` to this layer's quad batch.
     ///
-    /// Because a layer renders its quads before its text, backgrounds sit behind
-    /// the glyphs and underlines below the baseline — both correct. Strikethrough
-    /// is intentionally not drawn here: it would be occluded by the glyphs (which
-    /// render after) and needs a dedicated post-text overlay pass.
+    /// A layer renders its quads before its text, so backgrounds (behind the
+    /// glyphs) and underlines (below the baseline) go in the normal quad batch.
+    /// Strikethrough crosses the glyphs, so it must render *after* the text — it
+    /// goes in `overlay_quads`, which is rendered as a post-text pass.
     fn add_text_decorations(
         &mut self,
         buffer: &cosmic_text::Buffer,
@@ -122,6 +106,18 @@ impl Layer {
         color: Color,
         transformation: Transformation,
     ) {
+        let decoration_color = |decoration: cosmic_text::Decoration, glyph_color| match decoration
+            .color_opt
+            .or(glyph_color)
+        {
+            Some(c) => {
+                let mut fill = from_cosmic_color(c);
+                fill.a *= color.a;
+                fill
+            }
+            None => color,
+        };
+
         for run in buffer.layout_runs() {
             // Highlight backgrounds (behind the glyphs).
             for glyph in run.glyphs {
@@ -139,6 +135,7 @@ impl Layer {
                     },
                     fill,
                     transformation,
+                    false,
                 );
             }
 
@@ -146,14 +143,6 @@ impl Layer {
             for glyph in run.glyphs {
                 let Some(underline) = glyph.underline_opt else {
                     continue;
-                };
-                let fill = match underline.color_opt.or(glyph.color_opt) {
-                    Some(c) => {
-                        let mut fill = from_cosmic_color(c);
-                        fill.a *= color.a;
-                        fill
-                    }
-                    None => color,
                 };
                 let thickness = (glyph.font_size * 0.06).max(1.0);
                 self.fill_decoration(
@@ -163,8 +152,28 @@ impl Layer {
                         width: glyph.w,
                         height: thickness,
                     },
-                    fill,
+                    decoration_color(underline, glyph.color_opt),
                     transformation,
+                    false,
+                );
+            }
+
+            // Strikethrough (over the glyphs, via the overlay batch).
+            for glyph in run.glyphs {
+                let Some(strikethrough) = glyph.strikethrough_opt else {
+                    continue;
+                };
+                let thickness = (glyph.font_size * 0.06).max(1.0);
+                self.fill_decoration(
+                    Rectangle {
+                        x: position.x + glyph.x,
+                        y: position.y + run.line_y - glyph.font_size * 0.3,
+                        width: glyph.w,
+                        height: thickness,
+                    },
+                    decoration_color(strikethrough, glyph.color_opt),
+                    transformation,
+                    true,
                 );
             }
         }
@@ -175,11 +184,12 @@ impl Layer {
         bounds: Rectangle,
         fill: Color,
         transformation: Transformation,
+        overlay: bool,
     ) {
         if bounds.width <= 0.0 || bounds.height <= 0.0 || fill.a <= 0.0 {
             return;
         }
-        self.draw_quad(
+        let quad = to_gpu_quad(
             renderer::Quad {
                 bounds,
                 border: core::Border::default(),
@@ -187,9 +197,14 @@ impl Layer {
                 snap: true,
                 border_only: false,
             },
-            Background::Color(fill),
             transformation,
         );
+        let background = Background::Color(fill);
+        if overlay {
+            self.overlay_quads.add(quad, &background);
+        } else {
+            self.quads.add(quad, &background);
+        }
     }
 
     pub fn draw_text(
@@ -395,6 +410,7 @@ impl graphics::Layer for Layer {
         self.primitives.clear();
         self.text.clear();
         self.images.clear();
+        self.overlay_quads.clear();
         self.pending_meshes.clear();
         self.pending_text.clear();
     }
@@ -420,10 +436,18 @@ impl graphics::Layer for Layer {
             return 5;
         }
 
+        if !self.overlay_quads.is_empty() {
+            return 6;
+        }
+
         usize::MAX
     }
 
     fn end(&self) -> usize {
+        if !self.overlay_quads.is_empty() {
+            return 6;
+        }
+
         if !self.text.is_empty() {
             return 5;
         }
@@ -453,6 +477,7 @@ impl graphics::Layer for Layer {
         self.primitives.append(&mut layer.primitives);
         self.images.append(&mut layer.images);
         self.text.append(&mut layer.text);
+        self.overlay_quads.append(&mut layer.overlay_quads);
     }
 }
 
@@ -466,9 +491,34 @@ impl Default for Layer {
             primitives: primitive::Batch::default(),
             text: text::Batch::default(),
             images: image::Batch::default(),
+            overlay_quads: quad::Batch::default(),
             pending_meshes: Vec::new(),
             pending_text: Vec::new(),
         }
+    }
+}
+
+/// Build a GPU [`Quad`] from a renderer quad under a transformation.
+fn to_gpu_quad(quad: renderer::Quad, transformation: Transformation) -> Quad {
+    let bounds = quad.bounds * transformation;
+
+    Quad {
+        position: [bounds.x, bounds.y],
+        size: [bounds.width, bounds.height],
+        border_color: color::pack(quad.border.color),
+        border_radius: (quad.border.radius * transformation.scale_factor()).into(),
+        border_widths: {
+            let w = quad.border.widths();
+            let s = transformation.scale_factor();
+            [w[0] * s, w[1] * s, w[2] * s, w[3] * s]
+        },
+        shadow_color: color::pack(quad.shadow.color),
+        shadow_offset: (quad.shadow.offset * transformation.scale_factor()).into(),
+        shadow_blur_radius: quad.shadow.blur_radius * transformation.scale_factor(),
+        shadow_inset: quad.shadow.inset as u32,
+        shadow_spread_radius: quad.shadow.spread_radius * transformation.scale_factor(),
+        snap: quad.snap as u32,
+        border_only: quad.border_only as u32,
     }
 }
 

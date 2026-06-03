@@ -86,6 +86,9 @@ pub struct Renderer {
     opacity_stack: Vec<f32>,
 
     quad: quad::State,
+    /// Quads rendered after text (e.g. strikethrough), kept in a separate
+    /// accumulator so they can be drawn in a post-text pass.
+    overlay_quad: quad::State,
     triangle: triangle::State,
     text: text::State,
     text_viewport: text::Viewport,
@@ -124,6 +127,7 @@ impl Renderer {
             opacity_stack: vec![1.0],
 
             quad: quad::State::new(),
+            overlay_quad: quad::State::new(),
             triangle: triangle::State::new(&engine.device, &engine.triangle_pipeline),
             text: text::State::new(),
             text_viewport: engine.text_pipeline.create_viewport(&engine.device),
@@ -206,6 +210,7 @@ impl Renderer {
         self.apply_gradient_fades(&mut encoder, target, viewport);
 
         self.quad.trim();
+        self.overlay_quad.trim();
         self.triangle.trim();
         self.text.trim();
 
@@ -495,6 +500,22 @@ impl Renderer {
 
                 prepare_span.finish();
             }
+
+            if !layer.overlay_quads.is_empty() {
+                let prepare_span = debug::prepare(debug::Primitive::Quad);
+
+                self.overlay_quad.prepare(
+                    &self.engine.quad_pipeline,
+                    &self.engine.device,
+                    &mut self.staging_belt,
+                    encoder,
+                    &layer.overlay_quads,
+                    viewport.projection(),
+                    scale_factor,
+                );
+
+                prepare_span.finish();
+            }
         }
     }
 
@@ -539,6 +560,7 @@ impl Renderer {
             }));
 
         let mut quad_layer = 0;
+        let mut overlay_quad_layer = 0;
         let mut mesh_layer = 0;
         let mut text_layer = 0;
 
@@ -660,6 +682,9 @@ impl Renderer {
                     if !layer.quads.is_empty() {
                         quad_layer += 1;
                     }
+                    if !layer.overlay_quads.is_empty() {
+                        overlay_quad_layer += 1;
+                    }
                     text_layer += layer
                         .text
                         .iter()
@@ -693,6 +718,9 @@ impl Renderer {
                 {
                     if !layer.quads.is_empty() {
                         quad_layer += 1;
+                    }
+                    if !layer.overlay_quads.is_empty() {
+                        overlay_quad_layer += 1;
                     }
                     text_layer += layer
                         .text
@@ -881,6 +909,22 @@ impl Renderer {
                     &mut render_pass,
                 );
                 render_span.finish();
+            }
+
+            // Decorations that must paint over the text (strikethrough). These
+            // render after the glyphs so they are not occluded by them.
+            if !layer.overlay_quads.is_empty() {
+                let render_span = debug::render(debug::Primitive::Quad);
+                self.overlay_quad.render(
+                    &self.engine.quad_pipeline,
+                    overlay_quad_layer,
+                    scissor_rect,
+                    &layer.overlay_quads,
+                    &mut render_pass,
+                );
+                render_span.finish();
+
+                overlay_quad_layer += 1;
             }
         }
 
