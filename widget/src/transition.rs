@@ -6,6 +6,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Operation, Tree, tree};
 use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
@@ -178,11 +179,12 @@ where
         })
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let State::<P> {
             animation,
             key: old_key,
             should_reset,
+            instant,
             ..
         } = tree.state.downcast_mut();
 
@@ -192,7 +194,8 @@ where
             *should_reset = false;
         }
 
-        // Diff is deferred to layout
+        self.element = (self.view)(animation, *instant);
+        tree.diff_children(std::slice::from_mut(&mut self.element));
     }
 
     fn layout(
@@ -201,14 +204,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let State::<P> {
-            animation, instant, ..
-        } = tree.state.downcast_ref();
-
-        self.element = (self.view)(animation, *instant);
         let limits = limits.width(self.width).height(self.height);
-
-        tree.diff_children(std::slice::from_ref(&self.element));
 
         let node =
             self.element
@@ -252,7 +248,7 @@ where
             let just_finished = was_animating && !is_animating;
 
             if is_animating || just_finished {
-                shell.invalidate_layout();
+                shell.invalidate_layout_with(shell::Diff::Perform);
                 shell.request_redraw();
             }
 
