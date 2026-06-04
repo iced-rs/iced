@@ -65,14 +65,17 @@ where
     ///
     /// The `view` closure will receive the animation and an [`Instant`], which can be used for interpolating values.
     /// This will be called every frame until the given `value` is reached.
-    pub fn new(
+    pub fn new<E>(
         init: impl Fn() -> P + 'a,
         value: P::Value,
-        view: impl Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
-    ) -> Self {
+        view: impl Fn(&P, Instant) -> E + 'a,
+    ) -> Self
+    where
+        E: Into<Element<'a, Message, Theme, Renderer>>,
+    {
         Self {
             init: Box::new(init),
-            view: Box::new(view),
+            view: Box::new(move |program, at| view(program, at).into()),
             on_finish: None,
             element: Element::new(space()),
             key: Key::default(),

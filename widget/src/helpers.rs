@@ -2068,18 +2068,19 @@ where
 ///
 /// fn smooth_progress_bar<'a, Message: 'a>(progress: f32) -> Element<'a, Message> {
 ///     transition(progress, || Animation::new(0.).quick(), |animation, now| {
-///         progress_bar(0.0..=1.0, animation.interpolate_with(std::convert::identity, now)).into()
+///         progress_bar(0.0..=1.0, animation.interpolate_with(std::convert::identity, now))
 ///     }).into()
 /// }
 /// ```
-pub fn transition<'a, Message, Theme, Renderer, P>(
+pub fn transition<'a, Message, Theme, Renderer, P, E>(
     value: P::Value,
     init: impl Fn() -> P + 'a,
-    view: impl Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a,
+    view: impl Fn(&P, Instant) -> E + 'a,
 ) -> Transition<'a, Message, Theme, Renderer, P>
 where
     Renderer: core::Renderer,
     P: transition::Program,
+    E: Into<Element<'a, Message, Theme, Renderer>>,
 {
     Transition::new(init, value, view)
 }
