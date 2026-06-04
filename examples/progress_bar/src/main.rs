@@ -1,7 +1,7 @@
-use iced::Element;
 use iced::widget::{
-    center, center_x, checkbox, column, progress_bar, row, slider, vertical_slider,
+    center, center_x, checkbox, column, progress_bar, row, slider, transition, vertical_slider,
 };
+use iced::{Animation, Element};
 
 pub fn main() -> iced::Result {
     iced::run(Progress::update, Progress::view)
@@ -28,7 +28,17 @@ impl Progress {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let bar = progress_bar(0.0..=100.0, self.value).vertical(self.is_vertical);
+        let bar = transition(
+            self.value,
+            || Animation::new(0.).quick(),
+            |animation, at| {
+                progress_bar(
+                    0.0..=100.0,
+                    animation.interpolate_with(std::convert::identity, at),
+                )
+                .vertical(self.is_vertical)
+            },
+        );
 
         column![
             if self.is_vertical {
