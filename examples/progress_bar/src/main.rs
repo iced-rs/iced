@@ -28,13 +28,13 @@ impl Progress {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let bar = progress_bar(0.0..=100.0, self.value);
+        let bar = progress_bar(0.0..=100.0, self.value).vertical(self.is_vertical);
 
         column![
             if self.is_vertical {
                 center(
                     row![
-                        bar.vertical(),
+                        bar,
                         vertical_slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01)
                     ]
                     .spacing(20),
