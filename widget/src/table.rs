@@ -88,9 +88,7 @@ where
         let columns = columns.into_iter();
         let rows = rows.into_iter();
 
-        let mut width = Length::Shrink;
-        let mut height = Length::Shrink;
-
+        let mut width = Length::Fit;
         let mut cells = Vec::with_capacity(columns.size_hint().0 * (1 + rows.size_hint().0));
 
         let (mut columns, views): (Vec<_>, Vec<_>) = columns
@@ -110,28 +108,24 @@ where
             })
             .collect();
 
-        for row in rows {
-            for view in &views {
-                let cell = view(row.clone());
-                let size_hint = cell.as_widget().size_hint();
-
-                height = height.enclose(size_hint.height);
-
-                cells.push(cell);
-            }
-        }
-
         if width == Length::Shrink
             && let Some(first) = columns.first_mut()
         {
             first.width = Length::Fill;
         }
 
+        for row in rows {
+            for view in &views {
+                let cell = view(row.clone());
+                cells.push(cell);
+            }
+        }
+
         Self {
             columns,
             cells,
             width,
-            height,
+            height: Length::Fit,
             padding_x: 10.0,
             padding_y: 5.0,
             separator_x: 1.0,
@@ -214,15 +208,14 @@ where
         })
     }
 
-    fn children(&self) -> Vec<widget::Tree> {
-        self.cells
-            .iter()
-            .map(|cell| widget::Tree::new(cell.as_widget()))
-            .collect()
-    }
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        tree.diff_children(&mut self.cells);
 
-    fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(&self.cells);
+        for cell in &self.cells {
+            let size = cell.as_widget().size();
+
+            self.height = self.height.enclose(size.height);
+        }
     }
 
     fn layout(

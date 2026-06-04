@@ -96,8 +96,8 @@ where
     ) -> Self {
         Scrollable {
             id: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             direction: direction.into(),
             auto_scroll: false,
             content: content.into(),
@@ -105,21 +105,6 @@ where
             class: Theme::default(),
             last_status: None,
         }
-        .enclose()
-    }
-
-    fn enclose(mut self) -> Self {
-        let size_hint = self.content.as_widget().size_hint();
-
-        if self.direction.horizontal().is_none() {
-            self.width = self.width.enclose(size_hint.width);
-        }
-
-        if self.direction.vertical().is_none() {
-            self.height = self.height.enclose(size_hint.height);
-        }
-
-        self
     }
 
     /// Makes the [`Scrollable`] scroll horizontally, with default [`Scrollbar`] settings.
@@ -130,7 +115,7 @@ where
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
-        self.enclose()
+        self
     }
 
     /// Sets the [`widget::Id`] of the [`Scrollable`].
@@ -399,12 +384,18 @@ where
         tree::State::new(State::new())
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+        let size = self.content.as_widget().size();
+
+        if self.direction.horizontal().is_none() {
+            self.width = self.width.enclose(size.width);
+        }
+
+        if self.direction.vertical().is_none() {
+            self.height = self.height.enclose(size.height);
+        }
     }
 
     fn size(&self) -> Size<Length> {

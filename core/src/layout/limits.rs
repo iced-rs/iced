@@ -50,7 +50,7 @@ impl Limits {
     /// Applies a width constraint to the current [`Limits`].
     pub fn width(mut self, width: impl Into<Length>) -> Limits {
         match width.into() {
-            Length::Shrink => {
+            Length::Shrink | Length::Fit => {
                 self.compression.width = true;
             }
             Length::Fixed(amount) => {
@@ -69,7 +69,7 @@ impl Limits {
     /// Applies a height constraint to the current [`Limits`].
     pub fn height(mut self, height: impl Into<Length>) -> Limits {
         match height.into() {
-            Length::Shrink => {
+            Length::Shrink | Length::Fit => {
                 self.compression.height = true;
             }
             Length::Fixed(amount) => {

@@ -55,7 +55,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn diff(&self, _tree: &mut Tree) {
+    fn diff(&mut self, _tree: &mut Tree) {
         // Diff is deferred to layout
     }
 
@@ -76,7 +76,7 @@ where
         let size = limits.max();
 
         self.content = (self.view)(size);
-        tree.diff_children(std::slice::from_ref(&self.content));
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
         let node =
             self.content
