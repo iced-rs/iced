@@ -20,7 +20,7 @@ pub struct Shell<'a, Message> {
     event_status: event::Status,
     redraw_request: window::RedrawRequest,
     input_method: InputMethod,
-    is_layout_invalid: bool,
+    is_layout_invalid: Option<Diff>,
     are_widgets_invalid: bool,
     clipboard: Clipboard,
 }
@@ -34,7 +34,7 @@ impl<'a, Message> Shell<'a, Message> {
             waker,
             event_status: event::Status::Ignored,
             redraw_request: window::RedrawRequest::Wait,
-            is_layout_invalid: false,
+            is_layout_invalid: None,
             are_widgets_invalid: false,
             input_method: InputMethod::Disabled,
             clipboard: Clipboard {
@@ -159,7 +159,7 @@ impl<'a, Message> Shell<'a, Message> {
 
     /// Returns whether the current layout is invalid or not.
     #[must_use]
-    pub fn is_layout_invalid(&self) -> bool {
+    pub fn is_layout_invalid(&self) -> Option<Diff> {
         self.is_layout_invalid
     }
 
@@ -167,16 +167,19 @@ impl<'a, Message> Shell<'a, Message> {
     ///
     /// The shell will relayout the application widgets.
     pub fn invalidate_layout(&mut self) {
-        self.is_layout_invalid = true;
+        self.invalidate_layout_with(Diff::Skip);
+    }
+
+    /// Invalidates the current application layout with the following [`Diff`] strategy.
+    pub fn invalidate_layout_with(&mut self, diff: Diff) {
+        self.is_layout_invalid = Some(diff);
     }
 
     /// Triggers the given function if the layout is invalid, cleaning it in the
     /// process.
-    pub fn revalidate_layout(&mut self, f: impl FnOnce()) {
-        if self.is_layout_invalid {
-            self.is_layout_invalid = false;
-
-            f();
+    pub fn revalidate_layout(&mut self, f: impl FnOnce(Diff)) {
+        if let Some(diff) = self.is_layout_invalid.take() {
+            f(diff);
         }
     }
 
@@ -201,7 +204,11 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn merge<B>(&mut self, mut other: Shell<'_, B>, f: impl Fn(B) -> Message) {
         self.messages.extend(other.messages.drain(..).map(f));
 
-        self.is_layout_invalid = self.is_layout_invalid || other.is_layout_invalid;
+        self.is_layout_invalid = match (self.is_layout_invalid, other.is_layout_invalid) {
+            (Some(a), Some(b)) => Some(a.max(b)),
+            _ => self.is_layout_invalid.or(other.is_layout_invalid),
+        };
+
         self.are_widgets_invalid = self.are_widgets_invalid || other.are_widgets_invalid;
         self.redraw_request = self.redraw_request.min(other.redraw_request);
         self.event_status = self.event_status.merge(other.event_status);
@@ -243,4 +250,13 @@ impl std::fmt::Debug for Waker {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Waker").finish()
     }
+}
+
+/// The diffing strategy to follow when invalidating some layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Diff {
+    /// Skips the diffing step.
+    Skip,
+    /// Performs diffing again before layouting.
+    Perform,
 }

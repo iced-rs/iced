@@ -314,7 +314,7 @@ where
             shell.capture_event();
         }
 
-        local_shell.revalidate_layout(|| shell.invalidate_layout());
+        local_shell.revalidate_layout(|diff| shell.invalidate_layout_with(diff));
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
         shell.clipboard_mut().merge(local_shell.clipboard_mut());
@@ -581,7 +581,7 @@ where
             shell.capture_event();
         }
 
-        local_shell.revalidate_layout(|| shell.invalidate_layout());
+        local_shell.revalidate_layout(|diff| shell.invalidate_layout_with(diff));
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
         shell.clipboard_mut().merge(local_shell.clipboard_mut());
