@@ -6,7 +6,7 @@ use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 
 /// A generic [`Widget`].
 ///
@@ -225,6 +225,30 @@ impl<'a, Message, Theme, Renderer> Borrow<dyn Widget<Message, Theme, Renderer> +
     }
 }
 
+impl<'a, Message, Theme, Renderer> Borrow<dyn Widget<Message, Theme, Renderer> + 'a>
+    for &mut Element<'a, Message, Theme, Renderer>
+{
+    fn borrow(&self) -> &(dyn Widget<Message, Theme, Renderer> + 'a) {
+        self.widget.borrow()
+    }
+}
+
+impl<'a, Message, Theme, Renderer> BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>
+    for Element<'a, Message, Theme, Renderer>
+{
+    fn borrow_mut(&mut self) -> &mut (dyn Widget<Message, Theme, Renderer> + 'a) {
+        self.widget.borrow_mut()
+    }
+}
+
+impl<'a, Message, Theme, Renderer> BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>
+    for &mut Element<'a, Message, Theme, Renderer>
+{
+    fn borrow_mut(&mut self) -> &mut (dyn Widget<Message, Theme, Renderer> + 'a) {
+        self.widget.borrow_mut()
+    }
+}
+
 struct Map<'a, A, B, Theme, Renderer> {
     widget: Box<dyn Widget<A, Theme, Renderer> + 'a>,
     mapper: Box<dyn Fn(A) -> B + 'a>,
@@ -259,20 +283,12 @@ where
         self.widget.state()
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.widget.children()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         self.widget.diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
         self.widget.size()
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.widget.size_hint()
     }
 
     fn layout(
@@ -385,10 +401,6 @@ where
         self.element.widget.size()
     }
 
-    fn size_hint(&self) -> Size<Length> {
-        self.element.widget.size_hint()
-    }
-
     fn tag(&self) -> tree::Tag {
         self.element.widget.tag()
     }
@@ -397,11 +409,7 @@ where
         self.element.widget.state()
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.element.widget.children()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         self.element.widget.diff(tree);
     }
 

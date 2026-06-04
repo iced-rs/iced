@@ -112,20 +112,20 @@ where
         }
     }
 
-    pub(super) fn diff(&self, tree: &mut Tree) {
-        if tree.children.len() == 3 {
-            if let Some(controls) = self.controls.as_ref() {
-                if let Some(compact) = controls.compact.as_ref() {
-                    tree.children[2].diff(compact);
-                }
-
-                tree.children[1].diff(&controls.full);
-            }
-
-            tree.children[0].diff(&self.content);
-        } else {
+    pub(super) fn diff(&mut self, tree: &mut Tree) {
+        if tree.children.len() != 3 {
             *tree = self.state();
         }
+
+        if let Some(controls) = &mut self.controls {
+            if let Some(compact) = &mut controls.compact {
+                tree.children[2].diff(compact);
+            }
+
+            tree.children[1].diff(&mut controls.full);
+        }
+
+        tree.children[0].diff(&mut self.content);
     }
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].

@@ -107,11 +107,7 @@ where
         tree::State::new(Internal { element, hash })
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.with_element(|element| vec![Tree::new(element.as_widget())])
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let current = tree
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
@@ -128,25 +124,17 @@ where
 
             let element = (self.view)(&self.dependency).into();
             current.element = Rc::new(RefCell::new(Some(element)));
-
-            (*self.element.borrow_mut()) = Some(current.element.clone());
-            self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element.as_widget()));
-            });
-        } else {
-            (*self.element.borrow_mut()) = Some(current.element.clone());
         }
+
+        (*self.element.borrow_mut()) = Some(current.element.clone());
+
+        self.with_element_mut(|element| {
+            tree.diff_children(std::slice::from_mut(&mut element.as_widget_mut()));
+        });
     }
 
     fn size(&self) -> Size<Length> {
         self.with_element(|element| element.as_widget().size())
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        Size {
-            width: Length::Shrink,
-            height: Length::Shrink,
-        }
     }
 
     fn layout(

@@ -105,13 +105,12 @@ where
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let content = content.into();
-        let size = content.as_widget().size_hint();
 
         Button {
             content,
             on_press: None,
-            width: size.width.fluid(),
-            height: size.height.fluid(),
+            width: Length::Fit,
+            height: Length::Fit,
             padding: DEFAULT_PADDING,
             clip: false,
             class: Theme::default(),
@@ -213,12 +212,12 @@ where
         tree::State::new(State::default())
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+        let size = self.content.as_widget().size();
+        self.width = self.width.enclose(size.width);
+        self.height = self.height.enclose(size.height);
     }
 
     fn size(&self) -> Size<Length> {

@@ -132,13 +132,13 @@ where
     Renderer: renderer::Renderer,
 {
     fn diff_self(&self) {
-        self.with_element(|element| {
+        self.with_element_mut(|element| {
             self.tree
                 .borrow_mut()
                 .borrow_mut()
                 .as_mut()
                 .unwrap()
-                .diff_children(std::slice::from_ref(&element));
+                .diff_children(std::slice::from_mut(element));
         });
     }
 
@@ -257,11 +257,7 @@ where
         tree::State::new(state)
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![]
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         *self.tree.borrow_mut() = tree.clone();
         self.rebuild_element_if_necessary();
@@ -269,15 +265,6 @@ where
 
     fn size(&self) -> Size<Length> {
         self.with_element(|element| element.as_widget().size())
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.state
-            .borrow()
-            .as_ref()
-            .expect("Borrow instance state")
-            .borrow_component()
-            .size_hint()
     }
 
     fn layout(
@@ -327,7 +314,7 @@ where
             shell.capture_event();
         }
 
-        local_shell.revalidate_layout(|| shell.invalidate_layout());
+        local_shell.revalidate_layout(|diff| shell.invalidate_layout_with(diff));
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
         shell.clipboard_mut().merge(local_shell.clipboard_mut());
@@ -594,7 +581,7 @@ where
             shell.capture_event();
         }
 
-        local_shell.revalidate_layout(|| shell.invalidate_layout());
+        local_shell.revalidate_layout(|diff| shell.invalidate_layout_with(diff));
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
         shell.clipboard_mut().merge(local_shell.clipboard_mut());

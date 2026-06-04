@@ -15,8 +15,12 @@ pub enum Length {
     /// `Length::Fill` is equivalent to `Length::FillPortion(1)`.
     FillPortion(u16),
 
-    /// Fill the least amount of space
+    /// Fill the least amount of space; compressing contents if possible.
     Shrink,
+
+    /// Fill the minimum amount of space based on the intrinsic size of the
+    /// element; normally defined by its contents.
+    Fit,
 
     /// Fill a fixed amount of space
     Fixed(f32),
@@ -32,8 +36,7 @@ impl Length {
         match self {
             Length::Fill => 1,
             Length::FillPortion(factor) => *factor,
-            Length::Shrink => 0,
-            Length::Fixed(_) => 0,
+            Length::Shrink | Length::Fit | Length::Fixed(_) => 0,
         }
     }
 
@@ -41,6 +44,11 @@ impl Length {
     /// [`Length::FillPortion`].
     pub fn is_fill(&self) -> bool {
         self.fill_factor() != 0
+    }
+
+    /// Returns `true` if the [`Length`] is [`Fit`](Self::Fit).
+    pub fn is_fit(&self) -> bool {
+        matches!(self, Self::Fit)
     }
 
     /// Returns the "fluid" variant of the [`Length`].
@@ -51,7 +59,7 @@ impl Length {
     pub fn fluid(&self) -> Self {
         match self {
             Length::Fill | Length::FillPortion(_) => Length::Fill,
-            Length::Shrink | Length::Fixed(_) => Length::Shrink,
+            Length::Shrink | Length::Fit | Length::Fixed(_) => Length::Shrink,
         }
     }
 
@@ -60,7 +68,7 @@ impl Length {
     #[inline]
     pub fn enclose(self, other: Length) -> Self {
         match (self, other) {
-            (Length::Shrink, Length::Fill | Length::FillPortion(_)) => other,
+            (Length::Fit, Length::Fill | Length::FillPortion(_)) => other,
             _ => self,
         }
     }
