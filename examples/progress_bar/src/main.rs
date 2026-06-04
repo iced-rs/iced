@@ -1,3 +1,4 @@
+use iced::animation;
 use iced::widget::{
     center, center_x, checkbox, column, progress_bar, row, slider, transition, vertical_slider,
 };
@@ -30,7 +31,11 @@ impl Progress {
     fn view(&self) -> Element<'_, Message> {
         let bar = transition(
             self.value,
-            || Animation::new(0.).quick(),
+            || {
+                Animation::new(0.)
+                    .slow()
+                    .easing(animation::Easing::EaseOutBounce)
+            },
             |animation, at| {
                 progress_bar(
                     0.0..=100.0,
@@ -45,7 +50,7 @@ impl Progress {
                 center(
                     row![
                         bar,
-                        vertical_slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01)
+                        vertical_slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01),
                     ]
                     .spacing(20),
                 )

@@ -9,7 +9,7 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Operation, Tree, tree};
-use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 use crate::space;
 
 /// The logic of a [`Transition`].
@@ -49,6 +49,9 @@ where
     view: Box<dyn Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a>,
     on_finish: Option<Box<dyn Fn() -> Message + 'a>>,
     element: Element<'a, Message, Theme, Renderer>,
+    next_element: Option<Element<'a, Message, Theme, Renderer>>,
+    last_limits: layout::Limits,
+    new_layout: Option<layout::Node>,
     key: Key,
     id: Option<widget::Id>,
     value: P::Value,
@@ -78,6 +81,9 @@ where
             view: Box::new(move |program, at| view(program, at).into()),
             on_finish: None,
             element: Element::new(space()),
+            next_element: None,
+            new_layout: None,
+            last_limits: layout::Limits::new(Size::ZERO, Size::ZERO),
             key: Key::default(),
             id: None,
             value,
@@ -160,6 +166,7 @@ where
             instant: Instant::now(),
             key: self.key,
             should_reset: false,
+            size: None,
         })
     }
 
@@ -178,7 +185,12 @@ where
             *should_reset = false;
         }
 
-        self.element = (self.view)(animation, *instant);
+        if let Some(next_element) = self.next_element.take() {
+            self.element = next_element;
+        } else {
+            self.element = (self.view)(animation, *instant);
+        }
+
         tree.diff_children(std::slice::from_mut(&mut self.element));
     }
 
@@ -188,6 +200,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        self.last_limits = *limits;
+        self.new_layout = None;
+
         self.element
             .as_widget_mut()
             .layout(&mut tree.children[0], renderer, &limits.loose())
@@ -208,36 +223,62 @@ where
                 animation,
                 instant,
                 should_reset,
+                size,
                 ..
             } = tree.state.downcast_mut();
 
-            let was_animating = animation.is_animating(*instant);
-
-            if *should_reset {
-                *animation = (self.init)();
-                *should_reset = false;
-            }
-
-            *instant = *redraw;
-            animation.go(self.value, *instant);
-
-            let is_animating = animation.is_animating(*instant);
-            let just_finished = was_animating && !is_animating;
-
-            if is_animating || just_finished {
-                shell.invalidate_layout_with(shell::Diff::Perform);
+            if instant == redraw {
                 shell.request_redraw();
-            }
+            } else {
+                let was_animating = animation.is_animating(*instant);
 
-            if just_finished && let Some(on_finish) = &self.on_finish {
-                shell.publish(on_finish());
+                if *should_reset {
+                    *animation = (self.init)();
+                    *should_reset = false;
+                }
+
+                *instant = *redraw;
+                animation.go(self.value, *instant);
+
+                let is_animating = animation.is_animating(*instant);
+                let just_finished = was_animating && !is_animating;
+
+                if is_animating || just_finished {
+                    let size = *size;
+
+                    let mut new = (self.view)(animation, *instant);
+                    tree.diff_children(&mut [new.as_widget_mut()]);
+
+                    let new_size = new.as_widget().size();
+
+                    if size != Some(new_size) {
+                        self.next_element = Some(new);
+                        shell.invalidate_layout_with(shell::Diff::Perform);
+
+                        let state = tree.state.downcast_mut::<State<P>>();
+                        state.size = Some(new_size);
+                    } else {
+                        self.element = new;
+                        self.new_layout = Some(self.element.as_widget_mut().layout(
+                            &mut tree.children[0],
+                            renderer,
+                            &self.last_limits,
+                        ));
+                    }
+
+                    shell.request_redraw();
+                }
+
+                if just_finished && let Some(on_finish) = &self.on_finish {
+                    shell.publish(on_finish());
+                }
             }
         }
 
         self.element.as_widget_mut().update(
             &mut tree.children[0],
             event,
-            layout,
+            self::layout(layout, &self.new_layout),
             cursor,
             renderer,
             shell,
@@ -260,7 +301,7 @@ where
             renderer,
             theme,
             style,
-            layout,
+            self::layout(layout, &self.new_layout),
             cursor,
             viewport,
         );
@@ -276,7 +317,7 @@ where
     ) -> mouse::Interaction {
         self.element.as_widget().mouse_interaction(
             &tree.children[0],
-            layout,
+            self::layout(layout, &self.new_layout),
             cursor,
             viewport,
             renderer,
@@ -290,6 +331,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
+        let layout = self::layout(layout, &self.new_layout);
+
         let mut should_reset = ShouldReset(false);
         operation.custom(self.id.as_ref(), layout.bounds(), &mut should_reset);
 
@@ -312,7 +355,7 @@ where
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         self.element.as_widget_mut().overlay(
             &mut tree.children[0],
-            layout,
+            self::layout(layout, &self.new_layout),
             renderer,
             viewport,
             translation,
@@ -338,6 +381,7 @@ struct State<P: Program> {
     instant: Instant,
     key: Key,
     should_reset: bool,
+    size: Option<Size<Length>>,
 }
 
 #[derive(Default, Clone, Copy, Hash, PartialEq, Eq)]
@@ -386,4 +430,11 @@ pub fn reset_raw(id: impl Into<widget::Id>) -> impl Operation {
     }
 
     Reset(id.into())
+}
+
+fn layout<'a>(current: Layout<'a>, animated: &'a Option<layout::Node>) -> Layout<'a> {
+    animated
+        .as_ref()
+        .map(|new_layout| Layout::with_offset(current.position() - Point::ORIGIN, new_layout))
+        .unwrap_or(current)
 }
