@@ -49,8 +49,6 @@ where
     view: Box<dyn Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a>,
     on_finish: Option<Box<dyn Fn() -> Message + 'a>>,
     element: Element<'a, Message, Theme, Renderer>,
-    width: Length,
-    height: Length,
     key: Key,
     id: Option<widget::Id>,
     value: P::Value,
@@ -76,25 +74,11 @@ where
             init: Box::new(init),
             view: Box::new(view),
             on_finish: None,
-            width: Length::Fill,
-            height: Length::Fill,
             element: Element::new(space()),
             key: Key::default(),
             id: None,
             value,
         }
-    }
-
-    /// Sets the width of the [`Transition`].
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
-        self
-    }
-
-    /// Sets the height of the [`Transition`].
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
-        self
     }
 
     /// Sets the [`widget::Id`] of the [`Transition`].
@@ -160,10 +144,7 @@ where
     P: Program,
 {
     fn size(&self) -> Size<Length> {
-        Size {
-            width: self.width,
-            height: self.height,
-        }
+        self.element.as_widget().size()
     }
 
     fn tag(&self) -> tree::Tag {
@@ -204,16 +185,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
-
-        let node =
-            self.element
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, &limits.loose());
-
-        let size = limits.resolve(self.width, self.height, node.size());
-
-        layout::Node::with_children(size, vec![node])
+        self.element
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, &limits.loose())
     }
 
     fn update(
@@ -260,7 +234,7 @@ where
         self.element.as_widget_mut().update(
             &mut tree.children[0],
             event,
-            layout.children().next().unwrap(),
+            layout,
             cursor,
             renderer,
             shell,
@@ -283,7 +257,7 @@ where
             renderer,
             theme,
             style,
-            layout.children().next().unwrap(),
+            layout,
             cursor,
             viewport,
         );
@@ -299,7 +273,7 @@ where
     ) -> mouse::Interaction {
         self.element.as_widget().mouse_interaction(
             &tree.children[0],
-            layout.children().next().unwrap(),
+            layout,
             cursor,
             viewport,
             renderer,
@@ -320,12 +294,9 @@ where
             tree.state.downcast_mut::<State<P>>().should_reset = true;
         }
 
-        self.element.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            renderer,
-            operation,
-        );
+        self.element
+            .as_widget_mut()
+            .operate(&mut tree.children[0], layout, renderer, operation);
     }
 
     fn overlay<'a>(
@@ -338,7 +309,7 @@ where
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         self.element.as_widget_mut().overlay(
             &mut tree.children[0],
-            layout.children().next().unwrap(),
+            layout,
             renderer,
             viewport,
             translation,
