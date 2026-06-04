@@ -1242,7 +1242,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cryoglyph"
 version = "0.1.0"
-source = "git+https://github.com/playtron-os/cryoglyph.git?rev=7d127a41fdcd6798d29ee3c772542df54976d5d5#7d127a41fdcd6798d29ee3c772542df54976d5d5"
+source = "git+https://github.com/playtron-os/cryoglyph.git?rev=475fb00#475fb00d57358bae86301bae11bc852ecb152b40"
 dependencies = [
  "cosmic-text",
  "etagere",
