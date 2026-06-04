@@ -2036,11 +2036,12 @@ where
 /// The `view` closure will receive the maximum available space for
 /// the [`Responsive`] during layout. You can use this [`Size`] to
 /// conditionally build the contents.
-pub fn responsive<'a, Message, Theme, Renderer>(
-    f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
+pub fn responsive<'a, Message, Theme, Renderer, E>(
+    f: impl Fn(Size) -> E + 'a,
 ) -> Responsive<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
+    E: Into<Element<'a, Message, Theme, Renderer>>,
 {
     Responsive::new(f)
 }
