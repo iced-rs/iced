@@ -37,11 +37,7 @@ impl Progress {
                     .easing(animation::Easing::EaseOutBounce)
             },
             |animation, at| {
-                progress_bar(
-                    0.0..=100.0,
-                    animation.interpolate_with(std::convert::identity, at),
-                )
-                .vertical(self.is_vertical)
+                progress_bar(0.0..=100.0, animation.interpolate(at)).vertical(self.is_vertical)
             },
         );
 
