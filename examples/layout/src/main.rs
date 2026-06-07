@@ -351,7 +351,6 @@ fn responsive_<'a>() -> Element<'a, Message> {
             .width(size.width / 4.0)
             .height(size.width / 4.0)
             .style(container::bordered_box)
-            .into()
         })
         .width(Shrink)
         .height(Shrink),
@@ -365,7 +364,6 @@ fn responsive_<'a>() -> Element<'a, Message> {
             .width(size.width)
             .height(size.height)
             .style(container::bordered_box)
-            .into()
         })
         .width(Shrink)
         .height(Shrink)

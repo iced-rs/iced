@@ -2458,6 +2458,7 @@ version = "0.15.0-dev"
 dependencies = [
  "iced_highlighter",
  "iced_renderer",
+ "iced_runtime",
  "log",
  "num-traits",
  "ouroboros",

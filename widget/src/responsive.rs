@@ -28,9 +28,12 @@ where
     /// The `view` closure will receive the maximum available space for
     /// the [`Responsive`] during layout. You can use this [`Size`] to
     /// conditionally build the contents.
-    pub fn new(view: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a) -> Self {
+    pub fn new<E>(view: impl Fn(Size) -> E + 'a) -> Self
+    where
+        E: Into<Element<'a, Message, Theme, Renderer>>,
+    {
         Self {
-            view: Box::new(view),
+            view: Box::new(move |size| view(size).into()),
             width: Length::Fill,
             height: Length::Fill,
             content: Element::new(space()),
