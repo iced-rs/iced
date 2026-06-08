@@ -348,6 +348,11 @@ impl Renderer {
             renderer.pop_clip_path();
         }
 
+        #[cfg(feature = "image")]
+        self.raster.trim_cache();
+        #[cfg(feature = "svg")]
+        self.vector.trim_cache();
+
         self.text.trim_cache();
     }
 }
