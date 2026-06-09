@@ -82,7 +82,7 @@ impl Limits {
                     length::Fluidity::Shrink => {
                         self.compression.height = true;
                     }
-                    length::Fluidity::Fit => {
+                    length::Fluidity::Fit | length::Fluidity::Bounded => {
                         self.compression.height = false;
                     }
                     length::Fluidity::Fill(_) => {}
@@ -128,7 +128,7 @@ impl Limits {
                     length::Fluidity::Shrink => {
                         self.compression.height = true;
                     }
-                    length::Fluidity::Fit => {
+                    length::Fluidity::Fit | length::Fluidity::Bounded => {
                         self.compression.height = false;
                     }
                     length::Fluidity::Fill(_) => {}

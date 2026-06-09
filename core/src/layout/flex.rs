@@ -189,25 +189,21 @@ where
                 continue;
             }
 
-            let (fill_main, fill_cross) = {
+            let (size_main, size_cross) = {
                 let size = child.as_widget().size();
 
                 axis.pack(size.width, size.height)
             };
 
-            let Length::Bounded {
-                bounds,
-                with: length::Fluidity::Fill(fill_main_factor),
-            } = fill_main
-            else {
+            let Length::Bounded { bounds, .. } = size_main else {
                 continue;
             };
 
-            let (min, max) = match bounds {
-                length::Bounds::Max(max) => (0.0, max),
-                length::Bounds::Both { min, max } => (min, max),
-                length::Bounds::Min(_) => continue,
-            };
+            let fill_main_factor = size_main.fill_factor();
+
+            if fill_main_factor == 0 {
+                continue;
+            }
 
             let max_available = remaining * fill_main_factor as f32 / fill_main_sum as f32;
 
@@ -217,6 +213,12 @@ where
                 max_available
             };
 
+            let (min, max) = match bounds {
+                length::Bounds::Max(max) => (0.0, max),
+                length::Bounds::Both { min, max } => (min, max),
+                length::Bounds::Min(min) => (min, max_available),
+            };
+
             if max > max_available {
                 continue;
             }
@@ -224,7 +226,7 @@ where
             let (min_width, min_height) = axis.pack(min, 0.0);
             let (max_width, max_height) = axis.pack(
                 max,
-                if !cross_compress || fill_cross.fill_factor() == 0 {
+                if !cross_compress || size_cross.fill_factor() == 0 {
                     max_cross
                 } else {
                     cross
@@ -238,12 +240,13 @@ where
             );
 
             let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
+
             cross = cross.max(axis.cross(layout.size()));
+            remaining -= axis.main(layout.size());
+            fill_main_sum -= fill_main_factor;
 
             nodes[i] = layout;
             capped[i] = true;
-            remaining -= max;
-            fill_main_sum -= fill_main_factor;
         }
 
         if remaining == current {

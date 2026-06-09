@@ -230,6 +230,35 @@ mod test {
         );
     }
 
+    #[test]
+    fn layout_fill_max_nested_and_bounded() {
+        assert_layout_eq(
+            row![
+                space().height(10).width(Fill),
+                row![
+                    space().height(20).width(Fill.max(300)),
+                    space().height(30).width(50),
+                ]
+            ]
+            .width(500),
+            node(
+                (0, 0),
+                (500, 30),
+                [
+                    node((0, 0), (250, 10), []),
+                    node(
+                        (250, 0),
+                        (250, 30),
+                        [
+                            node((0, 0), (250 - 50, 20), []),
+                            node((250 - 50, 0), (50, 30), []),
+                        ],
+                    ),
+                ],
+            ),
+        );
+    }
+
     fn assert_layout_eq<'a>(
         element: impl Into<Element<'a, Never, Theme, ()>>,
         expect: layout::Node,

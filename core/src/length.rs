@@ -66,6 +66,7 @@ pub enum Fluidity {
     Fit,
     Fill(u16),
     Shrink,
+    Bounded,
 }
 
 impl Length {
@@ -130,6 +131,10 @@ impl Length {
                 with: Fluidity::Fill(factor),
                 ..
             } => *factor,
+            Length::Bounded {
+                with: Fluidity::Bounded,
+                ..
+            } => 1,
             Length::Shrink | Length::Fit | Length::Fixed(_) | Length::Bounded { .. } => 0,
         }
     }
@@ -164,7 +169,7 @@ impl Length {
     pub fn enclose(self, other: Length) -> Self {
         match (self, other) {
             (
-                Length::Fit,
+                Length::Fit | Length::Bounded { .. },
                 Length::Fill
                 | Length::FillPortion(_)
                 | Length::Bounded {
@@ -172,6 +177,16 @@ impl Length {
                     with: Fluidity::Fill(_),
                 },
             ) => Length::Fill,
+            (
+                Length::Fit,
+                Length::Bounded {
+                    with: Fluidity::Fill(_),
+                    ..
+                },
+            ) => Self::Bounded {
+                bounds: Bounds::Min(0.0),
+                with: Fluidity::Bounded,
+            },
             _ => self,
         }
     }
