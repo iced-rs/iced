@@ -19,6 +19,7 @@
 use crate::Element;
 
 use crate::layout::{Limits, Node};
+use crate::length;
 use crate::widget;
 use crate::{Alignment, Length, Padding, Point, Size};
 
@@ -90,7 +91,7 @@ where
 
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
-    let mut cross = if cross_compress { 0.0 } else { max_cross };
+    let mut cross = 0.0;
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
@@ -110,7 +111,7 @@ where
         if (main_compress || fill_main_factor == 0) && (!cross_compress || fill_cross_factor == 0) {
             let (max_width, max_height) = axis.pack(
                 available,
-                if fill_cross_factor == 0 {
+                if !cross_compress || fill_cross_factor == 0 {
                     max_cross
                 } else {
                     cross
@@ -157,7 +158,8 @@ where
                     continue;
                 }
 
-                let (max_width, max_height) = axis.pack(available, cross);
+                let (max_width, max_height) =
+                    axis.pack(available, if cross_compress { cross } else { max_cross });
 
                 let child_limits = Limits::with_compression(
                     Size::ZERO,
@@ -176,13 +178,88 @@ where
         }
     }
 
-    let remaining = available.max(0.0);
+    let mut remaining = available.max(0.0);
+    let mut capped = vec![false; nodes.len()];
+
+    loop {
+        let current = remaining;
+
+        for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
+            if capped[i] {
+                continue;
+            }
+
+            let (fill_main, fill_cross) = {
+                let size = child.as_widget().size();
+
+                axis.pack(size.width, size.height)
+            };
+
+            let Length::Bounded {
+                bounds,
+                with: length::Fluidity::Fill(fill_main_factor),
+            } = fill_main
+            else {
+                continue;
+            };
+
+            let (min, max) = match bounds {
+                length::Bounds::Max(max) => (0.0, max),
+                length::Bounds::Both { min, max } => (min, max),
+                length::Bounds::Min(_) => continue,
+            };
+
+            let max_available = remaining * fill_main_factor as f32 / fill_main_sum as f32;
+
+            let max_available = if max_available.is_nan() {
+                f32::INFINITY
+            } else {
+                max_available
+            };
+
+            if max > max_available {
+                continue;
+            }
+
+            let (min_width, min_height) = axis.pack(min, 0.0);
+            let (max_width, max_height) = axis.pack(
+                max,
+                if !cross_compress || fill_cross.fill_factor() == 0 {
+                    max_cross
+                } else {
+                    cross
+                },
+            );
+
+            let child_limits = Limits::with_compression(
+                Size::new(min_width, min_height),
+                Size::new(max_width, max_height),
+                compression,
+            );
+
+            let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
+            cross = cross.max(axis.cross(layout.size()));
+
+            nodes[i] = layout;
+            capped[i] = true;
+            remaining -= max;
+            fill_main_sum -= fill_main_factor;
+        }
+
+        if remaining == current {
+            break;
+        }
+    }
 
     // THIRD PASS (conditional)
     // We lay out the elements that are fluid in the main axis.
     // We use the remaining space to evenly allocate space based on fill factors.
     if !main_compress {
         for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
+            if capped[i] {
+                continue;
+            }
+
             let (fill_main_factor, fill_cross_factor) = {
                 let size = child.as_widget().size();
 
@@ -207,7 +284,7 @@ where
                 let (min_width, min_height) = axis.pack(min_main, 0.0);
                 let (max_width, max_height) = axis.pack(
                     max_main,
-                    if fill_cross_factor == 0 {
+                    if !cross_compress || fill_cross_factor == 0 {
                         max_cross
                     } else {
                         cross

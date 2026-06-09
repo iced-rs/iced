@@ -113,7 +113,12 @@ pub fn atomic(limits: &Limits, width: impl Into<Length>, height: impl Into<Lengt
     let width = width.into();
     let height = height.into();
 
-    Node::new(limits.resolve(width, height, Size::ZERO))
+    Node::new(
+        limits
+            .width(width)
+            .height(height)
+            .resolve(width, height, Size::ZERO),
+    )
 }
 
 /// Computes the resulting [`Node`] that fits the [`Limits`] given

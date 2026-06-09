@@ -1,7 +1,7 @@
 use crate::{Alignment, Padding, Point, Rectangle, Size, Vector};
 
 /// The bounds of an element and its children.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Node {
     bounds: Rectangle,
     children: Vec<Node>,

@@ -1,4 +1,5 @@
 #![allow(clippy::manual_clamp)]
+use crate::length;
 use crate::{Length, Size};
 
 /// A set of size constraints for layouting.
@@ -50,8 +51,11 @@ impl Limits {
     /// Applies a width constraint to the current [`Limits`].
     pub fn width(mut self, width: impl Into<Length>) -> Limits {
         match width.into() {
-            Length::Shrink | Length::Fit => {
+            Length::Shrink => {
                 self.compression.width = true;
+            }
+            Length::Fit => {
+                self.compression.width = false;
             }
             Length::Fixed(amount) => {
                 let new_width = amount.min(self.max.width).max(self.min.width);
@@ -59,6 +63,30 @@ impl Limits {
                 self.min.width = new_width;
                 self.max.width = new_width;
                 self.compression.width = false;
+            }
+            Length::Bounded { bounds, with } => {
+                match bounds {
+                    length::Bounds::Min(min) => {
+                        self.min.width = min.min(self.max.width).max(self.min.width);
+                    }
+                    length::Bounds::Max(max) => {
+                        self.max.width = max.min(self.max.width).max(self.min.width);
+                    }
+                    length::Bounds::Both { min, max } => {
+                        self.min.width = min.min(self.max.width).max(self.min.width);
+                        self.max.width = max.min(self.max.width).max(self.min.width);
+                    }
+                }
+
+                match with {
+                    length::Fluidity::Shrink => {
+                        self.compression.height = true;
+                    }
+                    length::Fluidity::Fit => {
+                        self.compression.height = false;
+                    }
+                    length::Fluidity::Fill(_) => {}
+                }
             }
             Length::Fill | Length::FillPortion(_) => {}
         }
@@ -69,8 +97,11 @@ impl Limits {
     /// Applies a height constraint to the current [`Limits`].
     pub fn height(mut self, height: impl Into<Length>) -> Limits {
         match height.into() {
-            Length::Shrink | Length::Fit => {
+            Length::Shrink => {
                 self.compression.height = true;
+            }
+            Length::Fit => {
+                self.compression.height = false;
             }
             Length::Fixed(amount) => {
                 let new_height = amount.min(self.max.height).max(self.min.height);
@@ -78,6 +109,30 @@ impl Limits {
                 self.min.height = new_height;
                 self.max.height = new_height;
                 self.compression.height = false;
+            }
+            Length::Bounded { bounds, with } => {
+                match bounds {
+                    length::Bounds::Min(min) => {
+                        self.min.height = min.min(self.max.height).max(self.min.height);
+                    }
+                    length::Bounds::Max(max) => {
+                        self.max.height = max.min(self.max.height).max(self.min.height);
+                    }
+                    length::Bounds::Both { min, max } => {
+                        self.min.height = min.min(self.max.height).max(self.min.height);
+                        self.max.height = max.min(self.max.height).max(self.min.height);
+                    }
+                }
+
+                match with {
+                    length::Fluidity::Shrink => {
+                        self.compression.height = true;
+                    }
+                    length::Fluidity::Fit => {
+                        self.compression.height = false;
+                    }
+                    length::Fluidity::Fill(_) => {}
+                }
             }
             Length::Fill | Length::FillPortion(_) => {}
         }
@@ -153,13 +208,23 @@ impl Limits {
         intrinsic_size: Size,
     ) -> Size {
         let width = match width.into() {
-            Length::Fill | Length::FillPortion(_) if !self.compression.width => self.max.width,
+            Length::Fill
+            | Length::FillPortion(_)
+            | Length::Bounded {
+                with: length::Fluidity::Fill(_),
+                ..
+            } if !self.compression.width => self.max.width,
             Length::Fixed(amount) => amount.min(self.max.width).max(self.min.width),
             _ => intrinsic_size.width.min(self.max.width).max(self.min.width),
         };
 
         let height = match height.into() {
-            Length::Fill | Length::FillPortion(_) if !self.compression.height => self.max.height,
+            Length::Fill
+            | Length::FillPortion(_)
+            | Length::Bounded {
+                with: length::Fluidity::Fill(_),
+                ..
+            } if !self.compression.height => self.max.height,
             Length::Fixed(amount) => amount.min(self.max.height).max(self.min.height),
             _ => intrinsic_size
                 .height
