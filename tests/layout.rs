@@ -148,6 +148,35 @@ fn layout_fill_min_bounded_distribution() {
     );
 }
 
+#[test]
+fn layout_fill_min_nested() {
+    // The share is 250, but the first element takes 260 and the nested row gets 240.
+    // The 240 is shared as 120, but the second element takes 220 and the first fluid
+    // gets the rest (20).
+    assert_layout_eq(
+        row![
+            space().height(10).width(Fill.min(260)),
+            row![
+                space().height(30).width(Fill),
+                space().height(20).width(Fill.min(220)),
+            ]
+        ]
+        .width(500),
+        node(
+            (0, 0),
+            (500, 30),
+            [
+                node((0, 0), (260, 10), []),
+                node(
+                    (260, 0),
+                    (240, 30),
+                    [node((0, 0), (20, 30), []), node((20, 0), (220, 20), [])],
+                ),
+            ],
+        ),
+    );
+}
+
 fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
     let mut element = element.into();
 
