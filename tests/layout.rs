@@ -108,11 +108,30 @@ fn layout_fill_max_nested_and_bounded() {
 }
 
 #[test]
-fn layout_fill_min_binds() {
-    // Natural share is 300 each; min(400) pins the first child,
-    // and the remaining 200 flows to the second Fill.
+fn layout_fill_min_bounded() {
+    // Natural share is 300 each; min(400) is laid out first
+    // and the remaining 200 flows to the first element.
     assert_layout_eq(
         row![
+            space().height(10).width(Fill),
+            space().height(10).width(Fill.min(400)),
+        ]
+        .width(600),
+        node(
+            (0, 0),
+            (600, 10),
+            [node((0, 0), (200, 10), []), node((200, 0), (400, 10), [])],
+        ),
+    );
+}
+
+#[test]
+fn layout_fill_min_bounded_distribution() {
+    // Like the previous case, but the remaining 200 is distributed by the
+    // two fluid elements.
+    assert_layout_eq(
+        row![
+            space().height(10).width(Fill),
             space().height(10).width(Fill.min(400)),
             space().height(10).width(Fill),
         ]
@@ -120,7 +139,11 @@ fn layout_fill_min_binds() {
         node(
             (0, 0),
             (600, 10),
-            [node((0, 0), (400, 10), []), node((400, 0), (200, 10), [])],
+            [
+                node((0, 0), (100, 10), []),
+                node((100, 0), (400, 10), []),
+                node((500, 0), (100, 10), []),
+            ],
         ),
     );
 }
