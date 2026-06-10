@@ -1,0 +1,153 @@
+//! Layout tests with the built-in widgets.
+use iced::advanced::layout;
+use iced::advanced::widget;
+use iced::widget::{column, row, space};
+use iced::{Element, Fill, Never, Pixels, Size, Theme};
+
+const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
+    Size::ZERO,
+    Size {
+        width: 1024.0,
+        height: 768.0,
+    },
+);
+
+#[test]
+fn layout_fill_max() {
+    assert_layout_eq(
+        column![
+            space().height(30).width(Fill.max(300)),
+            space().width(Fill.max(400))
+        ],
+        node(
+            (0, 0),
+            (400, 30),
+            [node((0, 0), (300, 30), []), node((0, 30), (400, 0), [])],
+        ),
+    );
+}
+
+#[test]
+fn layout_fill_max_combined() {
+    // The fixed element gets laid out first, then the bounded element, and finally
+    // the unbounded fluid one.
+    assert_layout_eq(
+        row![
+            space().height(10).width(Fill),
+            space().height(20).width(Fill.max(300)),
+            space().height(30).width(50),
+        ],
+        node(
+            (0, 0),
+            (1024, 30),
+            [
+                node((0, 0), (1024 - 300 - 50, 10), []),
+                node((1024 - 300 - 50, 0), (300, 20), []),
+                node((1024 - 50, 0), (50, 30), []),
+            ],
+        ),
+    );
+}
+
+#[test]
+fn layout_fill_max_nested() {
+    // A nested row with bounded contents is laid out first over other fluid
+    // elements, which get the leftovers.
+    assert_layout_eq(
+        row![
+            space().height(10).width(Fill),
+            row![
+                space().height(20).width(Fill.max(300)),
+                space().height(30).width(50),
+            ]
+        ],
+        node(
+            (0, 0),
+            (1024, 30),
+            [
+                node((0, 0), (1024 - 300 - 50, 10), []),
+                node(
+                    (1024 - 300 - 50, 0),
+                    (300 + 50, 30),
+                    [node((0, 0), (300, 20), []), node((300, 0), (50, 30), [])],
+                ),
+            ],
+        ),
+    );
+}
+
+#[test]
+fn layout_fill_max_nested_and_bounded() {
+    // If the bounded constraints do not activate, the nested row behaves like
+    // another fluid element.
+    assert_layout_eq(
+        row![
+            space().height(10).width(Fill),
+            row![
+                space().height(20).width(Fill.max(300)),
+                space().height(30).width(50),
+            ]
+        ]
+        .width(500),
+        node(
+            (0, 0),
+            (500, 30),
+            [
+                node((0, 0), (250, 10), []),
+                node(
+                    (250, 0),
+                    (250, 30),
+                    [
+                        node((0, 0), (250 - 50, 20), []),
+                        node((250 - 50, 0), (50, 30), []),
+                    ],
+                ),
+            ],
+        ),
+    );
+}
+
+#[test]
+fn layout_fill_min_binds() {
+    // Natural share is 300 each; min(400) pins the first child,
+    // and the remaining 200 flows to the second Fill.
+    assert_layout_eq(
+        row![
+            space().height(10).width(Fill.min(400)),
+            space().height(10).width(Fill),
+        ]
+        .width(600),
+        node(
+            (0, 0),
+            (600, 10),
+            [node((0, 0), (400, 10), []), node((400, 0), (200, 10), [])],
+        ),
+    );
+}
+
+fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
+    let mut element = element.into();
+
+    let mut tree = widget::Tree::new(&element);
+    element.as_widget_mut().diff(&mut tree);
+
+    let layout = element
+        .as_widget_mut()
+        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+
+    assert_eq!(layout, expect);
+}
+
+fn node(
+    (x, y): (impl Into<Pixels>, impl Into<Pixels>),
+    (width, height): (impl Into<Pixels>, impl Into<Pixels>),
+    children: impl IntoIterator<Item = layout::Node>,
+) -> layout::Node {
+    let x = x.into().0;
+    let y = y.into().0;
+    let width = width.into().0;
+    let height = height.into().0;
+
+    layout::Node::with_children(Size { width, height }, children.into_iter().collect())
+        .move_to((x, y))
+}

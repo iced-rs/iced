@@ -219,9 +219,11 @@ where
                 length::Bounds::Min(min) => (min, max_available),
             };
 
-            if max > max_available {
+            if min < max_available && max > max_available {
                 continue;
             }
+
+            let max = max.max(min).min(remaining);
 
             let (min_width, min_height) = axis.pack(min, 0.0);
             let (max_width, max_height) = axis.pack(
