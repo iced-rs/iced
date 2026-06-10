@@ -73,6 +73,9 @@ where
 {
     use winit::event_loop::EventLoop;
 
+    #[cfg(target_arch = "wasm32")]
+    detect_host_platform();
+
     let boot_span = debug::boot();
     let settings = program.settings();
     let window_settings = program.window();
@@ -1920,4 +1923,25 @@ fn run_clipboard<Message: Send>(
             });
         });
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn detect_host_platform() {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+
+    let navigator = window.navigator();
+    let platform = navigator.platform().unwrap_or_default();
+
+    let is_macos = if platform.is_empty() {
+        navigator
+            .user_agent()
+            .unwrap_or_default()
+            .contains("Mac OS X")
+    } else {
+        platform.starts_with("Mac")
+    };
+
+    core::keyboard::set_runtime_macos(is_macos);
 }
