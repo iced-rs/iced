@@ -624,9 +624,11 @@ where
         );
 
         match self.height {
-            Length::Fill | Length::FillPortion(_) | Length::Fixed(_) | Length::Bounded { .. } => {
-                layout::Node::new(limits.max())
-            }
+            Length::Fill
+            | Length::FillPortion(_)
+            | Length::Fixed(_)
+            | Length::Bounded { .. }
+            | Length::Fluid(_) => layout::Node::new(limits.max()),
             Length::Shrink | Length::Fit => {
                 let min_bounds = internal.editor.min_bounds();
 

@@ -9,7 +9,7 @@ pub enum Length {
     /// This is the default sizing strategy of most widgets.
     Fit,
 
-    /// Fill all the remaining space
+    /// Fill all the remaining space.
     Fill,
 
     /// Fill a portion of the remaining space relative to other elements.
@@ -24,7 +24,7 @@ pub enum Length {
     /// Fill the least amount of space; compressing contents if possible.
     Shrink,
 
-    /// Fill a fixed amount of space
+    /// Fill a fixed amount of space in pixels.
     Fixed(f32),
 
     /// Fill a certain amount of space inside the given [`Bounds`] with some [`Fluidity`].
@@ -34,6 +34,15 @@ pub enum Length {
         /// The strategy in which the space should be filled.
         with: Fluidity,
     },
+
+    /// TODO
+    Fluid(Constraint),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Constraint {
+    Min,
+    Max,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -66,7 +75,6 @@ pub enum Fluidity {
     Fit,
     Fill(u16),
     Shrink,
-    Bounded,
 }
 
 impl Length {
@@ -75,7 +83,7 @@ impl Length {
         let min = min.into().0;
 
         let with = match self {
-            Self::Fit => Fluidity::Fit,
+            Self::Fit | Self::Fluid(_) => Fluidity::Fit,
             Self::Fill => Fluidity::Fill(1),
             Self::FillPortion(factor) => Fluidity::Fill(factor),
             Self::Shrink => Fluidity::Shrink,
@@ -99,7 +107,7 @@ impl Length {
         let max = max.into().0;
 
         let with = match self {
-            Self::Fit => Fluidity::Fit,
+            Self::Fit | Self::Fluid(_) => Fluidity::Fit,
             Self::Fill => Fluidity::Fill(1),
             Self::FillPortion(factor) => Fluidity::Fill(factor),
             Self::Shrink => Fluidity::Shrink,
@@ -131,10 +139,7 @@ impl Length {
                 with: Fluidity::Fill(factor),
                 ..
             } => *factor,
-            Length::Bounded {
-                with: Fluidity::Bounded,
-                ..
-            } => 1,
+            Length::Fluid(_) => 1,
             Length::Shrink | Length::Fit | Length::Fixed(_) | Length::Bounded { .. } => 0,
         }
     }
@@ -181,12 +186,12 @@ impl Length {
                 Length::Fit,
                 Length::Bounded {
                     with: Fluidity::Fill(_),
-                    ..
+                    bounds,
                 },
-            ) => Self::Bounded {
-                bounds: Bounds::Min(0.0),
-                with: Fluidity::Bounded,
-            },
+            ) => Self::Fluid(match bounds {
+                Bounds::Min(_) => Constraint::Min,
+                Bounds::Max(_) | Bounds::Both { .. } => Constraint::Max,
+            }),
             _ => self,
         }
     }

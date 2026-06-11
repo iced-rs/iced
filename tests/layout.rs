@@ -177,6 +177,61 @@ fn layout_fill_min_nested() {
     );
 }
 
+#[test]
+fn layout_fill_min_max() {
+    // The share is 250, but the first element takes 260 and the nested row gets 240.
+    // The 240 is shared as 120, but the second element can only take 10 and the first
+    // one gets the rest (230).
+    assert_layout_eq(
+        row![
+            space().height(10).width(Fill.min(260)),
+            row![
+                space().height(20).width(Fill.min(220)),
+                space().height(30).width(Fill.max(10)),
+            ]
+        ]
+        .width(500),
+        node(
+            (0, 0),
+            (500, 30),
+            [
+                node((0, 0), (260, 10), []),
+                node(
+                    (260, 0),
+                    (240, 30),
+                    [node((0, 0), (230, 20), []), node((230, 0), (10, 30), [])],
+                ),
+            ],
+        ),
+    );
+}
+
+#[test]
+fn layout_fill_min_max_reverse() {
+    assert_layout_eq(
+        row![
+            row![
+                space().height(20).width(Fill.min(220)),
+                space().height(30).width(Fill.max(10)),
+            ],
+            space().height(10).width(Fill.min(260)),
+        ]
+        .width(500),
+        node(
+            (0, 0),
+            (500, 30),
+            [
+                node(
+                    (0, 0),
+                    (240, 30),
+                    [node((0, 0), (230, 20), []), node((230, 0), (10, 30), [])],
+                ),
+                node((240, 0), (260, 10), []),
+            ],
+        ),
+    );
+}
+
 fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
     let mut element = element.into();
 

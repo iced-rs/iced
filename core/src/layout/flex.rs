@@ -91,6 +91,8 @@ where
 
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
+    let mut some_fill_max = false;
+    let mut some_fill_min = false;
     let mut cross = 0.0;
     let mut available = axis.main(limits.max()) - total_spacing;
 
@@ -102,11 +104,32 @@ where
     // If we need to compress the cross axis, then we skip any of these elements
     // that are also fluid in the cross axis.
     for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
-        let (fill_main_factor, fill_cross_factor) = {
+        let (size_main, size_cross) = {
             let size = child.as_widget().size();
 
-            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+            axis.pack(size.width, size.height)
         };
+
+        match size_main {
+            Length::Bounded {
+                with: length::Fluidity::Fill(_),
+                bounds: length::Bounds::Min(_),
+            }
+            | Length::Fluid(length::Constraint::Min) => {
+                some_fill_min = true;
+            }
+            Length::Bounded {
+                with: length::Fluidity::Fill(_),
+                bounds: length::Bounds::Max(_) | length::Bounds::Both { .. },
+            }
+            | Length::Fluid(length::Constraint::Max) => {
+                some_fill_max = true;
+            }
+            _ => {}
+        }
+
+        let fill_main_factor = size_main.fill_factor();
+        let fill_cross_factor = size_cross.fill_factor();
 
         if (main_compress || fill_main_factor == 0) && (!cross_compress || fill_cross_factor == 0) {
             let (max_width, max_height) = axis.pack(
@@ -181,7 +204,21 @@ where
     let mut remaining = available.max(0.0);
     let mut capped = vec![false; nodes.len()];
 
-    loop {
+    #[derive(Debug, Clone, Copy)]
+    enum Stage {
+        Max,
+        Min,
+    }
+
+    let mut step = if some_fill_max {
+        Some(Stage::Max)
+    } else if some_fill_min {
+        Some(Stage::Min)
+    } else {
+        None
+    };
+
+    while let Some(stage) = step {
         let current = remaining;
 
         for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
@@ -195,15 +232,30 @@ where
                 axis.pack(size.width, size.height)
             };
 
-            let Length::Bounded { bounds, .. } = size_main else {
-                continue;
-            };
-
             let fill_main_factor = size_main.fill_factor();
 
             if fill_main_factor == 0 {
                 continue;
             }
+
+            let bounds = match stage {
+                Stage::Max => match size_main {
+                    Length::Bounded {
+                        bounds: bounds @ (length::Bounds::Max(_) | length::Bounds::Both { .. }),
+                        ..
+                    } => bounds,
+                    Length::Fluid(length::Constraint::Max) => length::Bounds::Min(0.0),
+                    _ => continue,
+                },
+                Stage::Min => match size_main {
+                    Length::Bounded {
+                        bounds: bounds @ length::Bounds::Min(_),
+                        ..
+                    } => bounds,
+                    Length::Fluid(length::Constraint::Min) => length::Bounds::Min(0.0),
+                    _ => continue,
+                },
+            };
 
             let max_available = remaining * fill_main_factor as f32 / fill_main_sum as f32;
 
@@ -219,8 +271,10 @@ where
                 length::Bounds::Min(min) => (min, max_available),
             };
 
-            if min < max_available && max > max_available {
-                continue;
+            match stage {
+                Stage::Max if max > max_available => continue,
+                Stage::Min if min < max_available => continue,
+                _ => {}
             }
 
             let max = max.max(min).min(remaining);
@@ -252,7 +306,10 @@ where
         }
 
         if remaining == current {
-            break;
+            step = match stage {
+                Stage::Max if some_fill_min => Some(Stage::Min),
+                _ => None,
+            };
         }
     }
 
