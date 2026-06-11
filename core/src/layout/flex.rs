@@ -115,14 +115,14 @@ where
                 with: length::Fluidity::Fill(_),
                 bounds: length::Bounds::Min(_),
             }
-            | Length::Fluid(length::Constraint::Min) => {
+            | Length::Fluid(length::Constraint::Min(_)) => {
                 some_fill_min = true;
             }
             Length::Bounded {
                 with: length::Fluidity::Fill(_),
                 bounds: length::Bounds::Max(_) | length::Bounds::Both { .. },
             }
-            | Length::Fluid(length::Constraint::Max) => {
+            | Length::Fluid(length::Constraint::Max { .. }) => {
                 some_fill_max = true;
             }
             _ => {}
@@ -244,7 +244,7 @@ where
                         bounds: bounds @ (length::Bounds::Max(_) | length::Bounds::Both { .. }),
                         ..
                     } => bounds,
-                    Length::Fluid(length::Constraint::Max) => length::Bounds::Min(0.0),
+                    Length::Fluid(length::Constraint::Max { min }) => length::Bounds::Min(min),
                     _ => continue,
                 },
                 Stage::Min => match size_main {
@@ -252,7 +252,7 @@ where
                         bounds: bounds @ length::Bounds::Min(_),
                         ..
                     } => bounds,
-                    Length::Fluid(length::Constraint::Min) => length::Bounds::Min(0.0),
+                    Length::Fluid(length::Constraint::Min(min)) => length::Bounds::Min(min),
                     _ => continue,
                 },
             };

@@ -232,6 +232,25 @@ fn layout_fill_min_max_reverse() {
     );
 }
 
+#[test]
+fn layout_fill_min_nested_competing() {
+    assert_layout_eq(
+        row![
+            space().height(20).width(Fill.min(220)),
+            row![space().height(10).width(Fill.min(260))],
+        ]
+        .width(500),
+        node(
+            (0, 0),
+            (500, 20),
+            [
+                node((0, 0), (240, 20), []),
+                node((240, 0), (260, 10), [node((0, 0), (260, 10), [])]),
+            ],
+        ),
+    );
+}
+
 fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
     let mut element = element.into();
 

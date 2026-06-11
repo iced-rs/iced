@@ -226,8 +226,8 @@ where
             for child in &self.children {
                 let size = child.as_widget().size();
 
-                self.width = self.width.enclose(size.width);
-                self.height = self.height.enclose(size.height);
+                self.width = self.width.cross(size.width);
+                self.height = self.height.stack(size.height);
             }
         }
     }

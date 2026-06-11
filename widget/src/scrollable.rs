@@ -390,11 +390,11 @@ where
         let size = self.content.as_widget().size();
 
         if self.direction.horizontal().is_none() {
-            self.width = self.width.enclose(size.width);
+            self.width = self.width.stack(size.width);
         }
 
         if self.direction.vertical().is_none() {
-            self.height = self.height.enclose(size.height);
+            self.height = self.height.stack(size.height);
         }
     }
 

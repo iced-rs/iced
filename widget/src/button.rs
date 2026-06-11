@@ -216,8 +216,8 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
         let size = self.content.as_widget().size();
-        self.width = self.width.enclose(size.width);
-        self.height = self.height.enclose(size.height);
+        self.width = self.width.stack(size.width);
+        self.height = self.height.stack(size.height);
     }
 
     fn size(&self) -> Size<Length> {

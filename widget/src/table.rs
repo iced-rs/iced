@@ -93,7 +93,7 @@ where
 
         let (mut columns, views): (Vec<_>, Vec<_>) = columns
             .map(|column| {
-                width = width.enclose(column.width);
+                width = width.stack(column.width);
 
                 cells.push(column.header);
 
@@ -214,7 +214,7 @@ where
         for cell in &self.cells {
             let size = cell.as_widget().size();
 
-            self.height = self.height.enclose(size.height);
+            self.height = self.height.stack(size.height);
         }
     }
 

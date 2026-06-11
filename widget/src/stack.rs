@@ -129,8 +129,8 @@ where
         if let Some(base) = self.children.get(self.base_layer) {
             let size = base.as_widget().size();
 
-            self.width = self.width.enclose(size.width);
-            self.height = self.height.enclose(size.height);
+            self.width = self.width.cross(size.width);
+            self.height = self.height.cross(size.height);
         }
     }
 
