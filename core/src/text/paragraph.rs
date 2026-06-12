@@ -1,7 +1,7 @@
 //! Draw paragraphs.
 use crate::alignment;
 use crate::text::{
-    Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+    Alignment, Decoration, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
 };
 use crate::{Pixels, Point, Rectangle, Size};
 
@@ -72,6 +72,13 @@ pub trait Paragraph: Sized + Default {
 
     /// Returns the distance to the given grapheme index in the [`Paragraph`].
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
+
+    /// The bounds of the given `decoration` line for the span at `index`,
+    /// one rectangle per line the span occupies. Empty by default.
+    fn decoration_bounds(&self, index: usize, decoration: Decoration) -> Vec<Rectangle> {
+        let _ = (index, decoration);
+        Vec::new()
+    }
 
     /// Returns the minimum width that can fit the contents of the [`Paragraph`].
     fn min_width(&self) -> f32 {

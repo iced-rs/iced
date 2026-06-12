@@ -1,7 +1,9 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Alignment, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping};
+use crate::core::text::{
+    Alignment, Decoration, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -177,7 +179,13 @@ impl core::text::Paragraph for Paragraph {
                     attrs
                 };
 
-                (span.text.as_ref(), attrs.metadata(i))
+                let mut attrs = attrs.metadata(i);
+                if span.underline || span.link.is_some() {
+                    attrs.text_decoration.underline = cosmic_text::UnderlineStyle::Single;
+                }
+                attrs.text_decoration.strikethrough = span.strikethrough;
+
+                (span.text.as_ref(), attrs)
             }),
             &text::to_attributes(text.font),
             cosmic_text::Shaping::Advanced,
@@ -425,6 +433,67 @@ impl core::text::Paragraph for Paragraph {
             (glyph.x + glyph.x_offset * glyph.font_size + advance) / self.0.hint_factor,
             (glyph.y - glyph.y_offset * glyph.font_size) / self.0.hint_factor,
         ))
+    }
+
+    fn decoration_bounds(&self, index: usize, decoration: Decoration) -> Vec<Rectangle> {
+        let internal = self.internal();
+        let scale = 1.0 / self.0.hint_factor;
+        let mut bounds = Vec::new();
+
+        for run in internal.buffer.layout_runs() {
+            // Each span's glyphs carry their `Span` index as metadata (set in
+            // `with_spans`), mapping a decoration span to its `Span`.
+            for span in run.decorations.iter().filter(|span| {
+                run.glyphs
+                    .get(span.glyph_range.start)
+                    .is_some_and(|glyph| glyph.metadata == index)
+            }) {
+                let x_range = span.x_range(&run);
+                if x_range.is_empty() {
+                    continue;
+                }
+
+                let decorations = span.data.text_decoration;
+                let font_size = span.font_size;
+                let mut line = |y: f32, thickness: f32| {
+                    bounds.push(
+                        Rectangle::new(
+                            Point::new(x_range.start, y),
+                            Size::new(x_range.end - x_range.start, thickness.max(1.0)),
+                        ) * scale,
+                    );
+                };
+
+                match decoration {
+                    Decoration::Underline
+                        if decorations.underline != cosmic_text::UnderlineStyle::None =>
+                    {
+                        let metrics = span.data.underline_metrics;
+                        let y = run.line_y - metrics.offset * font_size;
+                        let thickness = metrics.thickness * font_size;
+                        line(y, thickness);
+
+                        if decorations.underline == cosmic_text::UnderlineStyle::Double {
+                            line(y + 2.0 * thickness.max(1.0), thickness);
+                        }
+                    }
+                    Decoration::Strikethrough if decorations.strikethrough => {
+                        let metrics = span.data.strikethrough_metrics;
+                        line(
+                            run.line_y - metrics.offset * font_size,
+                            metrics.thickness * font_size,
+                        );
+                    }
+                    Decoration::Overline if decorations.overline => {
+                        let y = (run.line_y - span.data.ascent * font_size).max(run.line_top);
+                        line(y, span.data.underline_metrics.thickness * font_size);
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        bounds
     }
 }
 
