@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["image", "debug"]
+iced.features = ["image", "debug", "tokio"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tracing-subscriber = "0.3"
@@ -15,7 +15,7 @@ open = "5"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced.workspace = true
-iced.features = ["image", "debug", "webgl", "fira-sans"]
+iced.features = ["image", "debug", "tokio", "webgl", "fira-sans"]
 
 console_error_panic_hook = "0.1"
 console_log = "1.0"
