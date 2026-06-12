@@ -320,17 +320,24 @@ impl Span {
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
                 let span = if *code {
-                    span.font(style.inline_code_font)
+                    let span = span
+                        .font(style.inline_code_font)
                         .color(style.inline_code_color)
                         .background(style.inline_code_highlight.background)
                         .border(style.inline_code_highlight.border)
-                        .padding(style.inline_code_padding)
+                        .padding(style.inline_code_padding);
+
+                    if let Some(size) = style.inline_code_size {
+                        span.size(size)
+                    } else {
+                        span
+                    }
                 } else if *strong || *emphasis {
                     let use_underline = *emphasis && style.emphasis_as_underline;
 
                     span.font(Font {
                         weight: if *strong {
-                            font::Weight::Bold
+                            style.strong_weight
                         } else {
                             font::Weight::Normal
                         },
@@ -1131,6 +1138,16 @@ pub struct Style {
     /// Useful for documents converted from HTML where `<u>` tags were mapped to
     /// markdown emphasis. Defaults to `false`.
     pub emphasis_as_underline: bool,
+    /// The text size of inline code.
+    ///
+    /// Useful to render inline code slightly smaller than the surrounding
+    /// prose (e.g. `0.9em` of the base size). When set to `None`, inline code
+    /// follows the surrounding text size. Defaults to `None`.
+    pub inline_code_size: Option<Pixels>,
+    /// The font [`Weight`](font::Weight) applied to strong (`**bold**`) text.
+    ///
+    /// Defaults to [`font::Weight::Bold`].
+    pub strong_weight: font::Weight,
 }
 
 impl Style {
@@ -1156,6 +1173,8 @@ impl Style {
                 0.3,
             ),
             emphasis_as_underline: false,
+            inline_code_size: None,
+            strong_weight: font::Weight::Bold,
         }
     }
 }
@@ -1542,6 +1561,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    None::<fn(Uri) -> Message>,
                 )
             }
             Item::List { start, bullets } => {
@@ -1559,6 +1579,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    None::<fn(Uri) -> Message>,
                 )
             }
             Item::Rule => rule::horizontal(settings.rule_height).into(),
@@ -1594,6 +1615,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    None::<fn(Uri) -> Message>,
                 )
             }
             Item::Table { columns, rows } => {
@@ -1611,6 +1633,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    None::<fn(Uri) -> Message>,
                 )
             }
         }
@@ -1720,6 +1743,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    Some(V::on_link_click),
                 )
             }
             Item::List { start, bullets } => {
@@ -1737,6 +1761,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    Some(V::on_link_click),
                 )
             }
             Item::Quote(nested) => {
@@ -1753,6 +1778,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    Some(V::on_link_click),
                 )
             }
             Item::Rule => rule::horizontal(settings.rule_height).into(),
@@ -1775,6 +1801,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    Some(V::on_link_click),
                 )
             }
         }
@@ -1794,6 +1821,7 @@ fn code_block_selectable<'a, Message, Theme, Renderer>(
     on_start: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_drag: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_end: impl Fn() -> Message + Clone + 'a,
+    on_link_click: Option<impl Fn(Uri) -> Message + Clone + 'a>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
@@ -1823,8 +1851,10 @@ where
             let on_s = on_start.clone();
             let on_d = on_drag.clone();
             let on_e = on_end.clone();
+            let on_l = on_link_click.clone();
 
             rich_text(line.spans(code_style))
+                .on_link_click_maybe(on_l)
                 .font(Font::MONOSPACE)
                 .size(settings.code_size)
                 .letter_spacing_maybe(settings.letter_spacing)
@@ -1861,6 +1891,7 @@ fn list_selectable<'a, Message, Theme, Renderer>(
     on_start: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_drag: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_end: impl Fn() -> Message + Clone + 'a,
+    on_link_click: Option<impl Fn(Uri) -> Message + Clone + 'a>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
@@ -1904,8 +1935,10 @@ where
                         let on_s = on_start.clone();
                         let on_d = on_drag.clone();
                         let on_e = on_end.clone();
+                        let on_l = on_link_click.clone();
 
                         rich_text(text.spans(settings.style))
+                            .on_link_click_maybe(on_l)
                             .font(settings.style.font)
                             .size(settings.text_size)
                             .letter_spacing_maybe(settings.letter_spacing)
@@ -1938,6 +1971,7 @@ where
                             on_start.clone(),
                             on_drag.clone(),
                             on_end.clone(),
+                            on_link_click.clone(),
                         )
                     }
                     _ => crate::text("").into(),
@@ -1967,6 +2001,7 @@ fn quote_selectable<'a, Message, Theme, Renderer>(
     on_start: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_drag: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_end: impl Fn() -> Message + Clone + 'a,
+    on_link_click: Option<impl Fn(Uri) -> Message + Clone + 'a>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
@@ -1985,8 +2020,10 @@ where
                 let on_s = on_start.clone();
                 let on_d = on_drag.clone();
                 let on_e = on_end.clone();
+                let on_l = on_link_click.clone();
 
                 rich_text(text.spans(settings.style))
+                    .on_link_click_maybe(on_l)
                     .font(settings.style.font)
                     .size(settings.text_size)
                     .letter_spacing_maybe(settings.letter_spacing)
@@ -2008,6 +2045,7 @@ where
                 let on_s = on_start.clone();
                 let on_d = on_drag.clone();
                 let on_e = on_end.clone();
+                let on_l = on_link_click.clone();
 
                 let size = match level {
                     HeadingLevel::H1 => settings.h1_size,
@@ -2017,6 +2055,7 @@ where
                 };
 
                 rich_text(text.spans(settings.style))
+                    .on_link_click_maybe(on_l)
                     .font(settings.style.font)
                     .size(size)
                     .letter_spacing_maybe(settings.letter_spacing)
@@ -2044,6 +2083,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    on_link_click.clone(),
                 )
             }
             Item::List { start, bullets } => {
@@ -2060,6 +2100,7 @@ where
                     on_start.clone(),
                     on_drag.clone(),
                     on_end.clone(),
+                    on_link_click.clone(),
                 )
             }
             _ => crate::text("").into(),
@@ -2087,6 +2128,7 @@ fn table_selectable<'a, Message, Theme, Renderer>(
     on_start: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_drag: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_end: impl Fn() -> Message + Clone + 'a,
+    on_link_click: Option<impl Fn(Uri) -> Message + Clone + 'a>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
@@ -2144,6 +2186,7 @@ where
             let on_s = on_start.clone();
             let on_d = on_drag.clone();
             let on_e = on_end.clone();
+            let on_l = on_link_click.clone();
 
             // Build header with selection
             let header_elements: Vec<Element<'a, Message, Theme, Renderer>> = col
@@ -2162,6 +2205,7 @@ where
                         on_s.clone(),
                         on_d.clone(),
                         on_e.clone(),
+                        on_l.clone(),
                     )
                 })
                 .collect();
@@ -2175,6 +2219,7 @@ where
             let on_s2 = on_start.clone();
             let on_d2 = on_drag.clone();
             let on_e2 = on_end.clone();
+            let on_l2 = on_link_click.clone();
 
             table::column(
                 header,
@@ -2207,6 +2252,7 @@ where
                                     on_s2.clone(),
                                     on_d2.clone(),
                                     on_e2.clone(),
+                                    on_l2.clone(),
                                 )
                             })
                             .collect();
@@ -2252,6 +2298,7 @@ fn render_item_with_index<'a, Message, Theme, Renderer>(
     on_start: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_drag: impl Fn(usize, usize) -> Message + Clone + 'a,
     on_end: impl Fn() -> Message + Clone + 'a,
+    on_link_click: Option<impl Fn(Uri) -> Message + Clone + 'a>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
@@ -2262,6 +2309,7 @@ where
         Item::Paragraph(text) => {
             let selection = get_selection(idx);
             rich_text(text.spans(settings.style))
+                .on_link_click_maybe(on_link_click)
                 .font(settings.style.font)
                 .size(settings.text_size)
                 .letter_spacing_maybe(settings.letter_spacing)
@@ -2285,6 +2333,7 @@ where
                 HeadingLevel::H4 | HeadingLevel::H5 | HeadingLevel::H6 => settings.text_size,
             };
             rich_text(text.spans(settings.style))
+                .on_link_click_maybe(on_link_click)
                 .font(settings.style.font)
                 .size(size)
                 .letter_spacing_maybe(settings.letter_spacing)

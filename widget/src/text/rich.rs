@@ -257,6 +257,18 @@ where
         self
     }
 
+    /// Optionally sets the message that will be produced when a link of the
+    /// [`Rich`] text is clicked.
+    pub fn on_link_click_maybe(
+        mut self,
+        on_link_click: Option<impl Fn(Link) -> Message + 'a>,
+    ) -> Self {
+        if let Some(on_link_click) = on_link_click {
+            self.on_link_click = Some(Box::new(on_link_click));
+        }
+        self
+    }
+
     /// Sets the default style of the [`Rich`] text.
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
