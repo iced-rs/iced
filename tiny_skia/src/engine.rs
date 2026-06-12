@@ -36,7 +36,18 @@ impl Engine {
     ) {
         let physical_bounds = quad.bounds * transformation;
 
-        if !clip_bounds.intersects(&physical_bounds) {
+        // The shadow paints beyond the quad bounds
+        let visible_bounds = if quad.shadow.color.a > 0.0 {
+            physical_bounds.expand(
+                (quad.shadow.offset.x.abs().max(quad.shadow.offset.y.abs())
+                    + quad.shadow.blur_radius)
+                    * transformation.scale_factor(),
+            )
+        } else {
+            physical_bounds
+        };
+
+        if !clip_bounds.intersects(&visible_bounds) {
             return;
         }
 
