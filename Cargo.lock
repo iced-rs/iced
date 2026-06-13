@@ -1887,9 +1887,9 @@ dependencies = [
 
 [[package]]
 name = "glam"
-version = "0.25.0"
+version = "0.33.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "151665d9be52f9bb40fc7966565d39666f2d1e69233571b71b87791c7e0528b3"
+checksum = "898f5a568a84989b6c0f8caa50a93074b97dbdc58fc6d9543157bb4562758933"
 dependencies = [
  "bytemuck",
 ]
@@ -2440,7 +2440,6 @@ dependencies = [
  "bytemuck",
  "cryoglyph",
  "futures",
- "glam",
  "guillotiere",
  "iced_debug",
  "iced_graphics",
