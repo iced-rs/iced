@@ -44,6 +44,23 @@ pub struct Cache {
 
 type ColorFilter = Option<[u8; 4]>;
 
+/// Parses raw in-memory SVG bytes into a [`usvg::Tree`].
+///
+/// `usvg`'s XML parser rejects an `<?xml ?>` declaration that is preceded by
+/// any whitespace, so a formatted, multi-line SVG string fails to load while
+/// the very same SVG compressed onto a single line succeeds. We trim the
+/// leading whitespace of uncompressed data so both parse. gzip-compressed data
+/// (identified by its magic number) is handed to `usvg` untouched, as it knows
+/// how to decompress it.
+fn parse_bytes(bytes: &[u8], options: &usvg::Options) -> Option<usvg::Tree> {
+    if bytes.starts_with(&[0x1f, 0x8b]) {
+        return usvg::Tree::from_data(bytes, options).ok();
+    }
+
+    let contents = std::str::from_utf8(bytes).ok()?;
+    usvg::Tree::from_str(contents.trim_start(), options).ok()
+}
+
 impl Cache {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
@@ -71,13 +88,12 @@ impl Cache {
         let svg = match handle.data() {
             svg::Data::Path(path) => fs::read_to_string(path)
                 .ok()
-                .and_then(|contents| usvg::Tree::from_str(&contents, &options).ok())
+                .and_then(|contents| usvg::Tree::from_str(contents.trim_start(), &options).ok())
                 .map(Svg::Loaded)
                 .unwrap_or(Svg::NotFound),
-            svg::Data::Bytes(bytes) => match usvg::Tree::from_data(bytes, &options) {
-                Ok(tree) => Svg::Loaded(tree),
-                Err(_) => Svg::NotFound,
-            },
+            svg::Data::Bytes(bytes) => parse_bytes(bytes, &options)
+                .map(Svg::Loaded)
+                .unwrap_or(Svg::NotFound),
         };
 
         self.should_trim = true;
