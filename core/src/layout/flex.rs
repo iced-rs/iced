@@ -122,7 +122,7 @@ where
                 with: length::Fluidity::Fill(_),
                 bounds: length::Bounds::Max(_) | length::Bounds::Both { .. },
             }
-            | Length::Fluid(length::Constraint::Max { .. }) => {
+            | Length::Fluid(length::Constraint::Max) => {
                 some_fill_max = true;
             }
             _ => {}
@@ -244,7 +244,7 @@ where
                         bounds: bounds @ (length::Bounds::Max(_) | length::Bounds::Both { .. }),
                         ..
                     } => bounds,
-                    Length::Fluid(length::Constraint::Max { min }) => length::Bounds::Min(min),
+                    Length::Fluid(length::Constraint::Max) => length::Bounds::Min(0.0),
                     _ => continue,
                 },
                 Stage::Min => match size_main {

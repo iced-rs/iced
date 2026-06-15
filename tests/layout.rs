@@ -259,6 +259,46 @@ fn layout_fill_has_priority_over_max() {
     );
 }
 
+#[test]
+fn layout_fill_nested_min_max() {
+    assert_layout_eq(
+        column![
+            space().height(Fill.min(100)),
+            row![
+                column![
+                    space().height(Fill.min(200)),
+                    space().height(Fill.min(300)),
+                    space().width(Fill.max(300))
+                ],
+                space().width(Fill.min(200))
+            ]
+        ],
+        node(
+            (0, 0),
+            (1024, 768),
+            [
+                node((0, 0), (0, 268), []),
+                node(
+                    (0, 268),
+                    (1024, 500),
+                    [
+                        node(
+                            (0, 0),
+                            (300, 500),
+                            [
+                                node((0, 0), (0, 200), []),
+                                node((0, 200), (0, 300), []),
+                                node((0, 500), (300, 0), []),
+                            ],
+                        ),
+                        node((300, 0), (724, 0), []),
+                    ],
+                ),
+            ],
+        ),
+    );
+}
+
 fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
     let mut element = element.into();
 

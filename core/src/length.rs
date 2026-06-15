@@ -42,27 +42,27 @@ pub enum Length {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Constraint {
     Min(f32),
-    Max { min: f32 },
+    Max,
 }
 
 impl Constraint {
     fn stack(self, other: Self) -> Self {
         match (self, other) {
             (Constraint::Min(a), Constraint::Min(b)) => Self::Min(a + b),
-            (Constraint::Min(a), Constraint::Max { min: b })
-            | (Constraint::Max { min: a }, Constraint::Min(b))
-            | (Constraint::Max { min: a }, Constraint::Max { min: b }) => Self::Max { min: a + b },
+            (Constraint::Min(min), Constraint::Max) | (Constraint::Max, Constraint::Min(min)) => {
+                Constraint::Min(min)
+            }
+            (Constraint::Max, Constraint::Max) => Self::Max,
         }
     }
 
     fn cross(self, other: Self) -> Self {
         match (self, other) {
             (Constraint::Min(a), Constraint::Min(b)) => Self::Min(a.max(b)),
-            (Constraint::Min(a), Constraint::Max { min: b })
-            | (Constraint::Max { min: a }, Constraint::Min(b))
-            | (Constraint::Max { min: a }, Constraint::Max { min: b }) => {
-                Self::Max { min: a.max(b) }
+            (Constraint::Min(min), Constraint::Max) | (Constraint::Max, Constraint::Min(min)) => {
+                Constraint::Min(min)
             }
+            (Constraint::Max, Constraint::Max) => Self::Max,
         }
     }
 }
@@ -91,9 +91,8 @@ impl Bounds {
 
     pub fn constraint(self) -> Constraint {
         match self {
-            Bounds::Min(min) => Constraint::Min(min),
-            Bounds::Max(_) => Constraint::Max { min: 0.0 },
-            Bounds::Both { min, .. } => Constraint::Max { min },
+            Bounds::Min(min) | Bounds::Both { min, .. } => Constraint::Min(min),
+            Bounds::Max(_) => Constraint::Max,
         }
     }
 }
@@ -213,6 +212,13 @@ impl Length {
 
             // Fluid elements are merged
             (Length::Fluid(a), Length::Fluid(b)) => Length::Fluid(merge(a, b)),
+            (
+                Length::Fluid(a),
+                Length::Bounded {
+                    bounds,
+                    with: Fluidity::Fill(_),
+                },
+            ) => Length::Fluid(merge(a, bounds.constraint())),
             (Length::Fluid(constraint), _) => Length::Fluid(constraint),
 
             (
