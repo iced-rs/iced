@@ -31,6 +31,7 @@ pub enum Item {
 struct Upload {
     layer: Layer,
     transformation: Transformation,
+    bounds: Rectangle,
     version: usize,
     batch: Arc<[Mesh]>,
 }
@@ -62,12 +63,16 @@ impl Storage {
         gradient: &gradient::Pipeline,
         cache: &mesh::Cache,
         new_transformation: Transformation,
+        new_bounds: Rectangle,
+        screen_transformation: Transformation,
     ) {
         match self.uploads.entry(cache.id()) {
             hash_map::Entry::Occupied(entry) => {
                 let upload = entry.into_mut();
 
-                if upload.version != cache.version() || upload.transformation != new_transformation
+                if upload.version != cache.version()
+                    || upload.transformation != new_transformation
+                    || upload.bounds != new_bounds
                 {
                     if !cache.is_empty() {
                         upload.layer.prepare(
@@ -78,12 +83,15 @@ impl Storage {
                             gradient,
                             cache.batch(),
                             new_transformation,
+                            new_bounds,
+                            screen_transformation,
                         );
                     }
 
                     upload.batch = cache.batch().clone();
                     upload.version = cache.version();
                     upload.transformation = new_transformation;
+                    upload.bounds = new_bounds;
                 }
             }
             hash_map::Entry::Vacant(entry) => {
@@ -97,12 +105,15 @@ impl Storage {
                     gradient,
                     cache.batch(),
                     new_transformation,
+                    new_bounds,
+                    screen_transformation,
                 );
 
                 let _ = entry.insert(Upload {
                     layer,
                     transformation: new_transformation,
-                    version: 0,
+                    bounds: new_bounds,
+                    version: cache.version(),
                     batch: cache.batch().clone(),
                 });
 
@@ -155,14 +166,15 @@ impl State {
         belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         items: &[Item],
+        bounds: Rectangle,
         scale: Transformation,
         target_size: Size<u32>,
     ) {
         let projection =
             if let Some((state, pipeline)) = self.msaa.as_mut().zip(pipeline.msaa.as_ref()) {
-                state.prepare(device, encoder, belt, pipeline, target_size) * scale
+                state.prepare(device, encoder, belt, pipeline, target_size)
             } else {
-                Transformation::orthographic(target_size.width, target_size.height) * scale
+                Transformation::orthographic(target_size.width, target_size.height)
             };
 
         for item in items {
@@ -171,6 +183,8 @@ impl State {
                     transformation,
                     meshes,
                 } => {
+                    let screen_transformation = scale * *transformation;
+
                     if self.layers.len() <= self.prepare_layer {
                         self.layers
                             .push(Layer::new(device, &pipeline.solid, &pipeline.gradient));
@@ -184,7 +198,9 @@ impl State {
                         &pipeline.solid,
                         &pipeline.gradient,
                         meshes,
-                        projection * *transformation,
+                        projection * screen_transformation,
+                        bounds,
+                        screen_transformation,
                     );
 
                     self.prepare_layer += 1;
@@ -193,6 +209,8 @@ impl State {
                     transformation,
                     cache,
                 } => {
+                    let screen_transformation = scale * *transformation;
+
                     self.storage.prepare(
                         device,
                         encoder,
@@ -200,7 +218,9 @@ impl State {
                         &pipeline.solid,
                         &pipeline.gradient,
                         cache,
-                        projection * *transformation,
+                        projection * screen_transformation,
+                        bounds,
+                        screen_transformation,
                     );
                 }
             }
@@ -359,6 +379,8 @@ impl Layer {
         gradient: &gradient::Pipeline,
         meshes: &[Mesh],
         transformation: Transformation,
+        bounds: Rectangle,
+        screen_transformation: Transformation,
     ) {
         // Count the total amount of vertices & indices we need to handle
         let count = mesh::attribute_count_of(meshes);
@@ -394,19 +416,24 @@ impl Layer {
         let mut index_offset = 0;
 
         for mesh in meshes {
-            let clip_bounds = mesh.clip_bounds() * transformation;
-            let snap_distance = clip_bounds
+            let transformed_clip_bounds = mesh.clip_bounds() * transformation;
+            let snap_distance = transformed_clip_bounds
                 .snap()
                 .map(|snapped_bounds| {
                     Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
-                        - clip_bounds.position()
+                        - transformed_clip_bounds.position()
                 })
                 .unwrap_or(Vector::ZERO);
+
+            let clip_bounds = bounds
+                .intersection(&(mesh.clip_bounds() * screen_transformation))
+                .unwrap_or_default();
 
             let uniforms = Uniforms::new(
                 transformation
                     * mesh.transformation()
                     * Transformation::translate(snap_distance.x, snap_distance.y),
+                clip_bounds,
             );
 
             let indices = mesh.indices();
@@ -579,16 +606,23 @@ fn multisample_state(antialiasing: Option<Antialiasing>) -> wgpu::MultisampleSta
 #[repr(C)]
 pub struct Uniforms {
     transform: [f32; 16],
+    clip_bounds: [f32; 4],
     /// Uniform values must be 256-aligned;
     /// see: [`wgpu::Limits`] `min_uniform_buffer_offset_alignment`.
-    _padding: [f32; 48],
+    _padding: [f32; 44],
 }
 
 impl Uniforms {
-    pub fn new(transform: Transformation) -> Self {
+    pub fn new(transform: Transformation, clip_bounds: Rectangle) -> Self {
         Self {
             transform: transform.into(),
-            _padding: [0.0; 48],
+            clip_bounds: [
+                clip_bounds.x,
+                clip_bounds.y,
+                clip_bounds.x + clip_bounds.width,
+                clip_bounds.y + clip_bounds.height,
+            ],
+            _padding: [0.0; 44],
         }
     }
 

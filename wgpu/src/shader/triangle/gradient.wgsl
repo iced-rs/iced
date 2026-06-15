@@ -86,6 +86,8 @@ fn gradient(
 
 @fragment
 fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
+    discard_if_clipped(input.position);
+
     let colors = array<vec4<f32>, 8>(
         unpack_color(input.colors_1.xy),
         unpack_color(input.colors_1.zw),

@@ -293,13 +293,13 @@ impl Renderer {
         for layer in self.layers.iter() {
             let clip_bounds = layer.bounds * scale_factor;
 
-            if physical_bounds
+            let Some(layer_bounds) = physical_bounds
                 .intersection(&clip_bounds)
                 .and_then(Rectangle::snap)
-                .is_none()
-            {
+                .map(Rectangle::<f32>::from)
+            else {
                 continue;
-            }
+            };
 
             if !layer.quads.is_empty() {
                 let prepare_span = debug::prepare(debug::Primitive::Quad);
@@ -326,6 +326,7 @@ impl Renderer {
                     &mut self.staging_belt,
                     encoder,
                     &layer.triangles,
+                    layer_bounds,
                     Transformation::scale(scale_factor),
                     viewport.physical_size(),
                 );

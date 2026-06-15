@@ -20,5 +20,7 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
 
 @fragment
 fn solid_fs_main(input: SolidVertexOutput) -> @location(0) vec4<f32> {
+    discard_if_clipped(input.position);
+
     return input.color;
 }
