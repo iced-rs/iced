@@ -161,7 +161,7 @@ mod rainbow {
 }
 
 use iced::widget::{center_x, center_y, column, scrollable};
-use iced::{Element, Never};
+use iced::{Element, Fit, Never};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
@@ -182,7 +182,7 @@ fn view(_state: &()) -> Element<'_, Never> {
     ]
     .padding(20)
     .spacing(20)
-    .max_width(500);
+    .width(Fit.max(500));
 
     let scrollable = scrollable(center_x(content));
 

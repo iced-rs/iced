@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{button, center_y, column, container, responsive, row, scrollable, text};
-use iced::{Center, Color, Element, Fill, Size, Subscription};
+use iced::{Center, Color, Element, Fill, Fit, Size, Subscription};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -266,7 +266,7 @@ fn view_content<'a>(
         }
     ]
     .spacing(5)
-    .max_width(160);
+    .width(Fit.max(160));
 
     let content = column![text!("{}x{}", size.width, size.height).size(24), controls,]
         .spacing(10)

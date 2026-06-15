@@ -140,30 +140,6 @@ impl Limits {
         self
     }
 
-    /// Applies a minimum width constraint to the current [`Limits`].
-    pub fn min_width(mut self, min_width: f32) -> Limits {
-        self.min.width = self.min.width.max(min_width).min(self.max.width);
-        self
-    }
-
-    /// Applies a maximum width constraint to the current [`Limits`].
-    pub fn max_width(mut self, max_width: f32) -> Limits {
-        self.max.width = self.max.width.min(max_width).max(self.min.width);
-        self
-    }
-
-    /// Applies a minimum height constraint to the current [`Limits`].
-    pub fn min_height(mut self, min_height: f32) -> Limits {
-        self.min.height = self.min.height.max(min_height).min(self.max.height);
-        self
-    }
-
-    /// Applies a maximum height constraint to the current [`Limits`].
-    pub fn max_height(mut self, max_height: f32) -> Limits {
-        self.max.height = self.max.height.min(max_height).max(self.min.height);
-        self
-    }
-
     /// Shrinks the current [`Limits`] by the given [`Size`].
     pub fn shrink(&self, size: impl Into<Size>) -> Limits {
         let size = size.into();
