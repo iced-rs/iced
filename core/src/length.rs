@@ -208,14 +208,29 @@ impl Length {
 
     fn merge_with(self, other: Self, merge: impl Fn(Constraint, Constraint) -> Constraint) -> Self {
         match (self, other) {
-            // Shrink, Fixed, and Bounded are unmergeable
-            (Length::Shrink, _) => Length::Shrink,
-            (Length::Fixed(pixels), _) => Length::Fixed(pixels),
-            (Length::Bounded { bounds, with }, _) => Length::Bounded { bounds, with },
+            // Shrink, Fixed, and Fill are unmergeable
+            (Length::Shrink | Length::Fixed(_) | Length::Fill | Length::FillPortion(_), _) => self,
 
             // Fluid elements are merged
             (Length::Fluid(a), Length::Fluid(b)) => Length::Fluid(merge(a, b)),
             (Length::Fluid(constraint), _) => Length::Fluid(constraint),
+
+            (
+                Length::Bounded {
+                    bounds,
+                    with: Fluidity::Fit,
+                },
+                Length::Fill
+                | Length::FillPortion(_)
+                | Length::Bounded {
+                    with: Fluidity::Fill(_),
+                    ..
+                },
+            ) => Length::Bounded {
+                bounds,
+                with: Fluidity::Fill(1),
+            },
+            (Length::Bounded { bounds, with }, _) => Length::Bounded { bounds, with },
 
             // Fluid and bounded constraints must be propagated
             (
@@ -228,7 +243,6 @@ impl Length {
             (_, Length::Fluid(constraint)) => Length::Fluid(constraint),
 
             // Fill wins over Fit
-            (Length::Fill | Length::FillPortion(_), _) => Length::Fill,
             (_, Length::Fill | Length::FillPortion(_)) => Length::Fill,
 
             // Fall back to Fit

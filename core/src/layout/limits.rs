@@ -80,10 +80,10 @@ impl Limits {
 
                 match with {
                     length::Fluidity::Shrink => {
-                        self.compression.height = true;
+                        self.compression.width = true;
                     }
                     length::Fluidity::Fit => {
-                        self.compression.height = false;
+                        self.compression.width = false;
                     }
                     length::Fluidity::Fill(_) => {}
                 }

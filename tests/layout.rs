@@ -251,6 +251,14 @@ fn layout_fill_min_nested_competing() {
     );
 }
 
+#[test]
+fn layout_fill_has_priority_over_max() {
+    assert_layout_eq(
+        column![space().height(20).width(Fill.max(500))].width(Fill),
+        node((0, 0), (1024, 20), [node((0, 0), (500, 20), [])]),
+    );
+}
+
 fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
     let mut element = element.into();
 

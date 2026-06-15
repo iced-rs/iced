@@ -245,7 +245,6 @@ fn view_content<'a>(
 ) -> Element<'a, Message> {
     let button = |label, message| {
         button(text(label).width(Fill).align_x(Center).size(16))
-            .width(Fill)
             .padding(8)
             .on_press(message)
     };
@@ -268,8 +267,9 @@ fn view_content<'a>(
     .spacing(5)
     .width(Fit.max(160));
 
-    let content = column![text!("{}x{}", size.width, size.height).size(24), controls,]
+    let content = column![text!("{}x{}", size.width, size.height).size(24), controls]
         .spacing(10)
+        .width(Fill)
         .align_x(Center);
 
     center_y(scrollable(content)).padding(5).into()

@@ -401,6 +401,11 @@ where
     let pad = axis.pack(padding.left, padding.top);
     let mut main = pad.0;
 
+    // TODO: Fix duplicate `resolve` call
+    let (intrinsic_width, intrinsic_height) = axis.pack(0.0, cross);
+    let cross =
+        axis.cross(limits.resolve(width, height, Size::new(intrinsic_width, intrinsic_height)));
+
     // FIFTH PASS
     // We align all the laid out nodes in the cross axis, if needed.
     for (i, node) in nodes.iter_mut().enumerate() {
