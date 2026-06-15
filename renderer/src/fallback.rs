@@ -46,6 +46,10 @@ where
         delegate!(self, renderer, renderer.start_layer(bounds));
     }
 
+    fn start_layer_rounded(&mut self, bounds: Rectangle, radius: core::border::Radius) {
+        delegate!(self, renderer, renderer.start_layer_rounded(bounds, radius));
+    }
+
     fn end_layer(&mut self) {
         delegate!(self, renderer, renderer.end_layer());
     }

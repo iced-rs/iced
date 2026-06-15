@@ -41,6 +41,13 @@ pub trait Layer: Default {
 
     /// Merges a [`Layer`] with the current one.
     fn merge(&mut self, _layer: &mut Self);
+
+    /// Sets the corner radius of this layer's clip region.
+    ///
+    /// Layers clip rectangularly by default; backends that support rounded
+    /// clipping override this to round the clip to the given `radius` (in the
+    /// layer's own physical-pixel space). The default is a no-op.
+    fn set_clip_radius(&mut self, _radius: crate::core::border::Radius) {}
 }
 
 /// A stack of layers used for drawing.
@@ -95,6 +102,15 @@ impl<T: Layer> Stack<T> {
         } else {
             self.layers[self.current].resize(bounds);
         }
+    }
+
+    /// Pushes a new *rounded* clipping region; like [`Self::push_clip`] but with the
+    /// clip corners rounded by `radius`. Backends that don't support rounded clipping
+    /// fall back to the rectangular clip.
+    pub fn push_clip_rounded(&mut self, bounds: Rectangle, radius: crate::core::border::Radius) {
+        let scale = self.transformation().scale_factor();
+        self.push_clip(bounds);
+        self.layers[self.current].set_clip_radius(radius * scale);
     }
 
     /// Pops the current clipping region from the [`Stack`] and restores the previous one.

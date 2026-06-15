@@ -337,6 +337,9 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
         input.border_radius * 2.0
     ) / 2.0;
 
+    // Trim every output path to the layer's rounded clip.
+    let clip_a = layer_clip_alpha(input.position.xy);
+
     // Handle border_only mode: gradient fills only the border region
     let max_border_width = max(max(input.border_widths.x, input.border_widths.y), max(input.border_widths.z, input.border_widths.w));
     if (bool(input.border_only) && max_border_width > 0.0) {
@@ -358,7 +361,7 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
         // outer_alpha = 1, inner_alpha = 1 → border_alpha = 0 (interior - hidden)
         let border_alpha = outer_alpha * (1.0 - inner_alpha);
         
-        return mixed_color * border_alpha;
+        return mixed_color * border_alpha * clip_a;
     }
 
     if (max_border_width > 0.0) {
@@ -427,7 +430,7 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
             // Invert the distance for inset effect
             let inset_alpha = 1.0 - smoothstep(-blur, blur, max(-inset_shadow_dist, 0.0));
             // Only apply shadow inside the quad (where quad_alpha > 0)
-            return mix(quad_color, input.shadow_color * quad_alpha, inset_alpha * quad_alpha);
+            return mix(quad_color, input.shadow_color * quad_alpha, inset_alpha * quad_alpha) * clip_a;
         } else {
             // Outset shadow - draw outside the quad
             // Spread expands the shadow shape (positive = larger shadow, negative = smaller)
@@ -438,9 +441,9 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
             ) / 2.0;
             let shadow_alpha = 1.0 - smoothstep(-blur, blur, max(shadow_dist, 0.0));
 
-            return mix(quad_color, input.shadow_color, (1.0 - quad_alpha) * shadow_alpha);
+            return mix(quad_color, input.shadow_color, (1.0 - quad_alpha) * shadow_alpha) * clip_a;
         }
     } else {
-        return quad_color;
+        return quad_color * clip_a;
     }
 }

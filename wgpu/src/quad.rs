@@ -14,6 +14,28 @@ use std::mem;
 
 const INITIAL_INSTANCES: usize = 2_000;
 
+/// A rounded clip region applied to a whole quad layer, in physical pixels.
+///
+/// Trims the layer's quads to a rounded rectangle (on top of the rectangular
+/// scissor) so first/last items follow the card's rounded corners, like CSS
+/// `overflow: hidden`.
+#[derive(Debug, Clone, Copy)]
+pub struct Clip {
+    /// `[x, y, width, height]` of the clip rectangle.
+    pub bounds: [f32; 4],
+    /// Per-corner radii `[top_left, top_right, bottom_right, bottom_left]`.
+    pub radius: [f32; 4],
+}
+
+impl Clip {
+    /// A clip that never discards anything: a rectangle far larger than any
+    /// viewport, with no corner radius. The shader keeps every fragment.
+    pub const NONE: Clip = Clip {
+        bounds: [-1.0e8, -1.0e8, 2.0e8, 2.0e8],
+        radius: [0.0; 4],
+    };
+}
+
 /// The properties of a quad.
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 #[repr(C)]
@@ -83,6 +105,7 @@ impl State {
         quads: &Batch,
         transformation: Transformation,
         scale: f32,
+        clip: Clip,
     ) {
         if self.layers.len() <= self.prepare_layer {
             self.layers
@@ -90,7 +113,7 @@ impl State {
         }
 
         let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(device, encoder, belt, quads, transformation, scale);
+        layer.prepare(device, encoder, belt, quads, transformation, scale, clip);
 
         self.prepare_layer += 1;
     }
@@ -147,7 +170,8 @@ impl Pipeline {
             label: Some("iced_wgpu::quad uniforms layout"),
             entries: &[wgpu::BindGroupLayoutEntry {
                 binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
+                // The fragment stage now reads `globals` too (rounded-clip SDF).
+                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
@@ -209,8 +233,9 @@ impl Layer {
         quads: &Batch,
         transformation: Transformation,
         scale: f32,
+        clip: Clip,
     ) {
-        self.update(encoder, belt, transformation, scale);
+        self.update(encoder, belt, transformation, scale, clip);
 
         if !quads.solids.is_empty() {
             self.solid.prepare(device, encoder, belt, &quads.solids);
@@ -228,8 +253,9 @@ impl Layer {
         belt: &mut wgpu::util::StagingBelt,
         transformation: Transformation,
         scale: f32,
+        clip: Clip,
     ) {
-        let uniforms = Uniforms::new(transformation, scale);
+        let uniforms = Uniforms::new(transformation, scale, clip);
         let bytes = bytemuck::bytes_of(&uniforms);
 
         belt.write_buffer(
@@ -333,17 +359,22 @@ fn color_target_state(format: wgpu::TextureFormat) -> [Option<wgpu::ColorTargetS
 struct Uniforms {
     transform: [f32; 16],
     scale: f32,
-    // Uniforms must be aligned to their largest member,
-    // this uses a mat4x4<f32> which aligns to 16, so align to that
+    // `scale` is followed by 3 floats of padding so the `vec4`-aligned clip
+    // fields below land on a 16-byte boundary (matching `Globals` in the WGSL).
     _padding: [f32; 3],
+    // Rounded clip region (physical px): `[x, y, w, h]` and per-corner radii.
+    clip_bounds: [f32; 4],
+    clip_radius: [f32; 4],
 }
 
 impl Uniforms {
-    fn new(transformation: Transformation, scale: f32) -> Uniforms {
+    fn new(transformation: Transformation, scale: f32, clip: Clip) -> Uniforms {
         Self {
             transform: *transformation.as_ref(),
             scale,
             _padding: [0.0; 3],
+            clip_bounds: clip.bounds,
+            clip_radius: clip.radius,
         }
     }
 }
@@ -354,6 +385,8 @@ impl Default for Uniforms {
             transform: *Transformation::IDENTITY.as_ref(),
             scale: 1.0,
             _padding: [0.0; 3],
+            clip_bounds: Clip::NONE.bounds,
+            clip_radius: Clip::NONE.radius,
         }
     }
 }

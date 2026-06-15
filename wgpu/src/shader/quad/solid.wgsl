@@ -145,6 +145,9 @@ fn solid_fs_main(
 
     let quad_color = mixed_color * quad_alpha;
 
+    // Trim the fragment (fill + shadow) to the layer's rounded clip.
+    let clip_a = layer_clip_alpha(input.position.xy);
+
     if input.shadow_color.a > 0.0 {
         if bool(input.shadow_inset) {
             // Inset shadow - draw inside the quad
@@ -158,7 +161,7 @@ fn solid_fs_main(
             // Invert the distance for inset effect
             let inset_alpha = 1.0 - smoothstep(-input.shadow_blur_radius, input.shadow_blur_radius, max(-inset_shadow_dist, 0.0));
             // Only apply shadow inside the quad (where quad_alpha > 0)
-            return mix(quad_color, input.shadow_color * quad_alpha, inset_alpha * quad_alpha);
+            return mix(quad_color, input.shadow_color * quad_alpha, inset_alpha * quad_alpha) * clip_a;
         } else {
             // Outset shadow - draw outside the quad
             // Spread expands the shadow shape (positive = larger shadow, negative = smaller)
@@ -170,9 +173,9 @@ fn solid_fs_main(
             ) / 2.0;
             let shadow_alpha = 1.0 - smoothstep(-input.shadow_blur_radius, input.shadow_blur_radius, max(shadow_dist, 0.0));
 
-            return mix(quad_color, input.shadow_color, (1.0 - quad_alpha) * shadow_alpha);
+            return mix(quad_color, input.shadow_color, (1.0 - quad_alpha) * shadow_alpha) * clip_a;
         }
     } else {
-        return quad_color;
+        return quad_color * clip_a;
     }
 }

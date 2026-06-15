@@ -33,6 +33,7 @@ impl Engine {
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: &mut tiny_skia::Mask,
         clip_bounds: Rectangle,
+        force_clip: bool,
     ) {
         let physical_bounds = quad.bounds * transformation;
 
@@ -134,7 +135,8 @@ impl Engine {
             }
         }
 
-        let clip_mask = (!physical_bounds.is_within(&clip_bounds)).then_some(clip_mask as &_);
+        let clip_mask =
+            (force_clip || !physical_bounds.is_within(&clip_bounds)).then_some(clip_mask as &_);
 
         pixels.fill_path(
             &path,
@@ -973,6 +975,33 @@ pub fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
         &path,
         tiny_skia::FillRule::EvenOdd,
         false,
+        tiny_skia::Transform::default(),
+    );
+}
+
+/// Resets `clip_mask` to a *rounded* rectangle, so primitives drawn against it are
+/// clipped to the rounded corners (like CSS `overflow: hidden` on a rounded box).
+///
+/// `radius` is in the same physical-pixel space as `bounds`.
+pub fn adjust_clip_mask_rounded(
+    clip_mask: &mut tiny_skia::Mask,
+    bounds: Rectangle,
+    radius: crate::core::border::Radius,
+) {
+    clip_mask.clear();
+
+    let mut radii = <[f32; 4]>::from(radius);
+    for r in &mut radii {
+        *r = (*r).min(bounds.width / 2.0).min(bounds.height / 2.0);
+    }
+
+    let path = rounded_rectangle(bounds, radii);
+
+    // Anti-alias so the rounded corners are smooth, matching the card border.
+    clip_mask.fill_path(
+        &path,
+        tiny_skia::FillRule::EvenOdd,
+        true,
         tiny_skia::Transform::default(),
     );
 }

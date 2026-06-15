@@ -16,6 +16,10 @@ pub type Stack = layer::Stack<Layer>;
 #[derive(Debug)]
 pub struct Layer {
     pub bounds: Rectangle,
+    /// When `Some`, this layer's quads are clipped to a *rounded* rectangle
+    /// (these radii, in the layer's own logical-pixel space) on top of the
+    /// rectangular scissor.
+    pub bounds_radius: Option<core::border::Radius>,
     pub quads: quad::Batch,
     pub triangles: triangle::Batch,
     pub primitives: primitive::Batch,
@@ -400,10 +404,12 @@ impl graphics::Layer for Layer {
 
     fn resize(&mut self, bounds: Rectangle) {
         self.bounds = bounds;
+        self.bounds_radius = None;
     }
 
     fn reset(&mut self) {
         self.bounds = Rectangle::INFINITE;
+        self.bounds_radius = None;
 
         self.quads.clear();
         self.triangles.clear();
@@ -413,6 +419,10 @@ impl graphics::Layer for Layer {
         self.overlay_quads.clear();
         self.pending_meshes.clear();
         self.pending_text.clear();
+    }
+
+    fn set_clip_radius(&mut self, radius: core::border::Radius) {
+        self.bounds_radius = Some(radius);
     }
 
     fn start(&self) -> usize {
@@ -486,6 +496,7 @@ impl Default for Layer {
     fn default() -> Self {
         Self {
             bounds: Rectangle::INFINITE,
+            bounds_radius: None,
             quads: quad::Batch::default(),
             triangles: triangle::Batch::default(),
             primitives: primitive::Batch::default(),

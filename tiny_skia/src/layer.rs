@@ -13,6 +13,8 @@ pub type Stack = layer::Stack<Layer>;
 #[derive(Debug, Clone)]
 pub struct Layer {
     pub bounds: Rectangle,
+    /// When `Some`, the clip is rounded by these per-corner radii (in physical pixels).
+    pub bounds_radius: Option<core::border::Radius>,
     pub quads: Vec<(Quad, Background)>,
     pub primitives: Vec<Item<Primitive>>,
     pub images: Vec<Image>,
@@ -306,6 +308,7 @@ impl Default for Layer {
     fn default() -> Self {
         Self {
             bounds: Rectangle::INFINITE,
+            bounds_radius: None,
             quads: Vec::new(),
             primitives: Vec::new(),
             text: Vec::new(),
@@ -330,15 +333,21 @@ impl graphics::Layer for Layer {
 
     fn resize(&mut self, bounds: Rectangle) {
         self.bounds = bounds;
+        self.bounds_radius = None;
     }
 
     fn reset(&mut self) {
         self.bounds = Rectangle::INFINITE;
+        self.bounds_radius = None;
 
         self.quads.clear();
         self.primitives.clear();
         self.text.clear();
         self.images.clear();
+    }
+
+    fn set_clip_radius(&mut self, radius: core::border::Radius) {
+        self.bounds_radius = Some(radius);
     }
 
     fn start(&self) -> usize {

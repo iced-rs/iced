@@ -108,12 +108,25 @@ impl Renderer {
             );
 
             for layer in self.layers.iter() {
-                let Some(layer_bounds) = damage_bounds.intersection(&(layer.bounds * scale_factor))
-                else {
+                let physical_bounds = layer.bounds * scale_factor;
+                let Some(layer_bounds) = damage_bounds.intersection(&physical_bounds) else {
                     continue;
                 };
 
-                engine::adjust_clip_mask(clip_mask, layer_bounds);
+                // A rounded clip layer trims its corners; its quads must always
+                // consult the mask (the rect `is_within` shortcut would skip it).
+                // Build the mask from the *full* bounds so the corners land in the
+                // right place; draws are still culled to the damaged `layer_bounds`.
+                let rounded_clip = layer.bounds_radius;
+                if let Some(radius) = rounded_clip {
+                    engine::adjust_clip_mask_rounded(
+                        clip_mask,
+                        physical_bounds,
+                        radius * scale_factor,
+                    );
+                } else {
+                    engine::adjust_clip_mask(clip_mask, layer_bounds);
+                }
 
                 if !layer.quads.is_empty() {
                     let render_span = debug::render(debug::Primitive::Quad);
@@ -125,6 +138,7 @@ impl Renderer {
                             pixels,
                             clip_mask,
                             layer_bounds,
+                            rounded_clip.is_some(),
                         );
                     }
                     render_span.finish();
@@ -246,6 +260,10 @@ fn apply_opacity(
 impl core::Renderer for Renderer {
     fn start_layer(&mut self, bounds: Rectangle) {
         self.layers.push_clip(bounds);
+    }
+
+    fn start_layer_rounded(&mut self, bounds: Rectangle, radius: crate::core::border::Radius) {
+        self.layers.push_clip_rounded(bounds, radius);
     }
 
     fn end_layer(&mut self) {

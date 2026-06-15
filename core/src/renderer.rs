@@ -31,6 +31,29 @@ pub trait Renderer {
         self.end_layer();
     }
 
+    /// Starts recording a new layer clipped to a *rounded* rectangle.
+    ///
+    /// The layer clips its contents to `bounds`, with the corners rounded by
+    /// `radius` (top-left, top-right, bottom-right, bottom-left). Renderers that do
+    /// not support rounded clipping fall back to the rectangular [`Self::start_layer`].
+    fn start_layer_rounded(&mut self, bounds: Rectangle, _radius: crate::border::Radius) {
+        self.start_layer(bounds);
+    }
+
+    /// Draws the primitives recorded in the given closure in a new rounded-clip layer.
+    ///
+    /// The layer clips its contents to `bounds` with corners rounded by `radius`.
+    fn with_layer_rounded(
+        &mut self,
+        bounds: Rectangle,
+        radius: crate::border::Radius,
+        f: impl FnOnce(&mut Self),
+    ) {
+        self.start_layer_rounded(bounds, radius);
+        f(self);
+        self.end_layer();
+    }
+
     /// Starts recording with a new [`Transformation`].
     fn start_transformation(&mut self, transformation: Transformation);
 

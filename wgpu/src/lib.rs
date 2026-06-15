@@ -411,6 +411,32 @@ impl Renderer {
                 continue;
             }
 
+            // Rounded clip (physical px) for this layer's quads, or a no-op
+            // sentinel for ordinary rectangular layers.
+            let quad_clip = match layer.bounds_radius {
+                Some(radius) => {
+                    // Clamp each corner to half the smaller side so a small clip
+                    // surface can't distort (mirrors the tiny_skia mask).
+                    let max_radius = (clip_bounds.width.min(clip_bounds.height) / 2.0).max(0.0);
+                    let r = <[f32; 4]>::from(radius * scale_factor);
+                    crate::quad::Clip {
+                        bounds: [
+                            clip_bounds.x,
+                            clip_bounds.y,
+                            clip_bounds.width,
+                            clip_bounds.height,
+                        ],
+                        radius: [
+                            r[0].min(max_radius),
+                            r[1].min(max_radius),
+                            r[2].min(max_radius),
+                            r[3].min(max_radius),
+                        ],
+                    }
+                }
+                None => crate::quad::Clip::NONE,
+            };
+
             if !layer.quads.is_empty() {
                 let prepare_span = debug::prepare(debug::Primitive::Quad);
 
@@ -422,6 +448,7 @@ impl Renderer {
                     &layer.quads,
                     viewport.projection(),
                     scale_factor,
+                    quad_clip,
                 );
 
                 prepare_span.finish();
@@ -512,6 +539,7 @@ impl Renderer {
                     &layer.overlay_quads,
                     viewport.projection(),
                     scale_factor,
+                    quad_clip,
                 );
 
                 prepare_span.finish();
@@ -1999,6 +2027,10 @@ fn apply_opacity(
 impl core::Renderer for Renderer {
     fn start_layer(&mut self, bounds: Rectangle) {
         self.layers.push_clip(bounds);
+    }
+
+    fn start_layer_rounded(&mut self, bounds: Rectangle, radius: crate::core::border::Radius) {
+        self.layers.push_clip_rounded(bounds, radius);
     }
 
     fn end_layer(&mut self) {
