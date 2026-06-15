@@ -49,18 +49,20 @@ impl Constraint {
     fn stack(self, other: Self) -> Self {
         match (self, other) {
             (Constraint::Min(a), Constraint::Min(b)) => Self::Min(a + b),
-            (Constraint::Min(a), Constraint::Max { min: b }) => Self::Max { min: a + b },
-            (Constraint::Max { min: a }, Constraint::Min(b)) => Self::Max { min: a + b },
-            (Constraint::Max { min: a }, Constraint::Max { min: b }) => Self::Max { min: a + b },
+            (Constraint::Min(a), Constraint::Max { min: b })
+            | (Constraint::Max { min: a }, Constraint::Min(b))
+            | (Constraint::Max { min: a }, Constraint::Max { min: b }) => Self::Max { min: a + b },
         }
     }
 
     fn cross(self, other: Self) -> Self {
         match (self, other) {
             (Constraint::Min(a), Constraint::Min(b)) => Self::Min(a.max(b)),
-            (Constraint::Min(a), Constraint::Max { min: b }) => Self::Max { min: a.max(b) },
-            (Constraint::Max { min: a }, Constraint::Min(b)) => Self::Max { min: a.max(b) },
-            (Constraint::Max { min: a }, Constraint::Max { min: b }) => Self::Max { min: a.max(b) },
+            (Constraint::Min(a), Constraint::Max { min: b })
+            | (Constraint::Max { min: a }, Constraint::Min(b))
+            | (Constraint::Max { min: a }, Constraint::Max { min: b }) => {
+                Self::Max { min: a.max(b) }
+            }
         }
     }
 }
@@ -76,16 +78,14 @@ impl Bounds {
     pub fn min(self, min: f32) -> Self {
         match self {
             Self::Min(_) => Self::Min(min),
-            Self::Max(max) => Self::Both { min, max },
-            Self::Both { max, .. } => Self::Both { min, max },
+            Self::Max(max) | Self::Both { max, .. } => Self::Both { min, max },
         }
     }
 
     pub fn max(self, max: f32) -> Self {
         match self {
-            Self::Min(min) => Self::Both { min, max },
             Self::Max(_) => Self::Max(max),
-            Self::Both { min, .. } => Self::Both { min, max },
+            Self::Min(min) | Self::Both { min, .. } => Self::Both { min, max },
         }
     }
 
@@ -208,55 +208,31 @@ impl Length {
 
     fn merge_with(self, other: Self, merge: impl Fn(Constraint, Constraint) -> Constraint) -> Self {
         match (self, other) {
-            (Length::Fit, Length::Fit) => Length::Fit,
-            (Length::Fit, Length::Fill) => Length::Fill,
-            (Length::Fit, Length::FillPortion(_)) => Length::Fill,
-            (Length::Fit, Length::Shrink) => Length::Fit,
-            (Length::Fit, Length::Fixed(_)) => Length::Fit,
-            (
-                Length::Fit,
-                Length::Bounded {
-                    bounds,
-                    with: Fluidity::Fill(_),
-                },
-            ) => Length::Fluid(bounds.constraint()),
-            (Length::Fit, Length::Bounded { .. }) => Length::Fit,
-            (Length::Fit, Length::Fluid(constraint)) => Length::Fluid(constraint),
-            (Length::Fill, Length::Fit) => Length::Fill,
-            (Length::Fill, Length::Fill) => Length::Fill,
-            (Length::Fill, Length::FillPortion(_)) => Length::Fill,
-            (Length::Fill, Length::Shrink) => Length::Fill,
-            (Length::Fill, Length::Fixed(_)) => Length::Fill,
-            (
-                Length::Fill,
-                Length::Bounded {
-                    bounds,
-                    with: Fluidity::Fill(_),
-                },
-            ) => Length::Fluid(bounds.constraint()),
-            (Length::Fill, Length::Bounded { .. }) => Length::Fit,
-            (Length::Fill, Length::Fluid(constraint)) => Length::Fluid(constraint),
-            (Length::FillPortion(_), Length::Fit) => Length::Fill,
-            (Length::FillPortion(_), Length::Fill) => Length::Fill,
-            (Length::FillPortion(_), Length::FillPortion(_)) => Length::Fill,
-            (Length::FillPortion(_), Length::Shrink) => Length::Fill,
-            (Length::FillPortion(_), Length::Fixed(_)) => Length::Fill,
-            (
-                Length::FillPortion(_),
-                Length::Bounded {
-                    bounds,
-                    with: Fluidity::Fill(_),
-                },
-            ) => Length::Fluid(bounds.constraint()),
-            (Length::FillPortion(_), Length::Bounded { .. }) => Length::Fill,
-            (Length::FillPortion(_), Length::Fluid(constraint)) => Length::Fluid(constraint),
+            // Shrink, Fixed, and Bounded are unmergeable
             (Length::Shrink, _) => Length::Shrink,
             (Length::Fixed(pixels), _) => Length::Fixed(pixels),
             (Length::Bounded { bounds, with }, _) => Length::Bounded { bounds, with },
-            (Length::Fluid(constraint_a), Length::Fluid(constraint_b)) => {
-                Length::Fluid(merge(constraint_a, constraint_b))
-            }
+
+            // Fluid elements are merged
+            (Length::Fluid(a), Length::Fluid(b)) => Length::Fluid(merge(a, b)),
             (Length::Fluid(constraint), _) => Length::Fluid(constraint),
+
+            // Fluid and bounded constraints must be propagated
+            (
+                _,
+                Length::Bounded {
+                    bounds,
+                    with: Fluidity::Fill(_),
+                },
+            ) => Length::Fluid(bounds.constraint()),
+            (_, Length::Fluid(constraint)) => Length::Fluid(constraint),
+
+            // Fill wins over Fit
+            (Length::Fill | Length::FillPortion(_), _) => Length::Fill,
+            (_, Length::Fill | Length::FillPortion(_)) => Length::Fill,
+
+            // Fall back to Fit
+            _ => Length::Fit,
         }
     }
 }
