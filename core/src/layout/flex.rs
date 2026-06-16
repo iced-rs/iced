@@ -149,7 +149,6 @@ where
 
             available -= axis.main(size);
             cross = cross.max(axis.cross(size));
-
             nodes[i] = layout;
         } else {
             fill_main_sum += fill_main_factor;
@@ -195,7 +194,6 @@ where
 
                 available -= axis.main(size);
                 cross = cross.max(axis.cross(size));
-
                 nodes[i] = layout;
             }
         }
@@ -272,12 +270,13 @@ where
             };
 
             match stage {
-                Stage::Max if max > max_available => continue,
+                Stage::Max if max > max_available && min < max_available => continue,
                 Stage::Min if min < max_available => continue,
                 _ => {}
             }
 
-            let max = max.max(min).min(remaining);
+            let min = min.min(remaining);
+            let max = max.min(max_available).max(min);
 
             let (min_width, min_height) = axis.pack(min, 0.0);
             let (max_width, max_height) = axis.pack(
@@ -300,7 +299,6 @@ where
             cross = cross.max(axis.cross(layout.size()));
             remaining -= axis.main(layout.size());
             fill_main_sum -= fill_main_factor;
-
             nodes[i] = layout;
             capped[i] = true;
         }
@@ -361,7 +359,6 @@ where
 
                 let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
                 cross = cross.max(axis.cross(layout.size()));
-
                 nodes[i] = layout;
             }
         }
@@ -387,12 +384,10 @@ where
                 let (max_width, max_height) = axis.pack(main, cross);
 
                 let child_limits = Limits::new(Size::ZERO, Size::new(max_width, max_height));
-
                 let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
                 let size = layout.size();
 
                 cross = cross.max(axis.cross(size));
-
                 nodes[i] = layout;
             }
         }

@@ -6,8 +6,8 @@ use iced::widget::{
     rule, scrollable, space, stack, text,
 };
 use iced::{
-    Center, Element, Fill, Font, Length, Point, Rectangle, Renderer, Shrink, Subscription, Theme,
-    color,
+    Center, Element, Fill, FillPortion, Font, Length, Point, Rectangle, Renderer, Shrink,
+    Subscription, Theme, color,
 };
 
 pub fn main() -> iced::Result {
@@ -270,10 +270,11 @@ fn application<'a>() -> Element<'a, Message> {
         column!["Sidebar!", square(50), square(50)]
             .spacing(40)
             .padding(10)
-            .width(200)
+            .width(Fill)
             .align_x(Center),
     )
-    .style(container::rounded_box);
+    .style(container::rounded_box)
+    .width(Fill.min(150).max(200));
 
     let content = container(
         scrollable(
@@ -291,7 +292,8 @@ fn application<'a>() -> Element<'a, Message> {
         )
         .height(Fill),
     )
-    .padding(10);
+    .padding(10)
+    .width(FillPortion(3));
 
     column![header, row![sidebar, content]].into()
 }

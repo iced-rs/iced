@@ -2,7 +2,7 @@
 use iced::advanced::layout;
 use iced::advanced::widget;
 use iced::widget::{column, row, space};
-use iced::{Element, Fill, Never, Pixels, Size, Theme};
+use iced::{Element, Fill, FillPortion, Never, Pixels, Size, Theme};
 
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
     Size::ZERO,
@@ -297,6 +297,35 @@ fn layout_fill_nested_min_max() {
             ],
         ),
     );
+}
+
+#[test]
+fn layout_fill_min_max_sidebar() {
+    let widths = [1000, 800, 700, 500];
+
+    for screen_width in widths {
+        let view = {
+            let sidebar = space::vertical().width(Fill.min(150).max(200));
+            let content = space::horizontal().width(FillPortion(3));
+
+            row![sidebar, content].width(screen_width)
+        };
+
+        let sidebar_width = (screen_width as f32 / 4.0).max(150.0).min(200.0);
+
+        let layout = {
+            let sidebar = node((0, 0), (sidebar_width, 768), []);
+            let content = node(
+                (sidebar_width, 0),
+                (screen_width as f32 - sidebar_width, 0),
+                [],
+            );
+
+            node((0, 0), (screen_width, 768), [sidebar, content])
+        };
+
+        assert_layout_eq(view, layout);
+    }
 }
 
 fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
