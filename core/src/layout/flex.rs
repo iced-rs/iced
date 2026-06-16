@@ -92,7 +92,7 @@ where
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
     let mut some_fill_max = false;
-    let mut some_fill_min = false;
+    let mut min_total = 0.0;
     let mut cross = 0.0;
     let mut available = axis.main(limits.max()) - total_spacing;
 
@@ -113,10 +113,10 @@ where
         match size_main {
             Length::Bounded {
                 with: length::Fluidity::Fill(_),
-                bounds: length::Bounds::Min(_),
+                bounds: length::Bounds::Min(min),
             }
-            | Length::Fluid(length::Constraint::Min(_)) => {
-                some_fill_min = true;
+            | Length::Fluid(length::Constraint::Min(min)) => {
+                min_total += min;
             }
             Length::Bounded {
                 with: length::Fluidity::Fill(_),
@@ -210,7 +210,7 @@ where
 
     let mut step = if some_fill_max {
         Some(Stage::Max)
-    } else if some_fill_min {
+    } else if min_total > 0.0 {
         Some(Stage::Min)
     } else {
         None
@@ -218,6 +218,10 @@ where
 
     while let Some(stage) = step {
         let current = remaining;
+        let reserved_space = match stage {
+            Stage::Max => min_total,
+            Stage::Min => 0.0,
+        };
 
         for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
             if capped[i] {
@@ -247,15 +251,16 @@ where
                 },
                 Stage::Min => match size_main {
                     Length::Bounded {
-                        bounds: bounds @ length::Bounds::Min(_),
+                        bounds: length::Bounds::Min(min),
                         ..
-                    } => bounds,
-                    Length::Fluid(length::Constraint::Min(min)) => length::Bounds::Min(min),
+                    }
+                    | Length::Fluid(length::Constraint::Min(min)) => length::Bounds::Min(min),
                     _ => continue,
                 },
             };
 
-            let max_available = remaining * fill_main_factor as f32 / fill_main_sum as f32;
+            let max_available =
+                (remaining - reserved_space) * fill_main_factor as f32 / fill_main_sum as f32;
 
             let max_available = if max_available.is_nan() {
                 f32::INFINITY
@@ -305,7 +310,7 @@ where
 
         if remaining == current {
             step = match stage {
-                Stage::Max if some_fill_min => Some(Stage::Min),
+                Stage::Max if min_total > 0.0 => Some(Stage::Min),
                 _ => None,
             };
         }

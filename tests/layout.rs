@@ -233,6 +233,22 @@ fn layout_fill_min_max_reverse() {
 }
 
 #[test]
+fn layout_fill_min_max_priority() {
+    assert_layout_eq(
+        row![
+            space().width(Fill.min(400)).height(50),
+            space().width(Fill.max(250)).height(50),
+        ]
+        .width(600),
+        node(
+            (0, 0),
+            (600, 50),
+            [node((0, 0), (400, 50), []), node((400, 0), (200, 50), [])],
+        ),
+    );
+}
+
+#[test]
 fn layout_fill_min_nested_competing() {
     assert_layout_eq(
         row![
