@@ -179,7 +179,15 @@ impl Limits {
         height: impl Into<Length>,
         intrinsic_size: Size,
     ) -> Size {
-        let width = match width.into() {
+        Size::new(
+            self.resolve_width(width, intrinsic_size.width),
+            self.resolve_height(height, intrinsic_size.height),
+        )
+    }
+
+    /// [Resolves](Self::resolve) only the width of the [`Limits`].
+    pub fn resolve_width(&self, width: impl Into<Length>, intrinsic_width: f32) -> f32 {
+        match width.into() {
             Length::Fill
             | Length::FillPortion(_)
             | Length::Bounded {
@@ -187,10 +195,13 @@ impl Limits {
                 ..
             } if !self.compression.width => self.max.width,
             Length::Fixed(amount) => amount.min(self.max.width).max(self.min.width),
-            _ => intrinsic_size.width.min(self.max.width).max(self.min.width),
-        };
+            _ => intrinsic_width.min(self.max.width).max(self.min.width),
+        }
+    }
 
-        let height = match height.into() {
+    /// [Resolves](Self::resolve) only the height of the [`Limits`].
+    pub fn resolve_height(&self, height: impl Into<Length>, intrinsic_height: f32) -> f32 {
+        match height.into() {
             Length::Fill
             | Length::FillPortion(_)
             | Length::Bounded {
@@ -198,12 +209,7 @@ impl Limits {
                 ..
             } if !self.compression.height => self.max.height,
             Length::Fixed(amount) => amount.min(self.max.height).max(self.min.height),
-            _ => intrinsic_size
-                .height
-                .min(self.max.height)
-                .max(self.min.height),
-        };
-
-        Size::new(width, height)
+            _ => intrinsic_height.min(self.max.height).max(self.min.height),
+        }
     }
 }

@@ -21,7 +21,7 @@ use crate::Element;
 use crate::layout::{Limits, Node};
 use crate::length;
 use crate::widget;
-use crate::{Alignment, Length, Padding, Point, Size};
+use crate::{Alignment, Length, Padding, Size};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -401,10 +401,10 @@ where
     let pad = axis.pack(padding.left, padding.top);
     let mut main = pad.0;
 
-    // TODO: Fix duplicate `resolve` call
-    let (intrinsic_width, intrinsic_height) = axis.pack(0.0, cross);
-    let cross =
-        axis.cross(limits.resolve(width, height, Size::new(intrinsic_width, intrinsic_height)));
+    let cross = match axis {
+        Axis::Horizontal => limits.resolve_height(height, cross),
+        Axis::Vertical => limits.resolve_width(width, cross),
+    };
 
     // FIFTH PASS
     // We align all the laid out nodes in the cross axis, if needed.
@@ -413,9 +413,7 @@ where
             main += spacing;
         }
 
-        let (x, y) = axis.pack(main, pad.1);
-
-        node.move_to_mut(Point::new(x, y));
+        node.move_to_mut(axis.pack(main, pad.1));
 
         match axis {
             Axis::Horizontal => {
@@ -426,13 +424,15 @@ where
             }
         }
 
-        let size = node.size();
-
-        main += axis.main(size);
+        main += axis.main(node.size());
     }
 
-    let (intrinsic_width, intrinsic_height) = axis.pack(main - pad.0, cross);
-    let size = limits.resolve(width, height, Size::new(intrinsic_width, intrinsic_height));
+    let main = match axis {
+        Axis::Horizontal => limits.resolve_width(width, main - pad.0),
+        Axis::Vertical => limits.resolve_height(height, main - pad.0),
+    };
+
+    let size = Size::from(axis.pack(main, cross));
 
     Node::with_children(size.expand(padding), nodes)
 }
