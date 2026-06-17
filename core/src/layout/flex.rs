@@ -93,6 +93,7 @@ where
     let mut some_fill_cross = false;
     let mut some_fill_max = false;
     let mut min_total = 0.0;
+    let mut min_factors = 0;
     let mut cross = 0.0;
     let mut available = axis.main(limits.max()) - total_spacing;
 
@@ -110,6 +111,9 @@ where
             axis.pack(size.width, size.height)
         };
 
+        let fill_main_factor = size_main.fill_factor();
+        let fill_cross_factor = size_cross.fill_factor();
+
         match size_main {
             Length::Bounded {
                 with: length::Fluidity::Fill(_),
@@ -117,6 +121,7 @@ where
             }
             | Length::Fluid(length::Constraint::Min(min)) => {
                 min_total += min;
+                min_factors = fill_main_factor;
             }
             Length::Bounded {
                 with: length::Fluidity::Fill(_),
@@ -127,9 +132,6 @@ where
             }
             _ => {}
         }
-
-        let fill_main_factor = size_main.fill_factor();
-        let fill_cross_factor = size_cross.fill_factor();
 
         if (main_compress || fill_main_factor == 0) && (!cross_compress || fill_cross_factor == 0) {
             let (max_width, max_height) = axis.pack(
@@ -218,9 +220,9 @@ where
 
     while let Some(stage) = step {
         let current = remaining;
-        let reserved_space = match stage {
-            Stage::Max => min_total,
-            Stage::Min => 0.0,
+        let (reserved_space, reserved_factors) = match stage {
+            Stage::Max => (min_total, min_factors),
+            Stage::Min => (0.0, 0),
         };
 
         for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
@@ -259,8 +261,8 @@ where
                 },
             };
 
-            let max_available =
-                (remaining - reserved_space) * fill_main_factor as f32 / fill_main_sum as f32;
+            let max_available = (remaining - reserved_space) * fill_main_factor as f32
+                / (fill_main_sum - reserved_factors) as f32;
 
             let max_available = if max_available.is_nan() {
                 f32::INFINITY

@@ -249,6 +249,27 @@ fn layout_fill_min_max_priority() {
 }
 
 #[test]
+fn layout_fill_min_max_distribution() {
+    assert_layout_eq(
+        row![
+            space().width(Fill.min(400)).height(50),
+            space().width(Fill.max(250)).height(50),
+            space().width(Fill.max(200)).height(50),
+        ]
+        .width(900),
+        node(
+            (0, 0),
+            (900, 50),
+            [
+                node((0, 0), (450, 50), []),
+                node((450, 0), (250, 50), []),
+                node((700, 0), (200, 50), []),
+            ],
+        ),
+    );
+}
+
+#[test]
 fn layout_fill_min_nested_competing() {
     assert_layout_eq(
         row![
