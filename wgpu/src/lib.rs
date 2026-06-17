@@ -65,6 +65,19 @@ use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::{Shell, Viewport};
 
+fn adapter_is_software(information: &wgpu::AdapterInfo) -> bool {
+    matches!(information.device_type, wgpu::DeviceType::Cpu)
+        || known_software_adapter(&information.name)
+}
+
+fn known_software_adapter(name: &str) -> bool {
+    let name = name.to_ascii_lowercase();
+
+    ["llvmpipe", "lavapipe", "softpipe", "swiftshader"]
+        .iter()
+        .any(|software| name.contains(software))
+}
+
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
@@ -910,6 +923,10 @@ impl renderer::Headless for Renderer {
             })
             .await
             .ok()?;
+
+        if adapter_is_software(&adapter.get_info()) {
+            return None;
+        }
 
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
