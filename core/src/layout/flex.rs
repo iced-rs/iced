@@ -128,7 +128,6 @@ where
 
         let fill_main_factor = size_main.fill_factor();
         let fill_cross_factor = size_cross.fill_factor();
-
         let main_is_static = main_compress || fill_main_factor == 0;
 
         let category = match (main_is_static, cross_compress, fill_cross_factor == 0) {
@@ -160,7 +159,7 @@ where
             }
             | Length::Fluid(length::Constraint::Min(min)) => {
                 min_total += min;
-                min_factors = fill_main_factor;
+                min_factors += fill_main_factor;
             }
             Length::Bounded {
                 with: length::Fluidity::Fill(_),
