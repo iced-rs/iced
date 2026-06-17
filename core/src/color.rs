@@ -162,8 +162,8 @@ impl Color {
     /// Inverts the [`Color`] in-place.
     pub const fn invert(&mut self) {
         self.r = 1.0f32 - self.r;
-        self.b = 1.0f32 - self.g;
-        self.g = 1.0f32 - self.b;
+        self.g = 1.0f32 - self.g;
+        self.b = 1.0f32 - self.b;
     }
 
     /// Returns the inverted [`Color`].
