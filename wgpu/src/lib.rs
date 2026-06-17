@@ -924,7 +924,7 @@ impl renderer::Headless for Renderer {
             .await
             .ok()?;
 
-        if adapter_is_software(&adapter.get_info()) {
+        if cfg!(feature = "software-fallback") && adapter_is_software(&adapter.get_info()) {
             return None;
         }
 

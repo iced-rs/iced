@@ -25,6 +25,7 @@ svg = ["iced_graphics/svg", "resvg/text"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]
 strict-assertions = []
+software-fallback = []
 
 [dependencies]
 iced_debug.workspace = true

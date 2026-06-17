@@ -47,7 +47,7 @@ impl From<Error> for backend::Error {
 }
 
 fn reject_software_adapter(information: &wgpu::AdapterInfo) -> Result<(), Error> {
-    if crate::adapter_is_software(information) {
+    if cfg!(feature = "software-fallback") && crate::adapter_is_software(information) {
         Err(Error::SoftwareAdapter(information.clone()))
     } else {
         Ok(())
@@ -460,7 +460,10 @@ pub fn present_mode_from_env() -> Option<wgpu::PresentMode> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Error, reject_software_adapter};
+    use super::reject_software_adapter;
+
+    #[cfg(feature = "software-fallback")]
+    use super::Error;
 
     fn adapter_info(name: &str, device_type: wgpu::DeviceType) -> wgpu::AdapterInfo {
         wgpu::AdapterInfo {
@@ -478,6 +481,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "software-fallback")]
     #[test]
     fn llvmpipe_adapter_is_rejected_before_requesting_device() {
         let information = adapter_info("llvmpipe (LLVM 17.0.2, 256 bits)", wgpu::DeviceType::Cpu);
@@ -488,6 +492,7 @@ mod tests {
         ));
     }
 
+    #[cfg(feature = "software-fallback")]
     #[test]
     fn llvmpipe_name_is_rejected_even_if_device_type_is_unknown() {
         let information = adapter_info("llvmpipe (LLVM 17.0.2, 256 bits)", wgpu::DeviceType::Other);
@@ -498,9 +503,17 @@ mod tests {
         ));
     }
 
+    #[cfg(not(feature = "software-fallback"))]
+    #[test]
+    fn llvmpipe_adapter_is_accepted_without_software_fallback() {
+        let information = adapter_info("llvmpipe (LLVM 17.0.2, 256 bits)", wgpu::DeviceType::Cpu);
+
+        assert!(reject_software_adapter(&information).is_ok());
+    }
+
     #[test]
     fn hardware_adapter_is_accepted() {
-        let information = adapter_info("NVIDIA GeForce RTX 4090", wgpu::DeviceType::IntegratedGpu);
+        let information = adapter_info("NVIDIA GeForce RTX 4090", wgpu::DeviceType::DiscreteGpu);
 
         assert!(reject_software_adapter(&information).is_ok());
     }
