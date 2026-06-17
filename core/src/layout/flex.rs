@@ -252,7 +252,9 @@ where
         Min,
     }
 
-    let mut step = if some_fill_max {
+    let mut step = if main_compress {
+        None
+    } else if some_fill_max {
         Some(Stage::Max)
     } else if min_total > 0.0 {
         Some(Stage::Min)
