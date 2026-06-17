@@ -64,7 +64,7 @@ impl Limits {
                 self.max.width = new_width;
                 self.compression.width = false;
             }
-            Length::Bounded { bounds, with } => {
+            Length::Bounded { bounds, sizing } => {
                 match bounds {
                     length::Bounds::Min(min) => {
                         self.min.width = min.min(self.max.width).max(self.min.width);
@@ -78,14 +78,14 @@ impl Limits {
                     }
                 }
 
-                match with {
-                    length::Fluidity::Shrink => {
+                match sizing {
+                    length::Sizing::Shrink => {
                         self.compression.width = true;
                     }
-                    length::Fluidity::Fit => {
+                    length::Sizing::Fit => {
                         self.compression.width = false;
                     }
-                    length::Fluidity::Fill(_) => {}
+                    length::Sizing::Fill(_) => {}
                 }
             }
             Length::Fill | Length::FillPortion(_) => {}
@@ -110,7 +110,7 @@ impl Limits {
                 self.max.height = new_height;
                 self.compression.height = false;
             }
-            Length::Bounded { bounds, with } => {
+            Length::Bounded { bounds, sizing } => {
                 match bounds {
                     length::Bounds::Min(min) => {
                         self.min.height = min.min(self.max.height).max(self.min.height);
@@ -124,14 +124,14 @@ impl Limits {
                     }
                 }
 
-                match with {
-                    length::Fluidity::Shrink => {
+                match sizing {
+                    length::Sizing::Shrink => {
                         self.compression.height = true;
                     }
-                    length::Fluidity::Fit => {
+                    length::Sizing::Fit => {
                         self.compression.height = false;
                     }
-                    length::Fluidity::Fill(_) => {}
+                    length::Sizing::Fill(_) => {}
                 }
             }
             Length::Fill | Length::FillPortion(_) => {}
@@ -191,7 +191,7 @@ impl Limits {
             Length::Fill
             | Length::FillPortion(_)
             | Length::Bounded {
-                with: length::Fluidity::Fill(_),
+                sizing: length::Sizing::Fill(_),
                 ..
             } if !self.compression.width => self.max.width,
             Length::Fixed(amount) => amount.min(self.max.width).max(self.min.width),
@@ -205,7 +205,7 @@ impl Limits {
             Length::Fill
             | Length::FillPortion(_)
             | Length::Bounded {
-                with: length::Fluidity::Fill(_),
+                sizing: length::Sizing::Fill(_),
                 ..
             } if !self.compression.height => self.max.height,
             Length::Fixed(amount) => amount.min(self.max.height).max(self.min.height),

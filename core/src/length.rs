@@ -27,15 +27,16 @@ pub enum Length {
     /// Fill a fixed amount of space in pixels.
     Fixed(f32),
 
-    /// Fill a certain amount of space inside the given [`Bounds`] with some [`Fluidity`].
+    /// Fill a certain amount of space inside the given [`Bounds`] with some [`Sizing`] strategy.
     Bounded {
-        /// The amount of space that can be filled.
+        /// The [`Bounds`] of space that can be filled.
         bounds: Bounds,
-        /// The strategy in which the space should be filled.
-        with: Fluidity,
+        /// The [`Sizing`] strategy with which the [`Bounds`] should be filled.
+        sizing: Sizing,
     },
 
-    /// TODO
+    /// Fill the remaining space like [`Fill`](Self::Fill), but subject to a single
+    /// open-ended [`Constraint`].
     Fluid(Constraint),
 }
 
@@ -98,7 +99,7 @@ impl Bounds {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Fluidity {
+pub enum Sizing {
     Fit,
     Fill(u16),
     Shrink,
@@ -110,22 +111,25 @@ impl Length {
         let min = min.into().0;
 
         let with = match self {
-            Self::Fit | Self::Fluid(_) => Fluidity::Fit,
-            Self::Fill => Fluidity::Fill(1),
-            Self::FillPortion(factor) => Fluidity::Fill(factor),
-            Self::Shrink => Fluidity::Shrink,
+            Self::Fit | Self::Fluid(_) => Sizing::Fit,
+            Self::Fill => Sizing::Fill(1),
+            Self::FillPortion(factor) => Sizing::Fill(factor),
+            Self::Shrink => Sizing::Shrink,
             Self::Fixed(_) => return self,
-            Self::Bounded { bounds, with } => {
+            Self::Bounded {
+                bounds,
+                sizing: with,
+            } => {
                 return Self::Bounded {
                     bounds: bounds.min(min),
-                    with,
+                    sizing: with,
                 };
             }
         };
 
         Self::Bounded {
             bounds: Bounds::Min(min),
-            with,
+            sizing: with,
         }
     }
 
@@ -134,22 +138,25 @@ impl Length {
         let max = max.into().0;
 
         let with = match self {
-            Self::Fit | Self::Fluid(_) => Fluidity::Fit,
-            Self::Fill => Fluidity::Fill(1),
-            Self::FillPortion(factor) => Fluidity::Fill(factor),
-            Self::Shrink => Fluidity::Shrink,
+            Self::Fit | Self::Fluid(_) => Sizing::Fit,
+            Self::Fill => Sizing::Fill(1),
+            Self::FillPortion(factor) => Sizing::Fill(factor),
+            Self::Shrink => Sizing::Shrink,
             Self::Fixed(_) => return self,
-            Self::Bounded { bounds, with } => {
+            Self::Bounded {
+                bounds,
+                sizing: with,
+            } => {
                 return Self::Bounded {
                     bounds: bounds.max(max),
-                    with,
+                    sizing: with,
                 };
             }
         };
 
         Self::Bounded {
             bounds: Bounds::Max(max),
-            with,
+            sizing: with,
         }
     }
 
@@ -163,7 +170,7 @@ impl Length {
             Length::Fill => 1,
             Length::FillPortion(factor)
             | Length::Bounded {
-                with: Fluidity::Fill(factor),
+                sizing: Sizing::Fill(factor),
                 ..
             } => *factor,
             Length::Fluid(_) => 1,
@@ -180,19 +187,6 @@ impl Length {
     /// Returns `true` if the [`Length`] is [`Fit`](Self::Fit).
     pub fn is_fit(&self) -> bool {
         matches!(self, Self::Fit)
-    }
-
-    /// Returns the "fluid" variant of the [`Length`].
-    ///
-    /// Specifically:
-    /// - [`Length::Shrink`] if [`Length::Shrink`] or [`Length::Fixed`].
-    /// - [`Length::Fill`] otherwise.
-    pub fn fluid(&self) -> Self {
-        if self.fill_factor() == 0 {
-            Self::Shrink
-        } else {
-            Self::Fill
-        }
     }
 
     /// TODO
@@ -216,7 +210,7 @@ impl Length {
                 Length::Fluid(a),
                 Length::Bounded {
                     bounds,
-                    with: Fluidity::Fill(_),
+                    sizing: Sizing::Fill(_),
                 },
             ) => Length::Fluid(merge(a, bounds.constraint())),
             (Length::Fluid(constraint), _) => Length::Fluid(constraint),
@@ -224,26 +218,35 @@ impl Length {
             (
                 Length::Bounded {
                     bounds,
-                    with: Fluidity::Fit,
+                    sizing: Sizing::Fit,
                 },
                 Length::Fill
                 | Length::FillPortion(_)
                 | Length::Bounded {
-                    with: Fluidity::Fill(_),
+                    sizing: Sizing::Fill(_),
                     ..
                 },
             ) => Length::Bounded {
                 bounds,
-                with: Fluidity::Fill(1),
+                sizing: Sizing::Fill(1),
             },
-            (Length::Bounded { bounds, with }, _) => Length::Bounded { bounds, with },
+            (
+                Length::Bounded {
+                    bounds,
+                    sizing: with,
+                },
+                _,
+            ) => Length::Bounded {
+                bounds,
+                sizing: with,
+            },
 
             // Fluid and bounded constraints must be propagated
             (
                 _,
                 Length::Bounded {
                     bounds,
-                    with: Fluidity::Fill(_),
+                    sizing: Sizing::Fill(_),
                 },
             ) => Length::Fluid(bounds.constraint()),
             (_, Length::Fluid(constraint)) => Length::Fluid(constraint),

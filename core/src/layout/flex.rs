@@ -154,7 +154,7 @@ where
 
         match meta.main {
             Length::Bounded {
-                with: length::Fluidity::Fill(_),
+                sizing: length::Sizing::Fill(_),
                 bounds: length::Bounds::Min(min),
             }
             | Length::Fluid(length::Constraint::Min(min)) => {
@@ -162,7 +162,7 @@ where
                 min_factors += fill_main_factor;
             }
             Length::Bounded {
-                with: length::Fluidity::Fill(_),
+                sizing: length::Sizing::Fill(_),
                 bounds: length::Bounds::Max(_) | length::Bounds::Both { .. },
             }
             | Length::Fluid(length::Constraint::Max) => {
