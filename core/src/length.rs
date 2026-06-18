@@ -210,12 +210,22 @@ impl Length {
         matches!(self, Self::Fit)
     }
 
-    /// TODO
+    /// Stacks the constraints of the current [`Length`] with the given one, if applicable.
+    ///
+    /// Specifically, minimum constraints will be _added_ together and accumulated.
+    ///
+    /// You should use this when a container lays out multiple elements along a given axis and
+    /// need to inherit their constraints in the _main_ axis.
     pub fn stack(self, other: Length) -> Self {
         self.merge_with(other, Constraint::stack)
     }
 
-    /// TODO
+    /// Crosses the constraints of the current [`Length`] with the given one, if applicable.
+    ///
+    /// Specifically, minimum constraints will be compared and the _maximum_ will be returned.
+    ///
+    /// You should use this when a container lays out multiple elements along a given axis and
+    /// need to inherit their constraints in the _cross_ axis.
     pub fn cross(self, other: Length) -> Self {
         self.merge_with(other, Constraint::cross)
     }
