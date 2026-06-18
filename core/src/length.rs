@@ -1,3 +1,4 @@
+//! Describe amounts of space precisely.
 use crate::Pixels;
 
 /// The strategy used to fill space in a specific dimension.
@@ -41,8 +42,12 @@ pub enum Length {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+/// The limit of a [`Fluid`](Length::Fluid) length.
 pub enum Constraint {
+    /// Fill available space, but never shrinks below the given amount.
     Min(f32),
+    /// Fill available space, but never beyond the size the element resolves to on its own;
+    /// releasing any share it doesn't use back to its siblings.
     Max,
 }
 
@@ -68,14 +73,24 @@ impl Constraint {
     }
 }
 
+/// The space limits of a [`Bounded`](Length::Bounded) length.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Bounds {
+    /// The length must be at least a certain amount of pixels.
     Min(f32),
+    /// The length must not exceed a certain amount of pixels.
     Max(f32),
-    Both { min: f32, max: f32 },
+    /// The length must be inside a range of pixels.
+    Both {
+        /// The minimum boundary.
+        min: f32,
+        /// The maximum boundary.
+        max: f32,
+    },
 }
 
 impl Bounds {
+    /// Applies a new minimum boundary to the current [`Bounds`].
     pub fn min(self, min: f32) -> Self {
         match self {
             Self::Min(_) => Self::Min(min),
@@ -83,6 +98,7 @@ impl Bounds {
         }
     }
 
+    /// Applies a new maximum boundary to the current [`Bounds`].
     pub fn max(self, max: f32) -> Self {
         match self {
             Self::Max(_) => Self::Max(max),
@@ -90,6 +106,7 @@ impl Bounds {
         }
     }
 
+    /// Returns a [`Constraint`] that represents the current [`Bounds`].
     pub fn constraint(self) -> Constraint {
         match self {
             Bounds::Min(min) | Bounds::Both { min, .. } => Constraint::Min(min),
@@ -98,10 +115,14 @@ impl Bounds {
     }
 }
 
+/// The growth strategy of a [`Bounded`](Length::Bounded) length.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Sizing {
+    /// Equivalent to [`Length::Fit`].
     Fit,
+    /// Equivalent to [`Length::FillPortion`].
     Fill(u16),
+    /// Equivalent to [`Length::Shrink`].
     Shrink,
 }
 
