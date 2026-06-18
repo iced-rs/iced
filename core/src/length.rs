@@ -1,4 +1,4 @@
-//! Describe amounts of space precisely.
+//! Describe amounts of space accurately.
 use crate::Pixels;
 
 /// The strategy used to fill space in a specific dimension.
