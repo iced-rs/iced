@@ -265,7 +265,8 @@ where
                 let percent =
                     1.0 - f64::from(cursor_position.y - bounds.y) / f64::from(bounds.height);
 
-                self.scale.snap(percent * (end - start), self.range.clone())
+                self.scale
+                    .snap(start + percent * (end - start), self.range.clone())
             }
         };
 
