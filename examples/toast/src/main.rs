@@ -129,7 +129,7 @@ impl App {
                     "Timeout",
                     row![
                         text!("{:0>2} sec", self.timeout_secs),
-                        slider(1.0..=30.0, self.timeout_secs as f64, Message::Timeout).step(1.0)
+                        slider(1.0..=30.0, self.timeout_secs as f64, Message::Timeout)
                     ]
                     .spacing(5)
                     .into()

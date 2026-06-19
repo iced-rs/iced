@@ -564,7 +564,6 @@ fn color_slider<'a>(
     slider(0.0..=1.0, f64::from(component), move |c| {
         Message::TextColorChanged(update(c as f32))
     })
-    .step(0.01)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

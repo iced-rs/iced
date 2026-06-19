@@ -30,7 +30,10 @@
 //! ```
 use std::ops::RangeInclusive;
 
-pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn, default};
+pub use crate::slider::{
+    Catalog, ContinuousScale, DiscreteScale, Handle, HandleShape, Scale, Status, Style, StyleFn,
+    continuous, default, discrete,
+};
 
 use crate::core::border::Border;
 use crate::core::keyboard;
@@ -43,7 +46,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
 
-/// An vertical bar and a handle that selects a single value from a range of
+/// A vertical bar and a handle that selects a single value from a range of
 /// values.
 ///
 /// A [`VerticalSlider`] will try to fill the vertical space of its container.
@@ -88,8 +91,7 @@ where
     Theme: Catalog,
 {
     range: RangeInclusive<T>,
-    step: T,
-    shift_step: Option<T>,
+    scale: Box<dyn Scale<T> + 'a>,
     value: T,
     default: Option<T>,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
@@ -102,7 +104,7 @@ where
 
 impl<'a, T, Message, Theme> VerticalSlider<'a, T, Message, Theme>
 where
-    T: Copy + From<u8> + std::cmp::PartialOrd,
+    T: Copy + std::cmp::PartialOrd,
     Message: Clone,
     Theme: Catalog,
 {
@@ -120,6 +122,7 @@ where
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
         F: 'a + Fn(T) -> Message,
+        T: num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
     {
         let value = if value >= *range.start() {
             value
@@ -137,8 +140,7 @@ where
             value,
             default: None,
             range,
-            step: T::from(1),
-            shift_step: None,
+            scale: Box::new(discrete(1)),
             on_change: Box::new(on_change),
             on_release: None,
             width: Self::DEFAULT_WIDTH,
@@ -179,17 +181,9 @@ where
         self
     }
 
-    /// Sets the step size of the [`VerticalSlider`].
-    pub fn step(mut self, step: T) -> Self {
-        self.step = step;
-        self
-    }
-
-    /// Sets the optional "shift" step for the [`VerticalSlider`].
-    ///
-    /// If set, this value is used as the step while the shift key is pressed.
-    pub fn shift_step(mut self, shift_step: impl Into<T>) -> Self {
-        self.shift_step = Some(shift_step.into());
+    /// Sets the [`Scale`] of the [`VerticalSlider`].
+    pub fn scale(mut self, scale: impl Scale<T> + 'a) -> Self {
+        self.scale = Box::new(scale);
         self
     }
 
@@ -266,60 +260,23 @@ where
             } else if cursor_position.y <= bounds.y {
                 Some(*self.range.end())
             } else {
-                let step = if state.keyboard_modifiers.shift() {
-                    self.shift_step.unwrap_or(self.step)
-                } else {
-                    self.step
-                }
-                .as_();
-
-                let start = (*self.range.start()).as_();
-                let end = (*self.range.end()).as_();
-
+                let start = self.range.start().as_();
+                let end = self.range.end().as_();
                 let percent =
                     1.0 - f64::from(cursor_position.y - bounds.y) / f64::from(bounds.height);
 
-                let steps = (percent * (end - start) / step).round();
-                let value = steps * step + start;
-
-                T::from_f64(value.min(end))
+                self.scale.snap(percent * (end - start), self.range.clone())
             }
         };
 
         let increment = |value: T| -> Option<T> {
-            let step = if state.keyboard_modifiers.shift() {
-                self.shift_step.unwrap_or(self.step)
-            } else {
-                self.step
-            }
-            .as_();
-
-            let steps = (value.as_() / step).round();
-            let new_value = step * (steps + 1.0);
-
-            if new_value > (*self.range.end()).as_() {
-                return Some(*self.range.end());
-            }
-
-            T::from_f64(new_value)
+            self.scale
+                .step_up(value, self.range.clone(), state.keyboard_modifiers)
         };
 
         let decrement = |value: T| -> Option<T> {
-            let step = if state.keyboard_modifiers.shift() {
-                self.shift_step.unwrap_or(self.step)
-            } else {
-                self.step
-            }
-            .as_();
-
-            let steps = (value.as_() / step).round();
-            let new_value = step * (steps - 1.0);
-
-            if new_value < (*self.range.start()).as_() {
-                return Some(*self.range.start());
-            }
-
-            T::from_f64(new_value)
+            self.scale
+                .step_down(value, self.range.clone(), state.keyboard_modifiers)
         };
 
         let change = |new_value: T| {
