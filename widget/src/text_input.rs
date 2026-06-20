@@ -1014,7 +1014,8 @@ where
                             focus.updated_at = Instant::now();
                             update_cache(state, &self.value);
                         }
-                        keyboard::Key::Named(key::Named::Home) => {
+                        keyboard::Key::Named(key::Named::Home)
+                        | keyboard::Key::Named(key::Named::ArrowUp) => {
                             let cursor_before = state.cursor;
 
                             if modifiers.shift() {
@@ -1033,7 +1034,8 @@ where
 
                             shell.capture_event();
                         }
-                        keyboard::Key::Named(key::Named::End) => {
+                        keyboard::Key::Named(key::Named::End)
+                        | keyboard::Key::Named(key::Named::ArrowDown) => {
                             let cursor_before = state.cursor;
 
                             if modifiers.shift() {
