@@ -365,6 +365,26 @@ fn layout_fill_min_max_sidebar() {
     }
 }
 
+#[test]
+fn layout_fill_min_max_takes_leftover_space() {
+    assert_layout_eq(
+        row![
+            space().width(Fill.min(400).max(500)).height(50),
+            space().width(Fill.min(250).max(300)).height(50),
+            space().width(Fill.max(300)).height(50),
+        ],
+        node(
+            (0, 0),
+            (1024, 50),
+            [
+                node((0, 0), (424, 50), []),
+                node((424, 0), (300, 50), []),
+                node((724, 0), (300, 50), []),
+            ],
+        ),
+    );
+}
+
 fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
     let mut element = element.into();
 

@@ -92,6 +92,7 @@ where
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
     let mut some_fill_max = false;
+    let mut some_fill_min = false;
     let mut min_total = 0.0;
     let mut min_factors = 0;
     let mut cross = 0.0;
@@ -160,13 +161,21 @@ where
             | Length::Fluid(length::Constraint::Min(min)) => {
                 min_total += min;
                 min_factors += fill_main_factor;
+                some_fill_min = true;
             }
             Length::Bounded {
                 sizing: length::Sizing::Fill(_),
-                bounds: length::Bounds::Max(_) | length::Bounds::Both { .. },
+                bounds: length::Bounds::Max(_),
             }
             | Length::Fluid(length::Constraint::Max) => {
                 some_fill_max = true;
+            }
+            Length::Bounded {
+                sizing: length::Sizing::Fill(_),
+                bounds: length::Bounds::Both { .. },
+            } => {
+                some_fill_max = true;
+                some_fill_min = true;
             }
             _ => {}
         }
@@ -256,7 +265,7 @@ where
         None
     } else if some_fill_max {
         Some(Stage::Max)
-    } else if min_total > 0.0 {
+    } else if some_fill_min {
         Some(Stage::Min)
     } else {
         None
@@ -293,10 +302,10 @@ where
                 },
                 Stage::Min => match meta.main {
                     Length::Bounded {
-                        bounds: length::Bounds::Min(min),
+                        bounds: bounds @ (length::Bounds::Min(_) | length::Bounds::Both { .. }),
                         ..
-                    }
-                    | Length::Fluid(length::Constraint::Min(min)) => length::Bounds::Min(min),
+                    } => bounds,
+                    Length::Fluid(length::Constraint::Min(min)) => length::Bounds::Min(min),
                     _ => continue,
                 },
             };
@@ -317,7 +326,7 @@ where
             };
 
             match stage {
-                Stage::Max if max > max_available && min < max_available => continue,
+                Stage::Max if max > max_available => continue,
                 Stage::Min if min < max_available => continue,
                 _ => {}
             }
@@ -354,7 +363,7 @@ where
 
         if remaining == current {
             step = match stage {
-                Stage::Max if min_total > 0.0 => Some(Stage::Min),
+                Stage::Max if some_fill_min => Some(Stage::Min),
                 _ => None,
             };
         }
