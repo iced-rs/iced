@@ -129,7 +129,7 @@ pub enum PowerPreference {
     /// The backend will prefer lower-power adapters over higher-power ones. Recommended for most applications.
     LowPower,
 
-    /// The backend will prefer adapters that are higher performance. Use only in usecases with high, graphic-intensive workloads
+    /// The backend will prefer adapters that are higher performance. Use only in use cases with high, graphic-intensive workloads
     HighPerformance,
 }
 
