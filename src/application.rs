@@ -39,6 +39,7 @@ use crate::{
     Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task, Theme,
 };
 
+use iced_core::backend::PowerPreference;
 use iced_debug as debug;
 
 use std::borrow::Cow;
@@ -332,6 +333,17 @@ impl<P: Program> Application<P> {
             window: window::Settings {
                 level,
                 ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`Settings::power_preference`] of the [`Application`]
+    pub fn power_preference(self, power_preference: PowerPreference) -> Self {
+        Self {
+            settings: Settings {
+                power_preference,
+                ..self.settings
             },
             ..self
         }

@@ -1,4 +1,5 @@
 //! Configure your application.
+use crate::backend::PowerPreference;
 use crate::renderer;
 use crate::{Backend, Font, Pixels};
 
@@ -46,6 +47,11 @@ pub struct Settings {
     ///
     /// By default, it is enabled.
     pub vsync: bool,
+
+    /// The [`PowerPreference`] of the backend.
+    ///
+    /// Defaults to `PowerPreference::NoPreference`
+    pub power_preference: PowerPreference,
 }
 
 impl Default for Settings {
@@ -60,6 +66,7 @@ impl Default for Settings {
             backend: Backend::default(),
             antialiasing: true,
             vsync: true,
+            power_preference: PowerPreference::NoPreference,
         }
     }
 }

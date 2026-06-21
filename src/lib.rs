@@ -652,6 +652,7 @@ pub mod backend {
 
 pub use application::Application;
 pub use backend::Backend;
+pub use backend::PowerPreference;
 pub use daemon::Daemon;
 pub use error::Error;
 pub use event::Event;

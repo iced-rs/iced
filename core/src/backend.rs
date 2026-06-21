@@ -120,6 +120,19 @@ impl fmt::Display for Api {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Copy)]
+/// The power-usage preference for adapters
+pub enum PowerPreference {
+    /// No preference in which adapter wgpu should choose.
+    NoPreference,
+
+    /// The backend will prefer lower-power adapters over higher-power ones. Recommended for most applications.
+    LowPower,
+
+    /// The backend will prefer adapters that are higher performance. Use only in usecases with high, graphic-intensive workloads
+    HighPerformance,
+}
+
 /// The settings usted to configure a [`Backend`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
@@ -141,6 +154,11 @@ pub struct Settings {
     ///
     /// By default, it is `true`.
     pub vsync: bool,
+
+    /// The [`PowerPreference`] of the backend.
+    ///
+    /// Defaults to `PowerPreference::NoPreference`
+    pub power_preference: PowerPreference,
 }
 
 impl Default for Settings {
@@ -149,6 +167,7 @@ impl Default for Settings {
             backend: Backend::Best,
             antialiasing: true,
             vsync: true,
+            power_preference: PowerPreference::NoPreference,
         }
     }
 }
@@ -159,6 +178,7 @@ impl From<&crate::Settings> for Settings {
             backend: settings.backend.clone(),
             antialiasing: settings.antialiasing,
             vsync: settings.vsync,
+            power_preference: settings.power_preference,
         }
     }
 }

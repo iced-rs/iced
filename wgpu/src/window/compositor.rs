@@ -1,6 +1,7 @@
 //! Connect a window with a renderer.
+
 use crate::core::Color;
-use crate::core::backend;
+use crate::core::backend::{self, PowerPreference};
 use crate::core::renderer;
 use crate::graphics::color;
 use crate::graphics::compositor;
@@ -82,9 +83,14 @@ impl Compositor {
             .create_surface(wgpu::SurfaceTarget::Window(Box::new(compatible_window)))
             .ok();
 
+        let power_preference = match settings.power_preference {
+            PowerPreference::NoPreference => wgpu::PowerPreference::None,
+            PowerPreference::LowPower => wgpu::PowerPreference::LowPower,
+            PowerPreference::HighPerformance => wgpu::PowerPreference::HighPerformance,
+        };
+
         let adapter_options = wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::from_env()
-                .unwrap_or(wgpu::PowerPreference::HighPerformance),
+            power_preference: wgpu::PowerPreference::from_env().unwrap_or(power_preference),
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
         };
@@ -378,6 +384,11 @@ pub struct Settings {
     ///
     /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
+
+    /// The power-usage preference for hardware adapters
+    ///
+    /// By default, it is `NoPreference` (i.e. no preference in adapter)
+    pub power_preference: PowerPreference,
 }
 
 impl Default for Settings {
@@ -386,6 +397,7 @@ impl Default for Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
             backends: wgpu::Backends::all(),
             antialiasing: None,
+            power_preference: PowerPreference::NoPreference,
         }
     }
 }
@@ -413,6 +425,7 @@ impl From<backend::Settings> for Settings {
             },
             antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
             backends,
+            power_preference: settings.power_preference,
         }
     }
 }
