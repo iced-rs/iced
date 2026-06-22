@@ -37,7 +37,8 @@ use crate::shell;
 use crate::theme;
 use crate::window;
 use crate::{
-    Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task, Theme,
+    Backend, Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task,
+    Theme,
 };
 
 use iced_debug as debug;
@@ -333,6 +334,17 @@ impl<P: Program> Application<P> {
             window: window::Settings {
                 level,
                 ..self.window
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`Backend`] of the [`Application`].
+    pub fn backend(self, backend: Backend) -> Self {
+        Self {
+            settings: Settings {
+                backend,
+                ..self.settings
             },
             ..self
         }
