@@ -82,9 +82,14 @@ impl Compositor {
             .create_surface(wgpu::SurfaceTarget::Window(Box::new(compatible_window)))
             .ok();
 
+        let power_preference = match settings.power_preference {
+            backend::PowerPreference::None => wgpu::PowerPreference::None,
+            backend::PowerPreference::LowPower => wgpu::PowerPreference::LowPower,
+            backend::PowerPreference::HighPerformance => wgpu::PowerPreference::HighPerformance,
+        };
+
         let adapter_options = wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::from_env()
-                .unwrap_or(wgpu::PowerPreference::HighPerformance),
+            power_preference: wgpu::PowerPreference::from_env().unwrap_or(power_preference),
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
         };
@@ -374,6 +379,11 @@ pub struct Settings {
     /// The graphics backends to use.
     pub backends: wgpu::Backends,
 
+    /// The power-usage preference for graphics adapters.
+    ///
+    /// By default, it is [`backend::PowerPreference::None`].
+    pub power_preference: backend::PowerPreference,
+
     /// The antialiasing strategy that will be used for triangle primitives.
     ///
     /// By default, it is `None`.
@@ -385,6 +395,7 @@ impl Default for Settings {
         Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
             backends: wgpu::Backends::all(),
+            power_preference: backend::PowerPreference::None,
             antialiasing: None,
         }
     }
@@ -413,6 +424,7 @@ impl From<backend::Settings> for Settings {
             },
             antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
             backends,
+            power_preference: settings.power_preference,
         }
     }
 }
