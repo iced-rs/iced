@@ -1550,13 +1550,16 @@ fn find_cursor_position<P: text::Paragraph>(
         .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
         .map(text::Hit::cursor)?;
 
-    Some(
-        unicode_segmentation::UnicodeSegmentation::graphemes(
-            &value[..char_offset.min(value.len())],
-            true,
-        )
-        .count(),
-    )
+    Some(grapheme_offset_from_char_offset(&value, char_offset))
+}
+
+fn grapheme_offset_from_char_offset(value: &str, char_offset: usize) -> usize {
+    let byte_offset = value
+        .char_indices()
+        .nth(char_offset)
+        .map_or(value.len(), |(index, _)| index);
+
+    unicode_segmentation::UnicodeSegmentation::graphemes(&value[..byte_offset], true).count()
 }
 
 fn replace_paragraph<Renderer>(
@@ -1710,5 +1713,23 @@ fn alignment_offset(
             alignment::Horizontal::Center => (text_bounds_width - text_min_width) / 2.0,
             alignment::Horizontal::Right => text_bounds_width - text_min_width,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::grapheme_offset_from_char_offset;
+
+    #[test]
+    fn grapheme_offset_handles_secure_mask_char_offsets() {
+        let secure_value = "•".repeat(10);
+
+        assert_eq!(grapheme_offset_from_char_offset(&secure_value, 0), 0);
+        assert_eq!(grapheme_offset_from_char_offset(&secure_value, 1), 1);
+        assert_eq!(grapheme_offset_from_char_offset(&secure_value, 2), 2);
+        assert_eq!(grapheme_offset_from_char_offset(&secure_value, 3), 3);
+        assert_eq!(grapheme_offset_from_char_offset(&secure_value, 8), 8);
+        assert_eq!(grapheme_offset_from_char_offset(&secure_value, 10), 10);
+        assert_eq!(grapheme_offset_from_char_offset(&secure_value, 69), 10);
     }
 }
