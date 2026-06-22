@@ -23,7 +23,7 @@ use crate::widget;
 use crate::{Alignment, Length, Padding, Point, Size};
 
 /// The main axis of a flex layout.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Axis {
     /// The horizontal axis
     Horizontal,
@@ -33,21 +33,24 @@ pub enum Axis {
 }
 
 impl Axis {
-    fn main(&self, size: Size) -> f32 {
+    /// Return the main metric of the size
+    pub fn main(self, size: Size) -> f32 {
         match self {
             Axis::Horizontal => size.width,
             Axis::Vertical => size.height,
         }
     }
 
-    fn cross(&self, size: Size) -> f32 {
+    /// Return the metric opposite to the main metric
+    pub fn cross(self, size: Size) -> f32 {
         match self {
             Axis::Horizontal => size.height,
             Axis::Vertical => size.width,
         }
     }
 
-    fn pack<T>(&self, main: T, cross: T) -> (T, T) {
+    /// Pack the values according to the axis
+    pub fn pack<T>(self, main: T, cross: T) -> (T, T) {
         match self {
             Axis::Horizontal => (main, cross),
             Axis::Vertical => (cross, main),
