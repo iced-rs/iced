@@ -30,6 +30,7 @@
 //!     ]
 //! }
 //! ```
+use crate::backend;
 use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
@@ -39,7 +40,6 @@ use crate::{
     Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task, Theme,
 };
 
-use iced_core::backend::PowerPreference;
 use iced_debug as debug;
 
 use std::borrow::Cow;
@@ -338,8 +338,8 @@ impl<P: Program> Application<P> {
         }
     }
 
-    /// Sets the [`Settings::power_preference`] of the [`Application`]
-    pub fn power_preference(self, power_preference: PowerPreference) -> Self {
+    /// Sets the [`backend::PowerPreference`] of the [`Application`].
+    pub fn power_preference(self, power_preference: backend::PowerPreference) -> Self {
         Self {
             settings: Settings {
                 power_preference,

@@ -1,5 +1,5 @@
 //! Configure your application.
-use crate::backend::PowerPreference;
+use crate::backend;
 use crate::renderer;
 use crate::{Backend, Font, Pixels};
 
@@ -24,13 +24,18 @@ pub struct Settings {
 
     /// The text size that will be used by default.
     ///
-    /// The default value is `16.0`.
+    /// By default, it is `16.0`.
     pub default_text_size: Pixels,
 
     /// The graphical backend to use.
     ///
-    /// It defaults to [`Backend::Best`].
+    /// By default, it is [`Backend::Best`].
     pub backend: Backend,
+
+    /// The [`PowerPreference`](backend::PowerPreference) of the backend.
+    ///
+    /// By default, it is [`backend::PowerPreference::None`].
+    pub power_preference: backend::PowerPreference,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -47,11 +52,6 @@ pub struct Settings {
     ///
     /// By default, it is enabled.
     pub vsync: bool,
-
-    /// The [`PowerPreference`] of the backend.
-    ///
-    /// Defaults to `PowerPreference::NoPreference`
-    pub power_preference: PowerPreference,
 }
 
 impl Default for Settings {
@@ -64,9 +64,9 @@ impl Default for Settings {
             default_font: renderer.default_font,
             default_text_size: renderer.default_text_size,
             backend: Backend::default(),
+            power_preference: backend::PowerPreference::None,
             antialiasing: true,
             vsync: true,
-            power_preference: PowerPreference::NoPreference,
         }
     }
 }

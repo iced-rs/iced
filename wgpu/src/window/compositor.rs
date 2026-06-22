@@ -1,7 +1,6 @@
 //! Connect a window with a renderer.
-
 use crate::core::Color;
-use crate::core::backend::{self, PowerPreference};
+use crate::core::backend;
 use crate::core::renderer;
 use crate::graphics::color;
 use crate::graphics::compositor;
@@ -84,9 +83,9 @@ impl Compositor {
             .ok();
 
         let power_preference = match settings.power_preference {
-            PowerPreference::NoPreference => wgpu::PowerPreference::None,
-            PowerPreference::LowPower => wgpu::PowerPreference::LowPower,
-            PowerPreference::HighPerformance => wgpu::PowerPreference::HighPerformance,
+            backend::PowerPreference::None => wgpu::PowerPreference::None,
+            backend::PowerPreference::LowPower => wgpu::PowerPreference::LowPower,
+            backend::PowerPreference::HighPerformance => wgpu::PowerPreference::HighPerformance,
         };
 
         let adapter_options = wgpu::RequestAdapterOptions {
@@ -380,15 +379,15 @@ pub struct Settings {
     /// The graphics backends to use.
     pub backends: wgpu::Backends,
 
+    /// The power-usage preference for graphics adapters.
+    ///
+    /// By default, it is [`backend::PowerPreference::None`].
+    pub power_preference: backend::PowerPreference,
+
     /// The antialiasing strategy that will be used for triangle primitives.
     ///
     /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
-
-    /// The power-usage preference for hardware adapters
-    ///
-    /// By default, it is `NoPreference` (i.e. no preference in adapter)
-    pub power_preference: PowerPreference,
 }
 
 impl Default for Settings {
@@ -396,8 +395,8 @@ impl Default for Settings {
         Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
             backends: wgpu::Backends::all(),
+            power_preference: backend::PowerPreference::None,
             antialiasing: None,
-            power_preference: PowerPreference::NoPreference,
         }
     }
 }
