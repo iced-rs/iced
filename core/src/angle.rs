@@ -88,10 +88,14 @@ impl Radians {
         let angle = self.0 - FRAC_PI_2;
         let r = Vector::new(f32::cos(angle), f32::sin(angle));
 
-        let distance_to_rect = f32::max(
-            f32::abs(r.x * bounds.width / 2.0),
-            f32::abs(r.y * bounds.height / 2.0),
-        );
+        // CSS-style "farthest corner" sizing: the gradient line's 0%/100%
+        // endpoints are the perpendicular projections of the box's farthest
+        // corners onto the line, which is the SUM of the per-axis half-extents
+        // (not the max). This makes a diagonal gradient span corner-to-corner
+        // like `linear-gradient(135deg, …)` instead of stopping at the nearest
+        // side and leaving the opposite corners a flat, solid color.
+        let distance_to_rect =
+            f32::abs(r.x * bounds.width / 2.0) + f32::abs(r.y * bounds.height / 2.0);
 
         let start = bounds.center() - r * distance_to_rect;
         let end = bounds.center() + r * distance_to_rect;

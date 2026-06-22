@@ -154,7 +154,10 @@ fn gradient_linear(
         if (curr_offset <= coord_offset && coord_offset <= next_offset) {
             let from_ = colors_arr[i];
             let to_ = colors_arr[i+1];
-            let factor = smoothstep(curr_offset, next_offset, coord_offset);
+            // Linear interpolation between stops (CSS semantics), not smoothstep —
+            // an eased factor shifts the midpoint and makes bands look uneven.
+            let range = next_offset - curr_offset;
+            let factor = select(0.0, (coord_offset - curr_offset) / range, range > 0.0);
 
             color = interpolate_color(from_, to_, factor);
         }
@@ -198,7 +201,9 @@ fn gradient_radial(
         if (curr_offset <= normalized_dist && normalized_dist <= next_offset) {
             let from_ = colors_arr[i];
             let to_ = colors_arr[i+1];
-            let factor = smoothstep(curr_offset, next_offset, normalized_dist);
+            // Linear interpolation between stops (CSS semantics), not smoothstep.
+            let range = next_offset - curr_offset;
+            let factor = select(0.0, (normalized_dist - curr_offset) / range, range > 0.0);
 
             color = interpolate_color(from_, to_, factor);
         }
