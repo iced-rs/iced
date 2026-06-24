@@ -134,3 +134,39 @@ where
         None
     }
 }
+
+/// A zero-sized [`Widget`] that does nothing and will be filtered out by containers.
+pub struct Void;
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void
+where
+    Renderer: crate::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fixed(0.0),
+            height: Length::Fixed(0.0),
+        }
+    }
+
+    fn layout(
+        &mut self,
+        _tree: &mut Tree,
+        _renderer: &Renderer,
+        _limits: &layout::Limits,
+    ) -> layout::Node {
+        layout::Node::new(Size::ZERO)
+    }
+
+    fn draw(
+        &self,
+        _tree: &Tree,
+        _renderer: &mut Renderer,
+        _theme: &Theme,
+        _style: &renderer::Style,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
+        _viewport: &Rectangle,
+    ) {
+    }
+}

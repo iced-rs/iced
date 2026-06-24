@@ -523,42 +523,18 @@ where
     T: Into<Self>,
     Renderer: crate::Renderer,
 {
-    fn from(element: Option<T>) -> Self {
-        struct Void;
+    fn from(value: Option<T>) -> Self {
+        value
+            .map(T::into)
+            .unwrap_or_else(|| Element::new(widget::Void))
+    }
+}
 
-        impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void
-        where
-            Renderer: crate::Renderer,
-        {
-            fn size(&self) -> Size<Length> {
-                Size {
-                    width: Length::Fixed(0.0),
-                    height: Length::Fixed(0.0),
-                }
-            }
-
-            fn layout(
-                &mut self,
-                _tree: &mut Tree,
-                _renderer: &Renderer,
-                _limits: &layout::Limits,
-            ) -> layout::Node {
-                layout::Node::new(Size::ZERO)
-            }
-
-            fn draw(
-                &self,
-                _tree: &Tree,
-                _renderer: &mut Renderer,
-                _theme: &Theme,
-                _style: &renderer::Style,
-                _layout: Layout<'_>,
-                _cursor: mouse::Cursor,
-                _viewport: &Rectangle,
-            ) {
-            }
-        }
-
-        element.map(T::into).unwrap_or_else(|| Element::new(Void))
+impl<'a, Message, Theme, Renderer> From<widget::Void> for Element<'a, Message, Theme, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    fn from(void: widget::Void) -> Self {
+        Element::new(void)
     }
 }

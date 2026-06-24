@@ -7,7 +7,7 @@ pub use iced_renderer as renderer;
 pub use iced_renderer::core;
 pub use iced_renderer::graphics;
 
-pub use core::widget::Id;
+pub use core::widget::{Id, Void};
 
 mod action;
 mod column;

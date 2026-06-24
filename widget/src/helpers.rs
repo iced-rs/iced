@@ -2085,3 +2085,9 @@ where
 {
     Transition::new(init, value, view)
 }
+
+/// Creates a zero-sized [`Widget`] that does nothing and will be filtered out by
+/// containers.
+pub fn void() -> core::widget::Void {
+    core::widget::Void
+}
