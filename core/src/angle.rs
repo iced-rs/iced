@@ -1,6 +1,4 @@
-use crate::{Point, Rectangle, Vector};
-
-use std::f32::consts::{FRAC_PI_2, PI};
+use std::f32::consts::PI;
 use std::fmt::Display;
 use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Rem, Sub, SubAssign};
 
@@ -93,22 +91,6 @@ impl Radians {
 
     /// The amount of radians in half a circle.
     pub const PI: Self = Self(PI);
-
-    /// Calculates the line in which the angle intercepts the `bounds`.
-    pub fn to_distance(&self, bounds: &Rectangle) -> (Point, Point) {
-        let angle = self.0 - FRAC_PI_2;
-        let r = Vector::new(f32::cos(angle), f32::sin(angle));
-
-        let distance_to_rect = f32::max(
-            f32::abs(r.x * bounds.width / 2.0),
-            f32::abs(r.y * bounds.height / 2.0),
-        );
-
-        let start = bounds.center() - r * distance_to_rect;
-        let end = bounds.center() + r * distance_to_rect;
-
-        (start, end)
-    }
 }
 
 impl From<Degrees> for Radians {

@@ -136,7 +136,7 @@ impl Engine {
                 shader: match background {
                     Background::Color(color) => tiny_skia::Shader::SolidColor(into_color(*color)),
                     Background::Gradient(Gradient::Linear(linear)) => {
-                        let (start, end) = linear.angle.to_distance(&quad.bounds);
+                        let (start, end) = quad.bounds.chord(linear.angle);
 
                         let stops: Vec<tiny_skia::GradientStop> = linear
                             .stops
