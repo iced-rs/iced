@@ -518,6 +518,15 @@ where
     }
 }
 
+impl<'a, Message, Theme, Renderer> From<()> for Element<'a, Message, Theme, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    fn from(_: ()) -> Self {
+        Option::<Self>::None.into()
+    }
+}
+
 impl<'a, T, Message, Theme, Renderer> From<Option<T>> for Element<'a, Message, Theme, Renderer>
 where
     T: Into<Self>,
