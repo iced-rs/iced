@@ -5,7 +5,7 @@
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
-//! use iced::widget::slider;
+//! use iced::widget::vertical_slider;
 //!
 //! struct State {
 //!    value: f32,
@@ -17,7 +17,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+//!     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).into()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
