@@ -81,13 +81,12 @@ where
     /// Creates a [`Container`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let content = content.into();
-        let size = content.as_widget().size_hint();
 
         Container {
             id: None,
             padding: Padding::ZERO,
-            width: size.width.fluid(),
-            height: size.height.fluid(),
+            width: Length::Fit,
+            height: Length::Fit,
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
@@ -228,12 +227,12 @@ where
         self.content.as_widget().state()
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.content.as_widget().children()
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        self.content.as_widget_mut().diff(tree);
 
-    fn diff(&self, tree: &mut Tree) {
-        self.content.as_widget().diff(tree);
+        let size = self.content.as_widget().size();
+        self.width = self.width.enclose(size.width);
+        self.height = self.height.enclose(size.height);
     }
 
     fn size(&self) -> Size<Length> {

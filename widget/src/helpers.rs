@@ -5,6 +5,7 @@ use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
 use crate::core::theme;
+use crate::core::time::Instant;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
@@ -22,6 +23,7 @@ use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
+use crate::transition::{self, Transition};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
 
@@ -603,20 +605,12 @@ where
             self.content.as_widget().state()
         }
 
-        fn children(&self) -> Vec<Tree> {
-            self.content.as_widget().children()
-        }
-
-        fn diff(&self, tree: &mut Tree) {
-            self.content.as_widget().diff(tree);
+        fn diff(&mut self, tree: &mut Tree) {
+            self.content.as_widget_mut().diff(tree);
         }
 
         fn size(&self) -> Size<Length> {
             self.content.as_widget().size()
-        }
-
-        fn size_hint(&self) -> Size<Length> {
-            self.content.as_widget().size_hint()
         }
 
         fn layout(
@@ -755,20 +749,12 @@ where
             tree::Tag::of::<Tag>()
         }
 
-        fn children(&self) -> Vec<Tree> {
-            vec![Tree::new(&self.base), Tree::new(&self.top)]
-        }
-
-        fn diff(&self, tree: &mut Tree) {
-            tree.diff_children(&[&self.base, &self.top]);
+        fn diff(&mut self, tree: &mut Tree) {
+            tree.diff_children(&mut [&mut self.base, &mut self.top]);
         }
 
         fn size(&self) -> Size<Length> {
             self.base.as_widget().size()
-        }
-
-        fn size_hint(&self) -> Size<Length> {
-            self.base.as_widget().size_hint()
         }
 
         fn layout(
@@ -2050,11 +2036,58 @@ where
 /// The `view` closure will receive the maximum available space for
 /// the [`Responsive`] during layout. You can use this [`Size`] to
 /// conditionally build the contents.
-pub fn responsive<'a, Message, Theme, Renderer>(
-    f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
+pub fn responsive<'a, Message, Theme, Renderer, E>(
+    f: impl Fn(Size) -> E + 'a,
 ) -> Responsive<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
+    E: Into<Element<'a, Message, Theme, Renderer>>,
 {
     Responsive::new(f)
+}
+
+/// Creates a new [`Transition`].
+///
+/// The `init` closure will be used to initialize an implementor of [`Program`]. This is normally
+/// an [`Animation`](crate::core::Animation), but you can implement [`Program`] on your own types
+/// as well.
+///
+/// The `view` closure will receive the [`Program`] and the current [`Instant`], which can be used for interpolating values.
+/// When the `value` changes, this will be called every frame, until the [`Program`] stops animating.
+///
+/// [`Program`]: transition::Program
+///
+/// # Example
+///
+/// Here is how you could implement a smooth progress bar:
+///
+/// ```
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Animation; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{transition, progress_bar};
+/// use iced::Animation;
+///
+/// fn smooth_progress_bar<'a, Message: 'a>(progress: f32) -> Element<'a, Message> {
+///     transition(progress, || Animation::new(0.).quick(), |animation, now| {
+///         progress_bar(0.0..=1.0, animation.interpolate_with(std::convert::identity, now))
+///     }).into()
+/// }
+/// ```
+pub fn transition<'a, Message, Theme, Renderer, P, E>(
+    value: P::Value,
+    init: impl Fn() -> P + 'a,
+    view: impl Fn(&P, Instant) -> E + 'a,
+) -> Transition<'a, Message, Theme, Renderer, P>
+where
+    Renderer: core::Renderer,
+    P: transition::Program,
+    E: Into<Element<'a, Message, Theme, Renderer>>,
+{
+    Transition::new(init, value, view)
+}
+
+/// Creates a zero-sized [`Widget`] that does nothing and will be filtered out by
+/// containers.
+pub fn void() -> core::widget::Void {
+    core::widget::Void
 }

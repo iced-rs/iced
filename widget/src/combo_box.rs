@@ -529,12 +529,8 @@ where
         })
     }
 
-    fn children(&self) -> Vec<widget::Tree> {
-        vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
-    }
-
-    fn diff(&self, _tree: &mut widget::Tree) {
-        // do nothing so the children don't get cleared
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        tree.diff_children(&mut [&mut self.text_input as &mut dyn Widget<_, _, _>]);
     }
 
     fn update(

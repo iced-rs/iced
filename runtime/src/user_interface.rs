@@ -104,7 +104,7 @@ where
         let mut root = root.into();
 
         let Cache { mut state } = cache;
-        state.diff(root.as_widget());
+        state.diff(root.as_widget_mut());
 
         let base = root.as_widget_mut().layout(
             &mut state,
@@ -234,8 +234,15 @@ where
                 input_method.merge(shell.input_method());
                 clipboard.merge(shell.clipboard_mut());
 
-                if shell.is_layout_invalid() {
+                if let Some(diff) = shell.is_layout_invalid() {
                     drop(maybe_overlay);
+
+                    match diff {
+                        shell::Diff::Perform => {
+                            self.root.as_widget_mut().diff(&mut self.state);
+                        }
+                        shell::Diff::Skip => {}
+                    }
 
                     self.base = self.root.as_widget_mut().layout(
                         &mut self.state,
@@ -261,7 +268,7 @@ where
 
                     overlay = maybe_overlay.as_mut().unwrap();
 
-                    shell.revalidate_layout(|| {
+                    shell.revalidate_layout(|_diff| {
                         layout = overlay.layout(renderer, bounds);
                         has_layout_changed = true;
                     });
@@ -337,8 +344,15 @@ where
                 input_method.merge(shell.input_method());
                 clipboard.merge(shell.clipboard_mut());
 
-                shell.revalidate_layout(|| {
+                shell.revalidate_layout(|diff| {
                     has_layout_changed = true;
+
+                    match diff {
+                        shell::Diff::Perform => {
+                            self.root.as_widget_mut().diff(&mut self.state);
+                        }
+                        shell::Diff::Skip => {}
+                    }
 
                     self.base = self.root.as_widget_mut().layout(
                         &mut self.state,

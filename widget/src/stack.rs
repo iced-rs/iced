@@ -49,16 +49,10 @@ where
     }
 
     /// Creates a [`Stack`] from an already allocated [`Vec`].
-    ///
-    /// Keep in mind that the [`Stack`] will not inspect the [`Vec`], which means
-    /// it won't automatically adapt to the sizing strategy of its contents.
-    ///
-    /// If any of the children have a [`Length::Fill`] strategy, you will need to
-    /// call [`Stack::width`] or [`Stack::height`] accordingly.
     pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             children,
             clip: false,
             base_layer: 0,
@@ -80,14 +74,9 @@ where
     /// Adds an element on top of the [`Stack`].
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size_hint();
+        let child_size = child.as_widget().size();
 
         if !child_size.is_void() {
-            if self.children.is_empty() {
-                self.width = self.width.enclose(child_size.width);
-                self.height = self.height.enclose(child_size.height);
-            }
-
             self.children.push(child);
         }
 
@@ -134,12 +123,15 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(&mut self.children);
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children);
+        if let Some(base) = self.children.get(self.base_layer) {
+            let size = base.as_widget().size();
+
+            self.width = self.width.enclose(size.width);
+            self.height = self.height.enclose(size.height);
+        }
     }
 
     fn size(&self) -> Size<Length> {

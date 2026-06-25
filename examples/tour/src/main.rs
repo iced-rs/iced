@@ -134,7 +134,7 @@ impl Tour {
             }
             Message::OpenTrunk => {
                 #[cfg(not(target_arch = "wasm32"))]
-                let _ = open::that_in_background("https://trunkrs.dev");
+                let _ = open::that_in_background("https://trunk-rs.github.io/trunk/");
             }
         }
     }
