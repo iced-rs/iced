@@ -1,9 +1,12 @@
+use iced::font;
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, image, radio, rich_text, row, scrollable, slider,
-    space, span, text, text_input, toggler,
+    button, center_x, center_y, checkbox, column, container, image, radio, rich_text, row,
+    scrollable, slider, space, span, text, text_input, toggler, transition,
 };
-use iced::{Center, Color, Element, Fill, Font, Pixels, color};
+use iced::{Animation, Center, Color, Element, Fill, Font, Pixels, Theme, color};
+
+use std::time::Duration;
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -17,6 +20,7 @@ pub fn main() -> iced::Result {
 
     iced::application(Tour::default, Tour::update, Tour::view)
         .title(Tour::title)
+        .subscription(Tour::subscription)
         .centered()
         .run()
 }
@@ -36,6 +40,7 @@ pub struct Tour {
     input_is_secure: bool,
     input_is_showing_icon: bool,
     debug: bool,
+    udhr_language: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -55,7 +60,9 @@ pub enum Message {
     ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
+    NextLanguage,
     OpenTrunk,
+    OpenDeclaration,
 }
 
 impl Tour {
@@ -66,6 +73,7 @@ impl Tour {
             Screen::Toggler => "Toggler",
             Screen::Slider => "Slider",
             Screen::Text => "Text",
+            Screen::RichText => "Rich text",
             Screen::Image => "Image",
             Screen::RowsAndColumns => "Rows and columns",
             Screen::Scrollable => "Scrollable",
@@ -132,10 +140,27 @@ impl Tour {
             Message::TogglerChanged(toggler) => {
                 self.toggler = toggler;
             }
+            Message::NextLanguage => {
+                self.udhr_language += 1;
+            }
             Message::OpenTrunk => {
                 #[cfg(not(target_arch = "wasm32"))]
                 let _ = open::that_in_background("https://trunk-rs.github.io/trunk/");
             }
+            Message::OpenDeclaration => {
+                #[cfg(not(target_arch = "wasm32"))]
+                let _ = open::that_in_background(
+                    "https://www.un.org/en/about-us/universal-declaration-of-human-rights",
+                );
+            }
+        }
+    }
+
+    fn subscription(&self) -> iced::Subscription<Message> {
+        if self.screen == Screen::RichText {
+            iced::time::every(Duration::from_secs(6)).map(|_| Message::NextLanguage)
+        } else {
+            iced::Subscription::none()
         }
     }
 
@@ -157,6 +182,7 @@ impl Tour {
             Screen::Toggler => self.toggler(),
             Screen::Slider => self.slider(),
             Screen::Text => self.text(),
+            Screen::RichText => self.rich_text(),
             Screen::Image => self.image(),
             Screen::RowsAndColumns => self.rows_and_columns(),
             Screen::Scrollable => self.scrollable(),
@@ -185,6 +211,7 @@ impl Tour {
             Screen::Toggler => self.toggler,
             Screen::Slider => true,
             Screen::Text => true,
+            Screen::RichText => true,
             Screen::Image => true,
             Screen::RowsAndColumns => true,
             Screen::Scrollable => true,
@@ -476,6 +503,73 @@ impl Tour {
             .push("Make sure to keep an eye on it!")
     }
 
+    fn rich_text(&self) -> Column<'_, Message> {
+        let blue = color!(0x4090ff);
+        let red = color!(0xff4040);
+        let green = color!(0x40c040);
+
+        let language = self.udhr_language as f32;
+
+        Self::container("Rich text")
+            .push("Iced supports bidirectional rich text.")
+            .push(
+                rich_text![
+                    "You can ",
+                    span("underline").underline(true),
+                    " a span, ",
+                    span("strike one through").strikethrough(true),
+                    ", or ",
+                    span("do both at once")
+                        .color(blue)
+                        .underline(true)
+                        .strikethrough(true),
+                    ". Decorations take the color of their span, like ",
+                    span("red").color(red).underline(true),
+                    " or ",
+                    span("green").color(green).strikethrough(true),
+                    "."
+                ]
+                .on_link_click(std::convert::identity),
+            )
+            .push(
+                container(
+                    column![
+                        // A link with no explicit underline reveals one on
+                        // hover, without relayouting.
+                        rich_text![
+                            span("Universal Declaration of Human Rights")
+                                .size(16)
+                                .color(color!(0x7777FF))
+                                .link(Message::OpenDeclaration)
+                        ]
+                        .on_link_click(std::convert::identity),
+                        scrollable(transition(
+                            language,
+                            move || { Animation::new(language).duration(Duration::from_secs(2)) },
+                            |animation, now| {
+                                let t = animation.interpolate_with(std::convert::identity, now);
+                                let index = (t.round() as usize) % DECLARATIONS.len();
+                                let alpha = (1.0 - 2.0 * (t - t.round()).abs()).clamp(0.0, 1.0);
+
+                                declaration(index, alpha)
+                            },
+                        ))
+                        .direction(scrollable::Direction::Vertical(
+                            scrollable::Scrollbar::new()
+                                .width(2)
+                                .scroller_width(2)
+                                .spacing(2),
+                        ))
+                        .height(Fill),
+                    ]
+                    .spacing(16),
+                )
+                .padding(20)
+                .height(420)
+                .style(container::bordered_box),
+            )
+    }
+
     fn container(title: &str) -> Column<'_, Message> {
         column![text(title).size(50)].spacing(20)
     }
@@ -487,6 +581,7 @@ enum Screen {
     Slider,
     RowsAndColumns,
     Text,
+    RichText,
     Radio,
     Toggler,
     Image,
@@ -502,6 +597,7 @@ impl Screen {
         Self::Slider,
         Self::RowsAndColumns,
         Self::Text,
+        Self::RichText,
         Self::Radio,
         Self::Toggler,
         Self::Image,
@@ -609,6 +705,265 @@ pub enum Layout {
     Column,
 }
 
+/// A language name, followed by Articles 1, 2, and 3 of the Universal
+/// Declaration of Human Rights in that language.
+///
+/// Article 1 is split into plain, underlined, plain, bold, and plain
+/// chunks; Article 2 is two plain paragraphs; Article 3 is split into
+/// plain, underlined, and plain chunks.
+type Declaration = (
+    &'static str,
+    [&'static str; 5],
+    [&'static str; 2],
+    [&'static str; 3],
+);
+
+const DECLARATIONS: &[Declaration] = &[
+    (
+        "English",
+        [
+            "All human beings are born ",
+            "free and equal in dignity and rights",
+            ". They are endowed with ",
+            "reason and conscience",
+            " and should act towards one another in a spirit of brotherhood.",
+        ],
+        [
+            "Everyone is entitled to all the rights and freedoms set forth in this Declaration, without distinction of any kind, such as race, colour, sex, language, religion, political or other opinion, national or social origin, property, birth or other status.",
+            "Furthermore, no distinction shall be made on the basis of the political, jurisdictional or international status of the country or territory to which a person belongs, whether it be independent, trust, non-self-governing or under any other limitation of sovereignty.",
+        ],
+        [
+            "Everyone has the right to ",
+            "life, liberty and security of person",
+            ".",
+        ],
+    ),
+    (
+        "العربية",
+        [
+            "يولد جميع الناس ",
+            "أحرارًا متساوين في الكرامة والحقوق",
+            ". وقد وهبوا ",
+            "عقلاً وضميرًا",
+            " وعليهم أن يعامل بعضهم بعضًا بروح الإخاء.",
+        ],
+        [
+            "لكل إنسان حق التمتع بكافة الحقوق والحريات الواردة في هذا الإعلان، دون أي تمييز، كالتمييز بسبب العنصر أو اللون أو الجنس أو اللغة أو الدين أو الرأي السياسي أو أي رأي آخر، أو الأصل الوطني أو الإجتماعي أو الثروة أو الميلاد أو أي وضع آخر، دون أية تفرقة بين الرجال والنساء.",
+            "وفضلاً عما تقدم فلن يكون هناك أي تمييز أساسه الوضع السياسي أو القانوني أو الدولي لبلد أو البقعة التي ينتمي إليها الفرد سواء كان هذا البلد أو تلك البقعة مستقلاً أو تحت الوصاية أو غير متمتع بالحكم الذاتي أو كانت سيادته خاضعة لأي قيد من القيود.",
+        ],
+        ["لكل فرد الحق في ", "الحياة والحرية وسلامة شخصه", "."],
+    ),
+    (
+        "中文",
+        [
+            "人人生而自由，",
+            "在尊严和权利上一律平等",
+            "。他们赋有",
+            "理性和良心",
+            "，并应以兄弟关系的精神相对待。",
+        ],
+        [
+            "人人有资格享有本宣言所载的一切权利和自由，不分种族、肤色、性别、语言、宗教、政治或其他见解、国籍或社会出身、财产、出生或其他身分等任何区别。",
+            "并且不得因一人所属的国家或领土的政治的、行政的或者国际的地位之不同而有所区别，无论该领土是独立领土、托管领土、非自治领土或者处于其他任何主权受限制的情况之下。",
+        ],
+        ["人人有权享有", "生命、自由和人身安全", "。"],
+    ),
+    (
+        "Ελληνικά",
+        [
+            "Όλοι οι άνθρωποι γεννιούνται ",
+            "ελεύθεροι και ίσοι στην αξιοπρέπεια και τα δικαιώματα",
+            ". Είναι προικισμένοι με ",
+            "λογική και συνείδηση",
+            ", και οφείλουν να συμπεριφέρονται μεταξύ τους με πνεύμα αδελφοσύνης.",
+        ],
+        [
+            "Κάθε άνθρωπος δικαιούται να επικαλείται όλα τα δικαιώματα και όλες τις ελευθερίες που προκηρύσσει η παρούσα Διακήρυξη, χωρίς καμία απολύτως διάκριση, ειδικότερα ως προς τη φυλή, το χρώμα, το φύλο, τη γλώσσα, τις θρησκείες, τις πολιτικές ή οποιεσδήποτε άλλες πεποιθήσεις, την εθνική ή κοινωνική καταγωγή, την περιουσία, τη γέννηση ή οποιαδήποτε άλλη κατάσταση.",
+            "Δεν θα μπορεί ακόμα να γίνεται καμία διάκριση εξαιτίας του πολιτικού, νομικού ή διεθνούς καθεστώτος της χώρας από την οποία προέρχεται κανείς, είτε πρόκειται για χώρα ή εδαφική περιοχή ανεξάρτητη, υπό κηδεμονία ή υπεξουσία, ή που βρίσκεται υπό οποιονδήποτε άλλον περιορισμό κυριαρχίας.",
+        ],
+        [
+            "Κάθε άτομο έχει δικαίωμα στη ",
+            "ζωή, την ελευθερία και την προσωπική του ασφάλεια",
+            ".",
+        ],
+    ),
+    (
+        "עברית",
+        [
+            "כל בני אדם נולדו ",
+            "בני חורין ושווים בערכם ובזכויותיהם",
+            ". כולם חוננו ",
+            "בתבונה ובמצפון",
+            ", לפיכך חובה עליהם לנהוג איש ברעהו ברוח של אחוה.",
+        ],
+        [
+            "כל אדם זכאי לזכויות ולחרויות שנקבעו בהכרזה זו ללא הפליה כלשהיא מטעמי גזע, צבע, מין, לשון, דת, דעה פוליטית או דעה בבעיות אחרות, בגלל מוצא לאומי או חברתי, קנין, לידה או מעמד אחר.",
+            "גדולה מזו, לא יופלה אדם על פי מעמדה המדיני, על פי סמכותה או על פי מעמדה הבינלאומי של המדינה או הארץ שאליה הוא שייך, דין שהארץ היא עצמאית, ובין שהיא נתונה לנאמנות, בין שהיא נטולת שלטון עצמי ובין שריבונותה מוגבלת כל הגבלה אחרת.",
+        ],
+        ["כל אדם יש לו הזכות ", "לחיים, לחרות ולבטחון אישי", "."],
+    ),
+    (
+        "हिन्दी",
+        [
+            "सभी मनुष्यों को गौरव और अधिकारों के मामले में ",
+            "जन्मजात स्वतन्त्रता और समानता",
+            " प्राप्त है । उन्हें ",
+            "बुद्धि और अन्तरात्मा",
+            " की देन प्राप्त है और परस्पर उन्हें भाईचारे के भाव से बर्ताव करना चाहिए ।",
+        ],
+        [
+            "सभी को इस घोषणा में सन्निहित सभी अधिकारों और आज़ादियों को प्राप्त करने का हक़ है और इस मामले में जाति, वर्ण, लिंग, भाषा, धर्म, राजनीति या अन्य विचार-प्रणाली, किसी देश या समाज विशेष में जन्म, सम्पत्ति या किसी प्रकार की अन्य मर्यादा आदि के कारण भेदभाव का विचार न किया जाएगा ।",
+            "इसके अतिरिक्त, चाहे कोई देश या प्रदेश स्वतन्त्र हो, संरक्षित हो, या स्त्रशासन रहित हो या परिमित प्रभुसत्ता वाला हो, उस देश या प्रदेश की राजनैतिक, क्षेत्रीय या अन्तर्राष्ट्रीय स्थिति के आधार पर वहां के निवासियों के प्रति कोई फ़रक़ न रखा जाएगा ।",
+        ],
+        [
+            "प्रत्येक व्यक्ति को ",
+            "जीवन, स्वाधीनता और वैयक्तिक सुरक्षा",
+            " का अधिकार है ।",
+        ],
+    ),
+    (
+        "日本語",
+        [
+            "すべての人間は、",
+            "生まれながらにして自由であり、かつ、尊厳と権利とについて平等である",
+            "。人間は、",
+            "理性と良心",
+            "とを授けられており、互いに同胞の精神をもって行動しなければならない。",
+        ],
+        [
+            "すべて人は、人種、皮膚の色、性、言語、宗教、政治上その他の意見、国民的もしくは社会的出身、財産、門地その他の地位又はこれに類するいかなる事由による差別をも受けることなく、この宣言に掲げるすべての権利と自由とを享有することができる。",
+            "さらに、個人の属する国又は地域が独立国であると、信託統治地域であると、非自治地域であると、又は他のなんらかの主権制限の下にあるを問わず、その国又は地域の政治上、管轄上又は国際上の地位に基づくいかなる差別もしてはならない。",
+        ],
+        [
+            "すべての人は、",
+            "生命、自由及び身体の安全",
+            "に対する権利を有する。",
+        ],
+    ),
+    (
+        "한국어",
+        [
+            "모든 인간은 태어날 때부터 ",
+            "자유로우며 그 존엄과 권리에 있어 동등하다",
+            ". 인간은 천부적으로 ",
+            "이성과 양심",
+            "을 부여받았으며 서로 형제애의 정신으로 행동하여야 한다.",
+        ],
+        [
+            "모든 사람은 인종, 피부색, 성, 언어, 종교, 정치적 또는 기타의 견해, 민족적 또는 사회적 출신, 재산, 출생 또는 기타의 신분과 같은 어떠한 종류의 차별이 없이, 이 선언에 규정된 모든 권리와 자유를 향유할 자격이 있다.",
+            "더 나아가 개인이 속한 국가 또는 영토가 독립국, 신탁통치지역, 비자치지역이거나 또는 주권에 대한 여타의 제약을 받느냐에 관계없이, 그 국가 또는 영토의 정치적, 법적 또는 국제적 지위에 근거하여 차별이 있어서는 아니된다.",
+        ],
+        [
+            "모든 사람은 ",
+            "생명과 신체의 자유와 안전",
+            "에 대한 권리를 가진다.",
+        ],
+    ),
+    (
+        "فارسی",
+        [
+            "تمام افراد بشر ",
+            "آزاد بدنیا میایند و از لحاظ حیثیت و حقوق با هم برابرند",
+            ". همه دارای ",
+            "عقل و وجدان",
+            " میباشند و باید نسبت بیکدیگر با روح برادری رفتار کنند.",
+        ],
+        [
+            "هر کس میتواند بدون هیچگونه تمایز مخصوصا از حیث نژاد، رنگ، جنس، زبان، مذهب، عقیدهٔ سیاسی یا هر عقیده دیگر و همچنین ملیت، وضع اجتماعی، ثروت، ولادت یا هر موقعیت دیگر، از تمام حقوق و کلیهٔ آزادی\u{200c}هائیکه در اعلامیه ذکر حاضر شده است، بهره\u{200c}مند گردد.",
+            "بعلاوه هیچ تبعیضی بعمل نخواهد آمد که مبتنی بر وضع سیاسی، اداری و قضائی یا بین\u{200c}المللی کشور یا سرزمینی باشد که شخص بآن تعلق دارد، خواه این کشور مستقل، تحت قیومیت یا غیر خودمختار بوده یا حاکمیت آن بشکلی محدود شده باشد.",
+        ],
+        ["هر کس حق ", "زندگی، آزادی و امنیت شخصی", " دارد."],
+    ),
+    (
+        "Русский",
+        [
+            "Все люди рождаются ",
+            "свободными и равными в своем достоинстве и правах",
+            ". Они наделены ",
+            "разумом и совестью",
+            " и должны поступать в отношении друг друга в духе братства.",
+        ],
+        [
+            "Каждый человек должен обладать всеми правами и всеми свободами, провозглашенными настоящей Декларацией, без какого бы то ни было различия, как-то в отношении расы, цвета кожи, пола, языка, религии, политических или иных убеждений, национального или социального происхождения, имущественного, сословного или иного положения.",
+            "Кроме того, не должно проводиться никакого различия на основе политического, правового или международного статуса страны или территории, к которой человек принадлежит, независимо от того, является ли эта территория независимой, подопечной, несамоуправляющейся или как-либо иначе ограниченной в своем суверенитете.",
+        ],
+        [
+            "Каждый человек имеет право на ",
+            "жизнь, на свободу и на личную неприкосновенность",
+            ".",
+        ],
+    ),
+    (
+        "Español",
+        [
+            "Todos los seres humanos nacen ",
+            "libres e iguales en dignidad y derechos",
+            " y, dotados como están de ",
+            "razón y conciencia",
+            ", deben comportarse fraternalmente los unos con los otros.",
+        ],
+        [
+            "Toda persona tiene los derechos y libertades proclamados en esta Declaración, sin distinción alguna de raza, color, sexo, idioma, religión, opinión política o de cualquier otra índole, origen nacional o social, posición económica, nacimiento o cualquier otra condición.",
+            "Además, no se hará distinción alguna fundada en la condición política, jurídica o internacional del país o territorio de cuya jurisdicción dependa una persona, tanto si se trata de un país independiente, como de un territorio bajo administración fiduciaria, no autónomo o sometido a cualquier otra limitación de soberanía.",
+        ],
+        [
+            "Todo individuo tiene derecho a ",
+            "la vida, a la libertad y a la seguridad de su persona",
+            ".",
+        ],
+    ),
+];
+
+fn declaration<'a>(language: usize, alpha: f32) -> Element<'a, Message> {
+    let (name, first, second, third) = &DECLARATIONS[language];
+    let [a, b, c, d, e] = first;
+    let [f, g] = second;
+    let [h, i, j] = third;
+
+    let blue = color!(0x4090ff).scale_alpha(alpha);
+    let green = color!(0x40c040).scale_alpha(alpha);
+    let bold = Font {
+        weight: font::Weight::Bold,
+        ..Font::DEFAULT
+    };
+    let body = move |theme: &Theme| iced::widget::text::Style {
+        color: Some(theme.palette().background.base.text.scale_alpha(alpha)),
+    };
+    let align = if matches!(name.chars().next(), Some('\u{0590}'..='\u{08FF}')) {
+        iced::Right
+    } else {
+        iced::Left
+    };
+
+    column![
+        text(*name)
+            .size(13)
+            .width(Fill)
+            .align_x(align)
+            .color(color!(0x888888).scale_alpha(alpha)),
+        rich_text![
+            span(*a),
+            span(*b).underline(true).color(blue),
+            span(*c),
+            span(*d).font(bold),
+            span(*e),
+        ]
+        .width(Fill)
+        .align_x(align)
+        .style(body)
+        .on_link_click(std::convert::identity),
+        text(*f).width(Fill).align_x(align).style(body),
+        text(*g).width(Fill).align_x(align).style(body),
+        rich_text![span(*h), span(*i).underline(true).color(green), span(*j),]
+            .width(Fill)
+            .align_x(align)
+            .style(body)
+            .on_link_click(std::convert::identity),
+    ]
+    .spacing(12)
+    .into()
+}
+
 impl Default for Tour {
     fn default() -> Self {
         Self {
@@ -626,6 +981,7 @@ impl Default for Tour {
             input_is_secure: false,
             input_is_showing_icon: false,
             debug: false,
+            udhr_language: 0,
         }
     }
 }
