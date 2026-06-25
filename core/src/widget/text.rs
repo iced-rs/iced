@@ -27,7 +27,7 @@ use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::{Color, Element, Em, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 pub use text::{Alignment, Ellipsis, LineHeight, Shaping, Wrapping};
 
@@ -151,6 +151,12 @@ where
     /// Sets the [`Ellipsis`] strategy of the [`Text`].
     pub fn ellipsis(mut self, ellipsis: Ellipsis) -> Self {
         self.format.ellipsis = ellipsis;
+        self
+    }
+
+    /// Sets the letter spacing of the [`Text`].
+    pub fn letter_spacing(mut self, letter_spacing: impl Into<Em>) -> Self {
+        self.format.letter_spacing = letter_spacing.into();
         self
     }
 
@@ -278,6 +284,7 @@ pub struct Format<Font> {
     pub shaping: Shaping,
     pub wrapping: Wrapping,
     pub ellipsis: Ellipsis,
+    pub letter_spacing: Em,
 }
 
 impl<Font> Default for Format<Font> {
@@ -293,6 +300,7 @@ impl<Font> Default for Format<Font> {
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
+            letter_spacing: Em::ZERO,
         }
     }
 }
@@ -325,6 +333,7 @@ where
             shaping: format.shaping,
             wrapping: format.wrapping,
             ellipsis: format.ellipsis,
+            letter_spacing: format.letter_spacing,
             hint_factor: renderer.scale_factor(),
         });
 

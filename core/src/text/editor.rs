@@ -55,6 +55,7 @@ pub trait Editor: Sized + Default {
         new_font: Self::Font,
         new_size: Pixels,
         new_line_height: LineHeight,
+        new_letter_spacing: crate::Em,
         new_wrapping: Wrapping,
         new_hint_factor: Option<f32>,
         new_highlighter: &mut impl Highlighter,
