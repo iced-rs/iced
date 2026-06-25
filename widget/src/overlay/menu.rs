@@ -351,6 +351,24 @@ where
             };
         }
 
+        const MENU_BACKDROP_BLUR_RADIUS: f32 = 20.0;
+        let frosted = matches!(
+            style.background,
+            Background::Color(color) if color.a > f32::EPSILON && color.a < 1.0
+        );
+
+        if frosted {
+            renderer.draw_backdrop_blur(
+                bounds,
+                MENU_BACKDROP_BLUR_RADIUS,
+                <[f32; 4]>::from(style.border.radius),
+                1.0,
+            );
+            // Draw the panel + items in a post-blur layer so they composite on
+            // top of the blurred backdrop rather than being blurred themselves.
+            renderer.start_post_blur_layer(bounds);
+        }
+
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
@@ -364,6 +382,10 @@ where
         self.list.draw(
             self.tree, renderer, theme, defaults, layout, cursor, &bounds,
         );
+
+        if frosted {
+            renderer.end_post_blur_layer();
+        }
     }
 }
 

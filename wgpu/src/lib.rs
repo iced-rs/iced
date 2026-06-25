@@ -1241,6 +1241,7 @@ impl Renderer {
 
         // Track layer offsets - we need to match them with the main render
         let mut quad_layer = 0;
+        let mut overlay_quad_layer = 0;
         let mut mesh_layer = 0;
         let mut text_layer = 0;
 
@@ -1283,6 +1284,9 @@ impl Renderer {
                 {
                     if !layer.quads.is_empty() {
                         quad_layer += 1;
+                    }
+                    if !layer.overlay_quads.is_empty() {
+                        overlay_quad_layer += 1;
                     }
                     text_layer += layer
                         .text
@@ -1392,6 +1396,20 @@ impl Renderer {
                     &mut render_pass,
                 );
                 image_layer += 1;
+            }
+
+            // Overlay quads (e.g. strikethrough decorations) paint last, on top
+            // of the text — mirror the main render pass so post-blur layers don't
+            // silently drop them.
+            if !layer.overlay_quads.is_empty() {
+                self.overlay_quad.render(
+                    &self.engine.quad_pipeline,
+                    overlay_quad_layer,
+                    scissor_rect,
+                    &layer.overlay_quads,
+                    &mut render_pass,
+                );
+                overlay_quad_layer += 1;
             }
         }
 
