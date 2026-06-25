@@ -111,8 +111,17 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
     }
 
     let (width, height, pixels) = match handle {
-        image::Handle::Path(_, path) => {
-            let image = ::image::open(path).map_err(to_error)?;
+        image::Handle::Path(_, path, guess) => {
+            let image = if *guess {
+                ::image::ImageReader::open(path)
+                    .map_err(map_io_err)?
+                    .with_guessed_format()
+                    .map_err(map_io_err)?
+                    .decode()
+                    .map_err(to_error)?
+            } else {
+                ::image::open(path).map_err(to_error)?
+            };
 
             let operation = std::fs::File::open(path)
                 .ok()
@@ -160,4 +169,10 @@ fn to_error(error: ::image::ImageError) -> image::Error {
         ::image::ImageError::IoError(error) => image::Error::Inaccessible(Arc::new(error)),
         error => image::Error::Invalid(Arc::new(error)),
     }
+}
+
+#[cfg(feature = "image")]
+fn map_io_err(error: std::io::Error) -> image::Error {
+    use std::sync::Arc;
+    image::Error::Inaccessible(Arc::new(error))
 }
