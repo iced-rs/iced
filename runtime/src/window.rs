@@ -161,6 +161,13 @@ pub enum Action {
     /// - **Web / Wayland:** Unsupported.
     GainFocus(Id),
 
+    /// Inhibit (or release) the compositor's global keyboard shortcuts for the
+    /// window, so it receives reserved combos (e.g. Super) for key capture.
+    ///
+    /// - **Wayland:** uses `zwp_keyboard_shortcuts_inhibit`.
+    /// - **Other platforms:** no-op.
+    SetKeyboardShortcutsInhibit(Id, bool),
+
     /// Change the window [`Level`].
     SetLevel(Id, Level),
 
@@ -723,6 +730,19 @@ pub fn request_user_attention<T>(id: Id, user_attention: Option<UserAttention>) 
 /// user experience.
 pub fn gain_focus<T>(id: Id) -> Task<T> {
     task::effect(crate::Action::Window(Action::GainFocus(id)))
+}
+
+/// Inhibit (or release) the compositor's global keyboard shortcuts for a window.
+///
+/// While inhibited, the compositor delivers **all** key events — including its own
+/// reserved combos such as `Super` — to the window. Use this around a key-capture /
+/// shortcut-recording session and release it as soon as capture ends.
+///
+/// **Wayland-only** (`zwp_keyboard_shortcuts_inhibit`); a no-op on other platforms.
+pub fn set_keyboard_shortcuts_inhibit<T>(id: Id, inhibit: bool) -> Task<T> {
+    task::effect(crate::Action::Window(Action::SetKeyboardShortcutsInhibit(
+        id, inhibit,
+    )))
 }
 
 /// Changes the window [`Level`].

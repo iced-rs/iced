@@ -2681,6 +2681,15 @@ fn run_action<'a, P, C>(
                     window.raw.focus_window();
                 }
             }
+            window::Action::SetKeyboardShortcutsInhibit(id, inhibit) => {
+                #[cfg(all(target_os = "linux", feature = "wayland"))]
+                if let Some(window) = window_manager.get_mut(id) {
+                    use winit::platform::wayland::WindowExtWayland;
+                    window.raw.set_keyboard_shortcuts_inhibit(inhibit);
+                }
+                #[cfg(not(all(target_os = "linux", feature = "wayland")))]
+                let _ = (id, inhibit);
+            }
             window::Action::SetLevel(id, level) => {
                 if let Some(window) = window_manager.get_mut(id) {
                     window.raw.set_window_level(conversion::window_level(level));
