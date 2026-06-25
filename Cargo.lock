@@ -3147,6 +3147,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "masked_input"
+version = "0.1.0"
+dependencies = [
+ "iced",
+]
+
+[[package]]
 name = "maybe-rayon"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
