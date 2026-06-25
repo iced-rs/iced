@@ -981,7 +981,7 @@ async fn run_instance<P>(
                                 _ => {
                                     present_span.finish();
 
-                                    log::error!("Error {error:?} when presenting surface.");
+                                    log::warn!("Error {error:?} when presenting surface.");
 
                                     // Try rendering all windows again next frame.
                                     for (_id, window) in window_manager.iter_mut() {
