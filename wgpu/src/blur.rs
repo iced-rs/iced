@@ -749,8 +749,8 @@ pub struct State {
     regions: Vec<BlurRegion>,
     /// Content that should be rendered after blur
     post_blur_content: Vec<PostBlurContent>,
-    /// Currently recording post-blur content (bounds, start_layer)
-    current_post_blur: Option<(Rectangle, usize)>,
+    /// Stack of in-progress post-blur regions, each `(bounds, start_layer)`.
+    current_post_blur: Vec<(Rectangle, usize)>,
 }
 
 impl State {
@@ -774,25 +774,28 @@ impl State {
         !self.regions.is_empty()
     }
 
-    /// Clears all pending regions.
+    /// Clears all pending blur state (called at the start of each frame).
     pub fn clear(&mut self) {
         self.regions.clear();
+        self.post_blur_content.clear();
+        self.current_post_blur.clear();
     }
 
-    /// Begins recording post-blur content.
+    /// Begins recording a (possibly nested) post-blur region.
     pub fn start_post_blur(&mut self, bounds: Rectangle, layer_index: usize) {
         log::trace!(
-            "start_post_blur: bounds={:?}, layer_index={}",
+            "start_post_blur: bounds={:?}, layer_index={}, depth={}",
             bounds,
-            layer_index
+            layer_index,
+            self.current_post_blur.len() + 1
         );
-        self.current_post_blur = Some((bounds, layer_index));
+        self.current_post_blur.push((bounds, layer_index));
     }
 
-    /// Ends recording post-blur content.
+    /// Ends the innermost in-progress post-blur region, recording it.
     pub fn end_post_blur(&mut self, end_layer: usize) {
         log::trace!("end_post_blur: end_layer={}", end_layer);
-        if let Some((bounds, start_layer)) = self.current_post_blur.take() {
+        if let Some((bounds, start_layer)) = self.current_post_blur.pop() {
             log::trace!(
                 "Recording post-blur content: start_layer={}, end_layer={}",
                 start_layer,
@@ -814,8 +817,8 @@ impl State {
             layer_index >= content.start_layer && layer_index < end
         }) || self
             .current_post_blur
-            .as_ref()
-            .is_some_and(|(_, start)| layer_index >= *start)
+            .iter()
+            .any(|(_, start)| layer_index >= *start)
     }
 
     /// Takes all post-blur content, clearing the state.
