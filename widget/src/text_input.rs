@@ -110,10 +110,24 @@ where
     alignment: alignment::Horizontal,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
-    on_submit: Option<Message>,
+    on_submit: Option<OnSubmit<'a, Message>>,
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
+}
+
+enum OnSubmit<'a, Message> {
+    Direct(Message),
+    Closure(Box<dyn Fn() -> Message + 'a>),
+}
+
+impl<Message: Clone> OnSubmit<'_, Message> {
+    fn get(&self) -> Message {
+        match self {
+            OnSubmit::Direct(message) => message.clone(),
+            OnSubmit::Closure(f) => f(),
+        }
+    }
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -181,14 +195,27 @@ where
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed.
     pub fn on_submit(mut self, message: Message) -> Self {
-        self.on_submit = Some(message);
+        self.on_submit = Some(OnSubmit::Direct(message));
+        self
+    }
+
+    /// Sets the message that will be produced when the [`TextInput`] is focused and the enter key is pressed.
+    ///
+    /// This is analogous to [`TextInput::on_submit`], but using a closure to produce
+    /// the message.
+    ///
+    /// This closure will only be called when the [`TextInput`] is actually focused and the enter key is pressed and,
+    /// therefore, this method is useful to reduce overhead if creating the resulting
+    /// message is slow.
+    pub fn on_submit_with(mut self, on_submit: impl Fn() -> Message + 'a) -> Self {
+        self.on_submit = Some(OnSubmit::Closure(Box::new(on_submit)));
         self
     }
 
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed, if `Some`.
     pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self {
-        self.on_submit = on_submit;
+        self.on_submit = on_submit.map(OnSubmit::Direct);
         self
     }
 
@@ -956,8 +983,8 @@ where
 
                     match modified_key.as_ref() {
                         keyboard::Key::Named(key::Named::Enter) => {
-                            if let Some(on_submit) = self.on_submit.clone() {
-                                shell.publish(on_submit);
+                            if let Some(on_submit) = &self.on_submit {
+                                shell.publish(on_submit.get());
                                 shell.capture_event();
                             }
                         }
