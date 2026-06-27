@@ -71,6 +71,11 @@ impl Size {
             height: (self.width / aspect_ratio).min(self.height),
         }
     }
+
+    /// Check if an object of this size would fit into an object of the other size
+    pub const fn is_within(self, other: Size) -> bool {
+        other.width >= self.width && other.height >= self.height
+    }
 }
 
 impl Size<Length> {
