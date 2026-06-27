@@ -1,5 +1,5 @@
 //! Draw lines around containers.
-use crate::{Color, Pixels};
+use crate::{Color, Pixels, animation::Interpolable};
 
 /// A border.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -71,6 +71,16 @@ impl Border {
         Self {
             width: width.into().0,
             ..self
+        }
+    }
+}
+
+impl Interpolable for Border {
+    fn interpolated(&self, other: Self, ratio: f32) -> Self {
+        Self {
+            color: self.color.interpolated(other.color, ratio),
+            width: self.width.interpolated(other.width, ratio),
+            radius: self.radius.interpolated(other.radius, ratio),
         }
     }
 }
@@ -220,6 +230,17 @@ impl Radius {
             top_right: value,
             bottom_right: value,
             ..self
+        }
+    }
+}
+
+impl Interpolable for Radius {
+    fn interpolated(&self, other: Self, ratio: f32) -> Self {
+        Self {
+            top_left: self.top_left.interpolated(other.top_left, ratio),
+            top_right: self.top_right.interpolated(other.top_right, ratio),
+            bottom_left: self.bottom_left.interpolated(other.bottom_left, ratio),
+            bottom_right: self.bottom_right.interpolated(other.bottom_right, ratio),
         }
     }
 }
