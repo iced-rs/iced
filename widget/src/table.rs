@@ -93,7 +93,7 @@ where
 
         let (mut columns, views): (Vec<_>, Vec<_>) = columns
             .map(|column| {
-                width = width.enclose(column.width);
+                width = width.stack(column.width);
 
                 cells.push(column.header);
 
@@ -214,7 +214,7 @@ where
         for cell in &self.cells {
             let size = cell.as_widget().size();
 
-            self.height = self.height.enclose(size.height);
+            self.height = self.height.stack(size.height);
         }
     }
 
@@ -230,7 +230,11 @@ where
 
         let limits = limits.width(self.width).height(self.height);
         let available = limits.max();
-        let table_fluid = self.width.fluid();
+        let table_fluid = if self.width.fill_factor() == 0 {
+            Length::Shrink
+        } else {
+            Length::Fill
+        };
 
         let mut cells = Vec::with_capacity(self.cells.len());
         cells.resize(self.cells.len(), layout::Node::default());

@@ -539,7 +539,7 @@ pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
 
 pub use Alignment::Center;
-pub use Length::{Fill, FillPortion, Shrink};
+pub use Length::{Fill, FillPortion, Fit, Shrink};
 pub use alignment::Horizontal::{Left, Right};
 pub use alignment::Vertical::{Bottom, Top};
 

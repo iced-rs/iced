@@ -2,7 +2,7 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{button, center, column, operation, pick_list, row, slider, text, text_input};
-use iced::{Center, Element, Fill, Subscription, Task};
+use iced::{Center, Element, Fill, Fit, Subscription, Task};
 
 use toast::{Status, Toast};
 
@@ -137,7 +137,7 @@ impl App {
                 column![add_toast].align_x(Center)
             ]
             .spacing(10)
-            .max_width(200),
+            .width(Fit.max(200)),
         );
 
         toast::Manager::new(content, &self.toasts, Message::Close)
@@ -165,8 +165,8 @@ mod toast {
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
-        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle, Renderer, Size, Theme,
-        Vector,
+        Alignment, Center, Element, Event, Fill, Fit, Length, Point, Rectangle, Renderer, Size,
+        Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -255,7 +255,7 @@ mod toast {
                             .padding(5)
                             .style(container::rounded_box),
                     ])
-                    .max_width(200)
+                    .width(Fit.max(200))
                     .into()
                 })
                 .collect();

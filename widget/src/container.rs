@@ -30,8 +30,8 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shadow,
-    Shell, Size, Theme, Vector, Widget, color,
+    self, Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell,
+    Size, Theme, Vector, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.
@@ -64,8 +64,6 @@ where
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: f32,
-    max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     clip: bool,
@@ -87,8 +85,6 @@ where
             padding: Padding::ZERO,
             width: Length::Fit,
             height: Length::Fit,
-            max_width: f32::INFINITY,
-            max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             clip: false,
@@ -118,18 +114,6 @@ where
     /// Sets the height of the [`Container`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
-        self
-    }
-
-    /// Sets the maximum width of the [`Container`].
-    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
-        self.max_width = max_width.into().0;
-        self
-    }
-
-    /// Sets the maximum height of the [`Container`].
-    pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
-        self.max_height = max_height.into().0;
         self
     }
 
@@ -231,8 +215,8 @@ where
         self.content.as_widget_mut().diff(tree);
 
         let size = self.content.as_widget().size();
-        self.width = self.width.enclose(size.width);
-        self.height = self.height.enclose(size.height);
+        self.width = self.width.stack(size.width);
+        self.height = self.height.stack(size.height);
     }
 
     fn size(&self) -> Size<Length> {
@@ -252,8 +236,6 @@ where
             limits,
             self.width,
             self.height,
-            self.max_width,
-            self.max_height,
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
@@ -388,15 +370,13 @@ pub fn layout(
     limits: &layout::Limits,
     width: Length,
     height: Length,
-    max_width: f32,
-    max_height: f32,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
     layout::positioned(
-        &limits.max_width(max_width).max_height(max_height),
+        limits,
         width,
         height,
         padding,

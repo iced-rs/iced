@@ -3,7 +3,7 @@ use iced::widget::{
     button, center_x, center_y, checkbox, column, image, radio, rich_text, row, scrollable, slider,
     space, span, text, text_input, toggler,
 };
-use iced::{Center, Color, Element, Fill, Font, Pixels, color};
+use iced::{Center, Color, Element, Fill, Fit, Font, Pixels, color};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -165,7 +165,10 @@ impl Tour {
             Screen::End => self.end(),
         };
 
-        let content: Element<_> = column![screen, controls].max_width(540).spacing(20).into();
+        let content: Element<_> = column![screen, controls]
+            .width(Fit.max(540))
+            .spacing(20)
+            .into();
 
         let scrollable = scrollable(center_x(if self.debug {
             content.explain(Color::BLACK)

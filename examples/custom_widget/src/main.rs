@@ -74,7 +74,7 @@ mod circle {
 
 use circle::circle;
 use iced::widget::{center, column, slider, text};
-use iced::{Center, Element};
+use iced::{Center, Element, Fit};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -110,7 +110,7 @@ impl Example {
         ]
         .padding(20)
         .spacing(20)
-        .max_width(500)
+        .width(Fit.max(500))
         .align_x(Center);
 
         center(content).into()

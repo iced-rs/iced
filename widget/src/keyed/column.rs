@@ -37,7 +37,6 @@ where
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: f32,
     align_items: Alignment,
     keys: Vec<Key>,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
@@ -66,7 +65,6 @@ where
             padding: Padding::ZERO,
             width: Length::Fit,
             height: Length::Fit,
-            max_width: f32::INFINITY,
             align_items: Alignment::Start,
             keys,
             children,
@@ -112,12 +110,6 @@ where
     /// Sets the height of the [`Column`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
-        self
-    }
-
-    /// Sets the maximum width of the [`Column`].
-    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
-        self.max_width = max_width.into().0;
         self
     }
 
@@ -226,8 +218,8 @@ where
             for child in &self.children {
                 let size = child.as_widget().size();
 
-                self.width = self.width.enclose(size.width);
-                self.height = self.height.enclose(size.height);
+                self.width = self.width.cross(size.width);
+                self.height = self.height.stack(size.height);
             }
         }
     }
@@ -245,15 +237,10 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .max_width(self.max_width)
-            .width(self.width)
-            .height(self.height);
-
         layout::flex::resolve(
             layout::flex::Axis::Vertical,
             renderer,
-            &limits,
+            limits,
             self.width,
             self.height,
             self.padding,

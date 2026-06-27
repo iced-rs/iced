@@ -14,7 +14,12 @@ use crate::core::keyboard;
 use crate::core::theme::{self, Theme};
 use crate::core::time::seconds;
 use crate::core::window;
-use crate::core::{Alignment::Center, Color, Element, Font, Length::Fill, Settings};
+use crate::core::{
+    Alignment::Center,
+    Color, Element, Font,
+    Length::{Fill, Fit},
+    Settings,
+};
 use crate::futures::Subscription;
 use crate::program::Program;
 use crate::program::message;
@@ -322,7 +327,7 @@ where
             let setup = center(
                 container(stage)
                     .padding(20)
-                    .max_width(500)
+                    .width(Fit.max(500))
                     .style(container::bordered_box),
             )
             .padding(10)
