@@ -25,6 +25,8 @@ iced_futures.features = ["thread-pool"]
 iced_renderer.workspace = true
 iced_renderer.features = ["fira-sans"]
 
+image.workspace = true
+image-compare.workspace = true
 nom.workspace = true
 png.workspace = true
 sha2.workspace = true
