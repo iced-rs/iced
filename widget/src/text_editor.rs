@@ -478,6 +478,7 @@ pub struct State<Highlighter: text::Highlighter> {
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
+    last_id: Option<widget::Id>,
     partial_scroll: f32,
     last_theme: RefCell<Option<String>>,
     highlighter: RefCell<Highlighter>,
@@ -550,12 +551,19 @@ where
             preedit: None,
             last_click: None,
             drag_click: None,
+            last_id: self.id.clone(),
             partial_scroll: 0.0,
             last_theme: RefCell::default(),
             highlighter: RefCell::new(Highlighter::new(&self.highlighter_settings)),
             highlighter_settings: self.highlighter_settings.clone(),
             highlighter_format_address: self.highlighter_format as usize,
         })
+    }
+
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        if tree.state.downcast_mut::<State<Highlighter>>().last_id != self.id {
+            tree.state = self.state();
+        }
     }
 
     fn size(&self) -> Size<Length> {
