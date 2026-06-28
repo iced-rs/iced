@@ -61,6 +61,17 @@ impl Font {
     }
 }
 
+/// Returns the cosmic_text attributes of the given [`Font`].
+impl From<Font> for cosmic_text::Attrs<'static> {
+    fn from(font: Font) -> cosmic_text::Attrs<'static> {
+        cosmic_text::Attrs::new()
+            .family(font.family.into())
+            .weight(font.weight.into())
+            .stretch(font.stretch.into())
+            .style(font.style.into())
+    }
+}
+
 impl From<&'static str> for Font {
     fn from(name: &'static str) -> Self {
         Font::new(name)
@@ -134,6 +145,32 @@ impl Family {
     }
 }
 
+impl From<cosmic_text::Family<'static>> for Family {
+    fn from(family: cosmic_text::Family<'static>) -> Family {
+        match family {
+            cosmic_text::Family::Name(name) => Family::Name(name),
+            cosmic_text::Family::SansSerif => Family::SansSerif,
+            cosmic_text::Family::Serif => Family::Serif,
+            cosmic_text::Family::Cursive => Family::Cursive,
+            cosmic_text::Family::Fantasy => Family::Fantasy,
+            cosmic_text::Family::Monospace => Family::Monospace,
+        }
+    }
+}
+
+impl From<Family> for cosmic_text::Family<'static> {
+    fn from(family: Family) -> cosmic_text::Family<'static> {
+        match family {
+            Family::Name(name) => cosmic_text::Family::Name(name),
+            Family::SansSerif => cosmic_text::Family::SansSerif,
+            Family::Serif => cosmic_text::Family::Serif,
+            Family::Cursive => cosmic_text::Family::Cursive,
+            Family::Fantasy => cosmic_text::Family::Fantasy,
+            Family::Monospace => cosmic_text::Family::Monospace,
+        }
+    }
+}
+
 impl From<&str> for Family {
     fn from(name: &str) -> Self {
         Family::name(name)
@@ -169,6 +206,49 @@ pub enum Weight {
     Black,
 }
 
+/// An error that results from trying to convert a cosmic_text::Weight into an
+/// Iced Weight.
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+pub enum WeightConversionError {
+    /// Iced only allows for certain predefined weight constants, and anything
+    /// other than those will result in a conversion error.
+    NoMatchingWeight(u16),
+}
+
+impl TryFrom<cosmic_text::Weight> for Weight {
+    type Error = WeightConversionError;
+
+    fn try_from(weight: cosmic_text::Weight) -> Result<Weight, WeightConversionError> {
+        Ok(match weight {
+            cosmic_text::Weight::EXTRA_BOLD => Weight::ExtraBold,
+            cosmic_text::Weight::BOLD => Weight::Bold,
+            cosmic_text::Weight::SEMIBOLD => Weight::Semibold,
+            cosmic_text::Weight::MEDIUM => Weight::Medium,
+            cosmic_text::Weight::NORMAL => Weight::Normal,
+            cosmic_text::Weight::LIGHT => Weight::Light,
+            cosmic_text::Weight::EXTRA_LIGHT => Weight::ExtraLight,
+            cosmic_text::Weight::THIN => Weight::Thin,
+            cosmic_text::Weight(w) => return Err(WeightConversionError::NoMatchingWeight(w)),
+        })
+    }
+}
+
+impl From<Weight> for cosmic_text::Weight {
+    fn from(weight: Weight) -> cosmic_text::Weight {
+        match weight {
+            Weight::Thin => cosmic_text::Weight::THIN,
+            Weight::ExtraLight => cosmic_text::Weight::EXTRA_LIGHT,
+            Weight::Light => cosmic_text::Weight::LIGHT,
+            Weight::Normal => cosmic_text::Weight::NORMAL,
+            Weight::Medium => cosmic_text::Weight::MEDIUM,
+            Weight::Semibold => cosmic_text::Weight::SEMIBOLD,
+            Weight::Bold => cosmic_text::Weight::BOLD,
+            Weight::ExtraBold => cosmic_text::Weight::EXTRA_BOLD,
+            Weight::Black => cosmic_text::Weight::BLACK,
+        }
+    }
+}
+
 /// The width of some text.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -185,6 +265,38 @@ pub enum Stretch {
     UltraExpanded,
 }
 
+impl From<cosmic_text::Stretch> for Stretch {
+    fn from(stretch: cosmic_text::Stretch) -> Stretch {
+        match stretch {
+            cosmic_text::Stretch::UltraCondensed => Stretch::UltraCondensed,
+            cosmic_text::Stretch::ExtraCondensed => Stretch::ExtraCondensed,
+            cosmic_text::Stretch::Condensed => Stretch::Condensed,
+            cosmic_text::Stretch::SemiCondensed => Stretch::SemiCondensed,
+            cosmic_text::Stretch::Normal => Stretch::Normal,
+            cosmic_text::Stretch::SemiExpanded => Stretch::SemiExpanded,
+            cosmic_text::Stretch::Expanded => Stretch::Expanded,
+            cosmic_text::Stretch::ExtraExpanded => Stretch::ExtraExpanded,
+            cosmic_text::Stretch::UltraExpanded => Stretch::UltraExpanded,
+        }
+    }
+}
+
+impl From<Stretch> for cosmic_text::Stretch {
+    fn from(stretch: Stretch) -> cosmic_text::Stretch {
+        match stretch {
+            Stretch::UltraCondensed => cosmic_text::Stretch::UltraCondensed,
+            Stretch::ExtraCondensed => cosmic_text::Stretch::ExtraCondensed,
+            Stretch::Condensed => cosmic_text::Stretch::Condensed,
+            Stretch::SemiCondensed => cosmic_text::Stretch::SemiCondensed,
+            Stretch::Normal => cosmic_text::Stretch::Normal,
+            Stretch::SemiExpanded => cosmic_text::Stretch::SemiExpanded,
+            Stretch::Expanded => cosmic_text::Stretch::Expanded,
+            Stretch::ExtraExpanded => cosmic_text::Stretch::ExtraExpanded,
+            Stretch::UltraExpanded => cosmic_text::Stretch::UltraExpanded,
+        }
+    }
+}
+
 /// The style of some text.
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -193,6 +305,26 @@ pub enum Style {
     Normal,
     Italic,
     Oblique,
+}
+
+impl From<cosmic_text::Style> for Style {
+    fn from(style: cosmic_text::Style) -> Style {
+        match style {
+            cosmic_text::Style::Normal => Style::Normal,
+            cosmic_text::Style::Italic => Style::Italic,
+            cosmic_text::Style::Oblique => Style::Oblique,
+        }
+    }
+}
+
+impl From<Style> for cosmic_text::Style {
+    fn from(style: Style) -> cosmic_text::Style {
+        match style {
+            Style::Normal => cosmic_text::Style::Normal,
+            Style::Italic => cosmic_text::Style::Italic,
+            Style::Oblique => cosmic_text::Style::Oblique,
+        }
+    }
 }
 
 /// A font error.
