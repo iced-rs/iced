@@ -1,6 +1,7 @@
 //! A step in an end-to-end test.
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::widget::metadata::Role;
 use crate::core::{Event, Point};
 use crate::simulator;
 
@@ -328,6 +329,19 @@ pub enum Target {
     Id(String),
     /// A UI element containing the given text.
     Text(String),
+    /// A widget with the given semantic role.
+    Role(Role),
+    /// A widget with the given semantic label.
+    Label(String),
+    /// A widget with the given semantic test identifier.
+    TestId(String),
+    /// A widget with the given semantic role and label.
+    RoleLabel {
+        /// The semantic role of the target.
+        role: Role,
+        /// The semantic label of the target.
+        label: String,
+    },
     /// A specific point of the viewport.
     Point(Point),
 }
@@ -338,6 +352,17 @@ impl fmt::Display for Target {
             Self::Id(id) => f.write_str(&format::id(id)),
             Self::Point(point) => f.write_str(&format::point(*point)),
             Self::Text(text) => f.write_str(&format::string(text)),
+            Self::Role(role) => write!(f, "role={}", format::role(role)),
+            Self::Label(label) => write!(f, "label={}", format::string(label)),
+            Self::TestId(test_id) => write!(f, "test_id={}", format::string(test_id)),
+            Self::RoleLabel { role, label } => {
+                write!(
+                    f,
+                    "role={} label={}",
+                    format::role(role),
+                    format::string(label)
+                )
+            }
         }
     }
 }
@@ -445,6 +470,22 @@ mod format {
     pub fn id(id: &str) -> String {
         format!("#{id}")
     }
+
+    pub fn role(role: &Role) -> &str {
+        match role {
+            Role::Button => "button",
+            Role::Checkbox => "checkbox",
+            Role::TextInput => "text_input",
+            Role::PickList => "pick_list",
+            Role::Scrollable => "scrollable",
+            Role::Text => "text",
+            Role::Dialog => "dialog",
+            Role::Tab => "tab",
+            Role::List => "list",
+            Role::ListItem => "list_item",
+            Role::Custom(_) => "custom",
+        }
+    }
 }
 
 /// A testing assertion.
@@ -455,6 +496,8 @@ mod format {
 pub enum Expectation {
     /// Expect some element to contain some text.
     Text(String),
+    /// Expect a target to exist.
+    Target(Target),
 }
 
 impl fmt::Display for Expectation {
@@ -462,6 +505,9 @@ impl fmt::Display for Expectation {
         match self {
             Expectation::Text(text) => {
                 write!(f, "expect {}", format::string(text))
+            }
+            Expectation::Target(target) => {
+                write!(f, "expect {target}")
             }
         }
     }
@@ -547,10 +593,26 @@ mod parser {
 
     fn target(input: &str) -> IResult<&str, Target> {
         alt((
+            semantic_role_label,
+            preceded(tag("role="), role).map(Target::Role),
+            preceded(tag("label="), string).map(Target::Label),
+            preceded(tag("test_id="), string).map(Target::TestId),
             id.map(String::from).map(Target::Id),
             string.map(Target::Text),
             point.map(Target::Point),
         ))
+        .parse(input)
+    }
+
+    fn semantic_role_label(input: &str) -> IResult<&str, Target> {
+        map(
+            separated_pair(
+                preceded(tag("role="), role),
+                multispace1,
+                preceded(tag("label="), string),
+            ),
+            |(role, label)| Target::RoleLabel { role, label },
+        )
         .parse(input)
     }
 
@@ -571,9 +633,13 @@ mod parser {
     }
 
     fn expectation(input: &str) -> IResult<&str, Expectation> {
-        map(preceded(tag("expect "), string), |text| {
-            Expectation::Text(text)
-        })
+        preceded(
+            tag("expect "),
+            alt((
+                map(string, Expectation::Text),
+                map(target, Expectation::Target),
+            )),
+        )
         .parse(input)
     }
 
@@ -592,6 +658,22 @@ mod parser {
             char('#'),
             recognize(many1_count(alt((alphanumeric1, tag("_"), tag("-"))))),
         )
+        .parse(input)
+    }
+
+    fn role(input: &str) -> IResult<&str, Role> {
+        alt((
+            value(Role::Button, tag("button")),
+            value(Role::Checkbox, tag("checkbox")),
+            value(Role::TextInput, tag("text_input")),
+            value(Role::PickList, tag("pick_list")),
+            value(Role::Scrollable, tag("scrollable")),
+            value(Role::Text, tag("text")),
+            value(Role::Dialog, tag("dialog")),
+            value(Role::Tab, tag("tab")),
+            value(Role::ListItem, tag("list_item")),
+            value(Role::List, tag("list")),
+        ))
         .parse(input)
     }
 
@@ -708,5 +790,47 @@ mod parser {
         });
 
         delimited(char('"'), build_string, char('"')).parse(input)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Expectation, Instruction, Interaction, Mouse, Target};
+    use crate::core::mouse;
+    use crate::core::widget::metadata::Role;
+
+    #[test]
+    fn parses_click_by_test_id() {
+        assert_eq!(
+            Instruction::parse(r#"click test_id="profile-name""#).unwrap(),
+            Instruction::Interact(Interaction::Mouse(Mouse::Click {
+                button: mouse::Button::Left,
+                target: Some(Target::TestId("profile-name".to_owned())),
+            }))
+        );
+    }
+
+    #[test]
+    fn parses_click_by_role_and_label() {
+        assert_eq!(
+            Instruction::parse(r#"click role=button label="Create""#).unwrap(),
+            Instruction::Interact(Interaction::Mouse(Mouse::Click {
+                button: mouse::Button::Left,
+                target: Some(Target::RoleLabel {
+                    role: Role::Button,
+                    label: "Create".to_owned(),
+                }),
+            }))
+        );
+    }
+
+    #[test]
+    fn parses_expect_by_semantic_target() {
+        assert_eq!(
+            Instruction::parse(r#"expect test_id="profile-name""#).unwrap(),
+            Instruction::Expect(Expectation::Target(Target::TestId(
+                "profile-name".to_owned()
+            )))
+        );
     }
 }
