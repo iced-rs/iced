@@ -238,6 +238,10 @@ pub enum Request {
         ///
         /// If `None`, the runtime provides a default generic icon.
         icon: Option<DndIcon>,
+        /// Optional icon hotspot in logical coordinates relative to the icon's
+        /// top-left — the point of the icon kept under the cursor. `None` places
+        /// the icon's top-left at the cursor.
+        hotspot: Option<(i32, i32)>,
     },
 
     /// Accept the current drag offer for a specific MIME type.

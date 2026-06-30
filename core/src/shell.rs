@@ -134,6 +134,7 @@ impl<'a, Message> Shell<'a, Message> {
             actions,
             data,
             icon: None,
+            hotspot: None,
         });
     }
 
@@ -165,6 +166,7 @@ impl<'a, Message> Shell<'a, Message> {
                 pixels,
                 scale,
             }),
+            hotspot: None,
         });
     }
 
@@ -183,6 +185,8 @@ impl<'a, Message> Shell<'a, Message> {
         data: Vec<Vec<u8>>,
         internal: bool,
         icon_surface: dnd::DndIconSurface,
+        hotspot_x: i32,
+        hotspot_y: i32,
     ) {
         self.clipboard.dnd_requests.push(dnd::Request::StartDrag {
             internal,
@@ -190,6 +194,7 @@ impl<'a, Message> Shell<'a, Message> {
             actions,
             data,
             icon: Some(dnd::DndIcon::Element(icon_surface)),
+            hotspot: Some((hotspot_x, hotspot_y)),
         });
     }
 
