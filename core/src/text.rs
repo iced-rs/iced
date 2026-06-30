@@ -278,16 +278,34 @@ impl Hash for LineHeight {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Hit {
     /// The point was within the bounds of the returned character index.
-    CharOffset(usize),
+    CharOffset(usize, Affinity),
 }
 
 impl Hit {
     /// Computes the cursor position of the [`Hit`] .
     pub fn cursor(self) -> usize {
         match self {
-            Self::CharOffset(i) => i,
+            Self::CharOffset(i, _) => i,
         }
     }
+
+    /// Returns the cursor [`Affinity`] of the [`Hit`].
+    pub fn affinity(&self) -> Affinity {
+        match self {
+            Self::CharOffset(_, a) => *a,
+        }
+    }
+}
+
+/// Cursor affinity for BiDi text. At the boundary between runs of different
+/// directions, the same byte index can map to different visual positions.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Affinity {
+    /// Associate with the run before the cursor index.
+    #[default]
+    Before,
+    /// Associate with the run after the cursor index.
+    After,
 }
 
 /// The difference detected in some text.

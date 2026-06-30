@@ -1,10 +1,12 @@
 //! Track the cursor of a text input.
+use crate::core::text::Affinity;
 use crate::text_input::Value;
 
 /// The cursor of a text input.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Cursor {
     state: State,
+    affinity: Affinity,
 }
 
 /// The state of a [`Cursor`].
@@ -26,6 +28,7 @@ impl Default for Cursor {
     fn default() -> Self {
         Cursor {
             state: State::Index(0),
+            affinity: Affinity::Before,
         }
     }
 }
@@ -178,6 +181,42 @@ impl Cursor {
         match self.state(value) {
             State::Index(index) => index,
             State::Selection { start, end } => start.max(end),
+        }
+    }
+
+    /// Returns the current cursor [`Affinity`].
+    pub fn affinity(&self) -> Affinity {
+        self.affinity
+    }
+
+    /// Sets the cursor [`Affinity`].
+    pub fn set_affinity(&mut self, affinity: Affinity) {
+        self.affinity = affinity;
+    }
+
+    /// Moves the cursor in a visual direction, accounting for RTL text.
+    ///
+    /// `forward` = `true` is visually rightward
+    /// RTL text flips the logical direction so that pressing the right-arrow key
+    /// still moves the caret forward visually.
+    pub fn move_visual(&mut self, forward: bool, by_words: bool, rtl: bool, value: &Value) {
+        match (forward ^ rtl, by_words) {
+            (true, false) => self.move_right(value),
+            (true, true) => self.move_right_by_words(value),
+            (false, false) => self.move_left(value),
+            (false, true) => self.move_left_by_words(value),
+        }
+    }
+
+    /// Extends the selection in a visual direction, accounting for RTL text.
+    ///
+    /// See [`Cursor::move_visual`] for the `forward` / `rtl` semantics.
+    pub fn select_visual(&mut self, forward: bool, by_words: bool, rtl: bool, value: &Value) {
+        match (forward ^ rtl, by_words) {
+            (true, false) => self.select_right(value),
+            (true, true) => self.select_right_by_words(value),
+            (false, false) => self.select_left(value),
+            (false, true) => self.select_left_by_words(value),
         }
     }
 }

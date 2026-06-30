@@ -107,7 +107,7 @@ where
     padding: Padding,
     size: Option<Pixels>,
     line_height: text::LineHeight,
-    alignment: alignment::Horizontal,
+    alignment: Option<alignment::Horizontal>,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -138,7 +138,7 @@ where
             padding: DEFAULT_PADDING,
             size: None,
             line_height: text::LineHeight::default(),
-            alignment: alignment::Horizontal::Left,
+            alignment: None,
             on_input: None,
             on_paste: None,
             on_submit: None,
@@ -246,7 +246,7 @@ where
 
     /// Sets the horizontal alignment of the [`TextInput`].
     pub fn align_x(mut self, alignment: impl Into<alignment::Horizontal>) -> Self {
-        self.alignment = alignment.into();
+        self.alignment = Some(alignment.into());
         self
     }
 
@@ -385,13 +385,21 @@ where
         };
 
         let text = state.value.raw();
-        let (cursor_x, scroll_offset) =
-            measure_cursor_and_scroll_offset(text, text_bounds, caret_index);
+        let effective_alignment = effective_alignment(self.alignment, text);
+
+        let (cursor_x, _) = measure_cursor_and_scroll_offset(
+            text,
+            text_bounds,
+            caret_index,
+            value,
+            state.cursor.affinity(),
+            state.scroll_offset,
+        );
 
         let alignment_offset =
-            alignment_offset(text_bounds.width, text.min_width(), self.alignment);
+            alignment_offset(text_bounds.width, text.min_width(), effective_alignment);
 
-        let x = (text_bounds.x + cursor_x).floor() - scroll_offset + alignment_offset;
+        let x = (text_bounds.x + cursor_x).floor() - state.scroll_offset + alignment_offset;
 
         InputMethod::Enabled {
             cursor: Rectangle::new(
@@ -463,23 +471,29 @@ where
 
         let text = value.to_string();
 
-        let (cursor, offset, is_selecting) = if let Some(focus) = state
+        let (cursors, offset, is_selecting) = if let Some(focus) = state
             .is_focused
             .as_ref()
             .filter(|focus| focus.is_window_focused)
         {
             match state.cursor.state(value) {
                 cursor::State::Index(position) => {
-                    let (text_value_width, offset) =
-                        measure_cursor_and_scroll_offset(state.value.raw(), text_bounds, position);
+                    let (text_value_width, _) = measure_cursor_and_scroll_offset(
+                        state.value.raw(),
+                        text_bounds,
+                        position,
+                        value,
+                        state.cursor.affinity(),
+                        state.scroll_offset,
+                    );
 
                     let is_cursor_visible = !is_disabled
                         && ((focus.now - focus.updated_at).as_millis()
                             / CURSOR_BLINK_INTERVAL_MILLIS)
                             .is_multiple_of(2);
 
-                    let cursor = if is_cursor_visible {
-                        Some((
+                    let cursors = if is_cursor_visible {
+                        vec![(
                             renderer::Quad {
                                 bounds: Rectangle {
                                     x: text_bounds.x + text_value_width,
@@ -494,49 +508,57 @@ where
                                 ..renderer::Quad::default()
                             },
                             style.value,
-                        ))
+                        )]
                     } else {
-                        None
+                        vec![]
                     };
 
-                    (cursor, offset, false)
+                    (cursors, state.scroll_offset, false)
                 }
                 cursor::State::Selection { start, end } => {
                     let left = start.min(end);
                     let right = end.max(start);
 
-                    let (left_position, left_offset) =
-                        measure_cursor_and_scroll_offset(state.value.raw(), text_bounds, left);
+                    let lo_byte = value.byte_index_at_grapheme(left);
+                    let hi_byte = value.byte_index_at_grapheme(right);
 
-                    let (right_position, right_offset) =
-                        measure_cursor_and_scroll_offset(state.value.raw(), text_bounds, right);
+                    let rects = state.value.raw().highlight(
+                        0,
+                        (lo_byte, text::Affinity::After),
+                        (hi_byte, text::Affinity::Before),
+                    );
 
-                    let width = right_position - left_position;
-
-                    (
-                        Some((
-                            renderer::Quad {
-                                bounds: Rectangle {
-                                    x: text_bounds.x + left_position,
-                                    y: text_bounds.y,
-                                    width,
-                                    height: text_bounds.height,
+                    let cursors: Vec<(renderer::Quad, Color)> = rects
+                        .into_iter()
+                        .map(|r| {
+                            (
+                                renderer::Quad {
+                                    bounds: Rectangle {
+                                        x: text_bounds.x + r.x,
+                                        y: text_bounds.y,
+                                        width: r.width,
+                                        height: text_bounds.height,
+                                    },
+                                    ..renderer::Quad::default()
                                 },
-                                ..renderer::Quad::default()
-                            },
-                            style.selection,
-                        )),
-                        if end == right {
-                            right_offset
-                        } else {
-                            left_offset
-                        },
-                        true,
-                    )
+                                style.selection,
+                            )
+                        })
+                        .collect();
+
+                    (cursors, state.scroll_offset, true)
                 }
             }
         } else {
-            (None, 0.0, false)
+            let unfocused_offset = {
+                match effective_alignment(self.alignment, state.value.raw()) {
+                    alignment::Horizontal::Right => {
+                        (state.value.raw().min_width() - text_bounds.width).max(0.0)
+                    }
+                    _ => 0.0,
+                }
+            };
+            (vec![], unfocused_offset, false)
         };
 
         let draw = |renderer: &mut Renderer, viewport| {
@@ -552,14 +574,19 @@ where
                 state.value.raw()
             };
 
-            let alignment_offset =
-                alignment_offset(text_bounds.width, paragraph.min_width(), self.alignment);
+            let alignment_offset = alignment_offset(
+                text_bounds.width,
+                paragraph.min_width(),
+                effective_alignment(self.alignment, paragraph),
+            );
 
-            if let Some((cursor, color)) = cursor {
+            if !cursors.is_empty() {
                 renderer.with_translation(
                     Vector::new(alignment_offset - offset, 0.0),
                     |renderer| {
-                        renderer.fill_quad(cursor, color);
+                        for (quad, color) in &cursors {
+                            renderer.fill_quad(*quad, *color);
+                        }
                     },
                 );
             } else {
@@ -581,9 +608,9 @@ where
         };
 
         if is_selecting {
-            renderer.with_layer(text_bounds, |renderer| draw(renderer, *viewport));
+            renderer.with_layer(bounds, |renderer| draw(renderer, *viewport));
         } else {
-            draw(renderer, text_bounds);
+            draw(renderer, bounds);
         }
     }
 }
@@ -692,7 +719,7 @@ where
                         let alignment_offset = alignment_offset(
                             text_bounds.width,
                             state.value.raw().min_width(),
-                            self.alignment,
+                            effective_alignment(self.alignment, state.value.raw()),
                         );
 
                         cursor_position.x - text_bounds.x - alignment_offset
@@ -703,18 +730,17 @@ where
 
                     match click.kind() {
                         click::Kind::Single => {
-                            let position = if target > 0.0 {
-                                let value = if self.is_secure {
-                                    self.value.secure()
-                                } else {
-                                    self.value.clone()
-                                };
-
-                                find_cursor_position(text_layout.bounds(), &value, state, target)
+                            let value = if self.is_secure {
+                                self.value.secure()
                             } else {
-                                None
-                            }
-                            .unwrap_or(0);
+                                self.value.clone()
+                            };
+
+                            let (position, affinity) =
+                                find_cursor_position(text_layout.bounds(), &value, state, target)
+                                    .unwrap_or((0, text::Affinity::Before));
+
+                            state.cursor.set_affinity(affinity);
 
                             if state.keyboard_modifiers.shift() {
                                 state
@@ -732,13 +758,15 @@ where
 
                                 state.is_dragging = None;
                             } else {
-                                let position = find_cursor_position(
+                                let (position, affinity) = find_cursor_position(
                                     text_layout.bounds(),
                                     &self.value,
                                     state,
                                     target,
                                 )
-                                .unwrap_or(0);
+                                .unwrap_or((0, text::Affinity::Before));
+
+                                state.cursor.set_affinity(affinity);
 
                                 state.cursor.select_range(
                                     self.value.previous_start_of_word(position),
@@ -781,7 +809,7 @@ where
                         let alignment_offset = alignment_offset(
                             text_bounds.width,
                             state.value.raw().min_width(),
-                            self.alignment,
+                            effective_alignment(self.alignment, state.value.raw()),
                         );
 
                         position.x - text_bounds.x - alignment_offset
@@ -793,9 +821,11 @@ where
                         self.value.clone()
                     };
 
-                    let position =
+                    let (position, affinity) =
                         find_cursor_position(text_layout.bounds(), &value, state, target)
-                            .unwrap_or(0);
+                            .unwrap_or((0, text::Affinity::Before));
+
+                    state.cursor.set_affinity(affinity);
 
                     let selection_before = state.cursor.selection(&value);
 
@@ -1055,6 +1085,7 @@ where
                         }
                         keyboard::Key::Named(key::Named::ArrowLeft) => {
                             let cursor_before = state.cursor;
+                            let rtl = state.value.raw().is_rtl(0).unwrap_or(false);
 
                             if (self.is_secure && modifiers.jump()) || modifiers.macos_command() {
                                 if modifiers.shift() {
@@ -1064,16 +1095,15 @@ where
                                 } else {
                                     state.cursor.move_to(0);
                                 }
-                            } else if modifiers.jump() {
-                                if modifiers.shift() {
-                                    state.cursor.select_left_by_words(&self.value);
-                                } else {
-                                    state.cursor.move_left_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_left(&self.value);
                             } else {
-                                state.cursor.move_left(&self.value);
+                                let by_words = modifiers.jump();
+                                if modifiers.shift() {
+                                    state
+                                        .cursor
+                                        .select_visual(false, by_words, rtl, &self.value);
+                                } else {
+                                    state.cursor.move_visual(false, by_words, rtl, &self.value);
+                                }
                             }
 
                             if cursor_before != state.cursor {
@@ -1086,6 +1116,7 @@ where
                         }
                         keyboard::Key::Named(key::Named::ArrowRight) => {
                             let cursor_before = state.cursor;
+                            let rtl = state.value.raw().is_rtl(0).unwrap_or(false);
 
                             if (self.is_secure && modifiers.jump()) || modifiers.macos_command() {
                                 if modifiers.shift() {
@@ -1096,16 +1127,13 @@ where
                                 } else {
                                     state.cursor.move_to(self.value.len());
                                 }
-                            } else if modifiers.jump() {
-                                if modifiers.shift() {
-                                    state.cursor.select_right_by_words(&self.value);
-                                } else {
-                                    state.cursor.move_right_by_words(&self.value);
-                                }
-                            } else if modifiers.shift() {
-                                state.cursor.select_right(&self.value);
                             } else {
-                                state.cursor.move_right(&self.value);
+                                let by_words = modifiers.jump();
+                                if modifiers.shift() {
+                                    state.cursor.select_visual(true, by_words, rtl, &self.value);
+                                } else {
+                                    state.cursor.move_visual(true, by_words, rtl, &self.value);
+                                }
                             }
 
                             if cursor_before != state.cursor {
@@ -1263,6 +1291,15 @@ where
         }
 
         let state = state::<Renderer>(tree);
+
+        // Cache scroll offset for consistent hit-testing in the next event.
+        // This prevents feedback loops where cursor changes alter the offset,
+        // which shifts the text, which causes the next hit-test to overshoot.
+        {
+            let text_layout = layout.children().next().unwrap();
+            state.scroll_offset = offset(text_layout.bounds(), &self.value, state, self.alignment);
+        }
+
         let is_disabled = self.on_input.is_none();
 
         let status = if is_disabled {
@@ -1371,7 +1408,7 @@ pub struct State<P: text::Paragraph> {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
-    // TODO: Add stateful horizontal scrolling offset
+    scroll_offset: f32,
 }
 
 fn state<Renderer: text::Renderer>(tree: &mut Tree) -> &mut State<Renderer::Paragraph> {
@@ -1501,7 +1538,12 @@ impl<P: text::Paragraph> operation::TextInput for State<P> {
     }
 }
 
-fn offset<P: text::Paragraph>(text_bounds: Rectangle, value: &Value, state: &State<P>) -> f32 {
+fn offset<P: text::Paragraph>(
+    text_bounds: Rectangle,
+    value: &Value,
+    state: &State<P>,
+    alignment: Option<alignment::Horizontal>,
+) -> f32 {
     if state.is_focused() {
         let cursor = state.cursor();
 
@@ -1510,12 +1552,23 @@ fn offset<P: text::Paragraph>(text_bounds: Rectangle, value: &Value, state: &Sta
             cursor::State::Selection { end, .. } => end,
         };
 
-        let (_, offset) =
-            measure_cursor_and_scroll_offset(state.value.raw(), text_bounds, focus_position);
+        let (_, offset) = measure_cursor_and_scroll_offset(
+            state.value.raw(),
+            text_bounds,
+            focus_position,
+            value,
+            state.cursor().affinity(),
+            state.scroll_offset,
+        );
 
         offset
     } else {
-        0.0
+        match effective_alignment(alignment, state.value.raw()) {
+            alignment::Horizontal::Right => {
+                (state.value.raw().min_width() - text_bounds.width).max(0.0)
+            }
+            _ => 0.0,
+        }
     }
 }
 
@@ -1523,14 +1576,33 @@ fn measure_cursor_and_scroll_offset(
     paragraph: &impl text::Paragraph,
     text_bounds: Rectangle,
     cursor_index: usize,
+    value: &Value,
+    affinity: text::Affinity,
+    current_offset: f32,
 ) -> (f32, f32) {
-    let grapheme_position = paragraph
-        .grapheme_position(0, cursor_index)
+    let byte_index = value.byte_index_at_grapheme(cursor_index);
+    let position = paragraph
+        .cursor_position(0, byte_index, affinity)
         .unwrap_or(Point::ORIGIN);
 
-    let offset = ((grapheme_position.x + 5.0) - text_bounds.width).max(0.0);
+    // The visible window in paragraph coordinates is:
+    //   [current_offset, current_offset + text_bounds.width]
+    // Keep the cursor visible with a 5px margin on each side.
+    let offset = if position.x > current_offset + text_bounds.width - 5.0 {
+        // Cursor past right edge of visible window → scroll left
+        (position.x + 5.0) - text_bounds.width
+    } else if position.x < current_offset + 5.0 {
+        // Cursor past left edge of visible window → scroll right
+        position.x - 5.0
+    } else {
+        // Cursor is within visible window → keep current scroll
+        current_offset
+    };
 
-    (grapheme_position.x, offset)
+    let max_offset = (paragraph.min_width() - text_bounds.width).max(0.0);
+    let offset = offset.clamp(0.0, max_offset);
+
+    (position.x, offset)
 }
 
 /// Computes the position of the text cursor at the given X coordinate of
@@ -1540,23 +1612,23 @@ fn find_cursor_position<P: text::Paragraph>(
     value: &Value,
     state: &State<P>,
     x: f32,
-) -> Option<usize> {
-    let offset = offset(text_bounds, value, state);
-    let value = value.to_string();
+) -> Option<(usize, text::Affinity)> {
+    let value_str = value.to_string();
 
-    let char_offset = state
-        .value
-        .raw()
-        .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
-        .map(text::Hit::cursor)?;
+    let hit = state.value.raw().hit_test(Point::new(
+        x + state.scroll_offset,
+        text_bounds.height / 2.0,
+    ))?;
+    let char_offset = hit.cursor();
+    let affinity = hit.affinity();
 
-    Some(
-        unicode_segmentation::UnicodeSegmentation::graphemes(
-            &value[..char_offset.min(value.len())],
-            true,
-        )
-        .count(),
+    let grapheme_count = unicode_segmentation::UnicodeSegmentation::graphemes(
+        &value_str[..char_offset.min(value_str.len())],
+        true,
     )
+    .count();
+
+    Some((grapheme_count, affinity))
 }
 
 fn replace_paragraph<Renderer>(
@@ -1711,4 +1783,21 @@ fn alignment_offset(
             alignment::Horizontal::Right => text_bounds_width - text_min_width,
         }
     }
+}
+
+/// Returns the effective horizontal alignment for the given paragraph,
+/// defaulting to [`alignment::Horizontal::Right`] for RTL text and
+/// [`alignment::Horizontal::Left`] for LTR text when no explicit alignment is
+/// set.
+fn effective_alignment(
+    alignment: Option<alignment::Horizontal>,
+    paragraph: &impl text::Paragraph,
+) -> alignment::Horizontal {
+    alignment.unwrap_or_else(|| {
+        if paragraph.is_rtl(0).unwrap_or(false) {
+            alignment::Horizontal::Right
+        } else {
+            alignment::Horizontal::Left
+        }
+    })
 }
