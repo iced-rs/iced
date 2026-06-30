@@ -140,6 +140,10 @@ pub fn window_attributes(
                 &settings.platform_specific.application_id,
                 &settings.platform_specific.application_id,
             );
+
+            if let Some(handle) = &settings.platform_specific.wayland_parent {
+                attributes = attributes.with_wayland_parent(handle.clone());
+            }
         }
     }
 
