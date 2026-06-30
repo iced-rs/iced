@@ -262,7 +262,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
             sensor(space())
                 .key_ref(url.as_str())
                 .delay(milliseconds(500))
-                .on_show(|_size| Message::ImageShown(url.clone()))
+                .on_show(|_size| Some(Message::ImageShown(url.clone())))
                 .into()
         }
     }

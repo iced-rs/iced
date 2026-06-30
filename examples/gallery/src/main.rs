@@ -344,7 +344,7 @@ fn card<'a>(
     };
 
     sensor(card)
-        .on_show(|_| Message::ImagePoppedIn(metadata.id))
+        .on_show(|_| Some(Message::ImagePoppedIn(metadata.id)))
         .on_hide(Message::ImagePoppedOut(metadata.id))
         .into()
 }
