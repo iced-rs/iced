@@ -298,6 +298,7 @@ pub struct Scrollbar {
     scroller_width: f32,
     alignment: Anchor,
     spacing: Option<f32>,
+    padding: Padding,
 }
 
 impl Default for Scrollbar {
@@ -308,6 +309,7 @@ impl Default for Scrollbar {
             scroller_width: 10.0,
             alignment: Anchor::Start,
             spacing: None,
+            padding: Padding::ZERO,
         }
     }
 }
@@ -355,6 +357,12 @@ impl Scrollbar {
     /// and will not float over the contents.
     pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
         self.spacing = Some(spacing.into().0);
+        self
+    }
+
+    /// Sets the [`Padding`] of the [`Scrollbar`] .
+    pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
+        self.padding = padding.into();
         self
     }
 }
@@ -1767,6 +1775,7 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                padding,
                 ..
             } = *vertical;
 
@@ -1775,22 +1784,28 @@ impl Scrollbars {
             let x_scrollbar_height =
                 show_scrollbar_x.map_or(0.0, |h| h.width.max(h.scroller_width) + h.margin);
 
+            let padded_height =
+                (bounds.height - x_scrollbar_height - padding.top - padding.bottom).max(0.0);
+
             let total_scrollbar_width = width.max(scroller_width) + 2.0 * margin;
 
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width - total_scrollbar_width,
-                y: bounds.y,
+                x: bounds.x + bounds.width - total_scrollbar_width - padding.right,
+                y: bounds.y + padding.top,
                 width: total_scrollbar_width,
-                height: (bounds.height - x_scrollbar_height).max(0.0),
+                height: padded_height,
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - width / 2.0,
-                y: bounds.y,
+                x: bounds.x + bounds.width
+                    - total_scrollbar_width / 2.0
+                    - width / 2.0
+                    - padding.right,
+                y: bounds.y + padding.top,
                 width,
-                height: (bounds.height - x_scrollbar_height).max(0.0),
+                height: padded_height,
             };
 
             let ratio = bounds.height / content_bounds.height;
@@ -1804,7 +1819,10 @@ impl Scrollbars {
                     translation.y * ratio * scrollbar_bounds.height / bounds.height;
 
                 let scroller_bounds = Rectangle {
-                    x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - scroller_width / 2.0,
+                    x: bounds.x + bounds.width
+                        - total_scrollbar_width / 2.0
+                        - scroller_width / 2.0
+                        - padding.right,
                     y: (scrollbar_bounds.y + scroller_offset).max(0.0),
                     width: scroller_width,
                     height: scroller_height,
@@ -1831,6 +1849,7 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                padding,
                 ..
             } = *horizontal;
 
@@ -1839,21 +1858,27 @@ impl Scrollbars {
             let scrollbar_y_width =
                 y_scrollbar.map_or(0.0, |scrollbar| scrollbar.total_bounds.width);
 
+            let padded_width =
+                (bounds.width - scrollbar_y_width - padding.left - padding.right).max(0.0);
+
             let total_scrollbar_height = width.max(scroller_width) + 2.0 * margin;
 
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
-                x: bounds.x,
-                y: bounds.y + bounds.height - total_scrollbar_height,
-                width: (bounds.width - scrollbar_y_width).max(0.0),
+                x: bounds.x + padding.left,
+                y: bounds.y + bounds.height - total_scrollbar_height - padding.bottom,
+                width: padded_width,
                 height: total_scrollbar_height,
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
-                x: bounds.x,
-                y: bounds.y + bounds.height - total_scrollbar_height / 2.0 - width / 2.0,
-                width: (bounds.width - scrollbar_y_width).max(0.0),
+                x: bounds.x + padding.left,
+                y: bounds.y + bounds.height
+                    - total_scrollbar_height / 2.0
+                    - width / 2.0
+                    - padding.bottom,
+                width: padded_width,
                 height: width,
             };
 
@@ -1870,7 +1895,8 @@ impl Scrollbars {
                     x: (scrollbar_bounds.x + scroller_offset).max(0.0),
                     y: bounds.y + bounds.height
                         - total_scrollbar_height / 2.0
-                        - scroller_width / 2.0,
+                        - scroller_width / 2.0
+                        - padding.bottom,
                     width: scroller_length,
                     height: scroller_width,
                 };
