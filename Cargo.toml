@@ -205,7 +205,7 @@ cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
 cosmic-text = "0.19"
 cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "53ba3e879539d19ed8162942126a977ec896cc3b" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
-glam = "0.33"
+glam = "0.33.2"
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
