@@ -127,7 +127,7 @@ where
     ) -> Self {
         let child = child.into();
 
-        if !child.as_widget().size().is_void() {
+        if !child.as_widget().is_void() {
             self.keys.push(key);
             self.children.push(child);
         }

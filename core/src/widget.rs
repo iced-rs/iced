@@ -133,6 +133,11 @@ where
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None
     }
+
+    /// Returns whether the [`Widget`] is [`Void`].
+    fn is_void(&self) -> bool {
+        false
+    }
 }
 
 /// A zero-sized [`Widget`] that does nothing and will be filtered out by containers.
@@ -144,8 +149,8 @@ where
 {
     fn size(&self) -> Size<Length> {
         Size {
-            width: Length::Fixed(0.0),
-            height: Length::Fixed(0.0),
+            width: Length::Shrink,
+            height: Length::Shrink,
         }
     }
 
@@ -168,5 +173,9 @@ where
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
+    }
+
+    fn is_void(&self) -> bool {
+        true
     }
 }

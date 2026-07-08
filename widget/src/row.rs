@@ -127,9 +127,8 @@ where
     /// Adds an [`Element`] to the [`Row`].
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size();
 
-        if !child_size.is_void() {
+        if !child.as_widget().is_void() {
             self.children.push(child);
         }
 
