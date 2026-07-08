@@ -1,0 +1,6 @@
+# Remove when https://github.com/Smithay/wayland-rs/pull/938 is merged
+[advisories]
+ignore = [
+    "RUSTSEC-2026-0194",
+    "RUSTSEC-2026-0195",
+]
