@@ -107,7 +107,7 @@ pub enum Handle {
 impl Handle {
     /// Creates an image [`Handle`] pointing to the image of the given path.
     ///
-    /// The image format is determined by the file extension.
+    /// Makes an educated guess about the image format by examining the data in the file.
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         let path = path.into();
 
@@ -330,4 +330,10 @@ pub enum Error {
     /// Not enough memory to allocate the image.
     #[error("not enough memory to allocate the image")]
     OutOfMemory,
+}
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Self::Inaccessible(Arc::new(error))
+    }
 }
