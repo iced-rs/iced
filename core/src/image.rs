@@ -107,7 +107,7 @@ pub enum Handle {
 impl Handle {
     /// Creates an image [`Handle`] pointing to the image of the given path.
     ///
-    /// Makes an educated guess about the image format by examining the data in the file.
+    /// The image format is determined by the file extension.
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         let path = path.into();
 
