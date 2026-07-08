@@ -5,8 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Application, Center, Element, Fill, Function, Preset, Program, Subscription, Task as Command,
-    Theme,
+    Application, Center, Element, Fill, Fit, Function, Preset, Program, Subscription,
+    Task as Command, Theme,
 };
 
 use serde::{Deserialize, Serialize};
@@ -233,7 +233,7 @@ impl Todos {
 
                 let content = column![title, input, controls, tasks]
                     .spacing(20)
-                    .max_width(800);
+                    .width(Fit.max(800));
 
                 scrollable(center_x(content).padding(40)).into()
             }

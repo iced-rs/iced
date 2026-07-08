@@ -245,14 +245,10 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn rotate(&mut self, angle: impl Into<Radians>) {
-        self.transform = self.transform.pre_concat(tiny_skia::Transform::from_rotate(
-            angle.into().0.to_degrees(),
-        ));
+        self.transform = self.transform.pre_rotate(angle.into().0.to_degrees());
     }
 
-    fn scale(&mut self, scale: impl Into<f32>) {
-        let scale = scale.into();
-
+    fn scale(&mut self, scale: f32) {
         self.scale_nonuniform(Vector { x: scale, y: scale });
     }
 

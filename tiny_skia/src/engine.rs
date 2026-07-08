@@ -136,7 +136,7 @@ impl Engine {
                 shader: match background {
                     Background::Color(color) => tiny_skia::Shader::SolidColor(into_color(*color)),
                     Background::Gradient(Gradient::Linear(linear)) => {
-                        let (start, end) = linear.angle.to_distance(&quad.bounds);
+                        let (start, end) = quad.bounds.chord(linear.angle);
 
                         let stops: Vec<tiny_skia::GradientStop> = linear
                             .stops
@@ -532,10 +532,10 @@ impl Engine {
                 // TODO: Border radius
                 adjust_clip_mask(_clip_mask, clip_bounds);
 
-                let center = physical_bounds.center();
+                let center = bounds.center();
                 let radians = f32::from(image.rotation);
 
-                let transform = into_transform(_transformation).post_rotate_at(
+                let transform = into_transform(_transformation).pre_rotate_at(
                     radians.to_degrees(),
                     center.x,
                     center.y,

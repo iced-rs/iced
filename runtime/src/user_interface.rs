@@ -4,9 +4,12 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector};
+use crate::core::{
+    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector, Window,
+};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -59,6 +62,8 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
+    /// use iced_runtime::core::shell;
+    /// use iced_runtime::core::window;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
@@ -67,6 +72,8 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
+    /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
+    /// let mut waker = shell::Waker::noop();
     /// let mut window_size = Size::new(1024.0, 768.0);
     ///
     /// // Application loop
@@ -97,7 +104,7 @@ where
         let mut root = root.into();
 
         let Cache { mut state } = cache;
-        state.diff(root.as_widget());
+        state.diff(root.as_widget_mut());
 
         let base = root.as_widget_mut().layout(
             &mut state,
@@ -136,6 +143,8 @@ where
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::mouse;
+    /// use iced_runtime::core::shell;
+    /// use iced_runtime::core::window;
     /// use iced_runtime::core::Size;
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
@@ -143,6 +152,8 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
+    /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
+    /// let mut waker = shell::Waker::noop();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     ///
@@ -162,6 +173,8 @@ where
     ///
     ///     // Update the user interface
     ///     let (state, event_statuses) = user_interface.update(
+    ///         &window,
+    ///         &waker,
     ///         &events,
     ///         cursor,
     ///         &mut renderer,
@@ -178,6 +191,8 @@ where
     /// ```
     pub fn update(
         &mut self,
+        window: &dyn Window,
+        waker: &shell::Waker,
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
@@ -210,7 +225,7 @@ where
             let mut event_statuses = Vec::new();
 
             for event in events {
-                let mut shell = Shell::new(messages);
+                let mut shell = Shell::new(window, waker.clone(), messages);
 
                 overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
 
@@ -219,8 +234,15 @@ where
                 input_method.merge(shell.input_method());
                 clipboard.merge(shell.clipboard_mut());
 
-                if shell.is_layout_invalid() {
+                if let Some(diff) = shell.is_layout_invalid() {
                     drop(maybe_overlay);
+
+                    match diff {
+                        shell::Diff::Perform => {
+                            self.root.as_widget_mut().diff(&mut self.state);
+                        }
+                        shell::Diff::Skip => {}
+                    }
 
                     self.base = self.root.as_widget_mut().layout(
                         &mut self.state,
@@ -246,7 +268,7 @@ where
 
                     overlay = maybe_overlay.as_mut().unwrap();
 
-                    shell.revalidate_layout(|| {
+                    shell.revalidate_layout(|_diff| {
                         layout = overlay.layout(renderer, bounds);
                         has_layout_changed = true;
                     });
@@ -302,7 +324,7 @@ where
                     return overlay_status;
                 }
 
-                let mut shell = Shell::new(messages);
+                let mut shell = Shell::new(window, waker.clone(), messages);
 
                 self.root.as_widget_mut().update(
                     &mut self.state,
@@ -322,8 +344,15 @@ where
                 input_method.merge(shell.input_method());
                 clipboard.merge(shell.clipboard_mut());
 
-                shell.revalidate_layout(|| {
+                shell.revalidate_layout(|diff| {
                     has_layout_changed = true;
+
+                    match diff {
+                        shell::Diff::Perform => {
+                            self.root.as_widget_mut().diff(&mut self.state);
+                        }
+                        shell::Diff::Skip => {}
+                    }
 
                     self.base = self.root.as_widget_mut().layout(
                         &mut self.state,
@@ -416,6 +445,8 @@ where
     /// # }
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
+    /// use iced_runtime::core::shell;
+    /// use iced_runtime::core::window;
     /// use iced_runtime::core::{Element, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::{Renderer, Theme};
@@ -423,6 +454,8 @@ where
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::default();
+    /// let mut window = window::Headless; // This should be a proper window, like a `winit` one
+    /// let mut waker = shell::Waker::noop();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut events = Vec::new();
@@ -441,6 +474,8 @@ where
     ///
     ///     // Update the user interface
     ///     let event_statuses = user_interface.update(
+    ///         &window,
+    ///         &waker,
     ///         &events,
     ///         cursor,
     ///         &mut renderer,

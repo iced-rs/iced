@@ -101,8 +101,8 @@ where
     /// Turns the [`ProgressBar`] into a vertical [`ProgressBar`].
     ///
     /// By default, a [`ProgressBar`] is horizontal.
-    pub fn vertical(mut self) -> Self {
-        self.is_vertical = true;
+    pub fn vertical(mut self, vertical: bool) -> Self {
+        self.is_vertical = vertical;
         self
     }
 

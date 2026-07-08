@@ -112,7 +112,10 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
 
     let (width, height, pixels) = match handle {
         image::Handle::Path(_, path) => {
-            let image = ::image::open(path).map_err(to_error)?;
+            let image = ::image::ImageReader::open(path)?
+                .with_guessed_format()?
+                .decode()
+                .map_err(to_error)?;
 
             let operation = std::fs::File::open(path)
                 .ok()

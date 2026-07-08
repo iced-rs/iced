@@ -1,9 +1,9 @@
 //! Connect a window with a renderer.
 use crate::core::Color;
+use crate::core::backend;
 use crate::core::renderer;
 use crate::graphics::color;
 use crate::graphics::compositor;
-use crate::graphics::error;
 use crate::graphics::{self, Antialiasing, Shell, Viewport};
 use crate::{Engine, Renderer};
 
@@ -34,11 +34,11 @@ pub enum Error {
     RequestDeviceFailed(Vec<(wgpu::Limits, wgpu::RequestDeviceError)>),
 }
 
-impl From<Error> for graphics::Error {
+impl From<Error> for backend::Error {
     fn from(error: Error) -> Self {
         Self::GraphicsAdapterNotFound {
             backend: "wgpu",
-            reason: error::Reason::RequestFailed(error.to_string()),
+            reason: backend::Reason::RequestFailed(error.to_string()),
         }
     }
 }
@@ -47,19 +47,20 @@ impl Compositor {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
-    pub async fn request<W: compositor::Window>(
+    pub async fn request(
         settings: Settings,
-        compatible_window: Option<W>,
+        display: impl compositor::Display,
+        compatible_window: impl compositor::Window,
         shell: Shell,
     ) -> Result<Self, Error> {
-        let instance = wgpu::util::new_instance_with_webgpu_detection(&wgpu::InstanceDescriptor {
+        let instance = wgpu::util::new_instance_with_webgpu_detection(wgpu::InstanceDescriptor {
             backends: settings.backends,
             flags: if cfg!(feature = "strict-assertions") {
                 wgpu::InstanceFlags::debugging()
             } else {
                 wgpu::InstanceFlags::empty()
             },
-            ..Default::default()
+            ..wgpu::InstanceDescriptor::new_with_display_handle(Box::new(display))
         })
         .await;
 
@@ -77,8 +78,15 @@ impl Compositor {
         }
 
         #[allow(unsafe_code)]
-        let compatible_surface =
-            compatible_window.and_then(|window| instance.create_surface(window).ok());
+        let compatible_surface = instance
+            .create_surface(wgpu::SurfaceTarget::Window(Box::new(compatible_window)))
+            .ok();
+
+        let power_preference = match settings.power_preference {
+            backend::PowerPreference::None => wgpu::PowerPreference::None,
+            backend::PowerPreference::LowPower => wgpu::PowerPreference::LowPower,
+            backend::PowerPreference::HighPerformance => wgpu::PowerPreference::HighPerformance,
+        };
 
         let adapter = wgpu::util::initialize_adapter_from_env_or_default(
             &instance,
@@ -141,7 +149,10 @@ impl Compositor {
         let limits = [wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())];
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
+        let limits = [
+            wgpu::Limits::default().using_resolution(adapter.limits()),
+            wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits()),
+        ];
 
         let limits = limits.into_iter().map(|limits| wgpu::Limits {
             max_bind_groups: 2,
@@ -201,12 +212,13 @@ impl Compositor {
 }
 
 /// Creates a [`Compositor`] with the given [`Settings`] and window.
-pub async fn new<W: compositor::Window>(
+pub async fn new(
     settings: Settings,
-    compatible_window: W,
+    display: impl compositor::Display,
+    compatible_window: impl compositor::Window,
     shell: Shell,
 ) -> Result<Compositor, Error> {
-    Compositor::request(settings, Some(compatible_window), shell).await
+    Compositor::request(settings, display, compatible_window, shell).await
 }
 
 /// Presents the given primitives with the given [`Compositor`].
@@ -218,7 +230,7 @@ pub fn present(
     on_pre_present: impl FnOnce(),
 ) -> Result<(), compositor::SurfaceError> {
     match surface.get_current_texture() {
-        Ok(frame) => {
+        wgpu::CurrentSurfaceTexture::Success(frame) => {
             let view = &frame
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
@@ -236,13 +248,13 @@ pub fn present(
 
             Ok(())
         }
-        Err(error) => match error {
-            wgpu::SurfaceError::Timeout => Err(compositor::SurfaceError::Timeout),
-            wgpu::SurfaceError::Outdated => Err(compositor::SurfaceError::Outdated),
-            wgpu::SurfaceError::Lost => Err(compositor::SurfaceError::Lost),
-            wgpu::SurfaceError::OutOfMemory => Err(compositor::SurfaceError::OutOfMemory),
-            wgpu::SurfaceError::Other => Err(compositor::SurfaceError::Other),
-        },
+        wgpu::CurrentSurfaceTexture::Suboptimal(_) | wgpu::CurrentSurfaceTexture::Outdated => {
+            Err(compositor::SurfaceError::Outdated)
+        }
+        wgpu::CurrentSurfaceTexture::Timeout => Err(compositor::SurfaceError::Timeout),
+        wgpu::CurrentSurfaceTexture::Occluded => Err(compositor::SurfaceError::Occluded),
+        wgpu::CurrentSurfaceTexture::Lost => Err(compositor::SurfaceError::Lost),
+        wgpu::CurrentSurfaceTexture::Validation => Err(compositor::SurfaceError::Other),
     }
 }
 
@@ -250,49 +262,47 @@ impl graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = wgpu::Surface<'static>;
 
-    async fn with_backend(
-        settings: compositor::Settings,
-        _display: impl compositor::Display,
+    async fn new(
+        settings: backend::Settings,
+        display: impl compositor::Display,
         compatible_window: impl compositor::Window,
         shell: Shell,
-        backend: Option<&str>,
-    ) -> Result<Self, graphics::Error> {
-        match backend {
-            None | Some("wgpu") => {
-                let mut settings = Settings::from(settings);
-
-                if let Some(backends) = wgpu::Backends::from_env() {
-                    settings.backends = backends;
-                }
-
-                if let Some(present_mode) = present_mode_from_env() {
-                    settings.present_mode = present_mode;
-                }
-
-                Ok(new(settings, compatible_window, shell).await?)
-            }
-            Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
+    ) -> Result<Self, backend::Error> {
+        if settings.backend.hardware().is_none() && !settings.backend.matches("wgpu") {
+            return Err(backend::Error::GraphicsAdapterNotFound {
                 backend: "wgpu",
-                reason: error::Reason::DidNotMatch {
-                    preferred_backend: backend.to_owned(),
+                reason: backend::Reason::DidNotMatch {
+                    preferred_backend: settings.backend,
                 },
-            }),
+            });
         }
+
+        let mut settings = Settings::from(settings);
+
+        if let Some(backends) = wgpu::Backends::from_env() {
+            settings.backends = backends;
+        }
+
+        if let Some(present_mode) = present_mode_from_env() {
+            settings.present_mode = present_mode;
+        }
+
+        Ok(new(settings, display, compatible_window, shell).await?)
     }
 
     fn create_renderer(&self, settings: renderer::Settings) -> Self::Renderer {
         Renderer::new(self.engine.clone(), settings)
     }
 
-    fn create_surface<W: compositor::Window>(
+    fn create_surface(
         &mut self,
-        window: W,
+        window: impl compositor::Window,
         width: u32,
         height: u32,
     ) -> Self::Surface {
         let mut surface = self
             .instance
-            .create_surface(window)
+            .create_surface(wgpu::SurfaceTarget::Window(Box::new(window)))
             .expect("Create surface");
 
         if width > 0 && height > 0 {
@@ -365,6 +375,11 @@ pub struct Settings {
     /// The graphics backends to use.
     pub backends: wgpu::Backends,
 
+    /// The power-usage preference for graphics adapters.
+    ///
+    /// By default, it is [`backend::PowerPreference::None`].
+    pub power_preference: backend::PowerPreference,
+
     /// The antialiasing strategy that will be used for triangle primitives.
     ///
     /// By default, it is `None`.
@@ -376,21 +391,36 @@ impl Default for Settings {
         Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
             backends: wgpu::Backends::all(),
+            power_preference: backend::PowerPreference::None,
             antialiasing: None,
         }
     }
 }
 
-impl From<compositor::Settings> for Settings {
-    fn from(settings: compositor::Settings) -> Self {
+impl From<backend::Settings> for Settings {
+    fn from(settings: backend::Settings) -> Self {
+        let backends = settings
+            .backend
+            .hardware()
+            .map(|api| match api {
+                backend::Api::Best => wgpu::Backends::all(),
+                backend::Api::Vulkan => wgpu::Backends::VULKAN,
+                backend::Api::Metal => wgpu::Backends::METAL,
+                backend::Api::DirectX12 => wgpu::Backends::DX12,
+                backend::Api::OpenGL => wgpu::Backends::GL,
+                backend::Api::WebGPU => wgpu::Backends::BROWSER_WEBGPU,
+            })
+            .unwrap_or_else(wgpu::Backends::all);
+
         Self {
             present_mode: if settings.vsync {
                 wgpu::PresentMode::AutoVsync
             } else {
                 wgpu::PresentMode::AutoNoVsync
             },
-            antialiasing: settings.antialiasing,
-            ..Settings::default()
+            antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
+            backends,
+            power_preference: settings.power_preference,
         }
     }
 }

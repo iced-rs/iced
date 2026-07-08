@@ -3,6 +3,7 @@ use crate::core;
 use crate::core::event;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::shell;
 use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
@@ -168,9 +169,14 @@ where
     pub fn simulate(&mut self, events: impl IntoIterator<Item = Event>) -> Vec<event::Status> {
         let events: Vec<Event> = events.into_iter().collect();
 
-        let (_state, statuses) =
-            self.raw
-                .update(&events, self.cursor, &mut self.renderer, &mut self.messages);
+        let (_state, statuses) = self.raw.update(
+            &window::Headless,
+            &shell::Waker::noop(),
+            &events,
+            self.cursor,
+            &mut self.renderer,
+            &mut self.messages,
+        );
 
         statuses
     }
@@ -180,6 +186,8 @@ where
         let base = theme.base();
 
         let _ = self.raw.update(
+            &window::Headless,
+            &shell::Waker::noop(),
             &[Event::Window(window::Event::RedrawRequested(
                 time::Instant::now(),
             ))],

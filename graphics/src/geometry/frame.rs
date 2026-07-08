@@ -169,7 +169,7 @@ where
     }
 
     /// Applies a uniform scaling to the current transform of the [`Frame`].
-    pub fn scale(&mut self, scale: impl Into<f32>) {
+    pub fn scale(&mut self, scale: f32) {
         self.raw.scale(scale);
     }
 
@@ -202,7 +202,7 @@ pub trait Backend: Sized {
 
     fn translate(&mut self, translation: Vector);
     fn rotate(&mut self, angle: impl Into<Radians>);
-    fn scale(&mut self, scale: impl Into<f32>);
+    fn scale(&mut self, scale: f32);
     fn scale_nonuniform(&mut self, scale: impl Into<Vector>);
 
     fn draft(&mut self, clip_bounds: Rectangle) -> Self;
@@ -247,7 +247,7 @@ impl Backend for () {
 
     fn translate(&mut self, _translation: Vector) {}
     fn rotate(&mut self, _angle: impl Into<Radians>) {}
-    fn scale(&mut self, _scale: impl Into<f32>) {}
+    fn scale(&mut self, _scale: f32) {}
     fn scale_nonuniform(&mut self, _scale: impl Into<Vector>) {}
 
     fn draft(&mut self, _clip_bounds: Rectangle) -> Self {}

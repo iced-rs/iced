@@ -2,7 +2,7 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{button, center, column, operation, pick_list, row, slider, text, text_input};
-use iced::{Center, Element, Fill, Subscription, Task};
+use iced::{Center, Element, Fill, Fit, Subscription, Task};
 
 use toast::{Status, Toast};
 
@@ -137,7 +137,7 @@ impl App {
                 column![add_toast].align_x(Center)
             ]
             .spacing(10)
-            .max_width(200),
+            .width(Fit.max(200)),
         );
 
         toast::Manager::new(content, &self.toasts, Message::Close)
@@ -165,8 +165,8 @@ mod toast {
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
-        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle, Renderer, Size, Theme,
-        Vector,
+        Alignment, Center, Element, Event, Fill, Fit, Length, Point, Rectangle, Renderer, Size,
+        Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -255,7 +255,7 @@ mod toast {
                             .padding(5)
                             .style(container::rounded_box),
                     ])
-                    .max_width(200)
+                    .width(Fit.max(200))
                     .into()
                 })
                 .collect();
@@ -301,13 +301,7 @@ mod toast {
             widget::tree::State::new(Vec::<Option<Instant>>::new())
         }
 
-        fn children(&self) -> Vec<Tree> {
-            std::iter::once(Tree::new(&self.content))
-                .chain(self.toasts.iter().map(Tree::new))
-                .collect()
-        }
-
-        fn diff(&self, tree: &mut Tree) {
+        fn diff(&mut self, tree: &mut Tree) {
             let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
             // Invalidating removed instants to None allows us to remove
@@ -326,8 +320,8 @@ mod toast {
             }
 
             tree.diff_children(
-                &std::iter::once(&self.content)
-                    .chain(self.toasts.iter())
+                &mut std::iter::once(&mut self.content)
+                    .chain(&mut self.toasts)
                     .collect::<Vec<_>>(),
             );
         }
@@ -512,7 +506,7 @@ mod toast {
                 .zip(self.instants.iter_mut())
             {
                 let mut local_messages = vec![];
-                let mut local_shell = Shell::new(&mut local_messages);
+                let mut local_shell = shell.local(&mut local_messages);
 
                 child.as_widget_mut().update(
                     state,

@@ -7,7 +7,7 @@ pub use iced_renderer as renderer;
 pub use iced_renderer::core;
 pub use iced_renderer::graphics;
 
-pub use core::widget::Id;
+pub use core::widget::{Id, Void};
 
 mod action;
 mod column;
@@ -41,6 +41,7 @@ pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
+pub mod transition;
 pub mod vertical_slider;
 
 mod helpers;

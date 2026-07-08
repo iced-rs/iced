@@ -198,17 +198,19 @@ mod internal {
         let number = LAST_UPDATE.fetch_add(1, atomic::Ordering::Relaxed);
 
         let start = Instant::now();
-        let message = format!("{message:?}");
+        let message = format!("{message:#?}");
         let elapsed = start.elapsed();
 
         if elapsed.as_millis() >= 1 {
             log::warn!("Slow `Debug` implementation of `Message` (took {elapsed:?})!");
         }
 
-        let message = if message.len() > 49 {
+        const MAX_MESSAGE_LENGTH: usize = 10_000;
+
+        let message = if message.len() > MAX_MESSAGE_LENGTH {
             message
                 .chars()
-                .take(49)
+                .take(MAX_MESSAGE_LENGTH)
                 .chain("...".chars())
                 .collect::<String>()
         } else {

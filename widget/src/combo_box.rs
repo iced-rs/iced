@@ -529,12 +529,8 @@ where
         })
     }
 
-    fn children(&self) -> Vec<widget::Tree> {
-        vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
-    }
-
-    fn diff(&self, _tree: &mut widget::Tree) {
-        // do nothing so the children don't get cleared
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        tree.diff_children(&mut [&mut self.text_input as &mut dyn Widget<_, _, _>]);
     }
 
     fn update(
@@ -562,7 +558,7 @@ where
 
         // Create a new list of local messages
         let mut local_messages = Vec::new();
-        let mut local_shell = Shell::new(&mut local_messages);
+        let mut local_shell = shell.local(&mut local_messages);
 
         // Provide it to the widget
         self.text_input.update(
@@ -718,7 +714,7 @@ where
 
                 // Unfocus the input
                 let mut local_messages = Vec::new();
-                let mut local_shell = Shell::new(&mut local_messages);
+                let mut local_shell = shell.local(&mut local_messages);
                 self.text_input.update(
                     &mut tree.children[0],
                     &Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
