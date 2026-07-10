@@ -7,6 +7,7 @@ use std::fmt::{self, Debug};
 use std::fs;
 use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
+use std::ptr;
 use std::sync::Arc;
 
 /// The unique identifier of some [`Handle`] data.
@@ -31,9 +32,7 @@ impl PartialEq for Id {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (&Self::Hash(x), &Self::Hash(y)) => x == y,
-            (Self::Addr(x), Self::Addr(y)) => {
-                (x.as_ref() as *const usvg::Tree) == (y.as_ref() as *const usvg::Tree)
-            }
+            (Self::Addr(x), Self::Addr(y)) => ptr::eq(x.as_ref(), y.as_ref()),
             _ => false,
         }
     }
@@ -175,15 +174,6 @@ where
     }
 }
 
-impl Hash for Handle {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            &Handle::Unloaded { hash, .. } => state.write_u64(hash),
-            _ => {}
-        }
-    }
-}
-
 impl PartialEq for Handle {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -209,10 +199,10 @@ impl Data {
     /// Try to load and parse `Data` to `usvg::Tree`
     pub fn load(&self, options: &usvg::Options<'_>) -> Option<usvg::Tree> {
         match self {
-            Self::Path(path) => fs::read_to_string(&path)
+            Self::Path(path) => fs::read_to_string(path)
                 .ok()
-                .and_then(|text| usvg::Tree::from_str(&text, &options).ok()),
-            Data::Bytes(bytes) => usvg::Tree::from_data(&bytes, options).ok(),
+                .and_then(|text| usvg::Tree::from_str(&text, options).ok()),
+            Data::Bytes(bytes) => usvg::Tree::from_data(bytes, options).ok(),
         }
     }
 }

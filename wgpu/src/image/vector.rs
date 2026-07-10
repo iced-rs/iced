@@ -109,7 +109,7 @@ impl Cache {
         // It would be cool to be able to smooth resize the `svg` example.
         if self.rasterized.contains_key(&key) {
             if let svg::Id::Hash(hash) = id {
-                _ = self.svg_hits.insert(hash)
+                _ = self.svg_hits.insert(hash);
             }
             let _ = self.rasterized_hits.insert(key.clone());
 
@@ -148,7 +148,7 @@ impl Cache {
         // SVG rendering can panic on malformed or complex vectors.
         // We catch panics to prevent crashes and continue gracefully.
         let render = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-            resvg::render(&tree, transform, &mut img.as_mut());
+            resvg::render(tree, transform, &mut img.as_mut());
         }));
 
         if let Err(error) = render {
@@ -158,7 +158,7 @@ impl Cache {
         let mut rgba = img.take();
 
         if let Some(color) = color {
-            rgba.chunks_exact_mut(4).for_each(|rgba| {
+            rgba.as_chunks_mut::<4>().0.iter_mut().for_each(|rgba| {
                 if rgba[3] > 0 {
                     rgba[0] = color[0];
                     rgba[1] = color[1];
@@ -172,7 +172,7 @@ impl Cache {
         log::debug!("allocating {id:?} {}x{}", size.width, size.height);
 
         if let svg::Id::Hash(hash) = id {
-            _ = self.svg_hits.insert(hash)
+            _ = self.svg_hits.insert(hash);
         }
         let _ = self.rasterized_hits.insert(key.clone());
         let _ = self.rasterized.insert(key.clone(), allocation);
