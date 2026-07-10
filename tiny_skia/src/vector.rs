@@ -1,4 +1,4 @@
-use crate::core::svg::{Data, Handle};
+use crate::core::svg::{Handle, Id};
 use crate::core::{Color, Rectangle, Size};
 
 use resvg::usvg;
@@ -6,10 +6,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use tiny_skia::Transform;
 
 use std::cell::RefCell;
-use std::collections::hash_map;
-use std::fs;
 use std::panic;
-#[cfg(feature = "svg-text")]
 use std::sync::Arc;
 
 #[derive(Debug)]
@@ -70,7 +67,7 @@ impl Pipeline {
 
 #[derive(Default)]
 struct Cache {
-    trees: FxHashMap<u64, Option<resvg::usvg::Tree>>,
+    trees: FxHashMap<u64, Option<Arc<usvg::Tree>>>,
     tree_hits: FxHashSet<u64>,
     rasters: FxHashMap<RasterKey, tiny_skia::Pixmap>,
     raster_hits: FxHashSet<RasterKey>,
@@ -78,17 +75,15 @@ struct Cache {
     fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct RasterKey {
-    id: u64,
+    id: Id,
     color: Option<[u8; 4]>,
     size: Size<u32>,
 }
 
 impl Cache {
-    fn load(&mut self, handle: &Handle) -> Option<&usvg::Tree> {
-        let id = handle.id();
-
+    fn load(&mut self, handle: &Handle) -> Option<Arc<usvg::Tree>> {
         // TODO: Reuse `cosmic-text` font database
         #[cfg(feature = "svg-text")]
         if self.fontdb.is_none() {
@@ -98,29 +93,25 @@ impl Cache {
             self.fontdb = Some(Arc::new(fontdb));
         }
 
-        let options = usvg::Options {
-            #[cfg(feature = "svg-text")]
-            fontdb: self
-                .fontdb
-                .as_ref()
-                .expect("fontdb must be initialized")
+        match handle {
+            &Handle::Unloaded { hash, ref data } => self
+                .trees
+                .entry(hash)
+                .or_insert_with(|| {
+                    data.load(&usvg::Options {
+                        #[cfg(feature = "svg-text")]
+                        fontdb: self
+                            .fontdb
+                            .as_ref()
+                            .expect("fontdb must be initialized")
+                            .clone(),
+                        ..usvg::Options::default()
+                    })
+                    .map(Arc::new)
+                })
                 .clone(),
-            ..usvg::Options::default()
-        };
-
-        if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
-            let svg = match handle.data() {
-                Data::Path(path) => fs::read_to_string(path)
-                    .ok()
-                    .and_then(|contents| usvg::Tree::from_str(&contents, &options).ok()),
-                Data::Bytes(bytes) => usvg::Tree::from_data(bytes, &options).ok(),
-            };
-
-            let _ = entry.insert(svg);
+            Handle::Loaded(tree) => Some(tree.clone()),
         }
-
-        let _ = self.tree_hits.insert(id);
-        self.trees.get(&id).unwrap().as_ref()
     }
 
     fn viewport_dimensions(&mut self, handle: &Handle) -> Option<Size<u32>> {
@@ -175,7 +166,7 @@ impl Cache {
             // SVG rendering can panic on malformed or complex vectors.
             // We catch panics to prevent crashes and continue gracefully.
             let render = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                resvg::render(tree, transform, &mut image.as_mut());
+                resvg::render(&tree, transform, &mut image.as_mut());
             }));
 
             if let Err(error) = render {
@@ -198,10 +189,10 @@ impl Cache {
                 }
             }
 
-            let _ = self.rasters.insert(key, image);
+            let _ = self.rasters.insert(key.clone(), image);
         }
 
-        let _ = self.raster_hits.insert(key);
+        let _ = self.raster_hits.insert(key.clone());
         self.rasters.get(&key).map(tiny_skia::Pixmap::as_ref)
     }
 

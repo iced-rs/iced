@@ -5,15 +5,14 @@ use crate::image::atlas::{self, Atlas};
 use resvg::tiny_skia;
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
-use std::fs;
 use std::panic;
-#[cfg(feature = "svg-text")]
 use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
+#[derive(Clone)]
 pub enum Svg {
     /// Parsed svg
-    Loaded(usvg::Tree),
+    Loaded(Arc<usvg::Tree>),
     /// Svg not found or failed to parse
     NotFound,
 }
@@ -30,15 +29,31 @@ impl Svg {
             Svg::NotFound => Size::new(1, 1),
         }
     }
+
+    fn loaded(&self) -> Option<&usvg::Tree> {
+        match self {
+            Svg::Loaded(tree) => Some(tree),
+            Svg::NotFound => None,
+        }
+    }
+}
+
+impl From<Option<Arc<usvg::Tree>>> for Svg {
+    fn from(value: Option<Arc<usvg::Tree>>) -> Self {
+        match value {
+            Some(tree) => Svg::Loaded(tree),
+            None => Svg::NotFound,
+        }
+    }
 }
 
 /// Caches svg vector and raster data
 #[derive(Debug, Default)]
 pub struct Cache {
     svgs: FxHashMap<u64, Svg>,
-    rasterized: FxHashMap<(u64, u32, u32, ColorFilter), atlas::Entry>,
+    rasterized: FxHashMap<(svg::Id, u32, u32, ColorFilter), atlas::Entry>,
     svg_hits: FxHashSet<u64>,
-    rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
+    rasterized_hits: FxHashSet<(svg::Id, u32, u32, ColorFilter)>,
     should_trim: bool,
     #[cfg(feature = "svg-text")]
     fontdb: Option<Arc<usvg::fontdb::Database>>,
@@ -48,46 +63,28 @@ type ColorFilter = Option<[u8; 4]>;
 
 impl Cache {
     /// Load svg
-    pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
-        if self.svgs.contains_key(&handle.id()) {
-            return self.svgs.get(&handle.id()).unwrap();
-        }
-
-        // TODO: Reuse `cosmic-text` font database
-        #[cfg(feature = "svg-text")]
-        if self.fontdb.is_none() {
-            let mut fontdb = usvg::fontdb::Database::new();
-            fontdb.load_system_fonts();
-
-            self.fontdb = Some(Arc::new(fontdb));
-        }
-
-        let options = usvg::Options {
-            #[cfg(feature = "svg-text")]
-            fontdb: self
-                .fontdb
-                .as_ref()
-                .expect("fontdb must be initialized")
+    pub fn load<'a>(&'a mut self, handle: &'a svg::Handle) -> Svg {
+        match handle {
+            &svg::Handle::Unloaded { hash, ref data } => self
+                .svgs
+                .entry(hash)
+                .or_insert_with(|| {
+                    self.should_trim = true;
+                    data.load(&usvg::Options {
+                        #[cfg(feature = "svg-text")]
+                        fontdb: self
+                            .fontdb
+                            .as_ref()
+                            .expect("fontdb must be initialized")
+                            .clone(),
+                        ..usvg::Options::default()
+                    })
+                    .map(Arc::new)
+                    .into()
+                })
                 .clone(),
-            ..usvg::Options::default()
-        };
-
-        let svg = match handle.data() {
-            svg::Data::Path(path) => fs::read_to_string(path)
-                .ok()
-                .and_then(|contents| usvg::Tree::from_str(&contents, &options).ok())
-                .map(Svg::Loaded)
-                .unwrap_or(Svg::NotFound),
-            svg::Data::Bytes(bytes) => match usvg::Tree::from_data(bytes, &options) {
-                Ok(tree) => Svg::Loaded(tree),
-                Err(_) => Svg::NotFound,
-            },
-        };
-
-        self.should_trim = true;
-
-        let _ = self.svgs.insert(handle.id(), svg);
-        self.svgs.get(&handle.id()).unwrap()
+            svg::Handle::Loaded(tree) => Some(tree.clone()).into(),
+        }
     }
 
     /// Load svg and upload raster data
@@ -104,83 +101,84 @@ impl Cache {
         let id = handle.id();
 
         let color = color.map(Color::into_rgba8);
-        let key = (id, size.width, size.height, color);
+        let key = (id.clone(), size.width, size.height, color);
 
         // TODO: Optimize!
         // We currently rerasterize the SVG when its size changes. This is slow
         // as heck. A GPU rasterizer like `pathfinder` may perform better.
         // It would be cool to be able to smooth resize the `svg` example.
         if self.rasterized.contains_key(&key) {
-            let _ = self.svg_hits.insert(id);
-            let _ = self.rasterized_hits.insert(key);
+            if let svg::Id::Hash(hash) = id {
+                _ = self.svg_hits.insert(hash)
+            }
+            let _ = self.rasterized_hits.insert(key.clone());
 
             return self.rasterized.get(&key);
         }
 
-        match self.load(handle) {
-            Svg::Loaded(tree) => {
-                // TODO: Optimize!
-                // We currently rerasterize the SVG when its size changes. This is slow
-                // as heck. A GPU rasterizer like `pathfinder` may perform better.
-                // It would be cool to be able to smooth resize the `svg` example.
-                let mut img = tiny_skia::Pixmap::new(size.width, size.height)?;
+        let tree = self.load(handle);
+        let tree = tree.loaded()?;
 
-                let tree_size = tree.size().to_int_size();
+        // TODO: Optimize!
+        // We currently rerasterize the SVG when its size changes. This is slow
+        // as heck. A GPU rasterizer like `pathfinder` may perform better.
+        // It would be cool to be able to smooth resize the `svg` example.
+        let mut img = tiny_skia::Pixmap::new(size.width, size.height)?;
 
-                let target_size = if size.width > size.height {
-                    tree_size.scale_to_height(size.height)
-                } else {
-                    tree_size.scale_to_width(size.width)
-                };
+        let tree_size = tree.size().to_int_size();
 
-                let transform = if let Some(target_size) = target_size {
-                    let tree_size = tree_size.to_size();
-                    let target_size = target_size.to_size();
+        let target_size = if size.width > size.height {
+            tree_size.scale_to_height(size.height)
+        } else {
+            tree_size.scale_to_width(size.width)
+        };
 
-                    tiny_skia::Transform::from_scale(
-                        target_size.width() / tree_size.width(),
-                        target_size.height() / tree_size.height(),
-                    )
-                } else {
-                    tiny_skia::Transform::default()
-                };
+        let transform = if let Some(target_size) = target_size {
+            let tree_size = tree_size.to_size();
+            let target_size = target_size.to_size();
 
-                // SVG rendering can panic on malformed or complex vectors.
-                // We catch panics to prevent crashes and continue gracefully.
-                let render = panic::catch_unwind(panic::AssertUnwindSafe(|| {
-                    resvg::render(tree, transform, &mut img.as_mut());
-                }));
+            tiny_skia::Transform::from_scale(
+                target_size.width() / tree_size.width(),
+                target_size.height() / tree_size.height(),
+            )
+        } else {
+            tiny_skia::Transform::default()
+        };
 
-                if let Err(error) = render {
-                    log::warn!("SVG rendering for {handle:?} panicked: {error:?}");
-                }
+        // SVG rendering can panic on malformed or complex vectors.
+        // We catch panics to prevent crashes and continue gracefully.
+        let render = panic::catch_unwind(panic::AssertUnwindSafe(|| {
+            resvg::render(&tree, transform, &mut img.as_mut());
+        }));
 
-                let mut rgba = img.take();
-
-                if let Some(color) = color {
-                    rgba.chunks_exact_mut(4).for_each(|rgba| {
-                        if rgba[3] > 0 {
-                            rgba[0] = color[0];
-                            rgba[1] = color[1];
-                            rgba[2] = color[2];
-                        }
-                    });
-                }
-
-                let allocation =
-                    atlas.upload(device, encoder, belt, size.width, size.height, &rgba)?;
-
-                log::debug!("allocating {id} {}x{}", size.width, size.height);
-
-                let _ = self.svg_hits.insert(id);
-                let _ = self.rasterized_hits.insert(key);
-                let _ = self.rasterized.insert(key, allocation);
-                self.should_trim = true;
-
-                self.rasterized.get(&key)
-            }
-            Svg::NotFound => None,
+        if let Err(error) = render {
+            log::warn!("SVG rendering for {handle:?} panicked: {error:?}");
         }
+
+        let mut rgba = img.take();
+
+        if let Some(color) = color {
+            rgba.chunks_exact_mut(4).for_each(|rgba| {
+                if rgba[3] > 0 {
+                    rgba[0] = color[0];
+                    rgba[1] = color[1];
+                    rgba[2] = color[2];
+                }
+            });
+        }
+
+        let allocation = atlas.upload(device, encoder, belt, size.width, size.height, &rgba)?;
+
+        log::debug!("allocating {id:?} {}x{}", size.width, size.height);
+
+        if let svg::Id::Hash(hash) = id {
+            _ = self.svg_hits.insert(hash)
+        }
+        let _ = self.rasterized_hits.insert(key.clone());
+        let _ = self.rasterized.insert(key.clone(), allocation);
+        self.should_trim = true;
+
+        self.rasterized.get(&key)
     }
 
     /// Load svg and upload raster data

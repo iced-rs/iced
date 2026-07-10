@@ -2304,6 +2304,7 @@ dependencies = [
  "log",
  "num-traits",
  "raw-window-handle",
+ "resvg",
  "rustc-hash 2.1.3",
  "serde",
  "smol_str 0.2.2",
