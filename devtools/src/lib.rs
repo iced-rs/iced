@@ -23,7 +23,7 @@ use crate::core::{
 use crate::futures::Subscription;
 use crate::program::Program;
 use crate::program::message;
-use crate::runtime::task::{self, Task};
+use crate::runtime::task::Task;
 use crate::time_machine::TimeMachine;
 use crate::widget::{
     bottom_right, button, center, column, container, opaque, row, scrollable, space, stack, text,
@@ -159,11 +159,7 @@ where
                 show_notification: true,
                 time_machine: TimeMachine::new(),
             },
-            Task::batch([task::blocking(|mut sender| {
-                thread::sleep(seconds(2));
-                let _ = sender.try_send(());
-            })
-            .map(|_| Message::HideNotification)]),
+            Task::blocking(|| thread::sleep(seconds(2))).map(|_| Message::HideNotification),
         )
     }
 
