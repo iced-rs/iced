@@ -167,6 +167,7 @@ where
     selected: Option<V>,
     width: Length,
     padding: Padding,
+    menu_padding: Padding,
     text_size: Option<Pixels>,
     letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
@@ -207,6 +208,7 @@ where
             selected,
             width: Length::Shrink,
             padding: crate::button::DEFAULT_PADDING,
+            menu_padding: Padding::ZERO,
             text_size: None,
             letter_spacing: None,
             line_height: text::LineHeight::default(),
@@ -281,6 +283,13 @@ where
     /// Sets the [`Padding`] of the [`PickList`].
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
+        self
+    }
+
+    /// Sets the container [`Padding`] of the [`PickList`]'s menu — the inset
+    /// between the menu border and the option list.
+    pub fn menu_padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.menu_padding = padding.into();
         self
     }
 
@@ -862,6 +871,7 @@ where
             )
             .width(bounds.width)
             .padding(self.padding)
+            .container_padding(self.menu_padding)
             .font(font)
             .ellipsis(self.ellipsis)
             .shaping(self.shaping);

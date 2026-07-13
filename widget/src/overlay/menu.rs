@@ -31,6 +31,7 @@ where
     on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     width: f32,
     padding: Padding,
+    container_padding: Padding,
     text_size: Option<Pixels>,
     letter_spacing: Option<Pixels>,
     line_height: text::LineHeight,
@@ -70,6 +71,7 @@ where
             on_option_hovered,
             width: 0.0,
             padding: Padding::ZERO,
+            container_padding: Padding::ZERO,
             text_size: None,
             letter_spacing: None,
             line_height: text::LineHeight::default(),
@@ -91,6 +93,13 @@ where
     /// Sets the [`Padding`] of the [`Menu`].
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
+        self
+    }
+
+    /// Sets the container [`Padding`] of the [`Menu`] — the inset between the
+    /// menu's border and the option list (the options still scroll within it).
+    pub fn container_padding<P: Into<Padding>>(mut self, padding: P) -> Self {
+        self.container_padding = padding.into();
         self
     }
 
@@ -195,6 +204,7 @@ where
     tree: &'a mut Tree,
     list: Scrollable<'a, Message, Theme, Renderer>,
     width: f32,
+    container_padding: Padding,
     target_height: f32,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
@@ -225,6 +235,7 @@ where
             on_option_hovered,
             width,
             padding,
+            container_padding,
             font,
             text_size,
             letter_spacing,
@@ -263,6 +274,7 @@ where
             tree: &mut state.tree,
             list,
             width,
+            container_padding,
             target_height,
             class,
         }
@@ -279,21 +291,32 @@ where
         let space_below = bounds.height - (self.position.y + self.target_height);
         let space_above = self.position.y;
 
+        let pad = self.container_padding;
+        let available = if space_below > space_above {
+            space_below
+        } else {
+            space_above
+        };
+
+        // Reserve room for the container padding; the scrollable list is laid
+        // out inside it and inset by `pad`.
         let limits = layout::Limits::new(
             Size::ZERO,
             Size::new(
-                bounds.width - self.position.x,
-                if space_below > space_above {
-                    space_below
-                } else {
-                    space_above
-                },
+                (bounds.width - self.position.x - pad.x()).max(0.0),
+                (available - pad.y()).max(0.0),
             ),
         )
-        .width(self.width);
+        .width((self.width - pad.x()).max(0.0));
 
-        let node = self.list.layout(self.tree, renderer, &limits);
-        let size = node.size();
+        let list_node = self.list.layout(self.tree, renderer, &limits);
+        let list_size = list_node.size();
+        let size = Size::new(list_size.width + pad.x(), list_size.height + pad.y());
+
+        let node = layout::Node::with_children(
+            size,
+            vec![list_node.move_to(Point::new(pad.left, pad.top))],
+        );
 
         node.move_to(if space_below > space_above {
             self.position + Vector::new(0.0, self.target_height)
@@ -310,10 +333,18 @@ where
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        let bounds = layout.bounds();
+        let list_layout = layout.children().next().unwrap();
+        let bounds = list_layout.bounds();
 
-        self.list
-            .update(self.tree, event, layout, cursor, renderer, shell, &bounds);
+        self.list.update(
+            self.tree,
+            event,
+            list_layout,
+            cursor,
+            renderer,
+            shell,
+            &bounds,
+        );
     }
 
     fn mouse_interaction(
@@ -322,8 +353,9 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
+        let list_layout = layout.children().next().unwrap();
         self.list
-            .mouse_interaction(self.tree, layout, cursor, &self.viewport, renderer)
+            .mouse_interaction(self.tree, list_layout, cursor, &self.viewport, renderer)
     }
 
     fn draw(
@@ -379,8 +411,15 @@ where
             style.background,
         );
 
+        let list_layout = layout.children().next().unwrap();
         self.list.draw(
-            self.tree, renderer, theme, defaults, layout, cursor, &bounds,
+            self.tree,
+            renderer,
+            theme,
+            defaults,
+            list_layout,
+            cursor,
+            &list_layout.bounds(),
         );
 
         if frosted {
