@@ -74,8 +74,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Border, Color, Element, Event, Layout, Length, Outline, Padding, Pixels, Point,
-    Rectangle,
-    Shell, Size, Theme, Vector, Widget,
+    Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 
@@ -524,7 +523,9 @@ where
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            | Event::Touch(touch::Event::FingerPressed { .. })
+                if self.on_select.is_some() =>
+            {
                 if state.is_open {
                     // Event wasn't processed by overlay, so cursor was clicked either outside its
                     // bounds or on the drop-down, either way we close the overlay.
