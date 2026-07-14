@@ -73,7 +73,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Background, Border, Color, Element, Event, Layout, Length, Outline, Padding, Pixels, Point,
+    Rectangle,
     Shell, Size, Theme, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
@@ -679,6 +680,10 @@ where
             self.last_status.unwrap_or(Status::Active),
         );
 
+        if let Some(outline) = style.outline {
+            renderer.draw_outline(bounds, outline);
+        }
+
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
@@ -1020,6 +1025,8 @@ pub struct Style {
     pub background: Background,
     /// The [`Border`] of the pick list.
     pub border: Border,
+    /// An optional [`Outline`] drawn outside the pick list bounds (e.g. focus ring).
+    pub outline: Option<Outline>,
 }
 
 /// The theme catalog of a [`PickList`].
@@ -1071,6 +1078,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             color: palette.background.strong.color,
             ..Default::default()
         },
+        outline: None,
     };
 
     match status {
@@ -1091,6 +1099,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 color: palette.background.weak.color,
                 ..active.border
             },
+            outline: None,
         },
     }
 }
