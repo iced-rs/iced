@@ -68,7 +68,7 @@ where
                 core::renderer::Settings {
                     default_font: settings.default_font,
                     default_text_size: settings.default_text_size,
-                    text_hinting: settings.text_hinting,
+                    metrics_hinting: settings.metrics_hinting,
                 },
                 backend.as_deref(),
             ))

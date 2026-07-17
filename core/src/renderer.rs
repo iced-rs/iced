@@ -73,8 +73,13 @@ pub trait Renderer {
     /// Returns the last [`Scale`] provided as a [`hint`](Self::hint).
     fn scale(&self) -> Option<Scale>;
 
-    /// Returns the last scale factor provided as a [`hint`](Self::hint).
-    fn scale_factor(&self) -> Option<f32> {
+    /// Returns the last hint factor provided as a [`hint`](Self::hint),
+    /// only if [`Settings::metrics_hinting`] is enabled.
+    fn hint_factor(&self) -> Option<f32> {
+        if !self.settings().metrics_hinting {
+            return None;
+        }
+
         self.scale().map(Scale::total)
     }
 
@@ -170,7 +175,7 @@ pub struct Settings {
     /// Whether the [`Renderer`] should perform metrics hinting.
     ///
     /// By default, it is enabled.
-    pub text_hinting: bool,
+    pub metrics_hinting: bool,
 }
 
 impl Default for Settings {
@@ -178,7 +183,7 @@ impl Default for Settings {
         Self {
             default_font: Font::DEFAULT,
             default_text_size: Pixels(16.0),
-            text_hinting: true,
+            metrics_hinting: true,
         }
     }
 }

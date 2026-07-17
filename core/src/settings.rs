@@ -27,13 +27,13 @@ pub struct Settings {
     /// By default, it is `16.0`.
     pub default_text_size: Pixels,
 
-    /// Whether text should be rendered using metrics hinting.
+    /// Whether certain widgets should be rendered using metrics hinting.
     ///
     /// Metrics hinting can improve the readability of smaller text in
-    /// low-DPI screens.
+    /// low-DPI screens, as well as the clarity of widgets that render thin lines.
     ///
     /// By default, it is enabled.
-    pub text_hinting: bool,
+    pub metrics_hinting: bool,
 
     /// The graphical backend to use.
     ///
@@ -71,7 +71,7 @@ impl Default for Settings {
             fonts: Vec::new(),
             default_font: renderer.default_font,
             default_text_size: renderer.default_text_size,
-            text_hinting: true,
+            metrics_hinting: true,
             backend: Backend::default(),
             power_preference: backend::PowerPreference::None,
             antialiasing: true,
@@ -85,7 +85,7 @@ impl From<&Settings> for renderer::Settings {
         Self {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
-            text_hinting: settings.text_hinting,
+            metrics_hinting: settings.metrics_hinting,
         }
     }
 }

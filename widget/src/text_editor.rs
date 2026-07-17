@@ -597,7 +597,7 @@ where
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
             self.wrapping,
-            renderer.scale_factor(),
+            renderer.hint_factor(),
             state.highlighter.borrow_mut().deref_mut(),
         );
 
@@ -910,7 +910,7 @@ where
                         shaping: text::Shaping::Advanced,
                         wrapping: self.wrapping,
                         ellipsis: text::Ellipsis::None,
-                        hint_factor: renderer.scale_factor(),
+                        hint_factor: renderer.hint_factor(),
                     },
                     text_bounds.position(),
                     style.placeholder,
@@ -935,7 +935,7 @@ where
                         position + translation,
                         Size::new(
                             if renderer::CRISP {
-                                (1.0 / renderer.scale_factor().unwrap_or(1.0)).max(1.0)
+                                (1.0 / renderer.hint_factor().unwrap_or(1.0)).max(1.0)
                             } else {
                                 1.0
                             },
