@@ -44,44 +44,71 @@ impl Layer {
     ) {
         let bounds = quad.bounds * transformation;
 
-        let border_colors = [
-            quad.border.top.color.unwrap_or(quad.border.color),
-            quad.border.right.color.unwrap_or(quad.border.color),
-            quad.border.bottom.color.unwrap_or(quad.border.color),
-            quad.border.left.color.unwrap_or(quad.border.color),
-        ]
-        .map(color::pack);
-
-        let mut border_widths = [
-            quad.border.top.width.unwrap_or(quad.border.width).max(0.0),
-            quad.border
-                .right
-                .width
-                .unwrap_or(quad.border.width)
-                .max(0.0),
-            quad.border
-                .bottom
-                .width
-                .unwrap_or(quad.border.width)
-                .max(0.0),
-            quad.border.left.width.unwrap_or(quad.border.width).max(0.0),
+        let sides = [
+            quad.border.top,
+            quad.border.right,
+            quad.border.bottom,
+            quad.border.left,
         ];
+        let border_color = color::pack(quad.border.color);
+        let border_colors = if sides.iter().all(|side| side.color.is_none()) {
+            [border_color; 4]
+        } else {
+            let resolved = sides.map(|side| side.color.unwrap_or(quad.border.color));
 
-        // Opposing borders meet at the center of the quad rather than spilling
-        // past each other. Adjacent borders intentionally remain independent.
-        let horizontal = border_widths[1] + border_widths[3];
-        if horizontal > quad.bounds.width {
-            let factor = quad.bounds.width / horizontal;
-            border_widths[1] *= factor;
-            border_widths[3] *= factor;
-        }
+            if resolved.iter().all(|color| *color == resolved[0]) {
+                let color = if resolved[0] == quad.border.color {
+                    border_color
+                } else {
+                    color::pack(resolved[0])
+                };
 
-        let vertical = border_widths[0] + border_widths[2];
-        if vertical > quad.bounds.height {
-            let factor = quad.bounds.height / vertical;
-            border_widths[0] *= factor;
-            border_widths[2] *= factor;
-        }
+                [color; 4]
+            } else {
+                sides.map(|side| side.color.map(color::pack).unwrap_or(border_color))
+            }
+        };
+
+        let border_widths = if sides.iter().all(|side| side.width.is_none()) {
+            let border_width = quad
+                .border
+                .width
+                .max(0.0)
+                .min(quad.bounds.width / 2.0)
+                .min(quad.bounds.height / 2.0);
+
+            [border_width; 4]
+        } else {
+            let resolved = sides.map(|side| side.width.unwrap_or(quad.border.width).max(0.0));
+
+            if resolved.iter().all(|width| *width == resolved[0]) {
+                let width = resolved[0]
+                    .min(quad.bounds.width / 2.0)
+                    .min(quad.bounds.height / 2.0);
+
+                [width; 4]
+            } else {
+                let mut widths = resolved;
+
+                // Opposing borders meet at the center of the quad rather than spilling
+                // past each other. Adjacent borders intentionally remain independent.
+                let horizontal = widths[1] + widths[3];
+                if horizontal > quad.bounds.width {
+                    let factor = quad.bounds.width / horizontal;
+                    widths[1] *= factor;
+                    widths[3] *= factor;
+                }
+
+                let vertical = widths[0] + widths[2];
+                if vertical > quad.bounds.height {
+                    let factor = quad.bounds.height / vertical;
+                    widths[0] *= factor;
+                    widths[2] *= factor;
+                }
+
+                widths
+            }
+        };
 
         let quad = Quad {
             position: [bounds.x, bounds.y],
