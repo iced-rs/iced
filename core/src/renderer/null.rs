@@ -25,13 +25,17 @@ impl Renderer for () {
         callback(Ok(unsafe { image::allocate(handle, Size::new(100, 100)) }));
     }
 
-    fn hint(&mut self, _scale_factor: f32) {}
+    fn hint(&mut self, _scale: renderer::Scale) {}
 
-    fn scale_factor(&self) -> Option<f32> {
+    fn scale(&self) -> Option<renderer::Scale> {
         None
     }
 
     fn reset(&mut self, _new_bounds: Rectangle) {}
+
+    fn settings(&self) -> renderer::Settings {
+        renderer::Settings::default()
+    }
 }
 
 impl text::Renderer for () {

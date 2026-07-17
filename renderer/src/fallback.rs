@@ -70,12 +70,12 @@ where
         delegate!(self, renderer, renderer.allocate_image(handle, callback));
     }
 
-    fn hint(&mut self, scale_factor: f32) {
-        delegate!(self, renderer, renderer.hint(scale_factor));
+    fn hint(&mut self, scale: renderer::Scale) {
+        delegate!(self, renderer, renderer.hint(scale));
     }
 
-    fn scale_factor(&self) -> Option<f32> {
-        delegate!(self, renderer, renderer.scale_factor())
+    fn scale(&self) -> Option<renderer::Scale> {
+        delegate!(self, renderer, renderer.scale())
     }
 
     fn tick(&mut self) {
@@ -84,6 +84,10 @@ where
 
     fn reset(&mut self, new_bounds: Rectangle) {
         delegate!(self, renderer, renderer.reset(new_bounds));
+    }
+
+    fn settings(&self) -> renderer::Settings {
+        delegate!(self, renderer, renderer.settings())
     }
 }
 

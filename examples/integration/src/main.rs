@@ -64,7 +64,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let physical_size = window.inner_size();
                 let viewport = Viewport::with_physical_size(
                     Size::new(physical_size.width, physical_size.height),
-                    window.scale_factor() as f32,
+                    renderer::Scale {
+                        window: window.scale_factor() as f32,
+                        application: 1.0,
+                    },
                 );
 
                 let backend = wgpu::Backends::from_env().unwrap_or_default();
@@ -208,7 +211,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                         *viewport = Viewport::with_physical_size(
                             Size::new(size.width, size.height),
-                            window.scale_factor() as f32,
+                            renderer::Scale {
+                                window: window.scale_factor() as f32,
+                                application: 1.0,
+                            },
                         );
 
                         surface.configure(

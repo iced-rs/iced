@@ -17,7 +17,6 @@ workspace = true
 default = ["x11", "wayland"]
 debug = ["iced_debug/enable"]
 sysinfo = ["dep:sysinfo"]
-hinting = []
 unconditional-rendering = []
 linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 image = ["iced_runtime/image", "arboard/image-data"]

@@ -74,7 +74,7 @@ pub struct Renderer {
     settings: renderer::Settings,
 
     layers: layer::Stack,
-    scale_factor: Option<f32>,
+    scale: Option<renderer::Scale>,
 
     quad: quad::State,
     triangle: triangle::State,
@@ -96,7 +96,7 @@ impl Renderer {
         Self {
             settings,
             layers: layer::Stack::new(),
-            scale_factor: None,
+            scale: None,
 
             quad: quad::State::new(),
             triangle: triangle::State::new(&engine.device, &engine.triangle_pipeline),
@@ -695,12 +695,17 @@ impl core::Renderer for Renderer {
             .allocate_image(_handle, _callback);
     }
 
-    fn hint(&mut self, scale_factor: f32) {
-        self.scale_factor = Some(scale_factor);
+    fn hint(&mut self, scale_factor: renderer::Scale) {
+        self.scale = Some(scale_factor);
     }
 
-    fn scale_factor(&self) -> Option<f32> {
-        Some(self.scale_factor? * self.layers.transformation().scale_factor())
+    fn scale(&self) -> Option<renderer::Scale> {
+        let scale_factor = self.scale?;
+
+        Some(renderer::Scale {
+            application: scale_factor.application * self.layers.transformation().scale_factor(),
+            ..scale_factor
+        })
     }
 
     fn tick(&mut self) {
@@ -710,6 +715,10 @@ impl core::Renderer for Renderer {
 
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
+    }
+
+    fn settings(&self) -> renderer::Settings {
+        self.settings
     }
 }
 
@@ -953,7 +962,13 @@ impl renderer::Headless for Renderer {
         background_color: Color,
     ) -> Vec<u8> {
         self.screenshot(
-            &Viewport::with_physical_size(size, scale_factor),
+            &Viewport::with_physical_size(
+                size,
+                renderer::Scale {
+                    window: 1.0,
+                    application: scale_factor,
+                },
+            ),
             background_color,
         )
     }

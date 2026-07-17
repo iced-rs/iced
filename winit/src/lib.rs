@@ -653,8 +653,7 @@ async fn run_instance<P>(
 
                 let logical_size = window.state.logical_size();
 
-                #[cfg(feature = "hinting")]
-                window.renderer.hint(window.state.scale_factor());
+                window.renderer.hint(window.state.scale());
 
                 let _ = user_interfaces.insert(
                     id,
@@ -762,8 +761,7 @@ async fn run_instance<P>(
 
                         // Window was resized between redraws
                         if window.surface_version != window.state.surface_version() {
-                            #[cfg(feature = "hinting")]
-                            window.renderer.hint(window.state.scale_factor());
+                            window.renderer.hint(window.state.scale());
 
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
@@ -1825,8 +1823,7 @@ where
             });
         }
 
-        #[cfg(feature = "hinting")]
-        window.renderer.hint(window.state.scale_factor());
+        window.renderer.hint(window.state.scale());
     }
 
     debug::theme_changed(|| {
