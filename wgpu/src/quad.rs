@@ -24,14 +24,15 @@ pub struct Quad {
     /// The size of the [`Quad`].
     pub size: [f32; 2],
 
-    /// The border color of the [`Quad`], in __linear RGB__.
-    pub border_color: color::Packed,
+    /// The border colors of the [`Quad`] in top, right, bottom, left order,
+    /// in __linear RGB__.
+    pub border_colors: [color::Packed; 4],
 
     /// The border radii of the [`Quad`].
     pub border_radius: [f32; 4],
 
-    /// The border width of the [`Quad`].
-    pub border_width: f32,
+    /// The border widths of the [`Quad`] in top, right, bottom, left order.
+    pub border_widths: [f32; 4],
 
     /// The shadow color of the [`Quad`].
     pub shadow_color: color::Packed,
@@ -345,5 +346,50 @@ impl Default for Uniforms {
             scale: 1.0,
             _padding: [0.0; 3],
         }
+    }
+}
+
+// This requires a native backend. `iced_wgpu` deliberately supports builds
+// without one (for example, the `wgpu-bare` path), where creating an instance
+// panics before an adapter can be requested.
+#[cfg(all(test, feature = "default", not(target_arch = "wasm32")))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn revised_quad_shaders_compile_when_an_adapter_is_available() {
+        pollster::block_on(async {
+            let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+                backends: wgpu::Backends::from_env().unwrap_or(wgpu::Backends::PRIMARY),
+                flags: wgpu::InstanceFlags::empty(),
+                ..wgpu::InstanceDescriptor::new_without_display_handle()
+            });
+            let Some(adapter) = instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::LowPower,
+                    force_fallback_adapter: false,
+                    compatible_surface: None,
+                })
+                .await
+                .ok()
+            else {
+                return;
+            };
+            let Ok((device, _queue)) = adapter
+                .request_device(&wgpu::DeviceDescriptor {
+                    label: Some("iced_wgpu quad shader test"),
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::default(),
+                    memory_hints: wgpu::MemoryHints::MemoryUsage,
+                    trace: wgpu::Trace::Off,
+                    experimental_features: wgpu::ExperimentalFeatures::disabled(),
+                })
+                .await
+            else {
+                return;
+            };
+
+            let _pipeline = Pipeline::new(&device, wgpu::TextureFormat::Rgba8Unorm);
+        });
     }
 }

@@ -492,6 +492,7 @@ where
                     radius: handle_border_radius,
                     width: style.handle.border_width,
                     color: style.handle.border_color,
+                    ..Border::default()
                 },
                 ..renderer::Quad::default()
             },

@@ -49,3 +49,6 @@ guillotiere.optional = true
 
 resvg.workspace = true
 resvg.optional = true
+
+[dev-dependencies]
+pollster = "0.4"

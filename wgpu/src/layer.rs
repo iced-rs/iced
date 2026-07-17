@@ -44,12 +44,51 @@ impl Layer {
     ) {
         let bounds = quad.bounds * transformation;
 
+        let border_colors = [
+            quad.border.top.color.unwrap_or(quad.border.color),
+            quad.border.right.color.unwrap_or(quad.border.color),
+            quad.border.bottom.color.unwrap_or(quad.border.color),
+            quad.border.left.color.unwrap_or(quad.border.color),
+        ]
+        .map(color::pack);
+
+        let mut border_widths = [
+            quad.border.top.width.unwrap_or(quad.border.width).max(0.0),
+            quad.border
+                .right
+                .width
+                .unwrap_or(quad.border.width)
+                .max(0.0),
+            quad.border
+                .bottom
+                .width
+                .unwrap_or(quad.border.width)
+                .max(0.0),
+            quad.border.left.width.unwrap_or(quad.border.width).max(0.0),
+        ];
+
+        // Opposing borders meet at the center of the quad rather than spilling
+        // past each other. Adjacent borders intentionally remain independent.
+        let horizontal = border_widths[1] + border_widths[3];
+        if horizontal > quad.bounds.width {
+            let factor = quad.bounds.width / horizontal;
+            border_widths[1] *= factor;
+            border_widths[3] *= factor;
+        }
+
+        let vertical = border_widths[0] + border_widths[2];
+        if vertical > quad.bounds.height {
+            let factor = quad.bounds.height / vertical;
+            border_widths[0] *= factor;
+            border_widths[2] *= factor;
+        }
+
         let quad = Quad {
             position: [bounds.x, bounds.y],
             size: [bounds.width, bounds.height],
-            border_color: color::pack(quad.border.color),
+            border_colors,
             border_radius: (quad.border.radius * transformation.scale_factor()).into(),
-            border_width: quad.border.width * transformation.scale_factor(),
+            border_widths: border_widths.map(|width| width * transformation.scale_factor()),
             shadow_color: color::pack(quad.shadow.color),
             shadow_offset: (quad.shadow.offset * transformation.scale_factor()).into(),
             shadow_blur_radius: quad.shadow.blur_radius * transformation.scale_factor(),

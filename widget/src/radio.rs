@@ -407,6 +407,7 @@ where
                         radius: (size / 2.0).into(),
                         width: style.border_width,
                         color: style.border_color,
+                        ..Border::default()
                     },
                     ..renderer::Quad::default()
                 },

@@ -2466,6 +2466,7 @@ dependencies = [
  "iced_graphics",
  "log",
  "lyon",
+ "pollster",
  "resvg",
  "rustc-hash 2.1.3",
  "thiserror 2.0.18",

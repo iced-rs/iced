@@ -632,6 +632,7 @@ pub fn default(theme: &Theme) -> Style {
             width: 1.0,
             radius: 0.0.into(),
             color: palette.background.strong.color,
+            ..Border::default()
         },
         text_color: palette.background.weak.text,
         selected_text_color: palette.primary.strong.text,

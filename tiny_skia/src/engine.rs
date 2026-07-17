@@ -42,12 +42,43 @@ impl Engine {
 
         let transform = into_transform(transformation);
 
-        // Make sure the border radius is not larger than the bounds
-        let border_width = quad
-            .border
-            .width
-            .min(quad.bounds.width / 2.0)
-            .min(quad.bounds.height / 2.0);
+        let border_colors = [
+            quad.border.top.color.unwrap_or(quad.border.color),
+            quad.border.right.color.unwrap_or(quad.border.color),
+            quad.border.bottom.color.unwrap_or(quad.border.color),
+            quad.border.left.color.unwrap_or(quad.border.color),
+        ];
+        let mut border_widths = [
+            quad.border.top.width.unwrap_or(quad.border.width).max(0.0),
+            quad.border
+                .right
+                .width
+                .unwrap_or(quad.border.width)
+                .max(0.0),
+            quad.border
+                .bottom
+                .width
+                .unwrap_or(quad.border.width)
+                .max(0.0),
+            quad.border.left.width.unwrap_or(quad.border.width).max(0.0),
+        ];
+
+        let horizontal = border_widths[1] + border_widths[3];
+        if horizontal > quad.bounds.width {
+            let factor = quad.bounds.width / horizontal;
+            border_widths[1] *= factor;
+            border_widths[3] *= factor;
+        }
+        let vertical = border_widths[0] + border_widths[2];
+        if vertical > quad.bounds.height {
+            let factor = quad.bounds.height / vertical;
+            border_widths[0] *= factor;
+            border_widths[2] *= factor;
+        }
+
+        let uniform_border = border_colors.iter().all(|color| *color == border_colors[0])
+            && border_widths.iter().all(|width| *width == border_widths[0]);
+        let border_width = border_widths[0];
 
         let mut fill_border_radius = <[f32; 4]>::from(quad.border.radius);
 
@@ -181,7 +212,7 @@ impl Engine {
             clip_mask,
         );
 
-        if border_width > 0.0 {
+        if uniform_border && border_width > 0.0 {
             // Border path is offset by half the border width
             let border_bounds = Rectangle {
                 x: quad.bounds.x + border_width / 2.0,
@@ -279,6 +310,19 @@ impl Engine {
                     clip_mask,
                 );
             }
+        }
+
+        if !uniform_border && border_widths.into_iter().any(|width| width > 0.0) {
+            draw_asymmetric_border(
+                quad.bounds,
+                physical_bounds,
+                fill_border_radius,
+                border_widths,
+                border_colors,
+                transform,
+                pixels,
+                clip_mask,
+            );
         }
     }
 
@@ -621,6 +665,150 @@ fn into_transform(transformation: Transformation) -> tiny_skia::Transform {
     }
 }
 
+fn draw_asymmetric_border(
+    bounds: Rectangle,
+    physical_bounds: Rectangle,
+    outer_radius: [f32; 4],
+    widths: [f32; 4],
+    colors: [Color; 4],
+    transform: tiny_skia::Transform,
+    pixels: &mut tiny_skia::PixmapMut<'_>,
+    clip_mask: Option<&tiny_skia::Mask>,
+) {
+    // Render only the transformed quad bounds. Allocating masks at the size of
+    // the entire destination surface made every asymmetric border temporarily
+    // consume a full render target.
+    let x = (physical_bounds.x.floor() - 1.0)
+        .max(0.0)
+        .min(pixels.width() as f32) as u32;
+    let y = (physical_bounds.y.floor() - 1.0)
+        .max(0.0)
+        .min(pixels.height() as f32) as u32;
+    let right = (physical_bounds.x + physical_bounds.width).ceil() + 1.0;
+    let bottom = (physical_bounds.y + physical_bounds.height).ceil() + 1.0;
+    let right = right.max(0.0).min(pixels.width() as f32) as u32;
+    let bottom = bottom.max(0.0).min(pixels.height() as f32) as u32;
+
+    if x >= right || y >= bottom {
+        return;
+    }
+
+    let width = right - x;
+    let height = bottom - y;
+    let transform = tiny_skia::Transform {
+        tx: transform.tx - x as f32,
+        ty: transform.ty - y as f32,
+        ..transform
+    };
+    let [top, right, bottom, left] = widths;
+    let inner_bounds = Rectangle {
+        x: bounds.x + left,
+        y: bounds.y + top,
+        width: bounds.width - left - right,
+        height: bounds.height - top - bottom,
+    };
+
+    let mut ring_mask = tiny_skia::Mask::new(width, height).expect("Create border mask");
+    ring_mask.fill_path(
+        &rounded_rectangle(bounds, outer_radius),
+        tiny_skia::FillRule::Winding,
+        true,
+        transform,
+    );
+
+    if inner_bounds.width > 0.0 && inner_bounds.height > 0.0 {
+        let [top_left, top_right, bottom_right, bottom_left] = outer_radius;
+        let inner_radius = [
+            ((top_left - left).max(0.0), (top_left - top).max(0.0)),
+            ((top_right - right).max(0.0), (top_right - top).max(0.0)),
+            (
+                (bottom_right - right).max(0.0),
+                (bottom_right - bottom).max(0.0),
+            ),
+            (
+                (bottom_left - left).max(0.0),
+                (bottom_left - bottom).max(0.0),
+            ),
+        ];
+        let mut inner_mask = tiny_skia::Mask::new(width, height).expect("Create inner border mask");
+        inner_mask.fill_path(
+            &rounded_rectangle_elliptical(inner_bounds, inner_radius),
+            tiny_skia::FillRule::Winding,
+            true,
+            transform,
+        );
+
+        for (outer, inner) in ring_mask.data_mut().iter_mut().zip(inner_mask.data()) {
+            *outer = (u16::from(*outer) * u16::from(255 - *inner) / 255) as u8;
+        }
+    }
+
+    let x0 = bounds.x;
+    let y0 = bounds.y;
+    let r = bounds.x + bounds.width;
+    let b = bounds.y + bounds.height;
+    let side_paths = [
+        quadrilateral_path([
+            (x0, y0),
+            (r, y0),
+            (r - right, y0 + top),
+            (x0 + left, y0 + top),
+        ]),
+        quadrilateral_path([
+            (r, y0),
+            (r, b),
+            (r - right, b - bottom),
+            (r - right, y0 + top),
+        ]),
+        quadrilateral_path([
+            (r, b),
+            (x0, b),
+            (x0 + left, b - bottom),
+            (r - right, b - bottom),
+        ]),
+        quadrilateral_path([
+            (x0, b),
+            (x0, y0),
+            (x0 + left, y0 + top),
+            (x0 + left, b - bottom),
+        ]),
+    ];
+
+    let mut border = tiny_skia::Pixmap::new(width, height).expect("Create border pixmap");
+    for (path, color) in side_paths.iter().zip(colors) {
+        border.fill_path(
+            path,
+            &tiny_skia::Paint {
+                shader: tiny_skia::Shader::SolidColor(into_color(color)),
+                anti_alias: true,
+                ..tiny_skia::Paint::default()
+            },
+            tiny_skia::FillRule::Winding,
+            transform,
+            Some(&ring_mask),
+        );
+    }
+
+    pixels.draw_pixmap(
+        x as i32,
+        y as i32,
+        border.as_ref(),
+        &tiny_skia::PixmapPaint::default(),
+        tiny_skia::Transform::identity(),
+        clip_mask,
+    );
+}
+
+fn quadrilateral_path(points: [(f32, f32); 4]) -> tiny_skia::Path {
+    let mut builder = tiny_skia::PathBuilder::new();
+    builder.move_to(points[0].0, points[0].1);
+    for (x, y) in points.into_iter().skip(1) {
+        builder.line_to(x, y);
+    }
+    builder.close();
+    builder.finish().expect("Build border side")
+}
+
 fn rounded_rectangle(bounds: Rectangle, border_radius: [f32; 4]) -> tiny_skia::Path {
     let [top_left, top_right, bottom_right, bottom_left] = border_radius;
 
@@ -711,6 +899,63 @@ fn rounded_rectangle(bounds: Rectangle, border_radius: [f32; 4]) -> tiny_skia::P
     builder.finish().expect("Build rounded rectangle path")
 }
 
+fn rounded_rectangle_elliptical(
+    bounds: Rectangle,
+    border_radius: [(f32, f32); 4],
+) -> tiny_skia::Path {
+    let [top_left, top_right, bottom_right, bottom_left] = border_radius;
+    let clamp = |(x, y): (f32, f32)| (x.min(bounds.width / 2.0), y.min(bounds.height / 2.0));
+    let (tlx, tly) = clamp(top_left);
+    let (trx, try_) = clamp(top_right);
+    let (brx, bry) = clamp(bottom_right);
+    let (blx, bly) = clamp(bottom_left);
+
+    let mut builder = tiny_skia::PathBuilder::new();
+    builder.move_to(bounds.x + tlx, bounds.y);
+    builder.line_to(bounds.x + bounds.width - trx, bounds.y);
+    arc_to_ellipse(
+        &mut builder,
+        bounds.x + bounds.width - trx,
+        bounds.y,
+        bounds.x + bounds.width,
+        bounds.y + try_,
+        trx,
+        try_,
+    );
+    builder.line_to(bounds.x + bounds.width, bounds.y + bounds.height - bry);
+    arc_to_ellipse(
+        &mut builder,
+        bounds.x + bounds.width,
+        bounds.y + bounds.height - bry,
+        bounds.x + bounds.width - brx,
+        bounds.y + bounds.height,
+        brx,
+        bry,
+    );
+    builder.line_to(bounds.x + blx, bounds.y + bounds.height);
+    arc_to_ellipse(
+        &mut builder,
+        bounds.x + blx,
+        bounds.y + bounds.height,
+        bounds.x,
+        bounds.y + bounds.height - bly,
+        blx,
+        bly,
+    );
+    builder.line_to(bounds.x, bounds.y + tly);
+    arc_to_ellipse(
+        &mut builder,
+        bounds.x,
+        bounds.y + tly,
+        bounds.x + tlx,
+        bounds.y,
+        tlx,
+        tly,
+    );
+    builder.close();
+    builder.finish().expect("Build asymmetric inner border")
+}
+
 fn maybe_line_to(path: &mut tiny_skia::PathBuilder, x: f32, y: f32) {
     if path.last_point() != Some(tiny_skia::Point { x, y }) {
         path.line_to(x, y);
@@ -753,6 +998,44 @@ fn arc_to(
     }
 }
 
+fn arc_to_ellipse(
+    path: &mut tiny_skia::PathBuilder,
+    x_from: f32,
+    y_from: f32,
+    x_to: f32,
+    y_to: f32,
+    radius_x: f32,
+    radius_y: f32,
+) {
+    if radius_x == 0.0 || radius_y == 0.0 {
+        path.line_to(x_to, y_to);
+        return;
+    }
+
+    let svg_arc = kurbo::SvgArc {
+        from: kurbo::Point::new(f64::from(x_from), f64::from(y_from)),
+        to: kurbo::Point::new(f64::from(x_to), f64::from(y_to)),
+        radii: kurbo::Vec2::new(f64::from(radius_x), f64::from(radius_y)),
+        x_rotation: 0.0,
+        large_arc: false,
+        sweep: true,
+    };
+
+    match kurbo::Arc::from_svg_arc(&svg_arc) {
+        Some(arc) => arc.to_cubic_beziers(0.1, |p1, p2, p| {
+            path.cubic_to(
+                p1.x as f32,
+                p1.y as f32,
+                p2.x as f32,
+                p2.y as f32,
+                p.x as f32,
+                p.y as f32,
+            );
+        }),
+        None => path.line_to(x_to, y_to),
+    }
+}
+
 fn smoothstep(a: f32, b: f32, x: f32) -> f32 {
     let x = ((x - a) / (b - a)).clamp(0.0, 1.0);
 
@@ -787,4 +1070,57 @@ pub fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
         false,
         tiny_skia::Transform::default(),
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::border::Side;
+    use crate::core::{Border, Shadow};
+
+    #[test]
+    fn asymmetric_border_uses_each_side_and_allows_a_disabled_edge() {
+        let mut engine = Engine::new();
+        let mut pixmap = tiny_skia::Pixmap::new(32, 32).expect("Create pixmap");
+        pixmap.fill(tiny_skia::Color::BLACK);
+        let mut mask = tiny_skia::Mask::new(32, 32).expect("Create clip mask");
+        let quad = Quad {
+            bounds: Rectangle {
+                x: 4.0,
+                y: 4.0,
+                width: 24.0,
+                height: 24.0,
+            },
+            border: Border::default()
+                .rounded(5)
+                .width(3)
+                .top(Side::default().color(Color::from_rgb(1.0, 0.0, 0.0)))
+                .right(Side::default().color(Color::from_rgb(0.0, 1.0, 0.0)))
+                .bottom(Side::default().width(0))
+                .left(
+                    Side::default()
+                        .color(Color::from_rgb(0.0, 0.0, 1.0))
+                        .width(5),
+                ),
+            shadow: Shadow::default(),
+            snap: false,
+        };
+
+        engine.draw_quad(
+            &quad,
+            &Background::Color(Color::WHITE),
+            Transformation::IDENTITY,
+            &mut pixmap.as_mut(),
+            &mut mask,
+            Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: 32.0,
+                height: 32.0,
+            },
+        );
+
+        assert_ne!(pixmap.pixel(16, 4), pixmap.pixel(27, 16));
+        assert_eq!(pixmap.pixel(16, 27), pixmap.pixel(16, 16));
+    }
 }
