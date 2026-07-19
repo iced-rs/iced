@@ -31,14 +31,14 @@ impl Slider {
         let h_slider = container(
             slider(1..=100, self.value, Message::SliderChanged)
                 .default(50)
-                .shift_step(5),
+                .scale(slider::discrete(1).shift_step(5)),
         )
         .width(250);
 
         let v_slider = container(
             vertical_slider(1..=100, self.value, Message::SliderChanged)
                 .default(50)
-                .shift_step(5),
+                .scale(slider::discrete(1).shift_step(5)),
         )
         .height(200);
 
