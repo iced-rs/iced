@@ -363,10 +363,14 @@ impl geometry::frame::Backend for Frame {
         Frame::new(clip_bounds)
     }
 
-    fn paste(&mut self, frame: Frame) {
+    fn paste(&mut self, mut frame: Frame) {
+        // Drain all previous buffers into meshes before pasting.
+        // Otherwise the would be added after in `into_geometry`.
+        self.meshes.extend(self.buffers.drain_meshes(self.clip_bounds));
+
         self.meshes.extend(frame.meshes);
         self.meshes
-            .extend(frame.buffers.into_meshes(frame.clip_bounds));
+            .extend(frame.buffers.drain_meshes(frame.clip_bounds));
 
         self.images.extend(frame.images);
         self.text.extend(frame.text);
@@ -374,7 +378,7 @@ impl geometry::frame::Backend for Frame {
 
     fn into_geometry(mut self) -> Self::Geometry {
         self.meshes
-            .extend(self.buffers.into_meshes(self.clip_bounds));
+            .extend(self.buffers.drain_meshes(self.clip_bounds));
 
         Geometry::Live {
             meshes: self.meshes,
@@ -494,9 +498,9 @@ impl BufferStack {
         }
     }
 
-    fn into_meshes(self, clip_bounds: Rectangle) -> impl Iterator<Item = Mesh> {
+    fn drain_meshes(&mut self, clip_bounds: Rectangle) -> impl Iterator<Item = Mesh> {
         self.stack
-            .into_iter()
+            .drain(..)
             .filter_map(move |buffer| match buffer {
                 Buffer::Solid(buffer) if !buffer.indices.is_empty() => Some(Mesh::Solid {
                     buffers: mesh::Indexed {
