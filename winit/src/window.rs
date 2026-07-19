@@ -370,7 +370,7 @@ where
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
-                hint_factor: renderer.scale_factor(),
+                hint_factor: renderer.hint_factor(),
             });
 
             self.spans.clear();

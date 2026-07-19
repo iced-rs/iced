@@ -93,7 +93,13 @@ fn benchmark<'a>(
 
     let mut renderer = Renderer::new(engine, renderer::Settings::default());
 
-    let viewport = graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);
+    let viewport = graphics::Viewport::with_physical_size(
+        Size::new(3840, 2160),
+        renderer::Scale {
+            window: 2.0,
+            application: 1.0,
+        },
+    );
 
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: None,

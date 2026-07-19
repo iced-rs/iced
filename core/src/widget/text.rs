@@ -325,7 +325,7 @@ where
             shaping: format.shaping,
             wrapping: format.wrapping,
             ellipsis: format.ellipsis,
-            hint_factor: renderer.scale_factor(),
+            hint_factor: renderer.hint_factor(),
         });
 
         paragraph.min_bounds()

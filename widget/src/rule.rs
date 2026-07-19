@@ -168,7 +168,7 @@ where
         };
 
         if style.snap {
-            let unit = 1.0 / renderer.scale_factor().unwrap_or(1.0);
+            let unit = 1.0 / renderer.hint_factor().unwrap_or(1.0);
 
             bounds.width = bounds.width.max(unit);
             bounds.height = bounds.height.max(unit);

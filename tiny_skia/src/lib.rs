@@ -222,17 +222,21 @@ impl core::Renderer for Renderer {
         callback(Err(core::image::Error::Unsupported));
     }
 
-    fn hint(&mut self, _scale_factor: f32) {
+    fn hint(&mut self, _scale: renderer::Scale) {
         // TODO: No hinting supported
         // We'll replace `tiny-skia` with `vello_cpu` soon
     }
 
-    fn scale_factor(&self) -> Option<f32> {
+    fn scale(&self) -> Option<renderer::Scale> {
         None
     }
 
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
+    }
+
+    fn settings(&self) -> renderer::Settings {
+        self.settings
     }
 }
 
@@ -407,7 +411,13 @@ impl renderer::Headless for Renderer {
         scale_factor: f32,
         background_color: Color,
     ) -> Vec<u8> {
-        let viewport = Viewport::with_physical_size(size, scale_factor);
+        let viewport = Viewport::with_physical_size(
+            size,
+            renderer::Scale {
+                window: 1.0,
+                application: scale_factor,
+            },
+        );
 
         window::compositor::screenshot(self, &viewport, background_color)
     }
