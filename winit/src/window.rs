@@ -89,6 +89,8 @@ where
                 redraw_at: None,
                 preedit: None,
                 ime_state: None,
+                #[cfg(target_arch = "wasm32")]
+                text_agent: None,
             },
         );
 
@@ -186,6 +188,9 @@ where
     pub redraw_at: Option<Instant>,
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Rectangle, input_method::Purpose)>,
+    /// Manages the hidden `<input>` for virtual keyboard support on web.
+    #[cfg(target_arch = "wasm32")]
+    pub text_agent: Option<crate::TextAgent>,
 }
 
 impl<P, C> Window<P, C>
@@ -280,6 +285,11 @@ where
     }
 
     fn enable_ime(&mut self, cursor: Rectangle, purpose: input_method::Purpose) {
+        #[cfg(target_arch = "wasm32")]
+        if let Some(agent) = &self.text_agent {
+            agent.enable();
+        }
+
         if self.ime_state.is_none() {
             self.raw.set_ime_allowed(true);
         }
@@ -296,6 +306,11 @@ where
     }
 
     fn disable_ime(&mut self) {
+        #[cfg(target_arch = "wasm32")]
+        if let Some(agent) = &self.text_agent {
+            agent.disable();
+        }
+
         if self.ime_state.is_some() {
             self.raw.set_ime_allowed(false);
             self.ime_state = None;
