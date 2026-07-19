@@ -264,7 +264,7 @@ pub trait Catalog: Sized {
 
 /// A styling function for a [`ProgressBar`].
 ///
-/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+/// This is just a boxed closure: `Fn(&Theme) -> Style`.
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
 impl Catalog for Theme {
