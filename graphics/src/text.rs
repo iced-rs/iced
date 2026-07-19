@@ -10,7 +10,7 @@ pub use paragraph::Paragraph;
 pub use cosmic_text;
 
 use crate::core::alignment;
-use crate::core::font::{self, Font};
+use crate::core::font::Font;
 use crate::core::text::{Alignment, Ellipsis, Shaping, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
@@ -289,62 +289,6 @@ pub fn align(
     }
 
     min_bounds
-}
-
-/// Returns the attributes of the given [`Font`].
-pub fn to_attributes(font: Font) -> cosmic_text::Attrs<'static> {
-    cosmic_text::Attrs::new()
-        .family(to_family(font.family))
-        .weight(to_weight(font.weight))
-        .stretch(to_stretch(font.stretch))
-        .style(to_style(font.style))
-}
-
-fn to_family(family: font::Family) -> cosmic_text::Family<'static> {
-    match family {
-        font::Family::Name(name) => cosmic_text::Family::Name(name),
-        font::Family::SansSerif => cosmic_text::Family::SansSerif,
-        font::Family::Serif => cosmic_text::Family::Serif,
-        font::Family::Cursive => cosmic_text::Family::Cursive,
-        font::Family::Fantasy => cosmic_text::Family::Fantasy,
-        font::Family::Monospace => cosmic_text::Family::Monospace,
-    }
-}
-
-fn to_weight(weight: font::Weight) -> cosmic_text::Weight {
-    match weight {
-        font::Weight::Thin => cosmic_text::Weight::THIN,
-        font::Weight::ExtraLight => cosmic_text::Weight::EXTRA_LIGHT,
-        font::Weight::Light => cosmic_text::Weight::LIGHT,
-        font::Weight::Normal => cosmic_text::Weight::NORMAL,
-        font::Weight::Medium => cosmic_text::Weight::MEDIUM,
-        font::Weight::Semibold => cosmic_text::Weight::SEMIBOLD,
-        font::Weight::Bold => cosmic_text::Weight::BOLD,
-        font::Weight::ExtraBold => cosmic_text::Weight::EXTRA_BOLD,
-        font::Weight::Black => cosmic_text::Weight::BLACK,
-    }
-}
-
-fn to_stretch(stretch: font::Stretch) -> cosmic_text::Stretch {
-    match stretch {
-        font::Stretch::UltraCondensed => cosmic_text::Stretch::UltraCondensed,
-        font::Stretch::ExtraCondensed => cosmic_text::Stretch::ExtraCondensed,
-        font::Stretch::Condensed => cosmic_text::Stretch::Condensed,
-        font::Stretch::SemiCondensed => cosmic_text::Stretch::SemiCondensed,
-        font::Stretch::Normal => cosmic_text::Stretch::Normal,
-        font::Stretch::SemiExpanded => cosmic_text::Stretch::SemiExpanded,
-        font::Stretch::Expanded => cosmic_text::Stretch::Expanded,
-        font::Stretch::ExtraExpanded => cosmic_text::Stretch::ExtraExpanded,
-        font::Stretch::UltraExpanded => cosmic_text::Stretch::UltraExpanded,
-    }
-}
-
-fn to_style(style: font::Style) -> cosmic_text::Style {
-    match style {
-        font::Style::Normal => cosmic_text::Style::Normal,
-        font::Style::Italic => cosmic_text::Style::Italic,
-        font::Style::Oblique => cosmic_text::Style::Oblique,
-    }
 }
 
 fn to_align(alignment: Alignment) -> Option<cosmic_text::Align> {
