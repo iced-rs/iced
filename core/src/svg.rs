@@ -81,6 +81,17 @@ impl Handle {
         Self::from_data(Data::Path(path.into()))
     }
 
+    /// Creates an SVG [`Handle`] pointing to the vector image of the given
+    /// path, tagged with a caller-supplied version.
+    ///
+    /// The version is folded into the id, so changing it produces a new
+    /// identity even when the path is the same. This lets callers bust the
+    /// renderer's cache when the file at `path` has been rewritten in place,
+    /// for example by passing the file's modification time.
+    pub fn from_path_with_version(path: impl Into<PathBuf>, version: u64) -> Handle {
+        Self::from_data_with_version(Data::Path(path.into()), version)
+    }
+
     /// Creates an SVG [`Handle`] from raw bytes containing either an SVG string
     /// or gzip compressed data.
     ///
@@ -93,6 +104,17 @@ impl Handle {
     fn from_data(data: Data) -> Handle {
         let mut hasher = FxHasher::default();
         data.hash(&mut hasher);
+
+        Handle {
+            id: hasher.finish(),
+            data: Arc::new(data),
+        }
+    }
+
+    fn from_data_with_version(data: Data, version: u64) -> Handle {
+        let mut hasher = FxHasher::default();
+        data.hash(&mut hasher);
+        version.hash(&mut hasher);
 
         Handle {
             id: hasher.finish(),
