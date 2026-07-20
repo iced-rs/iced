@@ -522,7 +522,7 @@ mod toast {
                     instant.take();
                 }
 
-                shell.merge(local_shell, std::convert::identity);
+                shell.merge(local_shell, |m| Some(m));
             }
         }
 

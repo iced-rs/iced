@@ -89,7 +89,7 @@ where
         self.content
             .update(event, layout, cursor, renderer, &mut local_shell);
 
-        shell.merge(local_shell, self.mapper);
+        shell.merge(local_shell, |m| Some((self.mapper)(m)));
     }
 
     fn mouse_interaction(

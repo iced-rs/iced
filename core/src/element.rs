@@ -333,7 +333,7 @@ where
             viewport,
         );
 
-        shell.merge(local_shell, &self.mapper);
+        shell.merge(local_shell, |m| Some((self.mapper)(m)));
     }
 
     fn draw(
