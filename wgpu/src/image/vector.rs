@@ -58,10 +58,9 @@ impl Cache {
         if self.fontdb.is_none() {
             let fontdb = iced_graphics::text::font_system()
                 .write()
-                .unwrap()
-                .raw()
-                .db()
-                .clone();
+                .map_or(usvg::fontdb::Database::new(), |mut font_system| {
+                    font_system.raw().db().clone()
+                });
 
             self.fontdb = Some(Arc::new(fontdb));
         }
