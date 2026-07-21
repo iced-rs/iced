@@ -93,6 +93,11 @@ pub enum Action {
         /// The amount of lines to scroll.
         lines: i32,
     },
+    /// Undo the last change performed on the [`Editor`].
+    Undo,
+
+    /// Redo the last undone change on the [`Editor`].
+    Redo,
 }
 
 impl Action {

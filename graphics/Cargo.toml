@@ -31,6 +31,7 @@ iced_futures.workspace = true
 bitflags.workspace = true
 bytemuck.workspace = true
 cosmic-text.workspace = true
+cosmic_undo_2.workspace = true
 half.workspace = true
 log.workspace = true
 raw-window-handle.workspace = true

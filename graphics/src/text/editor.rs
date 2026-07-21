@@ -20,6 +20,7 @@ pub struct Editor(Option<Arc<Internal>>);
 struct Internal {
     editor: cosmic_text::Editor<'static>,
     selection: RwLock<Option<Selection>>,
+    changes: cosmic_undo_2::Commands<cosmic_text::Change>,
     font: Font,
     bounds: Size,
     topmost_line_changed: Option<usize>,
@@ -291,7 +292,32 @@ impl editor::Editor for Editor {
         self.with_internal_mut(|internal| {
             let editor = &mut internal.editor;
 
+            if !matches!(action, Action::Undo | Action::Redo) {
+                editor.start_change();
+            }
+
             match action {
+                Action::Undo | Action::Redo => {
+                    let actions = if matches!(action, Action::Undo) {
+                        internal.changes.undo()
+                    } else {
+                        internal.changes.redo()
+                    };
+
+                    for action in actions {
+                        match action {
+                            cosmic_undo_2::Action::Do(change) => {
+                                let _ = editor.apply_change(change);
+                            }
+                            cosmic_undo_2::Action::Undo(change) => {
+                                let mut change = change.clone();
+                                change.reverse();
+
+                                let _ = editor.apply_change(&change);
+                            }
+                        };
+                    }
+                }
                 // Motion events
                 Action::Move(motion) => {
                     if let Some((start, end)) = editor.selection_bounds() {
@@ -455,6 +481,12 @@ impl editor::Editor for Editor {
                         },
                     );
                 }
+            }
+
+            if let Some(change) = editor.finish_change()
+                && !change.items.is_empty()
+            {
+                internal.changes.push(change);
             }
         });
     }
@@ -707,6 +739,7 @@ impl Default for Internal {
                 },
             )),
             selection: RwLock::new(None),
+            changes: cosmic_undo_2::Commands::new(),
             font: Font::default(),
             bounds: Size::ZERO,
             topmost_line_changed: None,
