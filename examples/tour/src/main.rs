@@ -250,19 +250,10 @@ impl Tour {
     }
 
     fn rows_and_columns(&self) -> Column<'_, Message> {
-        let row_radio = radio(
-            "Row",
-            Layout::Row,
-            Some(self.layout),
-            Message::LayoutChanged,
-        );
+        let row_radio = radio(Layout::Row, Some(self.layout), Message::LayoutChanged).label("Row");
 
-        let column_radio = radio(
-            "Column",
-            Layout::Column,
-            Some(self.layout),
-            Message::LayoutChanged,
-        );
+        let column_radio =
+            radio(Layout::Column, Some(self.layout), Message::LayoutChanged).label("Column");
 
         let layout_section: Element<_> = match self.layout {
             Layout::Row => row![row_radio, column_radio].spacing(self.spacing).into(),
@@ -336,7 +327,7 @@ impl Tour {
                     .iter()
                     .copied()
                     .map(|language| {
-                        radio(language, language, self.language, Message::LanguageSelected)
+                        radio(language, self.language, Message::LanguageSelected).label(language)
                     })
                     .map(Element::from)
             )
@@ -593,9 +584,9 @@ impl Language {
     }
 }
 
-impl From<Language> for String {
-    fn from(language: Language) -> String {
-        String::from(match language {
+impl<'a> text::IntoFragment<'a> for Language {
+    fn into_fragment(self) -> text::Fragment<'a> {
+        text::Fragment::Borrowed(match self {
             Language::Rust => "Rust",
             Language::Elm => "Elm",
             Language::Ruby => "Ruby",
