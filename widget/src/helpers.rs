@@ -1270,38 +1270,37 @@ where
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     let a = radio(
-///         "A",
 ///         Choice::A,
 ///         state.selection,
 ///         Message::RadioSelected,
-///     );
+///     )
+///     .label("A");
 ///
 ///     let b = radio(
-///         "B",
 ///         Choice::B,
 ///         state.selection,
 ///         Message::RadioSelected,
-///     );
+///     )
+///     .label("B");
 ///
 ///     let c = radio(
-///         "C",
 ///         Choice::C,
 ///         state.selection,
 ///         Message::RadioSelected,
-///     );
+///     )
+///     .label("C");
 ///
 ///     let all = radio(
-///         "All of the above",
 ///         Choice::All,
 ///         state.selection,
 ///         Message::RadioSelected
-///     );
+///     )
+///     .label("All of the above");
 ///
 ///     column![a, b, c, all].into()
 /// }
 /// ```
 pub fn radio<'a, Message, Theme, Renderer, V>(
-    label: impl Into<String>,
     value: V,
     selected: Option<V>,
     on_click: impl FnOnce(V) -> Message,
@@ -1312,7 +1311,7 @@ where
     Renderer: core::text::Renderer,
     V: Copy + Eq,
 {
-    Radio::new(label, value, selected, on_click)
+    Radio::new(value, selected, on_click)
 }
 
 /// Creates a new [`Toggler`].
