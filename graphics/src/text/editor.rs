@@ -361,6 +361,22 @@ impl editor::Editor for Editor {
                         cursor,
                         false,
                     );
+
+                    if let Some((x, _)) = editor.cursor_position() {
+                        let buffer = buffer_mut_from_editor(editor);
+                        let scroll = buffer.scroll();
+
+                        const CURSOR_WIDTH: f32 = 2.0; // TODO: Configurable!
+
+                        buffer.set_scroll(cosmic_text::Scroll {
+                            horizontal: scroll.horizontal
+                                + (x as f32 + CURSOR_WIDTH
+                                    - scroll.horizontal
+                                    - buffer.size().0.unwrap_or_default())
+                                .clamp(0.0, CURSOR_WIDTH),
+                            ..scroll
+                        });
+                    }
                 }
 
                 // Selection events
