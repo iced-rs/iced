@@ -144,6 +144,7 @@ impl editor::Editor for Editor {
 
         let cursor = internal.editor.cursor();
         let buffer = buffer_from_editor(&internal.editor);
+        let scroll = buffer.scroll();
 
         let cursor = match internal.editor.selection_bounds() {
             Some((start, end)) => {
@@ -174,11 +175,11 @@ impl editor::Editor for Editor {
                         if width > 0.0 {
                             Some(
                                 Rectangle {
-                                    x,
+                                    x: x - scroll.horizontal,
                                     width,
                                     y: (visual_line as i32 + visual_lines_offset) as f32
                                         * line_height
-                                        - buffer.scroll().vertical,
+                                        - scroll.vertical,
                                     height: line_height,
                                 } * (1.0 / internal.hint_factor),
                             )
@@ -245,9 +246,9 @@ impl editor::Editor for Editor {
                     ));
 
                 Selection::Caret(Point::new(
-                    offset / internal.hint_factor,
+                    (offset - scroll.horizontal) / internal.hint_factor,
                     ((visual_lines_offset + visual_line as i32) as f32 * line_height
-                        - buffer.scroll().vertical)
+                        - scroll.vertical)
                         / internal.hint_factor,
                 ))
             }
@@ -347,6 +348,19 @@ impl editor::Editor for Editor {
                             cosmic_text::Action::Motion(to_motion(motion)),
                         );
                     }
+
+                    let cursor = cosmic_text::Cursor {
+                        affinity: cosmic_text::Affinity::Before,
+                        ..editor.cursor()
+                    };
+
+                    editor.set_cursor(cursor);
+
+                    buffer_mut_from_editor(editor).shape_until_cursor(
+                        &mut font_system.raw,
+                        cursor,
+                        false,
+                    );
                 }
 
                 // Selection events
@@ -448,19 +462,23 @@ impl editor::Editor for Editor {
 
                 // Mouse events
                 Action::Click(position) => {
+                    let scroll = buffer_from_editor(editor).scroll();
+
                     editor.action(
                         font_system.raw(),
                         cosmic_text::Action::Click {
-                            x: (position.x * internal.hint_factor) as i32,
+                            x: ((position.x + scroll.horizontal) * internal.hint_factor) as i32,
                             y: (position.y * internal.hint_factor) as i32,
                         },
                     );
                 }
                 Action::Drag(position) => {
+                    let scroll = buffer_from_editor(editor).scroll();
+
                     editor.action(
                         font_system.raw(),
                         cosmic_text::Action::Drag {
-                            x: (position.x * internal.hint_factor) as i32,
+                            x: ((position.x + scroll.horizontal) * internal.hint_factor) as i32,
                             y: (position.y * internal.hint_factor) as i32,
                         },
                     );
