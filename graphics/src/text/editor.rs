@@ -293,32 +293,7 @@ impl editor::Editor for Editor {
         self.with_internal_mut(|internal| {
             let editor = &mut internal.editor;
 
-            if !matches!(action, Action::Undo | Action::Redo) {
-                editor.start_change();
-            }
-
             match action {
-                Action::Undo | Action::Redo => {
-                    let actions = if matches!(action, Action::Undo) {
-                        internal.changes.undo()
-                    } else {
-                        internal.changes.redo()
-                    };
-
-                    for action in actions {
-                        match action {
-                            cosmic_undo_2::Action::Do(change) => {
-                                let _ = editor.apply_change(change);
-                            }
-                            cosmic_undo_2::Action::Undo(change) => {
-                                let mut change = change.clone();
-                                change.reverse();
-
-                                let _ = editor.apply_change(&change);
-                            }
-                        };
-                    }
-                }
                 // Motion events
                 Action::Move(motion) => {
                     if let Some((start, end)) = editor.selection_bounds() {
@@ -355,29 +330,6 @@ impl editor::Editor for Editor {
                     };
 
                     editor.set_cursor(cursor);
-
-                    buffer_mut_from_editor(editor).shape_until_cursor(
-                        &mut font_system.raw,
-                        cursor,
-                        false,
-                    );
-
-                    if let Some((x, _)) = editor.cursor_position() {
-                        let buffer = buffer_mut_from_editor(editor);
-                        let scroll = buffer.scroll();
-                        let (width, _) = buffer.size();
-
-                        const CURSOR_WIDTH: f32 = 2.0; // TODO: Configurable!
-
-                        buffer.set_scroll(cosmic_text::Scroll {
-                            horizontal: scroll.horizontal
-                                + (x as f32 + CURSOR_WIDTH
-                                    - scroll.horizontal
-                                    - width.unwrap_or_default())
-                                .clamp(0.0, CURSOR_WIDTH),
-                            ..scroll
-                        });
-                    }
                 }
 
                 // Selection events
@@ -443,6 +395,10 @@ impl editor::Editor for Editor {
                         .unwrap_or_else(|| editor.cursor())
                         .line;
 
+                    if !matches!(edit, Edit::Undo | Edit::Redo) {
+                        editor.start_change();
+                    }
+
                     match edit {
                         Edit::Insert(c) => {
                             editor.action(font_system.raw(), cosmic_text::Action::Insert(c));
@@ -464,6 +420,27 @@ impl editor::Editor for Editor {
                         }
                         Edit::Delete => {
                             editor.action(font_system.raw(), cosmic_text::Action::Delete);
+                        }
+                        Edit::Undo | Edit::Redo => {
+                            let actions = if matches!(edit, Edit::Undo) {
+                                internal.changes.undo()
+                            } else {
+                                internal.changes.redo()
+                            };
+
+                            for action in actions {
+                                match action {
+                                    cosmic_undo_2::Action::Do(change) => {
+                                        let _ = editor.apply_change(change);
+                                    }
+                                    cosmic_undo_2::Action::Undo(change) => {
+                                        let mut change = change.clone();
+                                        change.reverse();
+
+                                        let _ = editor.apply_change(&change);
+                                    }
+                                };
+                            }
                         }
                     }
 
@@ -523,6 +500,8 @@ impl editor::Editor for Editor {
             {
                 internal.changes.push(change);
             }
+
+            shape_until_cursor(editor, &mut font_system.raw);
         });
     }
 
@@ -917,5 +896,30 @@ where
         cosmic_text::BufferRef::Owned(buffer) => buffer,
         cosmic_text::BufferRef::Borrowed(buffer) => buffer,
         cosmic_text::BufferRef::Arc(_buffer) => unreachable!(),
+    }
+}
+
+fn shape_until_cursor(
+    editor: &mut cosmic_text::Editor<'static>,
+    font_system: &mut cosmic_text::FontSystem,
+) {
+    let cursor = editor.cursor();
+    let buffer = buffer_mut_from_editor(editor);
+
+    buffer.shape_until_cursor(font_system, cursor, false);
+
+    if let Some((x, _)) = editor.cursor_position() {
+        let buffer = buffer_mut_from_editor(editor);
+        let scroll = buffer.scroll();
+        let (width, _) = buffer.size();
+
+        const CURSOR_WIDTH: f32 = 2.0; // TODO: Configurable!
+
+        buffer.set_scroll(cosmic_text::Scroll {
+            horizontal: scroll.horizontal
+                + (x as f32 + CURSOR_WIDTH - scroll.horizontal - width.unwrap_or_default())
+                    .clamp(0.0, CURSOR_WIDTH),
+            ..scroll
+        });
     }
 }

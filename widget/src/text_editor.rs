@@ -771,10 +771,10 @@ where
                                 shell.read_clipboard(clipboard::Kind::Text);
                             }
                             Binding::Undo => {
-                                publish(Action::Undo);
+                                publish(Action::Edit(Edit::Undo));
                             }
                             Binding::Redo => {
-                                publish(Action::Redo);
+                                publish(Action::Edit(Edit::Redo));
                             }
                             Binding::Move(motion) => {
                                 publish(Action::Move(motion));
