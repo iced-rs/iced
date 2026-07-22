@@ -95,8 +95,13 @@ impl<P: Program + 'static> Emulator<P> {
         // TODO: Error handling
         let executor = P::Executor::new().expect("Create emulator executor");
 
+        let backend = std::env::var("ICED_TEST_BACKEND").ok();
+
         let renderer = executor
-            .block_on(P::Renderer::new(renderer::Settings::from(&settings), None))
+            .block_on(P::Renderer::new(
+                renderer::Settings::from(&settings),
+                backend.as_deref(),
+            ))
             .expect("Create emulator renderer");
 
         let runtime = Runtime::new(executor, sender);
