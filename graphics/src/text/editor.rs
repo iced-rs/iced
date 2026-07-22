@@ -365,6 +365,7 @@ impl editor::Editor for Editor {
                     if let Some((x, _)) = editor.cursor_position() {
                         let buffer = buffer_mut_from_editor(editor);
                         let scroll = buffer.scroll();
+                        let (width, _) = buffer.size();
 
                         const CURSOR_WIDTH: f32 = 2.0; // TODO: Configurable!
 
@@ -372,7 +373,7 @@ impl editor::Editor for Editor {
                             horizontal: scroll.horizontal
                                 + (x as f32 + CURSOR_WIDTH
                                     - scroll.horizontal
-                                    - buffer.size().0.unwrap_or_default())
+                                    - width.unwrap_or_default())
                                 .clamp(0.0, CURSOR_WIDTH),
                             ..scroll
                         });
