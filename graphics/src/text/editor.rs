@@ -20,7 +20,7 @@ pub struct Editor(Option<Arc<Internal>>);
 struct Internal {
     editor: cosmic_text::Editor<'static>,
     selection: RwLock<Option<Selection>>,
-    changes: cosmic_undo_2::Commands<cosmic_text::Change>,
+    history: History,
     font: Font,
     bounds: Size,
     topmost_line_changed: Option<usize>,
@@ -421,25 +421,17 @@ impl editor::Editor for Editor {
                         Edit::Delete => {
                             editor.action(font_system.raw(), cosmic_text::Action::Delete);
                         }
-                        Edit::Undo | Edit::Redo => {
-                            let actions = if matches!(edit, Edit::Undo) {
-                                internal.changes.undo()
-                            } else {
-                                internal.changes.redo()
-                            };
+                        Edit::Undo => {
+                            if let Some(change) = internal.history.undo() {
+                                let mut change = change.clone();
+                                change.reverse();
 
-                            for action in actions {
-                                match action {
-                                    cosmic_undo_2::Action::Do(change) => {
-                                        let _ = editor.apply_change(change);
-                                    }
-                                    cosmic_undo_2::Action::Undo(change) => {
-                                        let mut change = change.clone();
-                                        change.reverse();
-
-                                        let _ = editor.apply_change(&change);
-                                    }
-                                };
+                                let _ = editor.apply_change(&change);
+                            }
+                        }
+                        Edit::Redo => {
+                            if let Some(change) = internal.history.redo() {
+                                let _ = editor.apply_change(change);
                             }
                         }
                     }
@@ -498,7 +490,7 @@ impl editor::Editor for Editor {
             if let Some(change) = editor.finish_change()
                 && !change.items.is_empty()
             {
-                internal.changes.push(change);
+                internal.history.push(change);
             }
 
             shape_until_cursor(editor, &mut font_system.raw);
@@ -753,7 +745,7 @@ impl Default for Internal {
                 },
             )),
             selection: RwLock::new(None),
-            changes: cosmic_undo_2::Commands::new(),
+            history: History::new(),
             font: Font::default(),
             bounds: Size::ZERO,
             topmost_line_changed: None,
@@ -921,5 +913,42 @@ fn shape_until_cursor(
                     .clamp(0.0, CURSOR_WIDTH),
             ..scroll
         });
+    }
+}
+
+#[derive(Default)]
+struct History {
+    changes: Vec<cosmic_text::Change>,
+    current: usize,
+}
+
+impl History {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn undo(&mut self) -> Option<&cosmic_text::Change> {
+        if self.current == 0 {
+            return None;
+        }
+
+        self.current = self.current.saturating_sub(1);
+        self.changes.get(self.current)
+    }
+
+    fn redo(&mut self) -> Option<&cosmic_text::Change> {
+        if self.current >= self.changes.len() {
+            return None;
+        }
+
+        let change = self.changes.get(self.current);
+        self.current += 1;
+        change
+    }
+
+    fn push(&mut self, change: cosmic_text::Change) {
+        self.changes.truncate(self.current);
+        self.changes.push(change);
+        self.current += 1;
     }
 }
