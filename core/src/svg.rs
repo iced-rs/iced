@@ -1,11 +1,54 @@
 //! Load and draw vector graphics.
-use crate::{Color, Radians, Rectangle, Size};
+use crate::{Bytes, Color, Radians, Rectangle, Size};
 
+use resvg::usvg;
 use rustc_hash::FxHasher;
-use std::borrow::Cow;
-use std::hash::{Hash, Hasher as _};
+use std::fmt::{self, Debug};
+use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::PathBuf;
+use std::ptr;
 use std::sync::Arc;
+
+/// The unique identifier of some [`Handle`] data.
+#[derive(Clone)]
+pub enum Id {
+    /// Hash value of [`Data`]
+    Hash(u64),
+    /// Address of allocated [`usvg::Tree`]
+    Addr(Arc<usvg::Tree>),
+}
+
+impl Debug for Id {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            &Self::Hash(hash) => write!(f, "{}", hash),
+            Self::Addr(addr) => write!(f, "{:?}", addr.as_ref() as *const usvg::Tree),
+        }
+    }
+}
+
+impl PartialEq for Id {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (&Self::Hash(x), &Self::Hash(y)) => x == y,
+            (Self::Addr(x), Self::Addr(y)) => ptr::eq(x.as_ref(), y.as_ref()),
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Id {}
+
+impl Hash for Id {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        core::mem::discriminant(self).hash(state);
+        match self {
+            &Id::Hash(x) => state.write_u64(x),
+            Id::Addr(tree) => (tree.as_ref() as *const usvg::Tree).hash(state),
+        }
+    }
+}
 
 /// A raster image that can be drawn.
 #[derive(Debug, Clone, PartialEq)]
@@ -68,10 +111,18 @@ impl From<&Handle> for Svg {
 }
 
 /// A handle of Svg data.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Handle {
-    id: u64,
-    data: Arc<Data>,
+#[derive(Debug, Clone)]
+pub enum Handle {
+    /// Unloaded svg [`Data`]
+    Unloaded {
+        /// Hash value of [`Handle::Unloaded::data`]
+        hash: u64,
+        /// Data storage of a [`Handle`]
+        data: Data,
+    },
+
+    /// Parsed [`usvg::Tree`]
+    Loaded(Arc<usvg::Tree>),
 }
 
 impl Handle {
@@ -86,7 +137,7 @@ impl Handle {
     ///
     /// This is useful if you already have your SVG data in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    pub fn from_memory(bytes: impl Into<Cow<'static, [u8]>>) -> Handle {
+    pub fn from_memory(bytes: impl Into<Bytes>) -> Handle {
         Self::from_data(Data::Bytes(bytes.into()))
     }
 
@@ -94,20 +145,23 @@ impl Handle {
         let mut hasher = FxHasher::default();
         data.hash(&mut hasher);
 
-        Handle {
-            id: hasher.finish(),
-            data: Arc::new(data),
+        Handle::Unloaded {
+            hash: hasher.finish(),
+            data,
         }
     }
 
-    /// Returns the unique identifier of the [`Handle`].
-    pub fn id(&self) -> u64 {
-        self.id
+    /// Creates an SVG [`Handle`] from a parsed `usvg::Tree`
+    pub fn from_tree(tree: Arc<usvg::Tree>) -> Handle {
+        Self::Loaded(tree)
     }
 
-    /// Returns a reference to the SVG [`Data`].
-    pub fn data(&self) -> &Data {
-        &self.data
+    /// Returns the unique identifier of the [`Handle`].
+    pub fn id(&self) -> Id {
+        match self {
+            &Handle::Unloaded { hash, .. } => Id::Hash(hash),
+            Handle::Loaded(tree) => Id::Addr(tree.clone()),
+        }
     }
 }
 
@@ -120,9 +174,12 @@ where
     }
 }
 
-impl Hash for Handle {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
+impl PartialEq for Handle {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (&Handle::Unloaded { hash: x, .. }, &Handle::Unloaded { hash: y, .. }) => x == y,
+            _ => false,
+        }
     }
 }
 
@@ -135,14 +192,26 @@ pub enum Data {
     /// In-memory data
     ///
     /// Can contain an SVG string or a gzip compressed data.
-    Bytes(Cow<'static, [u8]>),
+    Bytes(Bytes),
 }
 
-impl std::fmt::Debug for Data {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Data {
+    /// Try to load and parse `Data` to `usvg::Tree`
+    pub fn load(&self, options: &usvg::Options<'_>) -> Option<usvg::Tree> {
         match self {
-            Data::Path(path) => write!(f, "Path({path:?})"),
-            Data::Bytes(_) => write!(f, "Bytes(...)"),
+            Self::Path(path) => fs::read_to_string(path)
+                .ok()
+                .and_then(|text| usvg::Tree::from_str(&text, options).ok()),
+            Data::Bytes(bytes) => usvg::Tree::from_data(bytes, options).ok(),
+        }
+    }
+}
+
+impl Debug for Data {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Path(path) => f.debug_tuple("Path").field(path).finish(),
+            Self::Bytes(_) => f.write_str("Bytes(...)"),
         }
     }
 }
