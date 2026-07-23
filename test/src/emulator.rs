@@ -1,5 +1,6 @@
 //! Run your application in a headless runtime.
 use crate::core;
+use crate::core::font;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::shell;
@@ -248,12 +249,16 @@ impl<P: Program + 'static> Emulator<P> {
                 }
                 runtime::Action::Font(action) => {
                     use crate::runtime::font;
+
                     match action {
                         font::Action::Load { bytes, channel } => {
-                            let _ = load_font(bytes);
-                            let _ = channel.send(Ok(()));
+                            let result = load_font(bytes);
+                            let _ = channel.send(result);
                         }
-                        _ => {}
+                        _ => {
+                            // TODO
+                            dbg!(action);
+                        }
                     }
                 }
                 runtime::Action::Image(action) => {
@@ -556,11 +561,11 @@ impl fmt::Display for Mode {
     }
 }
 
-fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), crate::error::Error> {
+fn load_font(font: Cow<'static, [u8]>) -> Result<(), font::Error> {
     crate::renderer::graphics::text::font_system()
         .write()
         .expect("Write to font system")
-        .load_font(font.into());
+        .load_font(font);
 
     Ok(())
 }
