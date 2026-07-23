@@ -1,5 +1,7 @@
 //! Draw and interact with text.
-mod rich;
+
+/// Rich text supporting multiple styled spans.
+pub mod rich;
 
 pub use crate::core::text::{Fragment, Highlighter, IntoFragment, Span};
 pub use crate::core::widget::text::*;
