@@ -20,6 +20,7 @@ pub struct Editor(Option<Arc<Internal>>);
 struct Internal {
     editor: cosmic_text::Editor<'static>,
     selection: RwLock<Option<Selection>>,
+    history: History,
     font: Font,
     bounds: Size,
     topmost_line_changed: Option<usize>,
@@ -143,6 +144,7 @@ impl editor::Editor for Editor {
 
         let cursor = internal.editor.cursor();
         let buffer = buffer_from_editor(&internal.editor);
+        let scroll = buffer.scroll();
 
         let cursor = match internal.editor.selection_bounds() {
             Some((start, end)) => {
@@ -173,11 +175,11 @@ impl editor::Editor for Editor {
                         if width > 0.0 {
                             Some(
                                 Rectangle {
-                                    x,
+                                    x: x - scroll.horizontal,
                                     width,
                                     y: (visual_line as i32 + visual_lines_offset) as f32
                                         * line_height
-                                        - buffer.scroll().vertical,
+                                        - scroll.vertical,
                                     height: line_height,
                                 } * (1.0 / internal.hint_factor),
                             )
@@ -244,9 +246,9 @@ impl editor::Editor for Editor {
                     ));
 
                 Selection::Caret(Point::new(
-                    offset / internal.hint_factor,
+                    (offset - scroll.horizontal) / internal.hint_factor,
                     ((visual_lines_offset + visual_line as i32) as f32 * line_height
-                        - buffer.scroll().vertical)
+                        - scroll.vertical)
                         / internal.hint_factor,
                 ))
             }
@@ -321,6 +323,13 @@ impl editor::Editor for Editor {
                             cosmic_text::Action::Motion(to_motion(motion)),
                         );
                     }
+
+                    let cursor = cosmic_text::Cursor {
+                        affinity: cosmic_text::Affinity::Before,
+                        ..editor.cursor()
+                    };
+
+                    editor.set_cursor(cursor);
                 }
 
                 // Selection events
@@ -386,6 +395,10 @@ impl editor::Editor for Editor {
                         .unwrap_or_else(|| editor.cursor())
                         .line;
 
+                    if !matches!(edit, Edit::Undo | Edit::Redo) {
+                        editor.start_change();
+                    }
+
                     match edit {
                         Edit::Insert(c) => {
                             editor.action(font_system.raw(), cosmic_text::Action::Insert(c));
@@ -408,6 +421,19 @@ impl editor::Editor for Editor {
                         Edit::Delete => {
                             editor.action(font_system.raw(), cosmic_text::Action::Delete);
                         }
+                        Edit::Undo => {
+                            if let Some(change) = internal.history.undo() {
+                                let mut change = change.clone();
+                                change.reverse();
+
+                                let _ = editor.apply_change(&change);
+                            }
+                        }
+                        Edit::Redo => {
+                            if let Some(change) = internal.history.redo() {
+                                let _ = editor.apply_change(change);
+                            }
+                        }
                     }
 
                     let cursor = editor.cursor();
@@ -422,19 +448,23 @@ impl editor::Editor for Editor {
 
                 // Mouse events
                 Action::Click(position) => {
+                    let scroll = buffer_from_editor(editor).scroll();
+
                     editor.action(
                         font_system.raw(),
                         cosmic_text::Action::Click {
-                            x: (position.x * internal.hint_factor) as i32,
+                            x: ((position.x + scroll.horizontal) * internal.hint_factor) as i32,
                             y: (position.y * internal.hint_factor) as i32,
                         },
                     );
                 }
                 Action::Drag(position) => {
+                    let scroll = buffer_from_editor(editor).scroll();
+
                     editor.action(
                         font_system.raw(),
                         cosmic_text::Action::Drag {
-                            x: (position.x * internal.hint_factor) as i32,
+                            x: ((position.x + scroll.horizontal) * internal.hint_factor) as i32,
                             y: (position.y * internal.hint_factor) as i32,
                         },
                     );
@@ -456,6 +486,14 @@ impl editor::Editor for Editor {
                     );
                 }
             }
+
+            if let Some(change) = editor.finish_change()
+                && !change.items.is_empty()
+            {
+                internal.history.push(change);
+            }
+
+            shape_until_cursor(editor, &mut font_system.raw);
         });
     }
 
@@ -707,6 +745,7 @@ impl Default for Internal {
                 },
             )),
             selection: RwLock::new(None),
+            history: History::new(),
             font: Font::default(),
             bounds: Size::ZERO,
             topmost_line_changed: None,
@@ -849,5 +888,67 @@ where
         cosmic_text::BufferRef::Owned(buffer) => buffer,
         cosmic_text::BufferRef::Borrowed(buffer) => buffer,
         cosmic_text::BufferRef::Arc(_buffer) => unreachable!(),
+    }
+}
+
+fn shape_until_cursor(
+    editor: &mut cosmic_text::Editor<'static>,
+    font_system: &mut cosmic_text::FontSystem,
+) {
+    let cursor = editor.cursor();
+    let buffer = buffer_mut_from_editor(editor);
+
+    buffer.shape_until_cursor(font_system, cursor, false);
+
+    if let Some((x, _)) = editor.cursor_position() {
+        let buffer = buffer_mut_from_editor(editor);
+        let scroll = buffer.scroll();
+        let (width, _) = buffer.size();
+
+        const CURSOR_WIDTH: f32 = 2.0; // TODO: Configurable!
+
+        buffer.set_scroll(cosmic_text::Scroll {
+            horizontal: scroll.horizontal
+                + (x as f32 + CURSOR_WIDTH - scroll.horizontal - width.unwrap_or_default())
+                    .clamp(0.0, CURSOR_WIDTH),
+            ..scroll
+        });
+    }
+}
+
+#[derive(Default)]
+struct History {
+    changes: Vec<cosmic_text::Change>,
+    current: usize,
+}
+
+impl History {
+    fn new() -> Self {
+        Self::default()
+    }
+
+    fn undo(&mut self) -> Option<&cosmic_text::Change> {
+        if self.current == 0 {
+            return None;
+        }
+
+        self.current = self.current.saturating_sub(1);
+        self.changes.get(self.current)
+    }
+
+    fn redo(&mut self) -> Option<&cosmic_text::Change> {
+        if self.current >= self.changes.len() {
+            return None;
+        }
+
+        let change = self.changes.get(self.current);
+        self.current += 1;
+        change
+    }
+
+    fn push(&mut self, change: cosmic_text::Change) {
+        self.changes.truncate(self.current);
+        self.changes.push(change);
+        self.current += 1;
     }
 }
