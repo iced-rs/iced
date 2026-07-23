@@ -34,7 +34,7 @@ image = ["image-without-codecs", "image/default", "iced_winit/image"]
 # Enables the `image` widget, without any built-in codecs of the `image` crate
 image-without-codecs = ["iced_widget/image", "dep:image"]
 # Enables the `svg` widget
-svg = ["iced_widget/svg"]
+svg = ["iced_widget/svg", "iced_renderer/svg-text"]
 # Enables the `canvas` widget
 canvas = ["iced_widget/canvas"]
 # Enables the `qr_code` widget
