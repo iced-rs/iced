@@ -209,11 +209,17 @@ fn non_overlapping_siblings_batch_correctly() {
     });
 
     let (r, g, _b) = rgb(&pixmap, 25, 50);
-    assert!((110..=145).contains(&r), "left group should be ~50% red: r={r}");
+    assert!(
+        (110..=145).contains(&r),
+        "left group should be ~50% red: r={r}"
+    );
     assert!(g < 12, "left group should be pure red: g={g}");
 
     let (r, g, _b) = rgb(&pixmap, 75, 50);
-    assert!((110..=145).contains(&g), "right group should be ~50% green: g={g}");
+    assert!(
+        (110..=145).contains(&g),
+        "right group should be ~50% green: g={g}"
+    );
     assert!(r < 12, "right group should be pure green: r={r}");
 
     assert_eq!(rgb(&pixmap, 50, 50), (0, 0, 0), "gap between groups");
@@ -254,7 +260,10 @@ fn overlapping_siblings_are_not_batched() {
 
     // Overlap: the back (red) group shows through the front (green) one.
     let (r, g, _b) = rgb(&pixmap, 50, 50);
-    assert!(r > 40, "back red must show through (not batched away): r={r}");
+    assert!(
+        r > 40,
+        "back red must show through (not batched away): r={r}"
+    );
     assert!(g > 80, "front green must be present: g={g}");
 }
 

@@ -27,7 +27,7 @@ impl Default for PlatformSpecific {
             drag_and_drop: true,
             skip_taskbar: false,
             undecorated_shadow: false,
-            corner_preference: Default::default(),
+            corner_preference: CornerPreference::default(),
         }
     }
 }

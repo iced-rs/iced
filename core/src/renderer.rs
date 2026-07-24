@@ -50,31 +50,37 @@ pub trait Renderer {
         self.with_transformation(Transformation::translate(translation.x, translation.y), f);
     }
 
-    /// Starts recording a new opacity group inside the given `bounds`.
+    /// Starts recording a new group of layers inside the given `bounds`.
     ///
-    /// All primitives drawn until [`end_opacity`](Self::end_opacity) is called
-    /// are rendered to an isolated, offscreen buffer and then composited as a
-    /// whole with the given opacity value. Because the group is flattened before
-    /// the opacity is applied, overlapping primitives fade together instead of
-    /// blending through each other, and nested groups multiply.
-    ///
-    /// Opacity values should be in the range `0.0` (fully transparent) to `1.0` (fully opaque).
-    fn start_opacity(&mut self, _bounds: Rectangle, _opacity: f32) {}
+    /// All primitives drawn until [`end_group`](Self::end_group) is called are
+    /// rendered to an isolated, offscreen buffer and then composited back as a
+    /// whole with the given [`GroupEffect`]. Because the group is flattened
+    /// before the effect is applied, overlapping primitives are affected together
+    /// instead of independently, and nested groups compose.
+    fn start_group(&mut self, _bounds: Rectangle, _effect: GroupEffect) {}
 
-    /// Ends recording the current opacity group.
+    /// Ends recording the current group.
     ///
-    /// The contents will be composited with the opacity specified in [`start_opacity`](Self::start_opacity).
-    fn end_opacity(&mut self) {}
+    /// The contents will be composited with the [`GroupEffect`] specified in
+    /// [`start_group`](Self::start_group).
+    fn end_group(&mut self) {}
+
+    /// Draws the primitives recorded in the given closure as a single group,
+    /// compositing them back with the given [`GroupEffect`].
+    fn with_group(&mut self, bounds: Rectangle, effect: GroupEffect, f: impl FnOnce(&mut Self)) {
+        self.start_group(bounds, effect);
+        f(self);
+        self.end_group();
+    }
 
     /// Draws the primitives recorded in the given closure as a single group with
     /// the specified opacity.
     ///
-    /// The primitives are rendered to an isolated, offscreen buffer and then
-    /// composited as a whole with the given opacity value.
+    /// This is a convenience for [`with_group`](Self::with_group) with a
+    /// [`GroupEffect::Opacity`]. The primitives are rendered to an isolated,
+    /// offscreen buffer and then composited as a whole with the given opacity.
     fn with_opacity(&mut self, bounds: Rectangle, opacity: f32, f: impl FnOnce(&mut Self)) {
-        self.start_opacity(bounds, opacity);
-        f(self);
-        self.end_opacity();
+        self.with_group(bounds, GroupEffect::Opacity(opacity), f);
     }
 
     /// Fills a [`Quad`] with the provided [`Background`].
@@ -120,6 +126,41 @@ pub trait Renderer {
     ///
     /// By default, it does nothing.
     fn tick(&mut self) {}
+}
+
+/// The effect applied when compositing a group of layers back onto its target.
+///
+/// A group (see [`Renderer::start_group`]) isolates its layers into an offscreen
+/// buffer; the effect describes how that buffer is blended back. This makes
+/// effects composable and lets new ones — like blur or color filters — reuse the
+/// same isolation machinery.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GroupEffect {
+    /// Blends the group with the given opacity, from `0.0` (fully transparent)
+    /// to `1.0` (fully opaque).
+    Opacity(f32),
+}
+
+impl GroupEffect {
+    /// Returns whether the effect has no visible impact, so the group can be
+    /// drawn inline without an isolated target.
+    pub fn is_noop(self) -> bool {
+        match self {
+            GroupEffect::Opacity(opacity) => opacity >= 1.0,
+        }
+    }
+
+    /// Returns whether adjacent, non-overlapping groups with an equal effect can
+    /// be merged and composited together.
+    ///
+    /// Effects whose result depends only on each pixel independently (like
+    /// opacity) can batch; effects that read neighbouring pixels (like blur)
+    /// cannot.
+    pub fn is_batchable(self) -> bool {
+        match self {
+            GroupEffect::Opacity(_) => true,
+        }
+    }
 }
 
 /// A polygon with four sides.

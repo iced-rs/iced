@@ -403,8 +403,8 @@ impl Renderer {
     ) {
         use std::mem::ManuallyDrop;
 
-        if self.layers.has_opacity() {
-            self.render_with_opacity(encoder, frame, clear_color, viewport);
+        if self.layers.has_groups() {
+            self.render_with_groups(encoder, frame, clear_color, viewport);
             return;
         }
 
@@ -647,7 +647,7 @@ impl Renderer {
 
     /// Renders the layers while compositing opacity groups into isolated,
     /// full-viewport offscreen textures.
-    fn render_with_opacity(
+    fn render_with_groups(
         &mut self,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
@@ -661,7 +661,7 @@ impl Renderer {
             // nesting depth reuse a texture because they are rendered and
             // composited sequentially, so only one is live at a time.
             depth: usize,
-            opacity: f32,
+            effect: core::renderer::GroupEffect,
             // Physical rectangle of the group; `None` when it does not intersect
             // the frame (nothing to clear, render or composite).
             scissor: Option<Rectangle<u32>>,
@@ -701,10 +701,10 @@ impl Renderer {
             Rectangle::<f32>::from(Rectangle::with_size(viewport.physical_size()));
         let scale = Transformation::scale(scale_factor);
 
-        self.layers.batch_opacity();
+        self.layers.batch_groups();
 
-        let plan = self.layers.opacity_plan();
-        let groups = self.layers.opacity_groups().to_vec();
+        let plan = self.layers.group_plan();
+        let groups = self.layers.groups().to_vec();
 
         // Pre-allocate the offscreen texture pool up front (one per nesting
         // depth) so a render pass can be kept open across layers while the pool
@@ -719,8 +719,9 @@ impl Renderer {
             max
         };
 
-        let pool: Vec<(wgpu::Texture, wgpu::TextureView)> =
-            (0..max_nesting).map(|_| self.create_group_target(viewport)).collect();
+        let pool: Vec<(wgpu::Texture, wgpu::TextureView)> = (0..max_nesting)
+            .map(|_| self.create_group_target(viewport))
+            .collect();
 
         let mut quad_layer = 0;
         let mut mesh_layer = 0;
@@ -769,13 +770,12 @@ impl Renderer {
                             None => frame,
                         };
 
-                        self.engine.opacity_pipeline.composite(
-                            &self.engine.device,
+                        self.composite_group(
                             encoder,
                             target,
                             &pool[group.depth].1,
-                            group.opacity,
-                            Some((scissor.x, scissor.y, scissor.width, scissor.height)),
+                            group.effect,
+                            scissor,
                         );
                     }
                 }
@@ -812,7 +812,7 @@ impl Renderer {
 
                 targets.push(GroupTarget {
                     depth,
-                    opacity: groups[group].opacity,
+                    effect: groups[group].effect,
                     scissor,
                     cleared: false,
                 });
@@ -1010,12 +1010,30 @@ impl Renderer {
                     None => frame,
                 };
 
+                self.composite_group(encoder, target, &pool[group.depth].1, group.effect, scissor);
+            }
+        }
+    }
+
+    /// Composites an isolated group `source` back onto `target`, dispatching on
+    /// the group's [`GroupEffect`]. New effects (blur, color filters, …) add a
+    /// match arm and their own pipeline here.
+    fn composite_group(
+        &self,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        source: &wgpu::TextureView,
+        effect: core::renderer::GroupEffect,
+        scissor: Rectangle<u32>,
+    ) {
+        match effect {
+            core::renderer::GroupEffect::Opacity(opacity) => {
                 self.engine.opacity_pipeline.composite(
                     &self.engine.device,
                     encoder,
                     target,
-                    &pool[group.depth].1,
-                    group.opacity,
+                    source,
+                    opacity,
                     Some((scissor.x, scissor.y, scissor.width, scissor.height)),
                 );
             }
@@ -1125,12 +1143,12 @@ impl core::Renderer for Renderer {
         self.layers.reset(new_bounds);
     }
 
-    fn start_opacity(&mut self, bounds: Rectangle, opacity: f32) {
-        self.layers.push_opacity(opacity, bounds);
+    fn start_group(&mut self, bounds: Rectangle, effect: core::renderer::GroupEffect) {
+        self.layers.push_group(effect, bounds);
     }
 
-    fn end_opacity(&mut self) {
-        self.layers.pop_opacity();
+    fn end_group(&mut self) {
+        self.layers.pop_group();
     }
 
     fn settings(&self) -> renderer::Settings {

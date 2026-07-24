@@ -62,12 +62,12 @@ where
         delegate!(self, renderer, renderer.end_transformation());
     }
 
-    fn start_opacity(&mut self, bounds: Rectangle, opacity: f32) {
-        delegate!(self, renderer, renderer.start_opacity(bounds, opacity));
+    fn start_group(&mut self, bounds: Rectangle, effect: renderer::GroupEffect) {
+        delegate!(self, renderer, renderer.start_group(bounds, effect));
     }
 
-    fn end_opacity(&mut self) {
-        delegate!(self, renderer, renderer.end_opacity());
+    fn end_group(&mut self) {
+        delegate!(self, renderer, renderer.end_group());
     }
 
     fn allocate_image(

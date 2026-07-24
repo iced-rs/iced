@@ -69,8 +69,8 @@ impl Renderer {
         let scale_factor = viewport.scale_factor();
         self.layers.flush();
 
-        let plan = self.layers.opacity_plan();
-        let opacity_groups = self.layers.opacity_groups().to_vec();
+        let plan = self.layers.group_plan();
+        let groups = self.layers.groups().to_vec();
 
         for &damage_bounds in damage {
             let damage_bounds = damage_bounds * scale_factor;
@@ -109,12 +109,12 @@ impl Renderer {
                 let step = &plan.steps[index];
 
                 for _ in &step.closes {
-                    composite_opacity_group(&mut targets, pixels);
+                    composite_group(&mut targets, pixels);
                 }
 
                 for &group in &step.opens {
-                    let opacity_group = opacity_groups[group];
-                    let rect = (opacity_group.bounds * scale_factor)
+                    let layer_group = groups[group];
+                    let rect = (layer_group.bounds * scale_factor)
                         .intersection(&damage_bounds)
                         .and_then(Rectangle::snap);
 
@@ -125,10 +125,10 @@ impl Renderer {
                             mask: tiny_skia::Mask::new(rect.width, rect.height)
                                 .expect("Create opacity group mask"),
                             origin: (rect.x as f32, rect.y as f32),
-                            opacity: opacity_group.opacity,
+                            effect: layer_group.effect,
                             active: true,
                         },
-                        _ => GroupTarget::inactive(opacity_group.opacity),
+                        _ => GroupTarget::inactive(layer_group.effect),
                     });
                 }
 
@@ -178,7 +178,7 @@ impl Renderer {
             }
 
             for _ in &plan.trailing {
-                composite_opacity_group(&mut targets, pixels);
+                composite_group(&mut targets, pixels);
             }
         }
 
@@ -288,38 +288,41 @@ impl Renderer {
     }
 }
 
-/// An isolated target for an opacity group, sized to the group's bounds within
-/// the current damage region.
+/// An isolated target for a layer group, sized to the group's bounds within the
+/// current damage region.
 struct GroupTarget {
     pixmap: tiny_skia::Pixmap,
     mask: tiny_skia::Mask,
     /// Physical top-left of the group within the frame.
     origin: (f32, f32),
-    opacity: f32,
+    effect: core::renderer::GroupEffect,
     /// `false` when the group does not intersect the damage region, in which
     /// case it has nothing to render or composite (kept to balance open/close).
     active: bool,
 }
 
 impl GroupTarget {
-    fn inactive(opacity: f32) -> Self {
+    fn inactive(effect: core::renderer::GroupEffect) -> Self {
         Self {
             pixmap: tiny_skia::Pixmap::new(1, 1).expect("Create pixmap"),
             mask: tiny_skia::Mask::new(1, 1).expect("Create mask"),
             origin: (0.0, 0.0),
-            opacity,
+            effect,
             active: false,
         }
     }
 }
 
-/// Composites the top-most opacity-group target into its parent (an enclosing
-/// group target, or the base frame) at the group's opacity.
+/// Composites the top-most group target into its parent (an enclosing group
+/// target, or the base frame), dispatching on the group's [`GroupEffect`].
 ///
-/// This is what turns opacity into a single flattened layer: the group has
-/// already been drawn into its own transparent pixmap, so blending it as a whole
-/// yields correct results even when its primitives overlap.
-fn composite_opacity_group(targets: &mut Vec<GroupTarget>, base: &mut tiny_skia::PixmapMut<'_>) {
+/// This is what turns a group into a single flattened layer: the group has
+/// already been drawn into its own transparent pixmap, so applying the effect to
+/// it as a whole yields correct results even when its primitives overlap. New
+/// effects add a match arm here.
+///
+/// [`GroupEffect`]: core::renderer::GroupEffect
+fn composite_group(targets: &mut Vec<GroupTarget>, base: &mut tiny_skia::PixmapMut<'_>) {
     let Some(group) = targets.pop() else {
         return;
     };
@@ -328,8 +331,11 @@ fn composite_opacity_group(targets: &mut Vec<GroupTarget>, base: &mut tiny_skia:
         return;
     }
 
+    // Dispatch on the effect.
+    let core::renderer::GroupEffect::Opacity(opacity) = group.effect;
+
     let paint = tiny_skia::PixmapPaint {
-        opacity: group.opacity,
+        opacity,
         blend_mode: tiny_skia::BlendMode::SourceOver,
         quality: tiny_skia::FilterQuality::Nearest,
     };
@@ -379,12 +385,12 @@ impl core::Renderer for Renderer {
         self.layers.pop_transformation();
     }
 
-    fn start_opacity(&mut self, bounds: Rectangle, opacity: f32) {
-        self.layers.push_opacity(opacity, bounds);
+    fn start_group(&mut self, bounds: Rectangle, effect: core::renderer::GroupEffect) {
+        self.layers.push_group(effect, bounds);
     }
 
-    fn end_opacity(&mut self) {
-        self.layers.pop_opacity();
+    fn end_group(&mut self) {
+        self.layers.pop_group();
     }
 
     fn fill_quad(&mut self, quad: renderer::Quad, background: impl Into<Background>) {

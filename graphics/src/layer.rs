@@ -1,4 +1,5 @@
 //! Draw and stack layers of graphical primitives.
+use crate::core::renderer::GroupEffect;
 use crate::core::{Rectangle, Transformation};
 
 /// A layer of graphical primitives.
@@ -51,11 +52,15 @@ pub trait Layer: Default {
     fn set_opacity(&mut self, _opacity: f32) {}
 }
 
-/// An opacity group recorded in a [`Stack`].
+/// A composable group of layers recorded in a [`Stack`].
+///
+/// Its layers are isolated into an offscreen target and composited back with
+/// [`effect`](Self::effect), enabling composable effects (opacity today; blur,
+/// color filters, etc. in the future) on top of the same machinery.
 #[derive(Debug, Clone, Copy)]
-pub struct OpacityGroup {
-    /// The opacity of the group, in the range `0.0..=1.0`.
-    pub opacity: f32,
+pub struct LayerGroup {
+    /// The effect applied when compositing the group back onto its target.
+    pub effect: GroupEffect,
     /// The bounds of the group, already transformed by the current
     /// [`Transformation`] at the time the group was created.
     pub bounds: Rectangle,
@@ -63,24 +68,24 @@ pub struct OpacityGroup {
     pub parent: Option<usize>,
 }
 
-/// A plan describing when opacity groups open and close while iterating the
+/// A plan describing when layer groups open and close while iterating the
 /// layers of a [`Stack`] in order.
 ///
-/// A renderer walks its layers together with [`OpacityPlan::steps`]; when a
-/// group opens it must redirect drawing to an isolated target, and when it
-/// closes it must composite that target at the group's opacity.
+/// A renderer walks its layers together with [`GroupPlan::steps`]; when a group
+/// opens it must redirect drawing to an isolated target, and when it closes it
+/// must composite that target with the group's effect.
 #[derive(Debug, Default)]
-pub struct OpacityPlan {
+pub struct GroupPlan {
     /// One entry per active layer, in layer order.
-    pub steps: Vec<OpacityStep>,
+    pub steps: Vec<GroupStep>,
     /// Groups still open after the last layer, to be closed in this order
     /// (innermost first).
     pub trailing: Vec<usize>,
 }
 
-/// The opacity groups that open and close right before a given layer is drawn.
+/// The layer groups that open and close right before a given layer is drawn.
 #[derive(Debug, Default, Clone)]
-pub struct OpacityStep {
+pub struct GroupStep {
     /// Groups to close before this layer, innermost first.
     pub closes: Vec<usize>,
     /// Groups to open before this layer, outermost first.
@@ -95,17 +100,16 @@ pub struct Stack<T: Layer> {
     previous: Vec<usize>,
     current: usize,
     active_count: usize,
-    /// All opacity groups recorded this frame, indexed by group id.
-    opacity_groups: Vec<OpacityGroup>,
-    /// The innermost opacity group each layer slot belongs to, parallel to
-    /// `layers` by slot index.
+    /// All layer groups recorded this frame, indexed by group id.
+    groups: Vec<LayerGroup>,
+    /// The innermost group each layer slot belongs to, parallel to `layers` by
+    /// slot index.
     layer_groups: Vec<Option<usize>>,
-    /// The opacity groups currently open while recording, as a stack of ids.
+    /// The groups currently open while recording, as a stack of ids.
     active_groups: Vec<usize>,
-    /// For each open opacity scope, whether it actually created an isolated
-    /// group (fully-opaque scopes are elided). Keeps `push_opacity` and
-    /// `pop_opacity` balanced.
-    opacity_isolated: Vec<bool>,
+    /// For each open group scope, whether it actually created an isolated group
+    /// (no-op effects are elided). Keeps `push_group` and `pop_group` balanced.
+    group_isolated: Vec<bool>,
 }
 
 impl<T: Layer> Stack<T> {
@@ -117,10 +121,10 @@ impl<T: Layer> Stack<T> {
             previous: vec![],
             current: 0,
             active_count: 1,
-            opacity_groups: Vec::new(),
+            groups: Vec::new(),
             layer_groups: vec![None],
             active_groups: Vec::new(),
-            opacity_isolated: Vec::new(),
+            group_isolated: Vec::new(),
         }
     }
 
@@ -164,36 +168,41 @@ impl<T: Layer> Stack<T> {
 
     /// Returns the effective opacity at the current point in recording: the
     /// product of every open opacity group's opacity.
+    ///
+    /// Only [`GroupEffect::Opacity`] groups contribute; other effects are
+    /// transparent to opacity. Used to track opacity in a [`Layer`]'s damage.
     fn current_opacity(&self) -> f32 {
         self.active_groups
             .iter()
-            .map(|id| self.opacity_groups[*id].opacity)
+            .map(|id| match self.groups[*id].effect {
+                GroupEffect::Opacity(opacity) => opacity,
+            })
             .product()
     }
 
-    /// Pushes a new opacity group in the [`Stack`].
+    /// Pushes a new layer group in the [`Stack`].
     ///
     /// A new layer is created for the group (like [`push_clip`]) and every layer
-    /// drawn until the matching [`pop_opacity`] belongs to it. The renderer is
+    /// drawn until the matching [`pop_group`] belongs to it. The renderer is
     /// expected to composite all of those layers into an isolated target and
-    /// blend the result with `opacity`, so that overlapping primitives fade as a
-    /// single group instead of independently.
+    /// blend the result with `effect`, so that overlapping primitives are
+    /// affected as a single group instead of independently.
     ///
     /// [`push_clip`]: Self::push_clip
-    /// [`pop_opacity`]: Self::pop_opacity
-    pub fn push_opacity(&mut self, opacity: f32, bounds: Rectangle) {
-        // A fully-opaque group has no visible effect, so we skip isolating it
-        // entirely and avoid the cost of an offscreen target.
-        if opacity >= 1.0 {
-            self.opacity_isolated.push(false);
+    /// [`pop_group`]: Self::pop_group
+    pub fn push_group(&mut self, effect: GroupEffect, bounds: Rectangle) {
+        // An effect with no visible impact is skipped entirely, avoiding the cost
+        // of an offscreen target.
+        if effect.is_noop() {
+            self.group_isolated.push(false);
             return;
         }
 
         let parent = self.active_groups.last().copied();
-        let id = self.opacity_groups.len();
+        let id = self.groups.len();
 
-        self.opacity_groups.push(OpacityGroup {
-            opacity: opacity.clamp(0.0, 1.0),
+        self.groups.push(LayerGroup {
+            effect,
             bounds: bounds * self.transformation(),
             parent,
         });
@@ -202,12 +211,12 @@ impl<T: Layer> Stack<T> {
         // layer is tagged as belonging to it.
         self.active_groups.push(id);
         self.push_clip(bounds);
-        self.opacity_isolated.push(true);
+        self.group_isolated.push(true);
     }
 
-    /// Pops the current opacity group from the [`Stack`].
-    pub fn pop_opacity(&mut self) {
-        if self.opacity_isolated.pop() == Some(true) {
+    /// Pops the current layer group from the [`Stack`].
+    pub fn pop_group(&mut self) {
+        if self.group_isolated.pop() == Some(true) {
             self.pop_clip();
             let _ = self.active_groups.pop();
         }
@@ -333,28 +342,32 @@ impl<T: Layer> Stack<T> {
         self.active_count = 1;
         self.previous.clear();
 
-        self.opacity_groups.clear();
+        self.groups.clear();
         self.active_groups.clear();
-        self.opacity_isolated.clear();
+        self.group_isolated.clear();
         if let Some(first) = self.layer_groups.first_mut() {
             *first = None;
         }
     }
 
-    /// Returns the opacity groups recorded in the [`Stack`], indexed by group id.
-    pub fn opacity_groups(&self) -> &[OpacityGroup] {
-        &self.opacity_groups
+    /// Returns the layer groups recorded in the [`Stack`], indexed by group id.
+    pub fn groups(&self) -> &[LayerGroup] {
+        &self.groups
     }
 
-    /// Returns whether any opacity group was recorded in the [`Stack`].
-    pub fn has_opacity(&self) -> bool {
-        !self.opacity_groups.is_empty()
+    /// Returns whether any layer group was recorded in the [`Stack`].
+    pub fn has_groups(&self) -> bool {
+        !self.groups.is_empty()
     }
 
-    /// Fuses adjacent sibling opacity groups that can share a single isolated
-    /// target and composite.
-    pub fn batch_opacity(&mut self) {
-        let count = self.opacity_groups.len();
+    /// Fuses adjacent sibling groups that can share a single isolated target and
+    /// composite: same parent, equal and [batchable](GroupEffect::is_batchable)
+    /// effect, adjacent layer ranges, and non-overlapping bounds.
+    ///
+    /// The later groups' layers are reassigned to the first, whose bounds grow to
+    /// the union, so the renderer isolates and composites the whole run once.
+    pub fn batch_groups(&mut self) {
+        let count = self.groups.len();
 
         if count < 2 {
             return;
@@ -362,7 +375,7 @@ impl<T: Layer> Stack<T> {
 
         // A group that is some other group's parent is not a leaf.
         let mut is_parent = vec![false; count];
-        for group in &self.opacity_groups {
+        for group in &self.groups {
             if let Some(parent) = group.parent {
                 is_parent[parent] = true;
             }
@@ -394,11 +407,12 @@ impl<T: Layer> Stack<T> {
 
         for group in leaves {
             let can_extend = representative.is_some_and(|rep| {
-                let a = &self.opacity_groups[group];
-                let b = &self.opacity_groups[rep];
+                let a = &self.groups[group];
+                let b = &self.groups[rep];
 
                 a.parent == b.parent
-                    && a.opacity == b.opacity
+                    && a.effect == b.effect
+                    && a.effect.is_batchable()
                     && first[group] == run_last + 1
                     && members
                         .iter()
@@ -407,7 +421,7 @@ impl<T: Layer> Stack<T> {
 
             if can_extend {
                 let rep = representative.expect("Run has a representative");
-                let bounds = self.opacity_groups[group].bounds;
+                let bounds = self.groups[group].bounds;
 
                 for index in first[group]..=last[group] {
                     if self.layer_groups[index] == Some(group) {
@@ -415,43 +429,43 @@ impl<T: Layer> Stack<T> {
                     }
                 }
 
-                self.opacity_groups[rep].bounds = self.opacity_groups[rep].bounds.union(&bounds);
+                self.groups[rep].bounds = self.groups[rep].bounds.union(&bounds);
                 members.push(bounds);
                 run_last = last[group];
             } else {
                 representative = Some(group);
                 members.clear();
-                members.push(self.opacity_groups[group].bounds);
+                members.push(self.groups[group].bounds);
                 run_last = last[group];
             }
         }
     }
 
-    /// Returns the chain of opacity groups a group belongs to, outermost first.
-    fn opacity_chain(&self, group: usize) -> Vec<usize> {
+    /// Returns the chain of groups a group belongs to, outermost first.
+    fn group_chain(&self, group: usize) -> Vec<usize> {
         let mut chain = Vec::new();
         let mut current = Some(group);
 
         while let Some(id) = current {
             chain.push(id);
-            current = self.opacity_groups[id].parent;
+            current = self.groups[id].parent;
         }
 
         chain.reverse();
         chain
     }
 
-    /// Builds the [`OpacityPlan`] describing when opacity groups open and close
-    /// as the active layers are iterated in order.
+    /// Builds the [`GroupPlan`] describing when layer groups open and close as
+    /// the active layers are iterated in order.
     ///
     /// Groups occupy contiguous layer ranges, so a group opens right before its
     /// first layer and closes once the walk leaves it.
-    pub fn opacity_plan(&self) -> OpacityPlan {
-        let mut plan = OpacityPlan::default();
+    pub fn group_plan(&self) -> GroupPlan {
+        let mut plan = GroupPlan::default();
 
-        if self.opacity_groups.is_empty() {
+        if self.groups.is_empty() {
             plan.steps
-                .resize_with(self.active_count, OpacityStep::default);
+                .resize_with(self.active_count, GroupStep::default);
             return plan;
         }
 
@@ -459,7 +473,7 @@ impl<T: Layer> Stack<T> {
 
         for index in 0..self.active_count {
             let chain = match self.layer_groups[index] {
-                Some(group) => self.opacity_chain(group),
+                Some(group) => self.group_chain(group),
                 None => Vec::new(),
             };
 
@@ -469,7 +483,7 @@ impl<T: Layer> Stack<T> {
                 .take_while(|(a, b)| a == b)
                 .count();
 
-            plan.steps.push(OpacityStep {
+            plan.steps.push(GroupStep {
                 closes: previous[common..].iter().rev().copied().collect(),
                 opens: chain[common..].to_vec(),
             });

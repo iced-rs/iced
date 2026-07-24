@@ -204,7 +204,10 @@ fn non_overlapping_siblings_batch_correctly() {
     assert!(r < 24, "right group should be pure green: r={r}");
 
     let (r, g, b) = rgb(&bytes, 50, 50);
-    assert!(r < 8 && g < 8 && b < 8, "gap between groups must stay black");
+    assert!(
+        r < 8 && g < 8 && b < 8,
+        "gap between groups must stay black"
+    );
 }
 
 #[test]
