@@ -17,6 +17,10 @@ pub struct Layer {
     pub primitives: Vec<Item<Primitive>>,
     pub images: Vec<Image>,
     pub text: Vec<Item<Text>>,
+    /// Effective opacity of the group this layer belongs to. Opacity is applied
+    /// at composite time rather than baked into the primitives, so it is tracked
+    /// here to be part of damage detection.
+    pub opacity: f32,
 }
 
 impl Layer {
@@ -208,6 +212,10 @@ impl Layer {
             return vec![previous.bounds, current.bounds];
         }
 
+        if previous.opacity != current.opacity {
+            return vec![current.bounds];
+        }
+
         let layer_bounds = current.bounds.expand(1.0);
 
         let mut damage = damage::list(
@@ -308,6 +316,7 @@ impl Default for Layer {
             primitives: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
+            opacity: 1.0,
         }
     }
 }
@@ -332,11 +341,16 @@ impl graphics::Layer for Layer {
 
     fn reset(&mut self) {
         self.bounds = Rectangle::INFINITE;
+        self.opacity = 1.0;
 
         self.quads.clear();
         self.primitives.clear();
         self.text.clear();
         self.images.clear();
+    }
+
+    fn set_opacity(&mut self, opacity: f32) {
+        self.opacity = opacity;
     }
 
     fn start(&self) -> usize {

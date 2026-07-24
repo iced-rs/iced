@@ -243,9 +243,9 @@ impl App {
 
         // Image opacity section
         let image_section = {
-            let ferris = image(format!(
-                "{}/examples/tour/images/ferris.png",
-                env!("CARGO_MANIFEST_DIR").replace("/examples/opacity", "")
+            let ferris = image(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../tour/images/ferris.png",
             ))
             .width(150);
 

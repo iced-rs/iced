@@ -50,11 +50,13 @@ pub trait Renderer {
         self.with_transformation(Transformation::translate(translation.x, translation.y), f);
     }
 
-    /// Starts recording a new opacity group.
+    /// Starts recording a new opacity group inside the given `bounds`.
     ///
     /// All primitives drawn until [`end_opacity`](Self::end_opacity) is called
-    /// will be rendered to an offscreen texture and then composited with the
-    /// given opacity value.
+    /// are rendered to an isolated, offscreen buffer and then composited as a
+    /// whole with the given opacity value. Because the group is flattened before
+    /// the opacity is applied, overlapping primitives fade together instead of
+    /// blending through each other, and nested groups multiply.
     ///
     /// Opacity values should be in the range `0.0` (fully transparent) to `1.0` (fully opaque).
     fn start_opacity(&mut self, _bounds: Rectangle, _opacity: f32) {}
@@ -64,10 +66,11 @@ pub trait Renderer {
     /// The contents will be composited with the opacity specified in [`start_opacity`](Self::start_opacity).
     fn end_opacity(&mut self) {}
 
-    /// Draws the primitives recorded in the given closure with the specified opacity.
+    /// Draws the primitives recorded in the given closure as a single group with
+    /// the specified opacity.
     ///
-    /// The primitives will be rendered to an offscreen texture and then composited
-    /// with the given opacity value.
+    /// The primitives are rendered to an isolated, offscreen buffer and then
+    /// composited as a whole with the given opacity value.
     fn with_opacity(&mut self, bounds: Rectangle, opacity: f32, f: impl FnOnce(&mut Self)) {
         self.start_opacity(bounds, opacity);
         f(self);

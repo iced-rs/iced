@@ -42,8 +42,6 @@ pub struct Renderer {
     settings: renderer::Settings,
     layers: layer::Stack,
     engine: Engine, // TODO: Shared engine
-    /// Stack of opacity values for nested opacity groups
-    opacity_stack: Vec<f32>,
 }
 
 impl Renderer {
@@ -52,13 +50,7 @@ impl Renderer {
             settings,
             layers: layer::Stack::new(),
             engine: Engine::new(),
-            opacity_stack: vec![1.0],
         }
-    }
-
-    /// Returns the current opacity value (product of all nested opacity values)
-    fn current_opacity(&self) -> f32 {
-        *self.opacity_stack.last().unwrap_or(&1.0)
     }
 
     pub fn layers(&mut self) -> &[Layer] {
@@ -76,6 +68,9 @@ impl Renderer {
     ) {
         let scale_factor = viewport.scale_factor();
         self.layers.flush();
+
+        let plan = self.layers.opacity_plan();
+        let opacity_groups = self.layers.opacity_groups().to_vec();
 
         for &damage_bounds in damage {
             let damage_bounds = damage_bounds * scale_factor;
@@ -103,130 +98,268 @@ impl Renderer {
                 None,
             );
 
-            for layer in self.layers.iter() {
+            // Isolated targets for the currently open opacity groups. Each group
+            // is composited into its own transparent pixmap and then blended as a
+            // whole, so overlapping primitives fade together instead of each on
+            // its own. The pixmap is sized to the group's bounds within this
+            // damage region (not the whole window), which keeps compositing cheap.
+            let mut targets: Vec<GroupTarget> = Vec::new();
+
+            for (index, layer) in self.layers.iter().enumerate() {
+                let step = &plan.steps[index];
+
+                for _ in &step.closes {
+                    composite_opacity_group(&mut targets, pixels);
+                }
+
+                for &group in &step.opens {
+                    let opacity_group = opacity_groups[group];
+                    let rect = (opacity_group.bounds * scale_factor)
+                        .intersection(&damage_bounds)
+                        .and_then(Rectangle::snap);
+
+                    targets.push(match rect {
+                        Some(rect) if rect.width > 0 && rect.height > 0 => GroupTarget {
+                            pixmap: tiny_skia::Pixmap::new(rect.width, rect.height)
+                                .expect("Create opacity group pixmap"),
+                            mask: tiny_skia::Mask::new(rect.width, rect.height)
+                                .expect("Create opacity group mask"),
+                            origin: (rect.x as f32, rect.y as f32),
+                            opacity: opacity_group.opacity,
+                            active: true,
+                        },
+                        _ => GroupTarget::inactive(opacity_group.opacity),
+                    });
+                }
+
                 let Some(layer_bounds) = damage_bounds.intersection(&(layer.bounds * scale_factor))
                 else {
                     continue;
                 };
 
-                engine::adjust_clip_mask(clip_mask, layer_bounds);
+                match targets.last_mut() {
+                    Some(target) if target.active => {
+                        let origin = target.origin;
+                        let group_rect = Rectangle {
+                            x: origin.0,
+                            y: origin.1,
+                            width: target.pixmap.width() as f32,
+                            height: target.pixmap.height() as f32,
+                        };
 
-                if !layer.quads.is_empty() {
-                    let render_span = debug::render(debug::Primitive::Quad);
-                    for (quad, background) in &layer.quads {
-                        self.engine.draw_quad(
-                            quad,
-                            background,
-                            Transformation::scale(scale_factor),
-                            pixels,
-                            clip_mask,
-                            layer_bounds,
-                        );
-                    }
-                    render_span.finish();
-                }
-
-                if !layer.primitives.is_empty() {
-                    let render_span = debug::render(debug::Primitive::Triangle);
-
-                    for group in &layer.primitives {
-                        let Some(group_bounds) =
-                            (group.clip_bounds() * scale_factor).intersection(&layer_bounds)
-                        else {
+                        let Some(source_bounds) = layer_bounds.intersection(&group_rect) else {
                             continue;
                         };
 
-                        engine::adjust_clip_mask(clip_mask, group_bounds);
-
-                        for primitive in group.as_slice() {
-                            self.engine.draw_primitive(
-                                primitive,
-                                Transformation::scale(scale_factor) * group.transformation(),
-                                pixels,
-                                clip_mask,
-                                group_bounds,
-                            );
-                        }
-
-                        engine::adjust_clip_mask(clip_mask, layer_bounds);
-                    }
-
-                    render_span.finish();
-                }
-
-                if !layer.images.is_empty() {
-                    let render_span = debug::render(debug::Primitive::Image);
-
-                    for image in &layer.images {
-                        self.engine.draw_image(
-                            image,
-                            Transformation::scale(scale_factor),
-                            pixels,
-                            clip_mask,
-                            layer_bounds,
+                        let mut pixmap = target.pixmap.as_mut();
+                        Self::render_layer(
+                            &mut self.engine,
+                            layer,
+                            &mut pixmap,
+                            &mut target.mask,
+                            origin,
+                            source_bounds,
+                            scale_factor,
                         );
                     }
-
-                    render_span.finish();
-                }
-
-                if !layer.text.is_empty() {
-                    let render_span = debug::render(debug::Primitive::Image);
-
-                    for group in &layer.text {
-                        for text in group.as_slice() {
-                            self.engine.draw_text(
-                                text,
-                                Transformation::scale(scale_factor) * group.transformation(),
-                                pixels,
-                                clip_mask,
-                                layer_bounds,
-                            );
-                        }
+                    Some(_) => {}
+                    None => {
+                        Self::render_layer(
+                            &mut self.engine,
+                            layer,
+                            pixels,
+                            clip_mask,
+                            (0.0, 0.0),
+                            layer_bounds,
+                            scale_factor,
+                        );
                     }
-
-                    render_span.finish();
                 }
+            }
+
+            for _ in &plan.trailing {
+                composite_opacity_group(&mut targets, pixels);
             }
         }
 
         self.engine.trim();
     }
-}
 
-/// Applies opacity to a background and quad border, returning the modified values.
-#[inline]
-fn apply_opacity(
-    opacity: f32,
-    background: impl Into<Background>,
-    quad: renderer::Quad,
-) -> (Background, renderer::Quad) {
-    if opacity >= 1.0 {
-        return (background.into(), quad);
-    }
+    /// Draws a single layer into the given target pixmap (either the frame or an
+    /// isolated opacity-group pixmap).
+    ///
+    /// `offset` is the physical top-left of the target within the frame; it is
+    /// `(0, 0)` for the frame and the group's origin for an opacity group, so
+    /// that a group can render into a small, bounds-sized pixmap. `layer_bounds`
+    /// is in physical (frame) coordinates.
+    fn render_layer(
+        engine: &mut Engine,
+        layer: &Layer,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: &mut tiny_skia::Mask,
+        offset: (f32, f32),
+        layer_bounds: Rectangle,
+        scale_factor: f32,
+    ) {
+        let (offset_x, offset_y) = offset;
+        let to_local = |bounds: Rectangle| Rectangle {
+            x: bounds.x - offset_x,
+            y: bounds.y - offset_y,
+            ..bounds
+        };
+        // Logical -> frame-physical (scale), then frame-physical -> target-local
+        // (translate by the target's origin).
+        let transformation =
+            Transformation::translate(-offset_x, -offset_y) * Transformation::scale(scale_factor);
+        let layer_bounds = to_local(layer_bounds);
 
-    let background = match background.into() {
-        Background::Color(mut color) => {
-            color.a *= opacity;
-            Background::Color(color)
+        engine::adjust_clip_mask(clip_mask, layer_bounds);
+
+        if !layer.quads.is_empty() {
+            let render_span = debug::render(debug::Primitive::Quad);
+            for (quad, background) in &layer.quads {
+                engine.draw_quad(
+                    quad,
+                    background,
+                    transformation,
+                    pixels,
+                    clip_mask,
+                    layer_bounds,
+                );
+            }
+            render_span.finish();
         }
-        Background::Gradient(mut gradient) => {
-            match &mut gradient {
-                core::Gradient::Linear(linear) => {
-                    for color_stop in linear.stops.iter_mut().flatten() {
-                        color_stop.color.a *= opacity;
-                    }
+
+        if !layer.primitives.is_empty() {
+            let render_span = debug::render(debug::Primitive::Triangle);
+
+            for group in &layer.primitives {
+                let Some(group_bounds) =
+                    to_local(group.clip_bounds() * scale_factor).intersection(&layer_bounds)
+                else {
+                    continue;
+                };
+
+                engine::adjust_clip_mask(clip_mask, group_bounds);
+
+                for primitive in group.as_slice() {
+                    engine.draw_primitive(
+                        primitive,
+                        transformation * group.transformation(),
+                        pixels,
+                        clip_mask,
+                        group_bounds,
+                    );
+                }
+
+                engine::adjust_clip_mask(clip_mask, layer_bounds);
+            }
+
+            render_span.finish();
+        }
+
+        if !layer.images.is_empty() {
+            let render_span = debug::render(debug::Primitive::Image);
+
+            for image in &layer.images {
+                engine.draw_image(image, transformation, pixels, clip_mask, layer_bounds);
+            }
+
+            render_span.finish();
+        }
+
+        if !layer.text.is_empty() {
+            let render_span = debug::render(debug::Primitive::Image);
+
+            for group in &layer.text {
+                for text in group.as_slice() {
+                    engine.draw_text(
+                        text,
+                        transformation * group.transformation(),
+                        pixels,
+                        clip_mask,
+                        layer_bounds,
+                    );
                 }
             }
-            Background::Gradient(gradient)
+
+            render_span.finish();
         }
+    }
+}
+
+/// An isolated target for an opacity group, sized to the group's bounds within
+/// the current damage region.
+struct GroupTarget {
+    pixmap: tiny_skia::Pixmap,
+    mask: tiny_skia::Mask,
+    /// Physical top-left of the group within the frame.
+    origin: (f32, f32),
+    opacity: f32,
+    /// `false` when the group does not intersect the damage region, in which
+    /// case it has nothing to render or composite (kept to balance open/close).
+    active: bool,
+}
+
+impl GroupTarget {
+    fn inactive(opacity: f32) -> Self {
+        Self {
+            pixmap: tiny_skia::Pixmap::new(1, 1).expect("Create pixmap"),
+            mask: tiny_skia::Mask::new(1, 1).expect("Create mask"),
+            origin: (0.0, 0.0),
+            opacity,
+            active: false,
+        }
+    }
+}
+
+/// Composites the top-most opacity-group target into its parent (an enclosing
+/// group target, or the base frame) at the group's opacity.
+///
+/// This is what turns opacity into a single flattened layer: the group has
+/// already been drawn into its own transparent pixmap, so blending it as a whole
+/// yields correct results even when its primitives overlap.
+fn composite_opacity_group(targets: &mut Vec<GroupTarget>, base: &mut tiny_skia::PixmapMut<'_>) {
+    let Some(group) = targets.pop() else {
+        return;
     };
 
-    let mut border = quad.border;
-    border.color.a *= opacity;
-    let quad = renderer::Quad { border, ..quad };
+    if !group.active {
+        return;
+    }
 
-    (background, quad)
+    let paint = tiny_skia::PixmapPaint {
+        opacity: group.opacity,
+        blend_mode: tiny_skia::BlendMode::SourceOver,
+        quality: tiny_skia::FilterQuality::Nearest,
+    };
+
+    let (x, y) = group.origin;
+
+    // Composite into the nearest enclosing active group, or the frame. The child
+    // is positioned relative to whichever target it lands in.
+    match targets.last_mut() {
+        Some(parent) if parent.active => {
+            parent.pixmap.as_mut().draw_pixmap(
+                (x - parent.origin.0) as i32,
+                (y - parent.origin.1) as i32,
+                group.pixmap.as_ref(),
+                &paint,
+                tiny_skia::Transform::identity(),
+                None,
+            );
+        }
+        _ => {
+            base.draw_pixmap(
+                x as i32,
+                y as i32,
+                group.pixmap.as_ref(),
+                &paint,
+                tiny_skia::Transform::identity(),
+                None,
+            );
+        }
+    }
 }
 
 impl core::Renderer for Renderer {
@@ -246,21 +379,17 @@ impl core::Renderer for Renderer {
         self.layers.pop_transformation();
     }
 
-    fn start_opacity(&mut self, _bounds: Rectangle, opacity: f32) {
-        let current = self.current_opacity();
-        self.opacity_stack.push(current * opacity.clamp(0.0, 1.0));
+    fn start_opacity(&mut self, bounds: Rectangle, opacity: f32) {
+        self.layers.push_opacity(opacity, bounds);
     }
 
     fn end_opacity(&mut self) {
-        if self.opacity_stack.len() > 1 {
-            let _ = self.opacity_stack.pop();
-        }
+        self.layers.pop_opacity();
     }
 
     fn fill_quad(&mut self, quad: renderer::Quad, background: impl Into<Background>) {
-        let (background, quad) = apply_opacity(self.current_opacity(), background, quad);
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_quad(quad, background, transformation);
+        layer.draw_quad(quad, background.into(), transformation);
     }
 
     fn allocate_image(
@@ -288,8 +417,6 @@ impl core::Renderer for Renderer {
 
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
-        self.opacity_stack.clear();
-        self.opacity_stack.push(1.0);
     }
 
     fn settings(&self) -> renderer::Settings {
@@ -326,11 +453,6 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
-        let opacity = self.current_opacity();
-        let color = Color {
-            a: color.a * opacity,
-            ..color
-        };
         let (layer, transformation) = self.layers.current_mut();
 
         layer.draw_paragraph(text, position, color, clip_bounds, transformation);
@@ -343,11 +465,6 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
-        let opacity = self.current_opacity();
-        let color = Color {
-            a: color.a * opacity,
-            ..color
-        };
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_editor(editor, position, color, clip_bounds, transformation);
     }
@@ -359,11 +476,6 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
-        let opacity = self.current_opacity();
-        let color = Color {
-            a: color.a * opacity,
-            ..color
-        };
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_text(text, position, color, clip_bounds, transformation);
     }
@@ -442,11 +554,6 @@ impl core::image::Renderer for Renderer {
     }
 
     fn draw_image(&mut self, image: core::Image, bounds: Rectangle, clip_bounds: Rectangle) {
-        let opacity = self.current_opacity();
-        let image = core::Image {
-            opacity: image.opacity * opacity,
-            ..image
-        };
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_raster(image, bounds, clip_bounds, transformation);
     }
@@ -459,11 +566,6 @@ impl core::svg::Renderer for Renderer {
     }
 
     fn draw_svg(&mut self, svg: core::Svg, bounds: Rectangle, clip_bounds: Rectangle) {
-        let opacity = self.current_opacity();
-        let svg = core::Svg {
-            opacity: svg.opacity * opacity,
-            ..svg
-        };
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_svg(svg, bounds, clip_bounds, transformation);
     }

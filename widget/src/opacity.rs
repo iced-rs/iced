@@ -17,8 +17,9 @@ use crate::core::{Element, Event, Length, Rectangle, Shell, Size, Vector, Widget
 ///
 /// # Example
 /// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{opacity, container, text};
-/// use iced::Element;
 ///
 /// fn view<'a>() -> Element<'a, ()> {
 ///     opacity(0.5, container(text("50% transparent"))).into()
@@ -169,8 +170,9 @@ where
 ///
 /// # Example
 /// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{opacity, text};
-/// use iced::Element;
 ///
 /// fn view<'a>() -> Element<'a, ()> {
 ///     opacity(0.5, text("50% transparent")).into()
