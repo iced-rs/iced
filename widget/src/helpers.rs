@@ -1147,7 +1147,7 @@ where
 /// ```
 pub fn rich_text<'a, Link, Message, Theme, Renderer>(
     spans: impl AsRef<[text::Span<'a, Link, Renderer::Font>]> + 'a,
-) -> text::Rich<'a, Link, Message, Theme, Renderer>
+) -> text::Rich<'a, Message, Link, Theme, Renderer>
 where
     Link: Clone + 'static,
     Theme: text::Catalog + 'a,
