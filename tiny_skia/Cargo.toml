@@ -37,3 +37,6 @@ tiny-skia.workspace = true
 
 resvg.workspace = true
 resvg.optional = true
+
+[dev-dependencies]
+tiny-skia.workspace = true

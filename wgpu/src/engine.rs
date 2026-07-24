@@ -15,6 +15,7 @@ pub struct Engine {
     pub(crate) quad_pipeline: quad::Pipeline,
     pub(crate) text_pipeline: text::Pipeline,
     pub(crate) triangle_pipeline: triangle::Pipeline,
+    pub(crate) opacity_pipeline: crate::opacity::Pipeline,
     #[cfg(any(feature = "image", feature = "svg"))]
     pub(crate) image_pipeline: crate::image::Pipeline,
     pub(crate) primitive_storage: Arc<RwLock<primitive::Storage>>,
@@ -36,6 +37,7 @@ impl Engine {
             quad_pipeline: quad::Pipeline::new(&device, format),
             text_pipeline: text::Pipeline::new(&device, &queue, format),
             triangle_pipeline: triangle::Pipeline::new(&device, format, antialiasing),
+            opacity_pipeline: crate::opacity::Pipeline::new(&device, format),
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline: {
