@@ -29,6 +29,9 @@ pub enum Error {
     /// No adapter was found for the options requested.
     #[error("no adapter was found for the options requested: {0:?}")]
     NoAdapterFound(String),
+    /// The selected adapter renders in software.
+    #[error("the selected adapter renders in software: {0:#?}")]
+    SoftwareAdapter(wgpu::AdapterInfo),
     /// No device request succeeded.
     #[error("no device request succeeded: {0:?}")]
     RequestDeviceFailed(Vec<(wgpu::Limits, wgpu::RequestDeviceError)>),
@@ -40,6 +43,14 @@ impl From<Error> for backend::Error {
             backend: "wgpu",
             reason: backend::Reason::RequestFailed(error.to_string()),
         }
+    }
+}
+
+fn reject_software_adapter(information: &wgpu::AdapterInfo) -> Result<(), Error> {
+    if cfg!(feature = "software-fallback") && crate::adapter_is_software(information) {
+        Err(Error::SoftwareAdapter(information.clone()))
+    } else {
+        Ok(())
     }
 }
 
@@ -99,7 +110,11 @@ impl Compositor {
             .await
             .map_err(|_error| Error::NoAdapterFound(format!("{adapter_options:?}")))?;
 
-        log::info!("Selected: {:#?}", adapter.get_info());
+        let adapter_info = adapter.get_info();
+
+        log::info!("Selected: {adapter_info:#?}");
+
+        reject_software_adapter(&adapter_info)?;
 
         let (format, alpha_mode) = compatible_surface
             .as_ref()
@@ -452,5 +467,66 @@ pub fn present_mode_from_env() -> Option<wgpu::PresentMode> {
         "fifo_relaxed" => Some(wgpu::PresentMode::FifoRelaxed),
         "mailbox" => Some(wgpu::PresentMode::Mailbox),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::reject_software_adapter;
+
+    #[cfg(feature = "software-fallback")]
+    use super::Error;
+
+    fn adapter_info(name: &str, device_type: wgpu::DeviceType) -> wgpu::AdapterInfo {
+        wgpu::AdapterInfo {
+            name: name.to_owned(),
+            vendor: 0,
+            device: 0,
+            device_type,
+            device_pci_bus_id: String::new(),
+            driver: String::new(),
+            driver_info: String::new(),
+            backend: wgpu::Backend::Gl,
+            subgroup_min_size: 4,
+            subgroup_max_size: 128,
+            transient_saves_memory: false,
+        }
+    }
+
+    #[cfg(feature = "software-fallback")]
+    #[test]
+    fn llvmpipe_adapter_is_rejected_before_requesting_device() {
+        let information = adapter_info("llvmpipe (LLVM 17.0.2, 256 bits)", wgpu::DeviceType::Cpu);
+
+        assert!(matches!(
+            reject_software_adapter(&information),
+            Err(Error::SoftwareAdapter(adapter)) if adapter.name == information.name
+        ));
+    }
+
+    #[cfg(feature = "software-fallback")]
+    #[test]
+    fn llvmpipe_name_is_rejected_even_if_device_type_is_unknown() {
+        let information = adapter_info("llvmpipe (LLVM 17.0.2, 256 bits)", wgpu::DeviceType::Other);
+
+        assert!(matches!(
+            reject_software_adapter(&information),
+            Err(Error::SoftwareAdapter(adapter)) if adapter.name == information.name
+        ));
+    }
+
+    #[cfg(not(feature = "software-fallback"))]
+    #[test]
+    fn llvmpipe_adapter_is_accepted_without_software_fallback() {
+        let information = adapter_info("llvmpipe (LLVM 17.0.2, 256 bits)", wgpu::DeviceType::Cpu);
+
+        assert!(reject_software_adapter(&information).is_ok());
+    }
+
+    #[test]
+    fn hardware_adapter_is_accepted() {
+        let information = adapter_info("NVIDIA GeForce RTX 4090", wgpu::DeviceType::DiscreteGpu);
+
+        assert!(reject_software_adapter(&information).is_ok());
     }
 }

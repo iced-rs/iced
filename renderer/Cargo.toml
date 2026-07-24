@@ -16,7 +16,7 @@ workspace = true
 [features]
 wgpu = ["iced_wgpu/default"]
 wgpu-bare = ["iced_wgpu"]
-tiny-skia = ["iced_tiny_skia"]
+tiny-skia = ["iced_tiny_skia", "iced_wgpu?/software-fallback"]
 image = ["iced_tiny_skia?/image", "iced_wgpu?/image"]
 svg = ["iced_tiny_skia?/svg", "iced_wgpu?/svg"]
 svg-text = ["iced_tiny_skia?/svg-text", "iced_wgpu?/svg-text"]
