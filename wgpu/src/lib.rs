@@ -657,42 +657,35 @@ impl Renderer {
         use std::mem::ManuallyDrop;
 
         struct GroupTarget {
-            // Owns the texture the `view` points into for the whole frame.
-            _texture: wgpu::Texture,
-            view: wgpu::TextureView,
+            // Index into the full-viewport texture pool. Groups at the same
+            // nesting depth reuse a texture because they are rendered and
+            // composited sequentially, so only one is live at a time.
+            depth: usize,
             opacity: f32,
-            scissor: Option<(u32, u32, u32, u32)>,
+            // Physical rectangle of the group; `None` when it does not intersect
+            // the frame (nothing to clear, render or composite).
+            scissor: Option<Rectangle<u32>>,
+            // Whether the (reused) texture has been cleared for this group yet.
+            // The clear is folded into the group's first layer render.
+            cleared: bool,
         }
 
-        let scale_factor = viewport.scale_factor();
-        let physical_bounds =
-            Rectangle::<f32>::from(Rectangle::with_size(viewport.physical_size()));
-        let scale = Transformation::scale(scale_factor);
-
-        // Since targets are switched per layer, the frame is cleared up front and
-        // every layer pass loads afterwards.
-        {
-            let _clear = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("iced_wgpu.opacity.clear"),
+        // Begins a render pass on `view`. Consecutive layers that target the same
+        // texture reuse a single pass (batched groups collapse into one), so this
+        // is only called on target changes and after triangle/primitive breaks.
+        fn begin<'a>(
+            encoder: &'a mut wgpu::CommandEncoder,
+            view: &'a wgpu::TextureView,
+            load: wgpu::LoadOp<wgpu::Color>,
+        ) -> wgpu::RenderPass<'a> {
+            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu.opacity.layer"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: frame,
+                    view,
                     depth_slice: None,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: match clear_color {
-                            Some(background_color) => wgpu::LoadOp::Clear({
-                                let [r, g, b, a] =
-                                    graphics::color::pack(background_color).components();
-
-                                wgpu::Color {
-                                    r: f64::from(r * a),
-                                    g: f64::from(g * a),
-                                    b: f64::from(b * a),
-                                    a: f64::from(a),
-                                }
-                            }),
-                            None => wgpu::LoadOp::Load,
-                        },
+                        load,
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -700,11 +693,34 @@ impl Renderer {
                 timestamp_writes: None,
                 occlusion_query_set: None,
                 multiview_mask: None,
-            });
+            })
         }
+
+        let scale_factor = viewport.scale_factor();
+        let physical_bounds =
+            Rectangle::<f32>::from(Rectangle::with_size(viewport.physical_size()));
+        let scale = Transformation::scale(scale_factor);
+
+        self.layers.batch_opacity();
 
         let plan = self.layers.opacity_plan();
         let groups = self.layers.opacity_groups().to_vec();
+
+        // Pre-allocate the offscreen texture pool up front (one per nesting
+        // depth) so a render pass can be kept open across layers while the pool
+        // is not being reallocated mid-frame.
+        let max_nesting = {
+            let mut depth = vec![0usize; groups.len()];
+            let mut max = 0;
+            for id in 0..groups.len() {
+                depth[id] = groups[id].parent.map_or(0, |parent| depth[parent] + 1);
+                max = max.max(depth[id] + 1);
+            }
+            max
+        };
+
+        let pool: Vec<(wgpu::Texture, wgpu::TextureView)> =
+            (0..max_nesting).map(|_| self.create_group_target(viewport)).collect();
 
         let mut quad_layer = 0;
         let mut mesh_layer = 0;
@@ -715,57 +731,90 @@ impl Renderer {
 
         let mut targets: Vec<GroupTarget> = Vec::new();
 
+        // A single render pass is kept open across consecutive layers that draw
+        // to the same target (batched groups collapse into one pass). It is moved
+        // out and rebuilt around anything that needs the encoder — a composite or
+        // a triangle/primitive sub-pass. `pass_target` is the target it draws to
+        // (`None` = frame, `Some(depth)` = `pool[depth]`). The frame clear is
+        // folded into this first pass.
+        let frame_load = match clear_color {
+            Some(background_color) => wgpu::LoadOp::Clear({
+                let [r, g, b, a] = graphics::color::pack(background_color).components();
+
+                wgpu::Color {
+                    r: f64::from(r * a),
+                    g: f64::from(g * a),
+                    b: f64::from(b * a),
+                    a: f64::from(a),
+                }
+            }),
+            None => wgpu::LoadOp::Load,
+        };
+
+        let mut render_pass = ManuallyDrop::new(begin(encoder, frame, frame_load));
+        let mut pass_target: Option<usize> = None;
+
         for (index, layer) in self.layers.iter().enumerate() {
             let step = &plan.steps[index];
 
-            for _ in &step.closes {
-                let group = targets.pop().expect("Opacity groups are balanced");
-                let target = targets.last().map(|t| &t.view).unwrap_or(frame);
+            if !step.closes.is_empty() {
+                let _ = ManuallyDrop::into_inner(render_pass);
 
-                self.engine.opacity_pipeline.composite(
-                    &self.engine.device,
-                    encoder,
-                    target,
-                    &group.view,
-                    group.opacity,
-                    group.scissor,
-                );
+                for _ in &step.closes {
+                    let group = targets.pop().expect("Opacity groups are balanced");
+
+                    if let Some(scissor) = group.scissor {
+                        let target = match targets.last() {
+                            Some(parent) => &pool[parent.depth].1,
+                            None => frame,
+                        };
+
+                        self.engine.opacity_pipeline.composite(
+                            &self.engine.device,
+                            encoder,
+                            target,
+                            &pool[group.depth].1,
+                            group.opacity,
+                            Some((scissor.x, scissor.y, scissor.width, scissor.height)),
+                        );
+                    }
+                }
+
+                // Reopen on whatever target is now current (clearing it if this is
+                // its first use).
+                let (target_depth, load) = match targets.last_mut() {
+                    Some(target) => {
+                        let load = if target.cleared {
+                            wgpu::LoadOp::Load
+                        } else {
+                            target.cleared = true;
+                            wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)
+                        };
+                        (Some(target.depth), load)
+                    }
+                    None => (None, wgpu::LoadOp::Load),
+                };
+                let view = match target_depth {
+                    Some(depth) => &pool[depth].1,
+                    None => frame,
+                };
+                render_pass = ManuallyDrop::new(begin(encoder, view, load));
+                pass_target = target_depth;
             }
 
             for &group in &step.opens {
-                let (texture, view) = self.create_group_target(viewport);
-
-                // Clear the group target to transparent so untouched pixels do
-                // not leak into the composite.
-                {
-                    let _clear = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu.opacity.group_clear"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            depth_slice: None,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                                store: wgpu::StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                        multiview_mask: None,
-                    });
-                }
+                let depth = targets.len();
 
                 let scissor = (groups[group].bounds * scale_factor)
                     .intersection(&physical_bounds)
                     .and_then(Rectangle::snap)
-                    .map(|r| (r.x, r.y, r.width, r.height));
+                    .filter(|rect| rect.width > 0 && rect.height > 0);
 
                 targets.push(GroupTarget {
-                    _texture: texture,
-                    view,
+                    depth,
                     opacity: groups[group].opacity,
                     scissor,
+                    cleared: false,
                 });
             }
 
@@ -778,25 +827,37 @@ impl Renderer {
                 continue;
             };
 
-            let target_view = targets.last().map(|t| &t.view).unwrap_or(frame);
+            let target_depth = match targets.last() {
+                Some(target) => {
+                    // Skip layers inside a group that is off-screen.
+                    if target.scissor.is_none() {
+                        continue;
+                    }
+                    Some(target.depth)
+                }
+                None => None,
+            };
 
-            let mut render_pass =
-                ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu.opacity.layer"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: target_view,
-                        depth_slice: None,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Load,
-                            store: wgpu::StoreOp::Store,
-                        },
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                    multiview_mask: None,
-                }));
+            let target_view = match target_depth {
+                Some(depth) => &pool[depth].1,
+                None => frame,
+            };
+
+            // Switch the open pass to the layer's target if needed, clearing a
+            // group's texture on its first layer.
+            if pass_target != target_depth {
+                let _ = ManuallyDrop::into_inner(render_pass);
+
+                let load = match targets.last_mut() {
+                    Some(target) if !target.cleared => {
+                        target.cleared = true;
+                        wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)
+                    }
+                    _ => wgpu::LoadOp::Load,
+                };
+                render_pass = ManuallyDrop::new(begin(encoder, target_view, load));
+                pass_target = target_depth;
+            }
 
             if !layer.quads.is_empty() {
                 let render_span = debug::render(debug::Primitive::Quad);
@@ -827,23 +888,7 @@ impl Renderer {
                 );
                 render_span.finish();
 
-                render_pass =
-                    ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu.opacity.layer"),
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: target_view,
-                            depth_slice: None,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: wgpu::StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                        multiview_mask: None,
-                    }));
+                render_pass = ManuallyDrop::new(begin(encoder, target_view, wgpu::LoadOp::Load));
             }
 
             if !layer.primitives.is_empty() {
@@ -890,6 +935,7 @@ impl Renderer {
                     }
                 }
 
+                // Restore full viewport/scissor for later layers sharing the pass.
                 render_pass.set_viewport(
                     0.0,
                     0.0,
@@ -898,7 +944,6 @@ impl Renderer {
                     0.0,
                     1.0,
                 );
-
                 render_pass.set_scissor_rect(
                     0,
                     0,
@@ -919,22 +964,7 @@ impl Renderer {
                     }
 
                     render_pass =
-                        ManuallyDrop::new(encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                            label: Some("iced_wgpu.opacity.layer"),
-                            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                                view: target_view,
-                                depth_slice: None,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: wgpu::StoreOp::Store,
-                                },
-                            })],
-                            depth_stencil_attachment: None,
-                            timestamp_writes: None,
-                            occlusion_query_set: None,
-                            multiview_mask: None,
-                        }));
+                        ManuallyDrop::new(begin(encoder, target_view, wgpu::LoadOp::Load));
                 }
 
                 render_span.finish();
@@ -966,23 +996,29 @@ impl Renderer {
                 );
                 render_span.finish();
             }
-
-            let _ = ManuallyDrop::into_inner(render_pass);
         }
+
+        let _ = ManuallyDrop::into_inner(render_pass);
 
         // Close any groups still open after the last layer.
         for _ in &plan.trailing {
             let group = targets.pop().expect("Opacity groups are balanced");
-            let target = targets.last().map(|t| &t.view).unwrap_or(frame);
 
-            self.engine.opacity_pipeline.composite(
-                &self.engine.device,
-                encoder,
-                target,
-                &group.view,
-                group.opacity,
-                group.scissor,
-            );
+            if let Some(scissor) = group.scissor {
+                let target = match targets.last() {
+                    Some(parent) => &pool[parent.depth].1,
+                    None => frame,
+                };
+
+                self.engine.opacity_pipeline.composite(
+                    &self.engine.device,
+                    encoder,
+                    target,
+                    &pool[group.depth].1,
+                    group.opacity,
+                    Some((scissor.x, scissor.y, scissor.width, scissor.height)),
+                );
+            }
         }
     }
 

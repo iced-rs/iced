@@ -103,11 +103,12 @@ impl Pipeline {
         }
     }
 
-    /// Composites `source` into `target` at the given `opacity`, optionally
-    /// scissored to `scissor` (physical pixels: `x, y, width, height`).
+    /// Composites `source` into `target` at the given `opacity`, scissored to
+    /// `scissor` (physical pixels: `x, y, width, height`).
     ///
-    /// `source` must be a premultiplied-alpha texture that matches the target's
-    /// dimensions and projection (the group is rendered full-viewport).
+    /// `source` shares the target's dimensions and projection (groups render
+    /// full-viewport), so the composite is a 1:1 blit limited to the group's
+    /// rectangle, multiplied by `opacity`.
     #[allow(clippy::too_many_arguments)]
     pub fn composite(
         &self,

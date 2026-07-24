@@ -351,6 +351,82 @@ impl<T: Layer> Stack<T> {
         !self.opacity_groups.is_empty()
     }
 
+    /// Fuses adjacent sibling opacity groups that can share a single isolated
+    /// target and composite.
+    pub fn batch_opacity(&mut self) {
+        let count = self.opacity_groups.len();
+
+        if count < 2 {
+            return;
+        }
+
+        // A group that is some other group's parent is not a leaf.
+        let mut is_parent = vec![false; count];
+        for group in &self.opacity_groups {
+            if let Some(parent) = group.parent {
+                is_parent[parent] = true;
+            }
+        }
+
+        // The (contiguous) layer range occupied by each group.
+        let mut first = vec![usize::MAX; count];
+        let mut last = vec![0usize; count];
+        for index in 0..self.active_count {
+            if let Some(group) = self.layer_groups[index] {
+                if first[group] == usize::MAX {
+                    first[group] = index;
+                }
+                last[group] = index;
+            }
+        }
+
+        // Visit leaf groups in layer order so adjacency can be checked.
+        let mut leaves: Vec<usize> = (0..count)
+            .filter(|&group| !is_parent[group] && first[group] != usize::MAX)
+            .collect();
+        leaves.sort_by_key(|&group| first[group]);
+
+        // The current run being accumulated: its representative group, the
+        // bounds of its members (to test overlap), and the last layer consumed.
+        let mut representative: Option<usize> = None;
+        let mut members: Vec<Rectangle> = Vec::new();
+        let mut run_last = 0;
+
+        for group in leaves {
+            let can_extend = representative.is_some_and(|rep| {
+                let a = &self.opacity_groups[group];
+                let b = &self.opacity_groups[rep];
+
+                a.parent == b.parent
+                    && a.opacity == b.opacity
+                    && first[group] == run_last + 1
+                    && members
+                        .iter()
+                        .all(|bounds| bounds.intersection(&a.bounds).is_none())
+            });
+
+            if can_extend {
+                let rep = representative.expect("Run has a representative");
+                let bounds = self.opacity_groups[group].bounds;
+
+                for index in first[group]..=last[group] {
+                    if self.layer_groups[index] == Some(group) {
+                        self.layer_groups[index] = Some(rep);
+                    }
+                }
+
+                self.opacity_groups[rep].bounds = self.opacity_groups[rep].bounds.union(&bounds);
+                members.push(bounds);
+                run_last = last[group];
+            } else {
+                representative = Some(group);
+                members.clear();
+                members.push(self.opacity_groups[group].bounds);
+                run_last = last[group];
+            }
+        }
+    }
+
     /// Returns the chain of opacity groups a group belongs to, outermost first.
     fn opacity_chain(&self, group: usize) -> Vec<usize> {
         let mut chain = Vec::new();

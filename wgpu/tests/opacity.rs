@@ -98,6 +98,115 @@ fn overlapping_group_does_not_bleed_through() {
     assert!(r < 8 && g < 8 && b < 8, "background not black: {r},{g},{b}");
 }
 
+fn red_quad_at(renderer_opacity: &dyn Fn(&mut Renderer)) -> Option<(u8, u8, u8)> {
+    render(renderer_opacity).map(|bytes| rgb(&bytes, 40, 40))
+}
+
+#[test]
+fn nested_opacity_multiplies() {
+    // Exercises the texture pool at two nesting depths (outer uses pool[0], inner
+    // pool[1], inner composites into pool[0], then pool[0] into the frame).
+    //
+    // Nesting must multiply: 50% inside 50% has to match a single 25% group.
+    // Comparing renders avoids depending on the exact gamma/sRGB value.
+    let single = |alpha: f32| {
+        move |renderer: &mut Renderer| {
+            renderer.with_opacity(
+                Rectangle {
+                    x: 10.0,
+                    y: 10.0,
+                    width: 60.0,
+                    height: 60.0,
+                },
+                alpha,
+                |renderer| {
+                    renderer.fill_quad(quad(10.0, 10.0, 60.0, 60.0), Background::Color(RED));
+                },
+            );
+        }
+    };
+
+    let nested = |renderer: &mut Renderer| {
+        renderer.with_opacity(
+            Rectangle {
+                x: 10.0,
+                y: 10.0,
+                width: 60.0,
+                height: 60.0,
+            },
+            0.5,
+            |renderer| {
+                (single(0.5))(renderer);
+            },
+        );
+    };
+
+    let Some((nested_r, _, _)) = red_quad_at(&nested) else {
+        eprintln!("skipping: no wgpu adapter available");
+        return;
+    };
+    let (quarter_r, _, _) = red_quad_at(&single(0.25)).unwrap();
+    let (half_r, _, _) = red_quad_at(&single(0.5)).unwrap();
+
+    // Nested 0.5*0.5 should match a single 0.25 group, and be clearly darker
+    // than a single 0.5 group (i.e. the inner opacity is not lost).
+    assert!(
+        nested_r.abs_diff(quarter_r) <= 6,
+        "nested 0.5*0.5 (r={nested_r}) should match single 0.25 (r={quarter_r})"
+    );
+    assert!(
+        nested_r + 10 < half_r,
+        "nested 0.5*0.5 (r={nested_r}) should be darker than single 0.5 (r={half_r})"
+    );
+}
+
+#[test]
+fn non_overlapping_siblings_batch_correctly() {
+    // Two independent 50% groups side by side are batched into one isolated
+    // target and rendered in a single shared pass. The result must be unchanged:
+    // each quad at ~50% over black, with an untouched gap between them.
+    let Some(bytes) = render(|renderer| {
+        renderer.with_opacity(
+            Rectangle {
+                x: 10.0,
+                y: 10.0,
+                width: 30.0,
+                height: 80.0,
+            },
+            0.5,
+            |renderer| {
+                renderer.fill_quad(quad(10.0, 10.0, 30.0, 80.0), Background::Color(RED));
+            },
+        );
+        renderer.with_opacity(
+            Rectangle {
+                x: 60.0,
+                y: 10.0,
+                width: 30.0,
+                height: 80.0,
+            },
+            0.5,
+            |renderer| {
+                renderer.fill_quad(quad(60.0, 10.0, 30.0, 80.0), Background::Color(GREEN));
+            },
+        );
+    }) else {
+        eprintln!("skipping: no wgpu adapter available");
+        return;
+    };
+
+    let (r, g, _b) = rgb(&bytes, 25, 50);
+    assert!(r > 90, "left group should show ~50% red: r={r}");
+    assert!(g < 24, "left group should be pure red: g={g}");
+
+    let (r, g, _b) = rgb(&bytes, 75, 50);
+    assert!(g > 90, "right group should show ~50% green: g={g}");
+    assert!(r < 24, "right group should be pure green: r={r}");
+
+    let (r, g, b) = rgb(&bytes, 50, 50);
+    assert!(r < 8 && g < 8 && b < 8, "gap between groups must stay black");
+}
+
 #[test]
 fn full_opacity_is_opaque() {
     let Some(bytes) = render(|renderer| {

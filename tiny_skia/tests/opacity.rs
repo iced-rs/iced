@@ -177,6 +177,88 @@ fn split_damage_regions_do_not_double_composite() {
 }
 
 #[test]
+fn non_overlapping_siblings_batch_correctly() {
+    // Two independent 50% groups side by side. These are batched into one
+    // isolated target; the result must be unchanged: each quad at ~50% over
+    // black, with an untouched gap between them.
+    let pixmap = render(|renderer| {
+        renderer.with_opacity(
+            Rectangle {
+                x: 10.0,
+                y: 10.0,
+                width: 30.0,
+                height: 80.0,
+            },
+            0.5,
+            |renderer| {
+                renderer.fill_quad(quad(10.0, 10.0, 30.0, 80.0), Background::Color(RED));
+            },
+        );
+        renderer.with_opacity(
+            Rectangle {
+                x: 60.0,
+                y: 10.0,
+                width: 30.0,
+                height: 80.0,
+            },
+            0.5,
+            |renderer| {
+                renderer.fill_quad(quad(60.0, 10.0, 30.0, 80.0), Background::Color(GREEN));
+            },
+        );
+    });
+
+    let (r, g, _b) = rgb(&pixmap, 25, 50);
+    assert!((110..=145).contains(&r), "left group should be ~50% red: r={r}");
+    assert!(g < 12, "left group should be pure red: g={g}");
+
+    let (r, g, _b) = rgb(&pixmap, 75, 50);
+    assert!((110..=145).contains(&g), "right group should be ~50% green: g={g}");
+    assert!(r < 12, "right group should be pure green: r={r}");
+
+    assert_eq!(rgb(&pixmap, 50, 50), (0, 0, 0), "gap between groups");
+}
+
+#[test]
+fn overlapping_siblings_are_not_batched() {
+    // Two 50% groups that overlap must NOT be batched: each composites over the
+    // other, so both colors show through the overlap. If they were wrongly
+    // merged into one group, the front quad would fully hide the back one and no
+    // red would remain.
+    let pixmap = render(|renderer| {
+        renderer.with_opacity(
+            Rectangle {
+                x: 10.0,
+                y: 10.0,
+                width: 50.0,
+                height: 50.0,
+            },
+            0.5,
+            |renderer| {
+                renderer.fill_quad(quad(10.0, 10.0, 50.0, 50.0), Background::Color(RED));
+            },
+        );
+        renderer.with_opacity(
+            Rectangle {
+                x: 40.0,
+                y: 40.0,
+                width: 50.0,
+                height: 50.0,
+            },
+            0.5,
+            |renderer| {
+                renderer.fill_quad(quad(40.0, 40.0, 50.0, 50.0), Background::Color(GREEN));
+            },
+        );
+    });
+
+    // Overlap: the back (red) group shows through the front (green) one.
+    let (r, g, _b) = rgb(&pixmap, 50, 50);
+    assert!(r > 40, "back red must show through (not batched away): r={r}");
+    assert!(g > 80, "front green must be present: g={g}");
+}
+
+#[test]
 fn opacity_change_is_damaged() {
     // A changing opacity leaves the primitives identical, so it must be caught by
     // the layer's opacity field; otherwise the software compositor would reuse
