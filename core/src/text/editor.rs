@@ -7,7 +7,7 @@ use crate::keyboard::key;
 use crate::mouse;
 use crate::renderer;
 use crate::text::highlighter::{self, Highlighter};
-use crate::text::{self, LineHeight, Wrapping};
+use crate::text::{self, Alignment, LineHeight, Wrapping};
 use crate::widget::operation;
 use crate::window;
 use crate::{Color, Event, InputMethod, Padding, Pixels, Point, Rectangle, Size, SmolStr, Vector};
@@ -66,6 +66,7 @@ pub trait Editor: Sized + Default {
         new_size: Pixels,
         new_line_height: LineHeight,
         new_wrapping: Wrapping,
+        new_alignment: Alignment,
         new_hint_factor: Option<f32>,
         new_highlighter: &mut impl Highlighter,
     );

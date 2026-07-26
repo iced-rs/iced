@@ -95,7 +95,7 @@ where
     padding: Padding,
     size: Option<Pixels>,
     line_height: text::LineHeight,
-    alignment: alignment::Horizontal,
+    alignment: text::Alignment,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -129,7 +129,7 @@ where
             padding: DEFAULT_PADDING,
             size: None,
             line_height: text::LineHeight::default(),
-            alignment: alignment::Horizontal::Left,
+            alignment: text::Alignment::Default,
             on_input: None,
             on_paste: None,
             on_submit: None,
@@ -229,7 +229,7 @@ where
     }
 
     /// Sets the horizontal alignment of the [`TextInput`].
-    pub fn align_x(mut self, alignment: impl Into<alignment::Horizontal>) -> Self {
+    pub fn align_x(mut self, alignment: impl Into<text::Alignment>) -> Self {
         self.alignment = alignment.into();
         self
     }
@@ -289,20 +289,21 @@ where
             .height(self.height)
             .shrink(self.padding);
 
+        if state.value != self.value {
+            state.editor.replace(self.value.as_ref());
+            state.value = self.value.clone().into_owned();
+        }
+
         state.editor.update(
             limits.max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
             self.size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
             text::Wrapping::None,
+            self.alignment,
             renderer.hint_factor(),
             &mut text::highlighter::PlainText,
         );
-
-        if state.value != self.value {
-            state.editor.replace(self.value.as_ref());
-            state.value = self.value.clone().into_owned();
-        }
 
         let bounds = match self.height {
             Length::Fill
@@ -321,10 +322,10 @@ where
             font,
             line_height: self.line_height,
             content: self.placeholder.as_ref(),
-            bounds: Size::new(f32::INFINITY, bounds.height),
+            bounds,
             size: text_size,
-            align_x: text::Alignment::Default,
-            align_y: alignment::Vertical::Center,
+            align_x: self.alignment,
+            align_y: alignment::Vertical::Top,
             shaping: text::Shaping::Advanced,
             wrapping: text::Wrapping::None,
             ellipsis: text::Ellipsis::None,
@@ -506,9 +507,15 @@ where
         };
 
         if state.editor.is_empty() {
+            let anchor = text_bounds.anchor(
+                state.placeholder.min_bounds(),
+                state.placeholder.align_x(),
+                state.placeholder.align_y(),
+            );
+
             renderer.fill_paragraph(
                 state.placeholder.raw(),
-                text_bounds.position(),
+                anchor,
                 style.placeholder,
                 clip_bounds,
             );
