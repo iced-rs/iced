@@ -222,12 +222,22 @@ impl text::Editor for () {
     ) {
     }
 
+    fn replace(&mut self, _new_text: &str) {}
+
     fn highlight<H: text::Highlighter>(
         &mut self,
         _font: Self::Font,
         _highlighter: &mut H,
         _format_highlight: impl Fn(&H::Highlight) -> text::highlighter::Format<Self::Font>,
     ) {
+    }
+
+    fn text_size(&self) -> Pixels {
+        Pixels(0.0)
+    }
+
+    fn line_height(&self) -> text::LineHeight {
+        text::LineHeight::default()
     }
 }
 

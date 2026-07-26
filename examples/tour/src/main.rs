@@ -3,7 +3,7 @@ use iced::widget::{
     button, center_x, center_y, checkbox, column, image, radio, rich_text, row, scrollable, slider,
     space, span, text, text_input, toggler,
 };
-use iced::{Center, Color, Element, Fill, Fit, Font, Pixels, color};
+use iced::{Center, Color, Element, Fill, Fit, Font, color};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -34,7 +34,6 @@ pub struct Tour {
     image_filter_method: image::FilterMethod,
     input_value: String,
     input_is_secure: bool,
-    input_is_showing_icon: bool,
     debug: bool,
 }
 
@@ -52,7 +51,6 @@ pub enum Message {
     ImageUseNearestToggled(bool),
     InputChanged(String),
     ToggleSecureInput(bool),
-    ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
     OpenTrunk,
@@ -122,9 +120,6 @@ impl Tour {
             }
             Message::ToggleSecureInput(is_secure) => {
                 self.input_is_secure = is_secure;
-            }
-            Message::ToggleTextInputIcon(show_icon) => {
-                self.input_is_showing_icon = show_icon;
             }
             Message::DebugToggled(debug) => {
                 self.debug = debug;
@@ -410,22 +405,11 @@ impl Tour {
     fn text_input(&self) -> Column<'_, Message> {
         let value = &self.input_value;
         let is_secure = self.input_is_secure;
-        let is_showing_icon = self.input_is_showing_icon;
 
-        let mut text_input = text_input("Type something to continue...", value)
+        let text_input = text_input("Type something to continue...", value)
             .on_input(Message::InputChanged)
             .padding(10)
             .size(30);
-
-        if is_showing_icon {
-            text_input = text_input.icon(text_input::Icon {
-                font: Font::default(),
-                code_point: '🚀',
-                size: Some(Pixels(28.0)),
-                spacing: 10.0,
-                side: text_input::Side::Right,
-            });
-        }
 
         Self::container("Text input")
             .push("Use a text input to ask for different kinds of information.")
@@ -434,11 +418,6 @@ impl Tour {
                 checkbox(is_secure)
                     .label("Enable password mode")
                     .on_toggle(Message::ToggleSecureInput),
-            )
-            .push(
-                checkbox(is_showing_icon)
-                    .label("Show icon")
-                    .on_toggle(Message::ToggleTextInputIcon),
             )
             .push(
                 "A text input produces a message every time it changes. It is \
@@ -627,7 +606,6 @@ impl Default for Tour {
             image_filter_method: image::FilterMethod::Linear,
             input_value: String::new(),
             input_is_secure: false,
-            input_is_showing_icon: false,
             debug: false,
         }
     }

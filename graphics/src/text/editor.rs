@@ -330,6 +330,7 @@ impl editor::Editor for Editor {
                     };
 
                     editor.set_cursor(cursor);
+                    shape_until_cursor(editor, &mut font_system.raw);
                 }
 
                 // Selection events
@@ -352,6 +353,8 @@ impl editor::Editor for Editor {
                     {
                         editor.set_selection(cosmic_text::Selection::None);
                     }
+
+                    shape_until_cursor(editor, &mut font_system.raw);
                 }
                 Action::SelectWord => {
                     let cursor = editor.cursor();
@@ -444,6 +447,8 @@ impl editor::Editor for Editor {
 
                     internal.topmost_line_changed =
                         Some(selection_start.line.min(topmost_line_before_edit));
+
+                    shape_until_cursor(editor, &mut font_system.raw);
                 }
 
                 // Mouse events
@@ -457,6 +462,8 @@ impl editor::Editor for Editor {
                             y: (position.y * internal.hint_factor) as i32,
                         },
                     );
+
+                    shape_until_cursor(editor, &mut font_system.raw);
                 }
                 Action::Drag(position) => {
                     let scroll = buffer_from_editor(editor).scroll();
@@ -476,6 +483,8 @@ impl editor::Editor for Editor {
                     {
                         editor.set_selection(cosmic_text::Selection::None);
                     }
+
+                    shape_until_cursor(editor, &mut font_system.raw);
                 }
                 Action::Scroll { lines } => {
                     editor.action(
@@ -484,6 +493,8 @@ impl editor::Editor for Editor {
                             pixels: lines as f32 * buffer_from_editor(editor).metrics().line_height,
                         },
                     );
+
+                    buffer_mut_from_editor(editor).shape_until_scroll(&mut font_system.raw, false);
                 }
             }
 
@@ -492,8 +503,6 @@ impl editor::Editor for Editor {
             {
                 internal.history.push(change);
             }
-
-            shape_until_cursor(editor, &mut font_system.raw);
         });
     }
 
@@ -640,6 +649,42 @@ impl editor::Editor for Editor {
         });
     }
 
+    fn replace(&mut self, new_text: &str) {
+        self.with_internal_mut(|internal| {
+            let mut font_system = text::font_system().write().expect("Write font system");
+
+            let cursor = internal.editor.cursor();
+            let buffer = buffer_mut_from_editor(&mut internal.editor);
+
+            buffer.set_text(
+                new_text,
+                &cosmic_text::Attrs::new(),
+                cosmic_text::Shaping::Advanced,
+                None,
+            );
+
+            let line = cursor.line.min(buffer.lines.len().saturating_sub(1));
+
+            let new_cursor = cosmic_text::Cursor {
+                line,
+                index: buffer
+                    .lines
+                    .get(line)
+                    .map(|line| line.text().floor_char_boundary(cursor.index))
+                    .unwrap_or_default(),
+                affinity: if !buffer.lines.is_empty() {
+                    cursor.affinity
+                } else {
+                    cosmic_text::Affinity::Before
+                },
+            };
+
+            internal.editor.set_cursor(new_cursor);
+
+            shape_until_cursor(&mut internal.editor, &mut font_system.raw);
+        });
+    }
+
     fn highlight<H: Highlighter>(
         &mut self,
         font: Self::Font,
@@ -717,6 +762,20 @@ impl editor::Editor for Editor {
         internal.editor.shape_as_needed(font_system.raw(), false);
 
         self.0 = Some(Arc::new(internal));
+    }
+
+    fn text_size(&self) -> Pixels {
+        let internal = self.internal();
+
+        Pixels(buffer_from_editor(&internal.editor).metrics().font_size / internal.hint_factor)
+    }
+
+    fn line_height(&self) -> LineHeight {
+        let internal = self.internal();
+
+        LineHeight::Absolute(Pixels(
+            buffer_from_editor(&internal.editor).metrics().line_height / internal.hint_factor,
+        ))
     }
 }
 

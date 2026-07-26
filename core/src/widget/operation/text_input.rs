@@ -1,14 +1,15 @@
 //! Operate on widgets that have text input.
 use crate::Rectangle;
+use crate::text;
 use crate::widget::Id;
 use crate::widget::operation::Operation;
 
 /// The internal state of a widget that has text input.
 pub trait TextInput {
-    /// Returns the current _visible_ text of the text input
+    /// Returns the current value of the text input.
     ///
     /// Normally, this is either its value or its placeholder.
-    fn text(&self) -> &str;
+    fn text(&self) -> text::Fragment<'_>;
 
     /// Moves the cursor of the text input to the front of the input text.
     fn move_cursor_to_front(&mut self);

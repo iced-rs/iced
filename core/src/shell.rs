@@ -128,8 +128,8 @@ impl<'a, Message> Shell<'a, Message> {
     /// Requests the runtime to write the given [`clipboard::Content`] to the clipboard.
     ///
     /// The runtime will produce a [`clipboard::Event::Written`] when the contents have been written.
-    pub fn write_clipboard(&mut self, content: clipboard::Content) {
-        self.clipboard.write = Some(content);
+    pub fn write_clipboard(&mut self, content: impl Into<clipboard::Content>) {
+        self.clipboard.write = Some(content.into());
     }
 
     /// Returns the [`Clipboard`] requests of the [`Shell`], mutably.

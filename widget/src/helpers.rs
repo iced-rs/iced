@@ -1394,8 +1394,8 @@ where
 /// }
 /// ```
 pub fn text_input<'a, Message, Theme, Renderer>(
-    placeholder: &str,
-    value: &str,
+    placeholder: impl text::IntoFragment<'a>,
+    value: impl text::IntoFragment<'a>,
 ) -> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
