@@ -7,13 +7,13 @@ use crate::mouse;
 use crate::renderer;
 use crate::text::highlighter::{self, Highlighter};
 use crate::text::{self, Alignment, LineHeight, Wrapping};
+use crate::time::{Duration, Instant};
 use crate::widget::operation::Focusable;
 use crate::window;
 use crate::{Color, Event, InputMethod, Padding, Pixels, Point, Rectangle, Size, SmolStr, Vector};
 
 use std::borrow::Cow;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
 
 /// A component that can be used by widgets to edit multi-line text.
 pub trait Editor: Sized + Default {
