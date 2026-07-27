@@ -76,7 +76,6 @@ where
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     class: Theme::Class<'a>,
-    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -103,7 +102,6 @@ where
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
-            last_status: None,
         }
     }
 
@@ -1004,11 +1002,11 @@ where
         };
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
-            self.last_status = Some(status);
+            state.last_status = Some(status);
         }
 
         if last_offsets != (state.offset_x, state.offset_y)
-            || self
+            || state
                 .last_status
                 .is_some_and(|last_status| last_status != status)
         {
@@ -1052,7 +1050,7 @@ where
 
         let style = theme.style(
             &self.class,
-            self.last_status.unwrap_or(Status::Active {
+            state.last_status.unwrap_or(Status::Active {
                 is_horizontal_scrollbar_disabled: false,
                 is_vertical_scrollbar_disabled: false,
             }),
@@ -1498,6 +1496,7 @@ struct State {
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
+    last_status: Option<Status>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1523,6 +1522,7 @@ impl Default for State {
             last_notified: None,
             last_scrolled: None,
             is_scrollbar_visible: true,
+            last_status: None,
         }
     }
 }
