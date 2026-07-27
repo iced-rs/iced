@@ -614,6 +614,10 @@ impl State {
             renderer.fill_editor(editor, position, style.value, clip_bounds);
         }
 
+        if !self.is_focused() {
+            return;
+        }
+
         let translation = position - Point::ORIGIN;
         let text_size = editor.text_size();
         let line_height = editor.line_height();

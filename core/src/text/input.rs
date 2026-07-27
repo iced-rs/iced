@@ -62,6 +62,10 @@ impl<R: text::Renderer> Input<R> {
         self.state.unfocus();
     }
 
+    pub fn select_all(&mut self) {
+        self.editor.perform(editor::Action::SelectAll);
+    }
+
     pub fn overwrite(&mut self, value: &str) {
         self.editor.overwrite(value);
     }
