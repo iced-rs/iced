@@ -1,16 +1,22 @@
 //! Edit text.
 #![allow(missing_docs)]
+use crate::alignment;
 use crate::clipboard;
 use crate::input_method;
 use crate::keyboard;
 use crate::keyboard::key;
+use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text::highlighter::{self, Highlighter};
-use crate::text::{self, Alignment, LineHeight, Wrapping};
-use crate::widget::operation;
+use crate::text::paragraph;
+use crate::text::{self, Alignment, LineHeight, Text, Wrapping};
+use crate::widget::operation::Focusable;
 use crate::window;
-use crate::{Color, Event, InputMethod, Padding, Pixels, Point, Rectangle, Size, SmolStr, Vector};
+use crate::{
+    Color, Event, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell, Size, SmolStr,
+    Vector,
+};
 
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -71,7 +77,7 @@ pub trait Editor: Sized + Default {
         new_highlighter: &mut impl Highlighter,
     );
 
-    fn replace(&mut self, new_text: &str);
+    fn overwrite(&mut self, new_text: &str);
 
     /// Runs a text [`Highlighter`] in the [`Editor`].
     fn highlight<H: Highlighter>(
@@ -109,6 +115,7 @@ pub trait Editor: Sized + Default {
         contents
     }
 
+    fn font(&self) -> Self::Font;
     fn text_size(&self) -> Pixels;
     fn line_height(&self) -> LineHeight;
 }
@@ -588,8 +595,8 @@ impl State {
 
     pub fn draw<Renderer: text::Renderer>(
         &self,
-        editor: &Renderer::Editor,
         renderer: &mut Renderer,
+        editor: &Renderer::Editor,
         position: Point,
         clip_bounds: Rectangle,
         style: Style,
@@ -661,6 +668,7 @@ impl State {
 pub struct Style {
     pub value: Color,
     pub selection: Color,
+    pub placeholder: Color,
 }
 
 #[derive(Debug, Clone)]
@@ -697,7 +705,7 @@ impl State {
     }
 }
 
-impl operation::Focusable for State {
+impl Focusable for State {
     fn is_focused(&self) -> bool {
         self.focus.is_some()
     }
@@ -899,4 +907,234 @@ fn convert_macos_shortcut(
     };
 
     Some(keyboard::Key::Named(key))
+}
+
+pub struct Input<R: text::Renderer> {
+    editor: R::Editor,
+    state: State,
+    placeholder: paragraph::Plain<R::Paragraph>,
+    padding: Padding,
+}
+
+pub struct Layout<'a, Font> {
+    pub width: Length,
+    pub height: Length,
+    pub padding: Padding,
+    pub placeholder: &'a str,
+    pub font: Option<Font>,
+    pub size: Option<Pixels>,
+    pub line_height: LineHeight,
+    pub alignment: Alignment,
+    pub wrapping: Wrapping,
+}
+
+impl<R: text::Renderer> Input<R> {
+    pub fn new() -> Self {
+        Self {
+            editor: R::Editor::with_text(""),
+            state: State::new(),
+            placeholder: paragraph::Plain::default(),
+            padding: Padding::default(),
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.editor.is_empty()
+    }
+
+    pub fn value(&self) -> String {
+        self.editor.text()
+    }
+
+    pub fn placeholder(&self) -> &str {
+        self.placeholder.content()
+    }
+
+    pub fn is_focused(&self) -> bool {
+        self.state.is_focused()
+    }
+
+    pub fn focus(&mut self) {
+        self.state.focus();
+    }
+
+    pub fn unfocus(&mut self) {
+        self.state.unfocus();
+    }
+
+    pub fn overwrite(&mut self, value: &str) {
+        self.editor.overwrite(value);
+    }
+
+    pub fn layout(
+        &mut self,
+        renderer: &R,
+        limits: &layout::Limits,
+        layout: Layout<'_, R::Font>,
+    ) -> layout::Node {
+        self.padding = layout.padding;
+
+        let limits = limits
+            .width(layout.width)
+            .height(layout.height)
+            .shrink(layout.padding);
+
+        let font = layout.font.unwrap_or_else(|| renderer.default_font());
+        let size = layout.size.unwrap_or_else(|| renderer.default_size());
+        let hint_factor = renderer.hint_factor();
+
+        self.editor.update(
+            limits.max(),
+            font,
+            size,
+            layout.line_height,
+            layout.wrapping,
+            layout.alignment,
+            hint_factor,
+            &mut highlighter::PlainText,
+        );
+
+        let bounds = match layout.height {
+            Length::Fill
+            | Length::FillPortion(_)
+            | Length::Fixed(_)
+            | Length::Bounded { .. }
+            | Length::Fluid(_) => limits.max(),
+            Length::Shrink | Length::Fit => {
+                limits.resolve(layout.width, layout.height, self.editor.min_bounds())
+            }
+        };
+
+        let _ = self.placeholder.update(Text {
+            content: layout.placeholder,
+            font,
+            line_height: layout.line_height,
+            bounds,
+            size,
+            align_x: layout.alignment,
+            align_y: alignment::Vertical::Top,
+            shaping: text::Shaping::Advanced,
+            wrapping: text::Wrapping::None,
+            ellipsis: text::Ellipsis::None,
+            hint_factor,
+        });
+
+        layout::Node::new(bounds.expand(layout.padding))
+    }
+
+    pub fn update<Message>(
+        &mut self,
+        event: &Event,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+        shell: &mut Shell<'_, Message>,
+        key_binding: impl Fn(KeyPress) -> Option<Binding<Message>>,
+    ) -> bool {
+        fn apply<Message>(
+            editor: &mut impl Editor,
+            shell: &mut Shell<'_, Message>,
+            update: Update<Message>,
+        ) -> bool {
+            match update {
+                Update::Action(action) => {
+                    let is_edit = action.is_edit();
+
+                    editor.perform(action);
+
+                    shell.request_redraw();
+                    shell.capture_event();
+
+                    return is_edit;
+                }
+                Update::Focus | Update::InputMethod => {
+                    shell.request_redraw();
+                    shell.capture_event();
+                }
+                Update::Unfocus => {
+                    shell.request_redraw();
+                }
+                Update::Release => {}
+                Update::Copy(text) => {
+                    shell.write_clipboard(text);
+                    shell.capture_event();
+                }
+                Update::Paste => {
+                    shell.read_clipboard(clipboard::Kind::Text);
+                    shell.capture_event();
+                }
+                Update::RedrawAt(at) => {
+                    shell.request_redraw_at(at);
+                }
+                Update::Custom(message) => {
+                    shell.publish(message);
+                    shell.capture_event();
+                }
+                Update::Sequence(updates) => {
+                    let mut is_edit = false;
+
+                    for update in updates {
+                        is_edit |= apply(editor, shell, update);
+                    }
+
+                    return is_edit;
+                }
+            }
+
+            false
+        }
+
+        let Some(update) = self.state.update(
+            event,
+            bounds,
+            self.padding,
+            cursor,
+            &self.editor,
+            key_binding,
+        ) else {
+            return false;
+        };
+
+        apply(&mut self.editor, shell, update)
+    }
+
+    pub fn draw(&self, renderer: &mut R, bounds: Rectangle, viewport: Rectangle, style: Style) {
+        let text_bounds = bounds.shrink(self.padding);
+
+        let Some(clip_bounds) = text_bounds.intersection(&viewport) else {
+            return;
+        };
+
+        if self.editor.is_empty() {
+            let anchor = text_bounds.anchor(
+                self.placeholder.min_bounds(),
+                self.placeholder.align_x(),
+                self.placeholder.align_y(),
+            );
+
+            renderer.fill_paragraph(
+                self.placeholder.raw(),
+                anchor,
+                style.placeholder,
+                clip_bounds,
+            );
+        }
+
+        self.state.draw(
+            renderer,
+            &self.editor,
+            text_bounds.position(),
+            clip_bounds,
+            style,
+        );
+    }
+
+    pub fn input_method(&self, position: Point) -> InputMethod<&str> {
+        self.state.input_method(&self.editor, position)
+    }
+}
+
+impl<R: text::Renderer> Default for Input<R> {
+    fn default() -> Self {
+        Self::new()
+    }
 }

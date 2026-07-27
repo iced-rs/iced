@@ -1682,7 +1682,7 @@ where
 /// ```
 pub fn combo_box<'a, T, Message, Theme, Renderer>(
     state: &'a combo_box::State<T>,
-    placeholder: &str,
+    placeholder: impl text::IntoFragment<'a>,
     selection: Option<&T>,
     on_selected: impl Fn(T) -> Message + 'a,
 ) -> ComboBox<'a, T, Message, Theme, Renderer>

@@ -668,6 +668,10 @@ impl editor::Editor for Editor {
                     Some(new_bounds.height * internal.hint_factor),
                 );
 
+                if internal.bounds == Size::ZERO {
+                    buffer.set_scroll(cosmic_text::Scroll::default());
+                }
+
                 internal.bounds = new_bounds;
             }
 
@@ -684,11 +688,7 @@ impl editor::Editor for Editor {
             buffer.shape_until_scroll(font_system.raw(), false);
 
             if let Some(topmost_line_changed) = internal.topmost_line_changed.take() {
-                log::trace!(
-                    "Notifying highlighter of line \
-                    change: {topmost_line_changed}"
-                );
-
+                log::trace!("Notifying highlighter of line change: {topmost_line_changed}");
                 new_highlighter.change_line(topmost_line_changed);
             }
 
@@ -696,7 +696,7 @@ impl editor::Editor for Editor {
         });
     }
 
-    fn replace(&mut self, new_text: &str) {
+    fn overwrite(&mut self, new_text: &str) {
         self.with_internal_mut(|internal| {
             let mut font_system = text::font_system().write().expect("Write font system");
 
@@ -823,6 +823,10 @@ impl editor::Editor for Editor {
         LineHeight::Absolute(Pixels(
             buffer_from_editor(&internal.editor).metrics().line_height / internal.hint_factor,
         ))
+    }
+
+    fn font(&self) -> Self::Font {
+        self.internal().font
     }
 }
 

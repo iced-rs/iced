@@ -548,13 +548,14 @@ where
         }
 
         state.editor.draw(
-            &internal.editor,
             renderer,
+            &internal.editor,
             text_bounds.position(),
             *viewport,
             editor::Style {
                 value: style.value,
                 selection: style.selection,
+                placeholder: style.placeholder,
             },
         );
     }

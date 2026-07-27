@@ -30,15 +30,12 @@
 //!     }
 //! }
 //! ```
-use crate::core::alignment;
-use crate::core::clipboard;
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::text;
 use crate::core::text::editor;
-use crate::core::text::paragraph;
-use crate::core::text::{self, Editor, Text};
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
@@ -281,60 +278,27 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<State<Renderer>>();
-        let font = self.font.unwrap_or_else(|| renderer.default_font());
-        let text_size = self.size.unwrap_or_else(|| renderer.default_size());
-
-        let limits = limits
-            .width(self.width)
-            .height(self.height)
-            .shrink(self.padding);
 
         if state.value != self.value {
-            state.editor.replace(self.value.as_ref());
+            state.input.overwrite(self.value.as_ref());
             state.value = self.value.clone().into_owned();
         }
 
-        state.editor.update(
-            limits.max(),
-            self.font.unwrap_or_else(|| renderer.default_font()),
-            self.size.unwrap_or_else(|| renderer.default_size()),
-            self.line_height,
-            text::Wrapping::None,
-            self.alignment,
-            renderer.hint_factor(),
-            &mut text::highlighter::PlainText,
-        );
-
-        let bounds = match self.height {
-            Length::Fill
-            | Length::FillPortion(_)
-            | Length::Fixed(_)
-            | Length::Bounded { .. }
-            | Length::Fluid(_) => limits.max(),
-            Length::Shrink | Length::Fit => {
-                let min_bounds = state.editor.min_bounds();
-
-                limits.resolve(self.width, self.height, min_bounds)
-            }
-        };
-
-        let placeholder_text = Text {
-            font,
-            line_height: self.line_height,
-            content: self.placeholder.as_ref(),
-            bounds,
-            size: text_size,
-            align_x: self.alignment,
-            align_y: alignment::Vertical::Top,
-            shaping: text::Shaping::Advanced,
-            wrapping: text::Wrapping::None,
-            ellipsis: text::Ellipsis::None,
-            hint_factor: renderer.hint_factor(),
-        };
-
-        let _ = state.placeholder.update(placeholder_text);
-
-        layout::Node::new(bounds.expand(self.padding))
+        state.input.layout(
+            renderer,
+            limits,
+            editor::Layout {
+                width: self.width,
+                height: self.height,
+                padding: self.padding,
+                placeholder: self.placeholder.as_ref(),
+                font: self.font,
+                size: self.size,
+                line_height: self.line_height,
+                alignment: self.alignment,
+                wrapping: text::Wrapping::None,
+            },
+        )
     }
 
     fn operate(
@@ -364,66 +328,6 @@ where
         let is_disabled = self.on_input.is_none();
 
         if let Some(on_input) = &self.on_input {
-            fn apply<Message>(
-                update: editor::Update<Message>,
-                editor: &mut impl Editor,
-                shell: &mut Shell<'_, Message>,
-                on_input: &dyn Fn(String) -> Message,
-            ) -> bool {
-                match update {
-                    editor::Update::Action(action) => {
-                        let is_edit = action.is_edit();
-
-                        editor.perform(action);
-
-                        if is_edit {
-                            shell.publish(on_input(editor.text()));
-                        }
-
-                        shell.request_redraw();
-
-                        is_edit
-                    }
-                    editor::Update::Focus
-                    | editor::Update::Unfocus
-                    | editor::Update::InputMethod => {
-                        shell.request_redraw();
-
-                        false
-                    }
-                    editor::Update::Copy(text) => {
-                        shell.write_clipboard(text);
-
-                        false
-                    }
-                    editor::Update::Paste => {
-                        shell.read_clipboard(clipboard::Kind::Text);
-
-                        false
-                    }
-                    editor::Update::RedrawAt(at) => {
-                        shell.request_redraw_at(at);
-
-                        false
-                    }
-                    editor::Update::Custom(message) => {
-                        shell.publish(message);
-
-                        false
-                    }
-                    editor::Update::Sequence(updates) => {
-                        let mut is_edit = false;
-
-                        for update in updates {
-                            is_edit |= apply(update, editor, shell, on_input);
-                        }
-
-                        is_edit
-                    }
-                    editor::Update::Release => false,
-                }
-            }
-
             fn binding<Message: Clone>(
                 key_press: editor::KeyPress,
                 on_submit: &Option<Message>,
@@ -437,22 +341,20 @@ where
                 editor::Binding::from_key_press(key_press)
             }
 
-            if let Some(update) = state.internal.update::<Message>(
-                event,
-                layout.bounds(),
-                self.padding,
-                cursor,
-                &state.editor,
-                |key_press| binding(key_press, &self.on_submit),
-            ) && apply(update, &mut state.editor, shell, on_input)
+            if state
+                .input
+                .update(event, layout.bounds(), cursor, shell, |key_press| {
+                    binding(key_press, &self.on_submit)
+                })
             {
-                state.value = state.editor.text();
+                state.value = state.input.value();
+                shell.publish(on_input(state.value.clone()));
             }
         }
 
         let status = if is_disabled {
             Status::Disabled
-        } else if state.internal.is_focused() {
+        } else if state.input.is_focused() {
             Status::Focused {
                 is_hovered: cursor.is_over(layout.bounds()),
             }
@@ -465,10 +367,11 @@ where
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
             self.last_status = Some(status);
 
-            shell.request_input_method(&state.internal.input_method(
-                &state.editor,
-                layout.bounds().shrink(self.padding).position(),
-            ));
+            shell.request_input_method(
+                &state
+                    .input
+                    .input_method(layout.bounds().shrink(self.padding).position()),
+            );
         } else if self
             .last_status
             .is_some_and(|last_status| status != last_status)
@@ -488,8 +391,8 @@ where
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State<Renderer>>();
-        let bounds = layout.bounds();
         let style = theme.style(&self.class, self.last_status.unwrap_or(Status::Disabled));
+        let bounds = layout.bounds();
 
         renderer.fill_quad(
             renderer::Quad {
@@ -500,35 +403,14 @@ where
             style.background,
         );
 
-        let text_bounds = bounds.shrink(self.padding);
-
-        let Some(clip_bounds) = text_bounds.intersection(viewport) else {
-            return;
-        };
-
-        if state.editor.is_empty() {
-            let anchor = text_bounds.anchor(
-                state.placeholder.min_bounds(),
-                state.placeholder.align_x(),
-                state.placeholder.align_y(),
-            );
-
-            renderer.fill_paragraph(
-                state.placeholder.raw(),
-                anchor,
-                style.placeholder,
-                clip_bounds,
-            );
-        }
-
-        state.internal.draw(
-            &state.editor,
+        state.input.draw(
             renderer,
-            text_bounds.position(),
-            clip_bounds,
+            bounds,
+            *viewport,
             editor::Style {
                 value: style.value,
                 selection: style.selection,
+                placeholder: style.placeholder,
             },
         );
     }
@@ -568,11 +450,8 @@ where
 }
 
 /// The state of a [`TextInput`].
-#[derive(Debug, Clone)]
 struct State<R: text::Renderer> {
-    editor: R::Editor,
-    internal: editor::State,
-    placeholder: paragraph::Plain<R::Paragraph>,
+    input: editor::Input<R>,
     value: String,
 }
 
@@ -584,9 +463,7 @@ impl<R: text::Renderer> State<R> {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
     fn new() -> Self {
         Self {
-            editor: R::Editor::with_text(""),
-            internal: editor::State::new(),
-            placeholder: paragraph::Plain::default(),
+            input: editor::Input::new(),
             value: String::new(),
         }
     }
@@ -594,24 +471,24 @@ impl<R: text::Renderer> State<R> {
 
 impl<R: text::Renderer> operation::Focusable for State<R> {
     fn is_focused(&self) -> bool {
-        self.internal.is_focused()
+        self.input.is_focused()
     }
 
     fn focus(&mut self) {
-        self.internal.focus();
+        self.input.focus();
     }
 
     fn unfocus(&mut self) {
-        self.internal.unfocus();
+        self.input.unfocus();
     }
 }
 
 impl<R: text::Renderer> operation::TextInput for State<R> {
     fn text(&self) -> text::Fragment<'_> {
-        if self.editor.is_empty() {
-            text::Fragment::Borrowed(self.placeholder.content())
+        if self.input.is_empty() {
+            text::Fragment::Borrowed(self.input.placeholder())
         } else {
-            text::Fragment::Owned(self.editor.text())
+            text::Fragment::Owned(self.input.value())
         }
     }
 

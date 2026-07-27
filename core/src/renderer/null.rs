@@ -223,7 +223,7 @@ impl text::Editor for () {
     ) {
     }
 
-    fn replace(&mut self, _new_text: &str) {}
+    fn overwrite(&mut self, _new_text: &str) {}
 
     fn highlight<H: text::Highlighter>(
         &mut self,
@@ -239,6 +239,10 @@ impl text::Editor for () {
 
     fn line_height(&self) -> text::LineHeight {
         text::LineHeight::default()
+    }
+
+    fn font(&self) -> Self::Font {
+        Self::Font::default()
     }
 }
 
