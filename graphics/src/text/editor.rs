@@ -346,12 +346,15 @@ impl editor::Editor for Editor {
                         );
                     }
 
-                    let cursor = cosmic_text::Cursor {
-                        affinity: cosmic_text::Affinity::Before,
-                        ..editor.cursor()
-                    };
+                    if buffer_from_editor(editor).wrap() == cosmic_text::Wrap::None {
+                        let cursor = cosmic_text::Cursor {
+                            affinity: cosmic_text::Affinity::Before,
+                            ..editor.cursor()
+                        };
 
-                    editor.set_cursor(cursor);
+                        editor.set_cursor(cursor);
+                    }
+
                     shape_until_cursor(editor, &mut font_system.raw);
                 }
 
