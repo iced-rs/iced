@@ -1,9 +1,7 @@
 //! Draw and edit text.
-use crate::core::text::editor::{
-    self, Action, Cursor, Direction, Edit, Motion, Position, Selection,
-};
+use crate::core::text::editor::{self, Action, Cursor, Direction, Edit, Motion, Selection};
 use crate::core::text::highlighter::{self, Highlighter};
-use crate::core::text::{Alignment, LineHeight, Wrapping};
+use crate::core::text::{Alignment, LineHeight, Position, Wrapping};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -291,7 +289,7 @@ impl editor::Editor for Editor {
 
             Position {
                 line: cursor.line,
-                column: cursor.index,
+                index: cursor.index,
             }
         };
 
@@ -301,7 +299,7 @@ impl editor::Editor for Editor {
             | cosmic_text::Selection::Line(cursor)
             | cosmic_text::Selection::Word(cursor) => Some(Position {
                 line: cursor.line,
-                column: cursor.index,
+                index: cursor.index,
             }),
         };
 
@@ -547,7 +545,7 @@ impl editor::Editor for Editor {
             // TODO: Expose `Affinity`
             internal.editor.set_cursor(cosmic_text::Cursor {
                 line: cursor.position.line,
-                index: cursor.position.column,
+                index: cursor.position.index,
                 affinity: cosmic_text::Affinity::Before,
             });
 
@@ -556,7 +554,7 @@ impl editor::Editor for Editor {
                     .editor
                     .set_selection(cosmic_text::Selection::Normal(cosmic_text::Cursor {
                         line: selection.line,
-                        index: selection.column,
+                        index: selection.index,
                         affinity: cosmic_text::Affinity::Before,
                     }));
             }

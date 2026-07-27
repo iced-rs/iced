@@ -6,9 +6,9 @@ use crate::keyboard::key;
 use crate::mouse;
 use crate::renderer;
 use crate::text::highlighter::{self, Highlighter};
-use crate::text::{self, Alignment, LineHeight, Wrapping};
+use crate::text::{self, Alignment, LineHeight, Position, Wrapping};
 use crate::time::{Duration, Instant};
-use crate::widget::operation::Focusable;
+use crate::widget::operation::{Focusable, TextInput};
 use crate::window;
 use crate::{Color, Event, InputMethod, Padding, Pixels, Point, Rectangle, Size, SmolStr, Vector};
 
@@ -262,15 +262,6 @@ pub struct Cursor {
 
     /// The selection position, if any.
     pub selection: Option<Position>,
-}
-
-/// A cursor position in an [`Editor`].
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Position {
-    /// The line of text.
-    pub line: usize,
-    /// The column in the line.
-    pub column: usize,
 }
 
 /// A line of an [`Editor`].
@@ -929,4 +920,36 @@ fn convert_macos_shortcut(
     };
 
     Some(keyboard::Key::Named(key))
+}
+
+impl<T: Editor> TextInput for T {
+    fn text(&self) -> text::Fragment<'_> {
+        text::Fragment::Owned(Editor::text(self))
+    }
+
+    fn move_cursor_to_front(&mut self) {
+        self.perform(Action::Move(Motion::DocumentStart));
+    }
+
+    fn move_cursor_to_end(&mut self) {
+        self.perform(Action::Move(Motion::DocumentEnd));
+    }
+
+    fn move_cursor_to(&mut self, position: text::Position) {
+        self.move_to(Cursor {
+            position,
+            selection: None,
+        });
+    }
+
+    fn select_all(&mut self) {
+        self.perform(Action::SelectAll);
+    }
+
+    fn select_range(&mut self, start: text::Position, end: text::Position) {
+        self.move_to(Cursor {
+            position: start,
+            selection: Some(end),
+        });
+    }
 }

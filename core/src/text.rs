@@ -624,6 +624,16 @@ impl<Link, Font: PartialEq> PartialEq for Span<'_, Link, Font> {
     }
 }
 
+/// A specific position in some [`Text`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Position {
+    /// The line of the [`Text`].
+    pub line: usize,
+
+    /// The first byte index of a character boundary in the line.
+    pub index: usize,
+}
+
 /// A fragment of [`Text`].
 ///
 /// This is just an alias to a string that may be either

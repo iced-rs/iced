@@ -63,6 +63,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::text::editor;
 use crate::core::text::input;
+use crate::core::widget::operation::Focusable as _;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector};
@@ -135,6 +136,7 @@ where
     Renderer: text::Renderer,
 {
     state: &'a State<T>,
+    id: Option<widget::Id>,
     placeholder: text::Fragment<'a>,
     selection: String,
     width: Length,
@@ -172,6 +174,7 @@ where
     ) -> Self {
         Self {
             state,
+            id: None,
             placeholder: placeholder.into_fragment(),
             selection: selection.map(T::to_string).unwrap_or_default(),
             width: Length::Fill,
@@ -191,6 +194,12 @@ where
             menu_height: Length::Shrink,
             last_status: None,
         }
+    }
+
+    /// Sets the [`widget::Id`] of the [`ComboBox`].
+    pub fn id(mut self, id: impl Into<widget::Id>) -> Self {
+        self.id = Some(id.into());
+        self
     }
 
     /// Sets the message that should be produced when some text is typed into
@@ -751,6 +760,20 @@ where
         } else {
             None
         }
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut widget::Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
+        let bounds = layout.bounds();
+
+        operation.focusable(self.id.as_ref(), bounds, &mut state.editor.input);
+        operation.text_input(self.id.as_ref(), bounds, &mut state.editor.input);
     }
 }
 

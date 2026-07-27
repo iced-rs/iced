@@ -38,7 +38,7 @@ use crate::core::text;
 use crate::core::text::editor;
 use crate::core::text::input;
 use crate::core::widget;
-use crate::core::widget::operation::{self, Operation};
+use crate::core::widget::operation::{self, Focusable, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -494,23 +494,23 @@ impl<R: text::Renderer> operation::TextInput for State<R> {
     }
 
     fn move_cursor_to_front(&mut self) {
-        // TODO
+        self.input.move_cursor_to_front();
     }
 
     fn move_cursor_to_end(&mut self) {
-        // TODO
+        self.input.move_cursor_to_end();
     }
 
-    fn move_cursor_to(&mut self, _position: usize) {
-        // TODO
+    fn move_cursor_to(&mut self, position: text::Position) {
+        self.input.move_cursor_to(position);
     }
 
     fn select_all(&mut self) {
-        // TODO
+        self.input.select_all();
     }
 
-    fn select_range(&mut self, _start: usize, _end: usize) {
-        // TODO
+    fn select_range(&mut self, start: text::Position, end: text::Position) {
+        self.input.select_range(start, end);
     }
 }
 

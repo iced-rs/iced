@@ -173,7 +173,7 @@ impl text::Editor for () {
 
     fn cursor(&self) -> text::editor::Cursor {
         text::editor::Cursor {
-            position: text::editor::Position { line: 0, column: 0 },
+            position: text::Position { line: 0, index: 0 },
             selection: None,
         }
     }

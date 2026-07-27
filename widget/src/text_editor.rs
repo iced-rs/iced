@@ -53,7 +53,7 @@ use std::fmt;
 use std::ops::DerefMut;
 
 pub use text::editor::{
-    Action, Binding, Cursor, Edit, KeyPress, Line, LineEnding, Motion, Position, Selection,
+    Action, Binding, Cursor, Edit, KeyPress, Line, LineEnding, Motion, Selection,
 };
 
 /// A multi-line text input.
@@ -590,6 +590,11 @@ where
         let state = tree.state.downcast_mut::<State<Highlighter>>();
 
         operation.focusable(self.id.as_ref(), layout.bounds(), &mut state.editor);
+        operation.text_input(
+            self.id.as_ref(),
+            layout.bounds(),
+            &mut self.content.0.borrow_mut().editor,
+        );
     }
 }
 

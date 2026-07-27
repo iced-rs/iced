@@ -5,8 +5,8 @@ use crate::layout;
 use crate::mouse;
 use crate::text::editor;
 use crate::text::paragraph;
-use crate::text::{self, Alignment, Editor, LineHeight, Text, Wrapping};
-use crate::widget::operation::Focusable;
+use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};
+use crate::widget::operation::{Focusable, TextInput};
 use crate::{Color, Event, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell};
 
 pub struct Input<R: text::Renderer> {
@@ -43,27 +43,11 @@ impl<R: text::Renderer> Input<R> {
     }
 
     pub fn value(&self) -> String {
-        self.editor.text()
+        Editor::text(&self.editor)
     }
 
     pub fn placeholder(&self) -> &str {
         self.placeholder.content()
-    }
-
-    pub fn is_focused(&self) -> bool {
-        self.state.is_focused()
-    }
-
-    pub fn focus(&mut self) {
-        self.state.focus();
-    }
-
-    pub fn unfocus(&mut self) {
-        self.state.unfocus();
-    }
-
-    pub fn select_all(&mut self) {
-        self.editor.perform(editor::Action::SelectAll);
     }
 
     pub fn overwrite(&mut self, value: &str) {
@@ -250,4 +234,48 @@ pub struct Style {
     pub value: Color,
     pub selection: Color,
     pub placeholder: Color,
+}
+
+impl<R: text::Renderer> Focusable for Input<R> {
+    fn is_focused(&self) -> bool {
+        self.state.is_focused()
+    }
+
+    fn focus(&mut self) {
+        self.state.focus();
+    }
+
+    fn unfocus(&mut self) {
+        self.state.unfocus();
+    }
+}
+
+impl<R: text::Renderer> TextInput for Input<R> {
+    fn text(&self) -> text::Fragment<'_> {
+        if self.editor.is_empty() {
+            text::Fragment::Borrowed(self.placeholder.content())
+        } else {
+            TextInput::text(&self.editor)
+        }
+    }
+
+    fn move_cursor_to(&mut self, position: Position) {
+        self.editor.move_cursor_to(position);
+    }
+
+    fn move_cursor_to_front(&mut self) {
+        self.editor.move_cursor_to_front();
+    }
+
+    fn move_cursor_to_end(&mut self) {
+        self.editor.move_cursor_to_end();
+    }
+
+    fn select_all(&mut self) {
+        self.editor.select_all();
+    }
+
+    fn select_range(&mut self, start: Position, end: Position) {
+        self.editor.select_range(start, end);
+    }
 }
