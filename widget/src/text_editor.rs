@@ -433,11 +433,11 @@ where
         }
 
         if let Some(update) = state.editor.update(
+            &self.content.0.borrow().editor,
             event,
             layout.bounds(),
             self.padding,
             cursor,
-            &self.content.0.borrow().editor,
             self.key_binding
                 .as_deref()
                 .unwrap_or(&Binding::from_key_press as _),
@@ -548,14 +548,13 @@ where
         }
 
         state.editor.draw(
-            renderer,
             &internal.editor,
+            renderer,
             text_bounds.position(),
             *viewport,
             editor::Style {
                 value: style.value,
                 selection: style.selection,
-                placeholder: style.placeholder,
             },
         );
     }

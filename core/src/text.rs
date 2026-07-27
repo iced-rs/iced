@@ -1,10 +1,12 @@
 //! Draw and interact with text.
 pub mod editor;
 pub mod highlighter;
+pub mod input;
 pub mod paragraph;
 
 pub use editor::Editor;
 pub use highlighter::Highlighter;
+pub use input::Input;
 pub use paragraph::Paragraph;
 
 use crate::alignment;

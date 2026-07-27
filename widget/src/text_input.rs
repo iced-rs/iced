@@ -36,6 +36,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::text::editor;
+use crate::core::text::input;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
@@ -287,7 +288,7 @@ where
         state.input.layout(
             renderer,
             limits,
-            editor::Layout {
+            input::Layout {
                 width: self.width,
                 height: self.height,
                 padding: self.padding,
@@ -407,7 +408,7 @@ where
             renderer,
             bounds,
             *viewport,
-            editor::Style {
+            input::Style {
                 value: style.value,
                 selection: style.selection,
                 placeholder: style.placeholder,
@@ -451,7 +452,7 @@ where
 
 /// The state of a [`TextInput`].
 struct State<R: text::Renderer> {
-    input: editor::Input<R>,
+    input: text::Input<R>,
     value: String,
 }
 
@@ -463,7 +464,7 @@ impl<R: text::Renderer> State<R> {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
     fn new() -> Self {
         Self {
-            input: editor::Input::new(),
+            input: text::Input::new(),
             value: String::new(),
         }
     }

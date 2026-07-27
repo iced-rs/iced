@@ -64,6 +64,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::text::editor;
+use crate::core::text::input;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
@@ -195,7 +196,7 @@ where
     }
 
     /// Sets the message that should be produced when some text is typed into
-    /// the [`TextInput`] of the [`ComboBox`].
+    /// the [`ComboBox`].
     pub fn on_input(mut self, on_input: impl Fn(String) -> Message + 'a) -> Self {
         self.on_input = Some(Box::new(on_input));
         self
@@ -420,7 +421,7 @@ impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
 }
 
 struct Editor<R: text::Renderer> {
-    input: editor::Input<R>,
+    input: text::Input<R>,
     value: String,
     selection: Option<String>,
 }
@@ -451,7 +452,7 @@ where
         state.editor.input.layout(
             renderer,
             limits,
-            editor::Layout {
+            input::Layout {
                 width: self.width,
                 height: Length::Fit,
                 padding: self.padding,
@@ -472,7 +473,7 @@ where
     fn state(&self) -> widget::tree::State {
         widget::tree::State::new(Internal::<T, Renderer> {
             editor: Editor {
-                input: editor::Input::new(),
+                input: text::Input::new(),
                 value: String::new(),
                 selection: None,
             },
@@ -708,7 +709,7 @@ where
             renderer,
             bounds,
             *viewport,
-            editor::Style {
+            input::Style {
                 value: style.value,
                 selection: style.selection,
                 placeholder: style.placeholder,
