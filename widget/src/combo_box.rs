@@ -603,6 +603,7 @@ where
                     shell.publish(on_open);
                 }
             } else if let Some(on_close) = self.on_close.take() {
+                internal.editor.input.overwrite(&self.selection);
                 shell.publish(on_close);
             }
         }
