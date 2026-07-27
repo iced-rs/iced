@@ -92,7 +92,10 @@ impl Todos {
                     _ => {}
                 }
 
-                operation::focus("new-task")
+                Command::batch([
+                    operation::focus("new-task"),
+                    operation::move_cursor_to_end("new-task"),
+                ])
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
