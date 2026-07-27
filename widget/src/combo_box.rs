@@ -433,7 +433,7 @@ where
                 size: self.size,
                 line_height: self.line_height,
                 alignment: text::Alignment::Default,
-                wrapping: text::Wrapping::None,
+                multiline: None,
             },
         )
     }

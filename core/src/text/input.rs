@@ -9,11 +9,14 @@ use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping}
 use crate::widget::operation::{Focusable, TextInput};
 use crate::{Color, Event, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell};
 
+use std::sync::Arc;
+
 pub struct Input<R: text::Renderer> {
     editor: R::Editor,
     state: editor::State,
     placeholder: paragraph::Plain<R::Paragraph>,
     padding: Padding,
+    multiline: Option<Wrapping>,
 }
 
 pub struct Layout<'a, Font> {
@@ -25,7 +28,7 @@ pub struct Layout<'a, Font> {
     pub size: Option<Pixels>,
     pub line_height: LineHeight,
     pub alignment: Alignment,
-    pub wrapping: Wrapping,
+    pub multiline: Option<Wrapping>,
 }
 
 impl<R: text::Renderer> Input<R> {
@@ -35,6 +38,7 @@ impl<R: text::Renderer> Input<R> {
             state: editor::State::new(),
             placeholder: paragraph::Plain::default(),
             padding: Padding::default(),
+            multiline: None,
         }
     }
 
@@ -61,6 +65,7 @@ impl<R: text::Renderer> Input<R> {
         layout: Layout<'_, R::Font>,
     ) -> layout::Node {
         self.padding = layout.padding;
+        self.multiline = layout.multiline;
 
         let limits = limits
             .width(layout.width)
@@ -76,7 +81,7 @@ impl<R: text::Renderer> Input<R> {
             font,
             size,
             layout.line_height,
-            layout.wrapping,
+            layout.multiline.unwrap_or(text::Wrapping::None),
             layout.alignment,
             hint_factor,
             &mut text::highlighter::PlainText,
@@ -122,15 +127,30 @@ impl<R: text::Renderer> Input<R> {
             editor: &mut impl Editor,
             shell: &mut Shell<'_, Message>,
             update: editor::Update<Message>,
+            is_multiline: bool,
         ) -> bool {
             match update {
                 editor::Update::Action(action) => {
                     let is_edit = action.is_edit();
 
-                    editor.perform(action);
+                    let action = match action {
+                        editor::Action::Edit(editor::Edit::Enter) if !is_multiline => return false,
+                        editor::Action::Edit(editor::Edit::Paste(text)) if !is_multiline => {
+                            editor::Action::Edit(editor::Edit::Paste(Arc::new(
+                                text.lines().collect(),
+                            )))
+                        }
+                        _ => action,
+                    };
 
-                    shell.request_redraw();
+                    editor.perform(action);
                     shell.capture_event();
+
+                    if is_edit && is_multiline {
+                        shell.invalidate_layout();
+                    } else {
+                        shell.request_redraw();
+                    }
 
                     return is_edit;
                 }
@@ -161,7 +181,7 @@ impl<R: text::Renderer> Input<R> {
                     let mut is_edit = false;
 
                     for update in updates {
-                        is_edit |= apply(editor, shell, update);
+                        is_edit |= apply(editor, shell, update, is_multiline);
                     }
 
                     return is_edit;
@@ -182,7 +202,7 @@ impl<R: text::Renderer> Input<R> {
             return false;
         };
 
-        apply(&mut self.editor, shell, update)
+        apply(&mut self.editor, shell, update, self.multiline.is_some())
     }
 
     pub fn draw(&self, renderer: &mut R, bounds: Rectangle, viewport: Rectangle, style: Style) {

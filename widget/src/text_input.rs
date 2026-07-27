@@ -94,6 +94,7 @@ where
     size: Option<Pixels>,
     line_height: text::LineHeight,
     alignment: text::Alignment,
+    multiline: Option<text::Wrapping>,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -128,6 +129,7 @@ where
             size: None,
             line_height: text::LineHeight::default(),
             alignment: text::Alignment::Default,
+            multiline: None,
             on_input: None,
             on_paste: None,
             on_submit: None,
@@ -232,6 +234,14 @@ where
         self
     }
 
+    /// Sets the multiline behavior of the [`TextInput`].
+    ///
+    /// `None` will behave as a single line input.
+    pub fn multiline(mut self, wrapping: Option<text::Wrapping>) -> Self {
+        self.multiline = wrapping;
+        self
+    }
+
     /// Sets the style of the [`TextInput`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
@@ -297,7 +307,7 @@ where
                 size: self.size,
                 line_height: self.line_height,
                 alignment: self.alignment,
-                wrapping: text::Wrapping::None,
+                multiline: self.multiline,
             },
         )
     }
