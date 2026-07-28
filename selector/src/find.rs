@@ -1,4 +1,5 @@
 use crate::Selector;
+use crate::core::widget::Metadata;
 use crate::core::widget::operation::{Focusable, Outcome, Scrollable, TextInput};
 use crate::core::widget::{Id, Operation};
 use crate::core::{Rectangle, Vector};
@@ -157,6 +158,19 @@ where
             id,
             bounds,
             visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+        });
+    }
+
+    fn metadata(&mut self, id: Option<&Id>, bounds: Rectangle, metadata: &Metadata) {
+        if self.strategy.is_done() {
+            return;
+        }
+
+        self.strategy.feed(Candidate::Metadata {
+            id,
+            bounds,
+            visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+            metadata,
         });
     }
 

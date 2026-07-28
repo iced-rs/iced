@@ -39,6 +39,7 @@ use crate::core::text;
 use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
+use crate::core::widget::metadata::{Metadata, Role};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -462,6 +463,13 @@ where
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
+        let metadata = self.label.as_ref().map_or_else(
+            || Metadata::new(Role::Checkbox),
+            |label| Metadata::new(Role::Checkbox).label(label.clone()),
+        );
+
+        operation.metadata(None, layout.bounds(), &metadata);
+
         if let Some(label) = self.label.as_deref() {
             operation.text(None, layout.bounds(), label);
         }

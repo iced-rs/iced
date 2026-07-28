@@ -1,4 +1,5 @@
 use crate::core::widget::Id;
+use crate::core::widget::metadata::Metadata;
 use crate::core::widget::operation::{Focusable, Scrollable, TextInput};
 use crate::core::{Rectangle, Vector};
 
@@ -42,6 +43,12 @@ pub enum Target {
         bounds: Rectangle,
         visible_bounds: Option<Rectangle>,
     },
+    Metadata {
+        id: Option<Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+        metadata: Metadata,
+    },
 }
 
 impl Target {
@@ -53,7 +60,8 @@ impl Target {
             | Target::Scrollable { bounds, .. }
             | Target::TextInput { bounds, .. }
             | Target::Text { bounds, .. }
-            | Target::Custom { bounds, .. } => *bounds,
+            | Target::Custom { bounds, .. }
+            | Target::Metadata { bounds, .. } => *bounds,
         }
     }
 
@@ -65,7 +73,16 @@ impl Target {
             | Target::Scrollable { visible_bounds, .. }
             | Target::TextInput { visible_bounds, .. }
             | Target::Text { visible_bounds, .. }
-            | Target::Custom { visible_bounds, .. } => *visible_bounds,
+            | Target::Custom { visible_bounds, .. }
+            | Target::Metadata { visible_bounds, .. } => *visible_bounds,
+        }
+    }
+
+    /// Returns the semantic [`Metadata`] of the [`Target`], if any.
+    pub fn metadata(&self) -> Option<&Metadata> {
+        match self {
+            Target::Metadata { metadata, .. } => Some(metadata),
+            _ => None,
         }
     }
 }
@@ -138,6 +155,17 @@ impl From<Candidate<'_>> for Target {
                 bounds,
                 visible_bounds,
             },
+            Candidate::Metadata {
+                id,
+                bounds,
+                visible_bounds,
+                metadata,
+            } => Self::Metadata {
+                id: id.cloned(),
+                bounds,
+                visible_bounds,
+                metadata: metadata.clone(),
+            },
         }
     }
 }
@@ -195,6 +223,12 @@ pub enum Candidate<'a> {
         visible_bounds: Option<Rectangle>,
         state: &'a dyn Any,
     },
+    Metadata {
+        id: Option<&'a Id>,
+        bounds: Rectangle,
+        visible_bounds: Option<Rectangle>,
+        metadata: &'a Metadata,
+    },
 }
 
 impl<'a> Candidate<'a> {
@@ -206,7 +240,8 @@ impl<'a> Candidate<'a> {
             | Candidate::Scrollable { id, .. }
             | Candidate::TextInput { id, .. }
             | Candidate::Text { id, .. }
-            | Candidate::Custom { id, .. } => *id,
+            | Candidate::Custom { id, .. }
+            | Candidate::Metadata { id, .. } => *id,
         }
     }
 
@@ -218,7 +253,8 @@ impl<'a> Candidate<'a> {
             | Candidate::Scrollable { bounds, .. }
             | Candidate::TextInput { bounds, .. }
             | Candidate::Text { bounds, .. }
-            | Candidate::Custom { bounds, .. } => *bounds,
+            | Candidate::Custom { bounds, .. }
+            | Candidate::Metadata { bounds, .. } => *bounds,
         }
     }
 
@@ -230,7 +266,16 @@ impl<'a> Candidate<'a> {
             | Candidate::Scrollable { visible_bounds, .. }
             | Candidate::TextInput { visible_bounds, .. }
             | Candidate::Text { visible_bounds, .. }
-            | Candidate::Custom { visible_bounds, .. } => *visible_bounds,
+            | Candidate::Custom { visible_bounds, .. }
+            | Candidate::Metadata { visible_bounds, .. } => *visible_bounds,
+        }
+    }
+
+    /// Returns the semantic [`Metadata`] of the [`Candidate`], if any.
+    pub fn metadata(&self) -> Option<&'a Metadata> {
+        match self {
+            Candidate::Metadata { metadata, .. } => Some(metadata),
+            _ => None,
         }
     }
 }
