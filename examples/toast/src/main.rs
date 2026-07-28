@@ -159,6 +159,7 @@ mod toast {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::overlay;
     use iced::advanced::renderer;
+    use iced::advanced::shell;
     use iced::advanced::widget::{self, Operation, Tree};
     use iced::advanced::{Shell, Widget};
     use iced::mouse;
@@ -506,7 +507,7 @@ mod toast {
                 .zip(layout.children())
                 .zip(self.instants.iter_mut())
             {
-                let mut local_messages = vec![];
+                let mut local_messages = shell::Bus::new();
                 let mut local_shell = shell.local(&mut local_messages);
 
                 child.as_widget_mut().update(

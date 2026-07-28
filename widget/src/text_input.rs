@@ -34,6 +34,7 @@ use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::text;
 use crate::core::text::editor;
 use crate::core::text::input;
@@ -290,7 +291,12 @@ where
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<State<Renderer>>();
 
-        if state.value != self.value {
+        if state.value != self.value
+            && state
+                .transaction
+                .as_ref()
+                .is_none_or(shell::Tracking::is_processed)
+        {
             state.input.overwrite(self.value.as_ref());
             state.value = self.value.clone().into_owned();
         }
@@ -359,7 +365,7 @@ where
                 })
             {
                 state.value = state.input.value();
-                shell.publish(on_input(state.value.clone()));
+                state.transaction = Some(shell.publish_and_track(on_input(state.value.clone())));
             }
         }
 
@@ -464,6 +470,7 @@ where
 struct State<R: text::Renderer> {
     input: text::Input<R>,
     value: String,
+    transaction: Option<shell::Tracking>,
 }
 
 fn state<Renderer: text::Renderer + 'static>(tree: &mut Tree) -> &mut State<Renderer> {
@@ -476,6 +483,7 @@ impl<R: text::Renderer> State<R> {
         Self {
             input: text::Input::new(),
             value: String::new(),
+            transaction: None,
         }
     }
 }

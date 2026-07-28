@@ -196,7 +196,7 @@ where
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
-        messages: &mut Vec<Message>,
+        messages: &mut shell::Bus<Message>,
     ) -> (State, Vec<event::Status>) {
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
