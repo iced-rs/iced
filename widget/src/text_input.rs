@@ -114,6 +114,7 @@ where
     icon: Option<Icon<Renderer::Font>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
+    cursor_at: Option<usize>,
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -145,6 +146,7 @@ where
             icon: None,
             class: Theme::default(),
             last_status: None,
+            cursor_at: None,
         }
     }
 
@@ -157,6 +159,18 @@ where
     /// Converts the [`TextInput`] into a secure password input.
     pub fn secure(mut self, is_secure: bool) -> Self {
         self.is_secure = is_secure;
+        self
+    }
+
+    /// Sets the cursor position of the [`TextInput`].
+    ///
+    /// This can be used to correct the cursor position after changing the
+    /// displayed value (e.g., adding formatting characters to a masked input).
+    ///
+    /// The position is clamped to the value length. Use [`usize::MAX`] to
+    /// move the cursor to the end.
+    pub fn cursor_at(mut self, position: usize) -> Self {
+        self.cursor_at = Some(position);
         self
     }
 
@@ -609,6 +623,17 @@ where
         // Stop pasting if input becomes disabled
         if self.on_input.is_none() {
             state.is_pasting = None;
+        }
+
+        // Apply externally requested cursor position
+        if let Some(position) = self.cursor_at.take() {
+            let text_len = self.value.len();
+
+            if position >= text_len {
+                state.move_cursor_to_end();
+            } else {
+                state.move_cursor_to(position);
+            }
         }
     }
 
