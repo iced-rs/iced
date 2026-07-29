@@ -195,11 +195,14 @@ fn draw(
     let position = position * transformation;
 
     let mut swash = cosmic_text::SwashCache::new();
+    let scroll = buffer.scroll();
 
     for run in buffer.layout_runs() {
         for glyph in run.glyphs {
-            let physical_glyph =
-                glyph.physical((position.x, position.y), transformation.scale_factor());
+            let physical_glyph = glyph.physical(
+                (position.x - scroll.horizontal, position.y),
+                transformation.scale_factor(),
+            );
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,

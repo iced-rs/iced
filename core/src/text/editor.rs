@@ -119,6 +119,10 @@ pub enum Edit {
     Backspace,
     /// Delete the next character.
     Delete,
+    /// Undo the last change performed on the [`Editor`].
+    Undo,
+    /// Redo the last undone change on the [`Editor`].
+    Redo,
 }
 
 /// A cursor movement.

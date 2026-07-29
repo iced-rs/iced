@@ -1,5 +1,6 @@
 //! Run your application in a headless runtime.
 use crate::core;
+use crate::core::font;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::shell;
@@ -21,6 +22,7 @@ use crate::runtime::user_interface;
 use crate::runtime::{Task, UserInterface};
 use crate::{Instruction, Selector};
 
+use std::borrow::Cow;
 use std::fmt;
 
 /// A headless runtime that can run iced applications and execute
@@ -87,11 +89,20 @@ impl<P: Program + 'static> Emulator<P> {
 
         let settings = program.settings();
 
+        for font in &settings.fonts {
+            load_font(font.clone()).expect("Font must be valid");
+        }
+
         // TODO: Error handling
         let executor = P::Executor::new().expect("Create emulator executor");
 
+        let backend = std::env::var("ICED_TEST_BACKEND").ok();
+
         let renderer = executor
-            .block_on(P::Renderer::new(renderer::Settings::from(&settings), None))
+            .block_on(P::Renderer::new(
+                renderer::Settings::from(&settings),
+                backend.as_deref(),
+            ))
             .expect("Create emulator renderer");
 
         let runtime = Runtime::new(executor, sender);
@@ -237,8 +248,18 @@ impl<P: Program + 'static> Emulator<P> {
                     dbg!(action);
                 }
                 runtime::Action::Font(action) => {
-                    // TODO
-                    dbg!(action);
+                    use crate::runtime::font;
+
+                    match action {
+                        font::Action::Load { bytes, channel } => {
+                            let result = load_font(bytes);
+                            let _ = channel.send(result);
+                        }
+                        _ => {
+                            // TODO
+                            dbg!(action);
+                        }
+                    }
                 }
                 runtime::Action::Image(action) => {
                     // TODO
@@ -538,4 +559,13 @@ impl fmt::Display for Mode {
             Self::Immediate => "Immediate",
         })
     }
+}
+
+fn load_font(font: Cow<'static, [u8]>) -> Result<(), font::Error> {
+    crate::renderer::graphics::text::font_system()
+        .write()
+        .expect("Write to font system")
+        .load_font(font);
+
+    Ok(())
 }

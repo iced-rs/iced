@@ -1,6 +1,7 @@
 //! Run a simulation of your application without side effects.
 use crate::core;
 use crate::core::event;
+use crate::core::font;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::shell;
@@ -395,11 +396,11 @@ pub fn typewrite(text: &str) -> impl Iterator<Item = Event> + '_ {
         .flat_map(|c| tap_key(keyboard::Key::Character(c.clone()), Some(c)))
 }
 
-fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
+fn load_font(font: Cow<'static, [u8]>) -> Result<(), font::Error> {
     renderer::graphics::text::font_system()
         .write()
         .expect("Write to font system")
-        .load_font(font.into());
+        .load_font(font);
 
     Ok(())
 }
