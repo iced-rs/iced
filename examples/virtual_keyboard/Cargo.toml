@@ -1,0 +1,22 @@
+[package]
+name = "virtual_keyboard"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+# Web builds require trunk (https://trunkrs.dev):
+#   cargo install trunk
+#   cd examples/virtual_keyboard && trunk serve --open
+[package.metadata.webdev]
+trunk = ">=0.21"
+
+[dependencies]
+iced.workspace = true
+iced.features = ["debug"]
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced.workspace = true
+iced.features = ["webgl", "debug", "fira-sans"]
+
+[dev-dependencies]
+iced_test.workspace = true
