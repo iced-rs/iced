@@ -122,26 +122,31 @@ impl<R: text::Renderer> Input<R> {
         cursor: mouse::Cursor,
         shell: &mut Shell<'_, Message>,
         key_binding: impl Fn(editor::KeyPress) -> Option<editor::Binding<Message>>,
-    ) -> bool {
+    ) -> Option<Edit> {
         fn apply<Message>(
             editor: &mut impl Editor,
             shell: &mut Shell<'_, Message>,
             update: editor::Update<Message>,
             is_multiline: bool,
-        ) -> bool {
+        ) -> Option<Edit> {
             match update {
                 editor::Update::Action(action) => {
-                    let is_edit = action.is_edit();
-
-                    let action = match action {
-                        editor::Action::Edit(editor::Edit::Enter) if !is_multiline => return false,
-                        editor::Action::Edit(editor::Edit::Paste(text)) if !is_multiline => {
-                            editor::Action::Edit(editor::Edit::Paste(Arc::new(
-                                text.lines().collect(),
-                            )))
+                    let (action, is_paste) = match action {
+                        editor::Action::Edit(editor::Edit::Enter) if !is_multiline => {
+                            return None;
                         }
-                        _ => action,
+                        editor::Action::Edit(editor::Edit::Paste(text)) => (
+                            editor::Action::Edit(editor::Edit::Paste(if !is_multiline {
+                                Arc::new(text.lines().collect())
+                            } else {
+                                text
+                            })),
+                            true,
+                        ),
+                        _ => (action, false),
                     };
+
+                    let is_edit = action.is_edit();
 
                     editor.perform(action);
                     shell.capture_event();
@@ -152,7 +157,7 @@ impl<R: text::Renderer> Input<R> {
                         shell.request_redraw();
                     }
 
-                    return is_edit;
+                    return is_edit.then_some(Edit { is_paste });
                 }
                 editor::Update::Focus | editor::Update::InputMethod => {
                     shell.request_redraw();
@@ -178,29 +183,31 @@ impl<R: text::Renderer> Input<R> {
                     shell.capture_event();
                 }
                 editor::Update::Sequence(updates) => {
-                    let mut is_edit = false;
+                    let mut edit: Option<Edit> = None;
 
                     for update in updates {
-                        is_edit |= apply(editor, shell, update, is_multiline);
+                        if let Some(new_edit) = apply(editor, shell, update, is_multiline) {
+                            edit = Some(Edit {
+                                is_paste: edit.unwrap_or_default().is_paste || new_edit.is_paste,
+                            });
+                        }
                     }
 
-                    return is_edit;
+                    return edit;
                 }
             }
 
-            false
+            None
         }
 
-        let Some(update) = self.state.update(
+        let update = self.state.update(
             &self.editor,
             event,
             bounds,
             self.padding,
             cursor,
             key_binding,
-        ) else {
-            return false;
-        };
+        )?;
 
         apply(&mut self.editor, shell, update, self.multiline.is_some())
     }
@@ -298,4 +305,9 @@ impl<R: text::Renderer> TextInput for Input<R> {
     fn select_range(&mut self, start: Position, end: Position) {
         self.editor.select_range(start, end);
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Edit {
+    pub is_paste: bool,
 }

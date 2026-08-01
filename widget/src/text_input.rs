@@ -345,25 +345,28 @@ where
         let is_disabled = self.on_input.is_none();
 
         if let Some(on_input) = &self.on_input {
-            fn binding<Message: Clone>(
-                key_press: editor::KeyPress,
-                on_submit: &Option<Message>,
-            ) -> Option<editor::Binding<Message>> {
-                if let Some(on_submit) = on_submit
-                    && key_press.modified_key == keyboard::Key::Named(keyboard::key::Named::Enter)
-                {
-                    return Some(editor::Binding::Custom(on_submit.clone()));
-                }
-
-                editor::Binding::from_key_press(key_press)
-            }
-
-            if state
+            let edit = state
                 .input
                 .update(event, layout.bounds(), cursor, shell, |key_press| {
-                    binding(key_press, &self.on_submit)
-                })
-            {
+                    if let Some(on_submit) = &self.on_submit
+                        && key_press.modified_key
+                            == keyboard::Key::Named(keyboard::key::Named::Enter)
+                    {
+                        return Some(editor::Binding::Custom(on_submit.clone()));
+                    }
+
+                    editor::Binding::from_key_press(key_press)
+                });
+
+            if let Some(edit) = edit {
+                let on_input = if let Some(on_paste) = &self.on_paste
+                    && edit.is_paste
+                {
+                    on_paste
+                } else {
+                    on_input
+                };
+
                 state.value = state.input.value();
                 state.transaction = Some(shell.publish_and_track(on_input(state.value.clone())));
             }

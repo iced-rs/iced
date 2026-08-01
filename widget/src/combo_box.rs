@@ -487,13 +487,15 @@ where
 
         let was_focused = internal.editor.input.is_focused();
 
-        if internal.editor.input.update::<Message>(
+        let edit = internal.editor.input.update::<Message>(
             event,
             layout.bounds(),
             cursor,
             shell,
             editor::Binding::from_key_press,
-        ) {
+        );
+
+        if edit.is_some() {
             let value = internal.editor.input.value();
 
             if let Some(on_input) = &self.on_input {
