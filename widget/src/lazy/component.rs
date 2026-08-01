@@ -4,6 +4,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{self, Element, Length, Rectangle, Shell, Size, Vector, Widget};
@@ -294,7 +295,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let mut local_messages = Vec::new();
+        let mut local_messages = shell::Bus::new();
         let mut local_shell = shell.local(&mut local_messages);
 
         let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
@@ -570,7 +571,7 @@ where
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        let mut local_messages = Vec::new();
+        let mut local_messages = shell::Bus::new();
         let mut local_shell = shell.local(&mut local_messages);
 
         let _ = self.with_overlay_mut_maybe(|overlay| {

@@ -173,7 +173,7 @@ impl text::Editor for () {
 
     fn cursor(&self) -> text::editor::Cursor {
         text::editor::Cursor {
-            position: text::editor::Position { line: 0, column: 0 },
+            position: text::Position { line: 0, index: 0 },
             selection: None,
         }
     }
@@ -217,10 +217,13 @@ impl text::Editor for () {
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
         _new_wrapping: text::Wrapping,
+        _new_alignment: text::Alignment,
         _new_hint_factor: Option<f32>,
         _new_highlighter: &mut impl text::Highlighter,
     ) {
     }
+
+    fn overwrite(&mut self, _new_text: &str) {}
 
     fn highlight<H: text::Highlighter>(
         &mut self,
@@ -228,6 +231,18 @@ impl text::Editor for () {
         _highlighter: &mut H,
         _format_highlight: impl Fn(&H::Highlight) -> text::highlighter::Format<Self::Font>,
     ) {
+    }
+
+    fn text_size(&self) -> Pixels {
+        Pixels(0.0)
+    }
+
+    fn line_height(&self) -> text::LineHeight {
+        text::LineHeight::default()
+    }
+
+    fn font(&self) -> Self::Font {
+        Self::Font::default()
     }
 }
 
