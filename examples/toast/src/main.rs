@@ -89,9 +89,14 @@ impl App {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let subtitle = |title, content: Element<'static, Message>| {
-            column![text(title).size(14), content].spacing(5)
-        };
+        fn subtitle<'a>(
+            title: &'a str,
+            content: impl Into<Element<'a, Message>>,
+        ) -> Element<'a, Message> {
+            column![text(title).size(14), content.into()]
+                .spacing(5)
+                .into()
+        }
 
         let add_toast = button("Add Toast").on_press_maybe(
             (!self.editing.body.is_empty() && !self.editing.title.is_empty())
@@ -105,14 +110,12 @@ impl App {
                     text_input("", &self.editing.title)
                         .on_input(Message::Title)
                         .on_submit(Message::Add)
-                        .into()
                 ),
                 subtitle(
                     "Message",
                     text_input("", &self.editing.body)
                         .on_input(Message::Body)
                         .on_submit(Message::Add)
-                        .into()
                 ),
                 subtitle(
                     "Status",
@@ -123,7 +126,6 @@ impl App {
                     )
                     .on_select(Message::Status)
                     .width(Fill)
-                    .into()
                 ),
                 subtitle(
                     "Timeout",
@@ -132,7 +134,6 @@ impl App {
                         slider(1.0..=30.0, self.timeout_secs as f64, Message::Timeout).step(1.0)
                     ]
                     .spacing(5)
-                    .into()
                 ),
                 column![add_toast].align_x(Center)
             ]
@@ -158,6 +159,7 @@ mod toast {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::overlay;
     use iced::advanced::renderer;
+    use iced::advanced::shell;
     use iced::advanced::widget::{self, Operation, Tree};
     use iced::advanced::{Shell, Widget};
     use iced::mouse;
@@ -505,7 +507,7 @@ mod toast {
                 .zip(layout.children())
                 .zip(self.instants.iter_mut())
             {
-                let mut local_messages = vec![];
+                let mut local_messages = shell::Bus::new();
                 let mut local_shell = shell.local(&mut local_messages);
 
                 child.as_widget_mut().update(

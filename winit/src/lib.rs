@@ -40,6 +40,7 @@ pub use proxy::Proxy;
 use crate::core::backend;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
@@ -492,7 +493,7 @@ async fn run_instance<P>(
 
     let mut compositor = None;
     let mut events = Vec::new();
-    let mut messages = Vec::new();
+    let mut messages = shell::Bus::new();
     let mut actions = 0;
 
     let mut ui_caches = FxHashMap::default();
@@ -1231,7 +1232,7 @@ where
 fn update<P: Program, E: Executor>(
     program: &mut program::Instance<P>,
     runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
-    messages: &mut Vec<P::Message>,
+    messages: &mut shell::Bus<P::Message>,
 ) -> Vec<Action<P::Message>>
 where
     P::Theme: theme::Base,
@@ -1242,7 +1243,7 @@ where
     let mut outputs = Vec::new();
 
     while !messages.is_empty() {
-        for message in messages.drain(..) {
+        for message in messages.drain() {
             let task = runtime.enter(|| program.update(message));
 
             if let Some(mut stream) = runtime::task::into_stream(task) {
@@ -1270,7 +1271,9 @@ where
             }
         }
 
-        messages.append(&mut outputs);
+        for output in outputs.drain(..) {
+            let _ = messages.push(output);
+        }
     }
 
     let subscription = runtime.enter(|| program.subscription());
@@ -1288,7 +1291,7 @@ fn run_action<'a, P, C>(
     runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
-    messages: &mut Vec<P::Message>,
+    messages: &mut shell::Bus<P::Message>,
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     interfaces: &mut FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>,
@@ -1309,7 +1312,7 @@ fn run_action<'a, P, C>(
 
     match action {
         Action::Output(message) => {
-            messages.push(message);
+            let _ = messages.push(message);
         }
         Action::Clipboard(action) => match action {
             clipboard::Action::Read { kind, channel } => {

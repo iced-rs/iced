@@ -187,11 +187,7 @@ impl Editor {
             text({
                 let cursor = self.content.cursor();
 
-                format!(
-                    "{}:{}",
-                    cursor.position.line + 1,
-                    cursor.position.column + 1
-                )
+                format!("{}:{}", cursor.position.line + 1, cursor.position.index + 1)
             })
         ]
         .spacing(10);

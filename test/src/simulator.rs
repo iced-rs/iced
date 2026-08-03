@@ -29,7 +29,7 @@ pub struct Simulator<'a, Message, Theme = core::Theme, Renderer = renderer::Rend
     renderer: Renderer,
     size: Size,
     cursor: mouse::Cursor,
-    messages: Vec<Message>,
+    messages: shell::Bus<Message>,
 }
 
 impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
@@ -88,7 +88,7 @@ where
             renderer,
             size,
             cursor: mouse::Cursor::Unavailable,
-            messages: Vec::new(),
+            messages: shell::Bus::new(),
         }
     }
 

@@ -159,7 +159,7 @@ where
     ///
     /// // Initialize our event storage
     /// let mut events = Vec::new();
-    /// let mut messages = Vec::new();
+    /// let mut messages = shell::Bus::new();
     ///
     /// loop {
     ///     // Obtain system events...
@@ -184,7 +184,7 @@ where
     ///     cache = user_interface.into_cache();
     ///
     ///     // Process the produced messages
-    ///     for message in messages.drain(..) {
+    ///     for message in messages.drain() {
     ///         counter.update(message);
     ///     }
     /// }
@@ -196,7 +196,7 @@ where
         events: &[Event],
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
-        messages: &mut Vec<Message>,
+        messages: &mut shell::Bus<Message>,
     ) -> (State, Vec<event::Status>) {
         let mut outdated = false;
         let mut redraw_request = window::RedrawRequest::Wait;
@@ -459,7 +459,7 @@ where
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut events = Vec::new();
-    /// let mut messages = Vec::new();
+    /// let mut messages = shell::Bus::new();
     /// let mut theme = Theme::default();
     ///
     /// loop {
@@ -487,7 +487,7 @@ where
     ///
     ///     cache = user_interface.into_cache();
     ///
-    ///     for message in messages.drain(..) {
+    ///     for message in messages.drain() {
     ///         counter.update(message);
     ///     }
     ///

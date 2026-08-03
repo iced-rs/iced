@@ -4,7 +4,9 @@ use crate::event;
 use crate::window;
 use crate::{Clipboard, InputMethod, Window};
 
+use std::rc::{self, Rc};
 use std::sync::Arc;
+use std::vec;
 
 /// A connection to the state of a shell.
 ///
@@ -15,7 +17,7 @@ use std::sync::Arc;
 #[derive(Debug)]
 pub struct Shell<'a, Message> {
     window: &'a dyn Window,
-    messages: &'a mut Vec<Message>,
+    bus: &'a mut Bus<Message>,
     waker: Waker,
     event_status: event::Status,
     redraw_request: window::RedrawRequest,
@@ -27,10 +29,10 @@ pub struct Shell<'a, Message> {
 
 impl<'a, Message> Shell<'a, Message> {
     /// Creates a new [`Shell`] with the provided buffer of messages.
-    pub fn new(window: &'a dyn Window, waker: Waker, messages: &'a mut Vec<Message>) -> Self {
+    pub fn new(window: &'a dyn Window, waker: Waker, bus: &'a mut Bus<Message>) -> Self {
         Self {
             window,
-            messages,
+            bus,
             waker,
             event_status: event::Status::Ignored,
             redraw_request: window::RedrawRequest::Wait,
@@ -45,11 +47,11 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Creates a new [`Shell`] from the current one with the given list of local messages.
-    pub fn local<'b, A>(&self, messages: &'b mut Vec<A>) -> Shell<'b, A>
+    pub fn local<'b, A>(&self, bus: &'b mut Bus<A>) -> Shell<'b, A>
     where
         'a: 'b,
     {
-        Shell::new(self.window, self.waker.clone(), messages)
+        Shell::new(self.window, self.waker.clone(), bus)
     }
 
     /// Returns the [`Window`] of the [`Shell`].
@@ -65,12 +67,20 @@ impl<'a, Message> Shell<'a, Message> {
     /// Returns true if the [`Shell`] contains no published messages
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.messages.is_empty()
+        self.bus.messages.is_empty()
     }
 
     /// Publish the given `Message` for an application to process it.
     pub fn publish(&mut self, message: Message) {
-        self.messages.push(message);
+        let _ = self.publish_and_track(message);
+    }
+
+    /// Publish the given `Message` for an application to process it.
+    ///
+    /// The returned [`Tracking`] can be used to determine if the message
+    /// was processed.
+    pub fn publish_and_track(&mut self, message: Message) -> Tracking {
+        self.bus.push(message)
     }
 
     /// Marks the current event as captured. Prevents "event bubbling".
@@ -128,8 +138,8 @@ impl<'a, Message> Shell<'a, Message> {
     /// Requests the runtime to write the given [`clipboard::Content`] to the clipboard.
     ///
     /// The runtime will produce a [`clipboard::Event::Written`] when the contents have been written.
-    pub fn write_clipboard(&mut self, content: clipboard::Content) {
-        self.clipboard.write = Some(content);
+    pub fn write_clipboard(&mut self, content: impl Into<clipboard::Content>) {
+        self.clipboard.write = Some(content.into());
     }
 
     /// Returns the [`Clipboard`] requests of the [`Shell`], mutably.
@@ -202,7 +212,13 @@ impl<'a, Message> Shell<'a, Message> {
     ///
     /// This method is useful for composition.
     pub fn merge<B>(&mut self, mut other: Shell<'_, B>, f: impl Fn(B) -> Message) {
-        self.messages.extend(other.messages.drain(..).map(f));
+        self.bus.messages.extend(
+            other
+                .bus
+                .messages
+                .drain(..)
+                .map(|(message, receipt)| (f(message), receipt)),
+        );
 
         self.is_layout_invalid = match (self.is_layout_invalid, other.is_layout_invalid) {
             (Some(a), Some(b)) => Some(a.max(b)),
@@ -259,4 +275,89 @@ pub enum Diff {
     Skip,
     /// Performs diffing again before layouting.
     Perform,
+}
+
+/// A channel of messages published by a [`Shell`].
+#[derive(Debug)]
+pub struct Bus<T> {
+    messages: Vec<(T, Rc<()>)>,
+}
+
+impl<T> Bus<T> {
+    /// Creates an empty [`Bus`].
+    pub fn new() -> Self {
+        Self {
+            messages: Vec::new(),
+        }
+    }
+
+    /// Returns `true` if the [`Bus`] has no messages pending.
+    pub fn is_empty(&self) -> bool {
+        self.messages.is_empty()
+    }
+
+    /// Returns the amount of messages pending in the [`Bus`].
+    pub fn len(&self) -> usize {
+        self.messages.len()
+    }
+
+    /// Pushes a new message to the [`Bus`].
+    ///
+    /// The returned [`Tracking`] can be used to determine if the message
+    /// was processed.
+    pub fn push(&mut self, message: T) -> Tracking {
+        let receipt = Rc::new(());
+        let tracking = Tracking(Rc::downgrade(&receipt));
+
+        self.messages.push((message, receipt));
+
+        tracking
+    }
+
+    /// Drains the [`Bus`].
+    pub fn drain(&mut self) -> impl Iterator<Item = T> {
+        self.messages.drain(..).map(|(message, _receipt)| message)
+    }
+}
+
+impl<T> Default for Bus<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> IntoIterator for Bus<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            iter: self.messages.into_iter(),
+        }
+    }
+}
+
+/// An iterator returned by the implementation of [`IntoIterator`] for [`Bus`].
+pub struct IntoIter<T> {
+    iter: vec::IntoIter<(T, Rc<()>)>,
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.iter.next()?.0)
+    }
+}
+
+/// A message tracking returned by [`Shell::publish`].
+#[derive(Debug, Clone)]
+pub struct Tracking(rc::Weak<()>);
+
+impl Tracking {
+    /// Returns `true` if the message of this [`Tracking`] has been processed
+    /// by `update` logic.
+    pub fn is_processed(&self) -> bool {
+        self.0.strong_count() == 0
+    }
 }

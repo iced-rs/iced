@@ -300,7 +300,7 @@ impl<P: Program + 'static> Emulator<P> {
             &mut self.renderer,
         );
 
-        let mut messages = Vec::new();
+        let mut messages = shell::Bus::new();
 
         match instruction {
             Instruction::Interact(interaction) => {
@@ -489,7 +489,7 @@ impl<P: Program + 'static> Emulator<P> {
             ))],
             mouse::Cursor::Unavailable,
             &mut self.renderer,
-            &mut Vec::new(),
+            &mut shell::Bus::new(),
         );
 
         user_interface.draw(

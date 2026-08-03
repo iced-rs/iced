@@ -2,6 +2,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::shell;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
@@ -320,7 +321,7 @@ where
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
     ) {
-        let mut local_messages = Vec::new();
+        let mut local_messages = shell::Bus::new();
         let mut local_shell = shell.local(&mut local_messages);
 
         self.widget.update(
