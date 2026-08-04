@@ -295,6 +295,7 @@ struct State<H: Highlighter> {
     highlighter_settings: H::Settings,
     highlighter_format_address: usize,
     last_theme: RefCell<Option<String>>,
+    last_id: Option<widget::Id>,
 }
 
 impl<Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -315,7 +316,14 @@ where
             highlighter_settings: self.highlighter_settings.clone(),
             highlighter_format_address: self.highlighter_format as usize,
             last_theme: RefCell::new(None),
+            last_id: self.id.clone(),
         })
+    }
+
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        if tree.state.downcast_mut::<State<Highlighter>>().last_id != self.id {
+            tree.state = self.state();
+        }
     }
 
     fn size(&self) -> Size<Length> {
