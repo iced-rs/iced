@@ -248,7 +248,7 @@ impl<R: text::Renderer> Input<R> {
                     editor::Update::Action(action) => {
                         let action = match action {
                             editor::Action::Edit(editor::Edit::Insert(_)) => {
-                                editor::Action::Edit(editor::Edit::Insert('•'))
+                                editor::Action::Edit(editor::Edit::Insert(SECURE_CHAR))
                             }
                             editor::Action::Edit(editor::Edit::Paste(text)) => {
                                 let text = protect(text, is_multiline);
