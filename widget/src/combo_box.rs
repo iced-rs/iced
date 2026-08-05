@@ -438,6 +438,7 @@ where
                 line_height: self.line_height,
                 alignment: text::Alignment::Default,
                 multiline: None,
+                is_secure: false,
             },
         )
     }

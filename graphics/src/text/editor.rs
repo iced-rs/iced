@@ -622,6 +622,8 @@ impl editor::Editor for Editor {
                         index: selection.index,
                         affinity: cosmic_text::Affinity::Before,
                     }));
+            } else {
+                internal.editor.set_selection(cosmic_text::Selection::None);
             }
         });
     }

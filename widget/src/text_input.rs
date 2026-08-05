@@ -314,6 +314,7 @@ where
                 line_height: self.line_height,
                 alignment: self.alignment,
                 multiline: self.multiline,
+                is_secure: self.is_secure,
             },
         )
     }
@@ -361,7 +362,7 @@ where
 
             if let Some(edit) = edit {
                 let on_input = if let Some(on_paste) = &self.on_paste
-                    && edit.is_paste
+                    && edit.has_pasted
                 {
                     on_paste
                 } else {
