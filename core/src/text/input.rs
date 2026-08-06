@@ -132,7 +132,11 @@ impl<R: text::Renderer> Input<R> {
             match update {
                 editor::Update::Action(action) => {
                     let (action, is_paste) = match action {
-                        editor::Action::Edit(editor::Edit::Enter) if !is_multiline => {
+                        editor::Action::Edit(editor::Edit::Enter)
+                        | editor::Action::Move(editor::Motion::Up)
+                        | editor::Action::Move(editor::Motion::Down)
+                            if !is_multiline =>
+                        {
                             return None;
                         }
                         editor::Action::Edit(editor::Edit::Paste(text)) => (
