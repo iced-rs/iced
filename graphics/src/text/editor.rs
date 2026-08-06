@@ -448,7 +448,59 @@ impl editor::Editor for Editor {
                         Edit::Backspace => {
                             editor.action(font_system.raw(), cosmic_text::Action::Backspace);
                         }
+                        Edit::BackspaceWord => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::PreviousWord),
+                                );
+                            }
+
+                            editor.action(font_system.raw(), cosmic_text::Action::Backspace);
+                        }
+                        Edit::BackspaceLine => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::Home),
+                                );
+                            }
+
+                            editor.action(font_system.raw(), cosmic_text::Action::Backspace);
+                        }
                         Edit::Delete => {
+                            editor.action(font_system.raw(), cosmic_text::Action::Delete);
+                        }
+                        Edit::DeleteWord => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::NextWord),
+                                );
+                            }
+
+                            editor.action(font_system.raw(), cosmic_text::Action::Delete);
+                        }
+                        Edit::DeleteLine => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::End),
+                                );
+                            }
+
                             editor.action(font_system.raw(), cosmic_text::Action::Delete);
                         }
                         Edit::Undo => {
