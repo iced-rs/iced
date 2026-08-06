@@ -383,6 +383,12 @@ struct Internal<T, R: text::Renderer> {
 }
 
 impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
+    fn hovered_option(&self) -> usize {
+        let index = self.hovered_option.unwrap_or_default();
+
+        index.min(self.filtered_options.len().saturating_sub(1))
+    }
+
     fn filter(&mut self, options: &[T], value: &str) {
         self.option_matchers = build_matchers(options);
         self.filtered_options = search(options, &self.option_matchers, value)
@@ -524,8 +530,10 @@ where
             {
                 match (named_key, modifiers.shift()) {
                     (key::Named::Enter, _) => {
-                        if let Some(index) = &internal.hovered_option
-                            && let Some(option) = internal.filtered_options.get(*index).cloned()
+                        if let Some(option) = internal
+                            .filtered_options
+                            .get(internal.hovered_option())
+                            .cloned()
                         {
                             internal.menu = menu::State::default();
                             internal.editor.selection = None;
@@ -539,15 +547,13 @@ where
                         shell.request_redraw();
                     }
                     (key::Named::ArrowUp, _) | (key::Named::Tab, true) => {
-                        if let Some(index) = &mut internal.hovered_option {
-                            if *index == 0 {
-                                *index = internal.filtered_options.len().saturating_sub(1);
-                            } else {
-                                *index = index.saturating_sub(1);
-                            }
+                        let index = internal.hovered_option();
+
+                        internal.hovered_option = Some(if index == 0 {
+                            internal.filtered_options.len().saturating_sub(1)
                         } else {
-                            internal.hovered_option = Some(0);
-                        }
+                            index.saturating_sub(1)
+                        });
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal
@@ -561,17 +567,17 @@ where
                         shell.request_redraw();
                     }
                     (key::Named::ArrowDown, _) | (key::Named::Tab, false) => {
-                        if let Some(index) = &mut internal.hovered_option {
-                            if *index >= internal.filtered_options.len().saturating_sub(1) {
-                                *index = 0;
+                        let index = internal.hovered_option();
+
+                        internal.hovered_option = Some(
+                            if index >= internal.filtered_options.len().saturating_sub(1) {
+                                0
                             } else {
-                                *index = index
+                                index
                                     .saturating_add(1)
-                                    .min(internal.filtered_options.len().saturating_sub(1));
-                            }
-                        } else {
-                            internal.hovered_option = Some(0);
-                        }
+                                    .min(internal.filtered_options.len().saturating_sub(1))
+                            },
+                        );
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal

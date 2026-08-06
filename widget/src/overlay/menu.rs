@@ -404,11 +404,15 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
+        let hovered_option = self
+            .hovered_option
+            .unwrap_or_default()
+            .min(self.options.len().saturating_sub(1));
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if cursor.is_over(layout.bounds())
-                    && let Some(index) = *self.hovered_option
-                    && let Some(option) = self.options.get(index)
+                    && let Some(option) = self.options.get(hovered_option)
                 {
                     shell.publish((self.on_selected)(option.clone()));
                     shell.capture_event();
@@ -423,7 +427,7 @@ where
 
                     let new_hovered_option = (cursor_position.y / option_height) as usize;
 
-                    if *self.hovered_option != Some(new_hovered_option)
+                    if hovered_option != new_hovered_option
                         && let Some(option) = self.options.get(new_hovered_option)
                     {
                         if let Some(on_option_hovered) = self.on_option_hovered {
@@ -506,10 +510,13 @@ where
         let end = ((offset + viewport.height) / option_height).ceil() as usize;
 
         let visible_options = &self.options[start..end.min(self.options.len())];
+        let hovered_option = self
+            .hovered_option
+            .map(|index| index.min(self.options.len().saturating_sub(1)));
 
         for (i, option) in visible_options.iter().enumerate() {
             let i = start + i;
-            let is_selected = *self.hovered_option == Some(i);
+            let is_selected = hovered_option == Some(i);
 
             let bounds = Rectangle {
                 x: bounds.x,
