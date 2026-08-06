@@ -529,6 +529,7 @@ where
                         {
                             internal.menu = menu::State::default();
                             internal.editor.selection = None;
+                            internal.editor.input.overwrite("");
                             internal.editor.input.unfocus();
 
                             shell.publish((self.on_selected)(option));
@@ -713,6 +714,7 @@ where
                     &T::to_string,
                     |selection| {
                         editor.selection = None;
+                        editor.input.overwrite("");
                         editor.input.unfocus();
 
                         (self.on_selected)(selection)
