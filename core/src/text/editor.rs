@@ -316,7 +316,7 @@ pub struct State {
     focus: Option<Focus>,
     preedit: Option<input_method::Preedit>,
     last_click: Option<mouse::Click>,
-    drag_click: Option<mouse::click::Kind>,
+    is_dragging: bool,
     partial_scroll: f32,
 }
 
@@ -398,7 +398,7 @@ impl State {
 
                         self.focus = Some(Focus::now());
                         self.last_click = Some(click);
-                        self.drag_click = Some(click.kind());
+                        self.is_dragging = true;
 
                         Some(Update::Action(Action::Click(
                             click.position(),
@@ -413,19 +413,16 @@ impl State {
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    self.drag_click = None;
+                    self.is_dragging = false;
 
                     Some(Update::Release)
                 }
-                mouse::Event::CursorMoved { .. } => match self.drag_click {
-                    Some(mouse::click::Kind::Single) => {
-                        let position =
-                            cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
+                mouse::Event::CursorMoved { .. } if self.is_dragging => {
+                    let position =
+                        cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
 
-                        Some(Update::Action(Action::Drag(position)))
-                    }
-                    _ => None,
-                },
+                    Some(Update::Action(Action::Drag(position)))
+                }
                 mouse::Event::WheelScrolled { delta } if cursor.is_over(bounds) => {
                     let bounds = editor.bounds();
 
@@ -502,7 +499,7 @@ impl State {
                     match binding {
                         Binding::Unfocus => {
                             state.focus = None;
-                            state.drag_click = None;
+                            state.is_dragging = false;
 
                             None
                         }
