@@ -541,14 +541,24 @@ impl editor::Editor for Editor {
                 }
 
                 // Mouse events
-                Action::Click(position) => {
+                Action::Click(position, kind) => {
                     let scroll = buffer_from_editor(editor).scroll();
+
+                    let x = ((position.x + scroll.horizontal) * internal.hint_factor) as i32;
+                    let y = (position.y * internal.hint_factor) as i32;
 
                     editor.action(
                         font_system.raw(),
-                        cosmic_text::Action::Click {
-                            x: ((position.x + scroll.horizontal) * internal.hint_factor) as i32,
-                            y: (position.y * internal.hint_factor) as i32,
+                        match kind {
+                            iced_core::mouse::click::Kind::Single => {
+                                cosmic_text::Action::Click { x, y }
+                            }
+                            iced_core::mouse::click::Kind::Double => {
+                                cosmic_text::Action::DoubleClick { x, y }
+                            }
+                            iced_core::mouse::click::Kind::Triple => {
+                                cosmic_text::Action::TripleClick { x, y }
+                            }
                         },
                     );
 

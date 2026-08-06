@@ -135,7 +135,7 @@ pub enum Action {
     /// Perform an [`Edit`].
     Edit(Edit),
     /// Click the [`Editor`] at the given [`Point`].
-    Click(Point),
+    Click(Point, mouse::click::Kind),
     /// Drag the mouse on the [`Editor`] to the given [`Point`].
     Drag(Point),
     /// Scroll the [`Editor`] a certain amount of lines.
@@ -396,17 +396,14 @@ impl State {
                             self.last_click,
                         );
 
-                        let action = match click.kind() {
-                            mouse::click::Kind::Single => Action::Click(click.position()),
-                            mouse::click::Kind::Double => Action::SelectWord,
-                            mouse::click::Kind::Triple => Action::SelectLine,
-                        };
-
                         self.focus = Some(Focus::now());
                         self.last_click = Some(click);
                         self.drag_click = Some(click.kind());
 
-                        Some(Update::Action(action))
+                        Some(Update::Action(Action::Click(
+                            click.position(),
+                            click.kind(),
+                        )))
                     } else if self.focus.is_some() {
                         self.focus = None;
 
