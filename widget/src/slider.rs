@@ -28,12 +28,14 @@
 //!     }
 //! }
 //! ```
+
 use crate::core::border::{self, Border};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -639,7 +641,7 @@ impl Catalog for Theme {
     type Class<'a> = StyleFn<'a, Self>;
 
     fn default<'a>() -> Self::Class<'a> {
-        Box::new(default)
+        Box::new(primary)
     }
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
@@ -647,19 +649,41 @@ impl Catalog for Theme {
     }
 }
 
-/// The default style of a [`Slider`].
-pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.palette();
+/// A slider with a primary color.
+pub fn primary(theme: &Theme, status: Status) -> Style {
+    styled(theme, status, theme.palette().primary)
+}
 
+/// A slider with a secondary color.
+pub fn secondary(theme: &Theme, status: Status) -> Style {
+    styled(theme, status, theme.palette().secondary)
+}
+
+/// A slider with a success color.
+pub fn success(theme: &Theme, status: Status) -> Style {
+    styled(theme, status, theme.palette().success)
+}
+
+/// A slider with a warning color.
+pub fn warning(theme: &Theme, status: Status) -> Style {
+    styled(theme, status, theme.palette().warning)
+}
+
+/// A slider with a danger color.
+pub fn danger(theme: &Theme, status: Status) -> Style {
+    styled(theme, status, theme.palette().danger)
+}
+
+fn styled(theme: &Theme, status: Status, swatch: palette::Swatch) -> Style {
     let color = match status {
-        Status::Active => palette.primary.base.color,
-        Status::Hovered => palette.primary.strong.color,
-        Status::Dragged => palette.primary.weak.color,
+        Status::Active => swatch.base.color,
+        Status::Hovered => swatch.strong.color,
+        Status::Dragged => swatch.weak.color,
     };
 
     Style {
         rail: Rail {
-            backgrounds: (color.into(), palette.background.strong.color.into()),
+            backgrounds: (color.into(), theme.palette().background.strong.color.into()),
             width: 4.0,
             border: Border {
                 radius: 2.0.into(),
