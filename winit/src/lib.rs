@@ -439,15 +439,6 @@ where
             use winit::data_transfer::TypeHint;
             use winit::event_loop::DndAction;
 
-            let mut emit_file_event = |event: window::Event| {
-                self.sender
-                    .start_send(Event::EventLoopAwakened(EventLoopEvent::FileEvent {
-                        window_id,
-                        event: crate::core::Event::Window(event),
-                    }))
-                    .expect("Send event");
-            };
-
             match event {
                 winit::event::WindowEvent::DragEntered { id, .. } => {
                     let _ = event_loop.set_valid_dnd_actions(id, &[DndAction::Copy]);
@@ -480,18 +471,32 @@ where
                         Err(_) => return,
                     };
 
-                    let Some(path) = paths.into_iter().next() else {
-                        return;
-                    };
-
                     if drag.dropped {
                         self.drag = None;
 
-                        emit_file_event(window::Event::FileDropped(path));
+                        for path in paths {
+                            let _ = self.sender.start_send(Event::EventLoopAwakened(
+                                EventLoopEvent::FileEvent {
+                                    window_id,
+                                    event: crate::core::Event::Window(window::Event::FileDropped(
+                                        path,
+                                    )),
+                                },
+                            ));
+                        }
                     } else {
-                        drag.path = Some(path.clone());
+                        drag.path = Some(paths.clone());
 
-                        emit_file_event(window::Event::FileHovered(path));
+                        for path in paths {
+                            let _ = self.sender.start_send(Event::EventLoopAwakened(
+                                EventLoopEvent::FileEvent {
+                                    window_id,
+                                    event: crate::core::Event::Window(window::Event::FileHovered(
+                                        path,
+                                    )),
+                                },
+                            ));
+                        }
                     }
                 }
                 winit::event::WindowEvent::DragDropped { id, .. } => {
@@ -506,7 +511,16 @@ where
                     if let Some(path) = drag.path.take() {
                         self.drag = None;
 
-                        emit_file_event(window::Event::FileDropped(path));
+                        for path in path {
+                            let _ = self.sender.start_send(Event::EventLoopAwakened(
+                                EventLoopEvent::FileEvent {
+                                    window_id,
+                                    event: crate::core::Event::Window(window::Event::FileDropped(
+                                        path,
+                                    )),
+                                },
+                            ));
+                        }
                     } else {
                         drag.dropped = true;
 
@@ -519,7 +533,12 @@ where
                         .take_if(|drag| drag.id == id && drag.window_id == window_id)
                         .is_some()
                     {
-                        emit_file_event(window::Event::FilesHoveredLeft);
+                        let _ = self.sender.start_send(Event::EventLoopAwakened(
+                            EventLoopEvent::FileEvent {
+                                window_id,
+                                event: crate::core::Event::Window(window::Event::FilesHoveredLeft),
+                            },
+                        ));
                     }
                 }
                 _ => {}
@@ -576,7 +595,7 @@ enum EventLoopEvent<Message: 'static> {
 struct DragSession {
     window_id: winit::window::WindowId,
     id: winit::data_transfer::DataTransferId,
-    path: Option<std::path::PathBuf>,
+    path: Option<Vec<std::path::PathBuf>>,
     dropped: bool,
 }
 
