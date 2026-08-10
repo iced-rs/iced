@@ -12,9 +12,10 @@ use std::pin::Pin;
 /// An event loop proxy with backpressure that implements `Sink`.
 #[derive(Debug)]
 pub struct Proxy<T: 'static> {
-    raw: winit::event_loop::EventLoopProxy<Action<T>>,
+    raw: winit::event_loop::EventLoopProxy,
     sender: mpsc::Sender<Action<T>>,
     notifier: mpsc::Sender<usize>,
+    outbox: mpsc::UnboundedSender<Action<T>>,
 }
 
 impl<T: 'static> Clone for Proxy<T> {
@@ -23,6 +24,7 @@ impl<T: 'static> Clone for Proxy<T> {
             raw: self.raw.clone(),
             sender: self.sender.clone(),
             notifier: self.notifier.clone(),
+            outbox: self.outbox.clone(),
         }
     }
 }
@@ -32,10 +34,16 @@ impl<T: 'static> Proxy<T> {
 
     /// Creates a new [`Proxy`] from an `EventLoopProxy`.
     pub fn new(
-        raw: winit::event_loop::EventLoopProxy<Action<T>>,
-    ) -> (Self, impl Future<Output = ()>) {
+        raw: winit::event_loop::EventLoopProxy,
+    ) -> (
+        Self,
+        impl Future<Output = ()>,
+        mpsc::UnboundedReceiver<Action<T>>,
+    ) {
         let (notifier, mut processed) = mpsc::channel(Self::MAX_SIZE);
         let (sender, mut receiver) = mpsc::channel(Self::MAX_SIZE);
+        let (outbox, outbox_receiver) = mpsc::unbounded();
+        let worker_outbox = outbox.clone();
         let proxy = raw.clone();
 
         let worker = async move {
@@ -45,7 +53,8 @@ impl<T: 'static> Proxy<T> {
                 if count < Self::MAX_SIZE {
                     select! {
                         message = receiver.select_next_some() => {
-                            let _ = proxy.send_event(message);
+                            let _ = worker_outbox.unbounded_send(message);
+                            proxy.wake_up();
                             count += 1;
                         }
                         amount = processed.select_next_some() => {
@@ -69,8 +78,10 @@ impl<T: 'static> Proxy<T> {
                 raw,
                 sender,
                 notifier,
+                outbox,
             },
             worker,
+            outbox_receiver,
         )
     }
 
@@ -92,7 +103,8 @@ impl<T: 'static> Proxy<T> {
     /// Note: This skips the backpressure mechanism with an unbounded
     /// channel. Use sparingly!
     pub fn send_action(&self, action: Action<T>) {
-        let _ = self.raw.send_event(action);
+        let _ = self.outbox.unbounded_send(action);
+        self.raw.wake_up();
     }
 
     /// Frees an amount of slots for additional messages to be queued in
