@@ -35,7 +35,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
     enum Runner {
         Loading,
         Ready {
-            window: Arc<winit::window::Window>,
+            window: Arc<dyn winit::window::Window>,
             queue: wgpu::Queue,
             device: wgpu::Device,
             surface: wgpu::Surface<'static>,
@@ -53,15 +53,15 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
     }
 
     impl winit::application::ApplicationHandler for Runner {
-        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
+        fn resumed(&mut self, event_loop: &dyn winit::event_loop::ActiveEventLoop) {
             if let Self::Loading = self {
-                let window = Arc::new(
+                let window: Arc<dyn winit::window::Window> = Arc::from(
                     event_loop
                         .create_window(winit::window::WindowAttributes::default())
                         .expect("Create window"),
                 );
 
-                let physical_size = window.inner_size();
+                let physical_size = window.surface_size();
                 let viewport = Viewport::with_physical_size(
                     Size::new(physical_size.width, physical_size.height),
                     renderer::Scale {
@@ -174,9 +174,11 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             }
         }
 
+        fn can_create_surfaces(&mut self, _event_loop: &dyn winit::event_loop::ActiveEventLoop) {}
+
         fn window_event(
             &mut self,
-            event_loop: &winit::event_loop::ActiveEventLoop,
+            event_loop: &dyn winit::event_loop::ActiveEventLoop,
             _window_id: winit::window::WindowId,
             event: WindowEvent,
         ) {
@@ -207,7 +209,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             match event {
                 WindowEvent::RedrawRequested => {
                     if *resized {
-                        let size = window.inner_size();
+                        let size = window.surface_size();
 
                         *viewport = Viewport::with_physical_size(
                             Size::new(size.width, size.height),
@@ -285,7 +287,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 if let Some(icon) =
                                     iced_winit::conversion::mouse_interaction(mouse_interaction)
                                 {
-                                    window.set_cursor(icon);
+                                    window.set_cursor(winit::cursor::Cursor::Icon(icon));
                                     window.set_cursor_visible(true);
                                 } else {
                                     window.set_cursor_visible(false);
@@ -312,7 +314,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                         }
                     }
                 }
-                WindowEvent::CursorMoved { position, .. } => {
+                WindowEvent::PointerMoved { position, .. } => {
                     *cursor = mouse::Cursor::Available(conversion::cursor_position(
                         position,
                         viewport.scale_factor(),
@@ -321,7 +323,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 WindowEvent::ModifiersChanged(new_modifiers) => {
                     *modifiers = new_modifiers.state();
                 }
-                WindowEvent::Resized(_) => {
+                WindowEvent::SurfaceResized(_) => {
                     *resized = true;
                 }
                 WindowEvent::CloseRequested => {
@@ -365,6 +367,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
         }
     }
 
-    let mut runner = Runner::Loading;
-    event_loop.run_app(&mut runner)
+    let runner = Runner::Loading;
+    event_loop.run_app(runner)
 }
