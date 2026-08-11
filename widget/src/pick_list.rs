@@ -467,7 +467,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Pointer(pointer::Event::MouseWheel {
+            Event::Pointer(pointer::Event::WheelScrolled {
                 delta: mouse::ScrollDelta::Lines { y, .. },
             }) => {
                 let Some(on_select) = &self.on_select else {
