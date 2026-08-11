@@ -1,6 +1,6 @@
 use crate::Point;
 
-use super::{ButtonSource, PointerKind, PointerSource};
+use super::{ButtonSource, MouseButton, PointerKind, PointerSource, TabletToolButton};
 
 /// A pointer event.
 #[derive(Debug, Clone, PartialEq)]
@@ -52,6 +52,70 @@ pub enum Event {
         /// The scroll movement.
         delta: ScrollDelta,
     },
+}
+
+impl Event {
+    /// Returns whether the event is a mouse left click, finger press, or tablet contact.
+    pub fn is_primary_click(&self) -> bool {
+        matches!(
+            self,
+            Self::PointerPressed {
+                button: ButtonSource::Mouse(MouseButton::Left)
+                    | ButtonSource::Touch { .. }
+                    | ButtonSource::TabletTool {
+                        button: TabletToolButton::Contact,
+                        ..
+                    },
+                ..
+            }
+        )
+    }
+
+    /// Returns whether the event is a mouse left release, finger lift, or tablet contact release.
+    pub fn is_primary_release(&self) -> bool {
+        matches!(
+            self,
+            Self::PointerReleased {
+                button: ButtonSource::Mouse(MouseButton::Left)
+                    | ButtonSource::Touch { .. }
+                    | ButtonSource::TabletTool {
+                        button: TabletToolButton::Contact,
+                        ..
+                    },
+                ..
+            }
+        )
+    }
+
+    /// Returns whether the event is a mouse right click or tablet barrel press.
+    pub fn is_secondary_click(&self) -> bool {
+        matches!(
+            self,
+            Self::PointerPressed {
+                button: ButtonSource::Mouse(MouseButton::Right)
+                    | ButtonSource::TabletTool {
+                        button: TabletToolButton::Barrel,
+                        ..
+                    },
+                ..
+            }
+        )
+    }
+
+    /// Returns whether the event is a mouse right release or tablet barrel lift.
+    pub fn is_secondary_release(&self) -> bool {
+        matches!(
+            self,
+            Self::PointerReleased {
+                button: ButtonSource::Mouse(MouseButton::Right)
+                    | ButtonSource::TabletTool {
+                        button: TabletToolButton::Barrel,
+                        ..
+                    },
+                ..
+            }
+        )
+    }
 }
 
 /// A scroll movement.
