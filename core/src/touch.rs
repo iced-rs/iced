@@ -1,5 +1,8 @@
 //! Build touch events.
+
 use crate::Point;
+
+pub use crate::pointer::touch::Finger;
 
 /// A touch interaction.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -17,7 +20,3 @@ pub enum Event {
     /// A touch interaction was canceled.
     FingerLost { id: Finger, position: Point },
 }
-
-/// A unique identifier representing a finger on a touch interaction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Finger(pub u64);

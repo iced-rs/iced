@@ -1,6 +1,6 @@
 use crate::Point;
-
-use super::{ButtonSource, MouseButton, PointerKind, PointerSource, TabletToolButton};
+use crate::pointer;
+use crate::pointer::{button, mouse, tablet};
 
 /// A pointer event.
 #[derive(Debug, Clone, PartialEq)]
@@ -11,13 +11,13 @@ pub enum Event {
         position: Point,
 
         /// The kind of pointer that entered the window.
-        kind: PointerKind,
+        kind: pointer::Kind,
     },
 
     /// A pointer left the window.
     PointerLeft {
         /// The kind of pointer that left the window.
-        kind: PointerKind,
+        kind: pointer::Kind,
     },
 
     /// A pointer moved within the window.
@@ -26,7 +26,7 @@ pub enum Event {
         position: Point,
 
         /// The source of the pointer movement.
-        source: PointerSource,
+        source: pointer::Source,
     },
 
     /// A pointer button was pressed.
@@ -35,7 +35,7 @@ pub enum Event {
         position: Point,
 
         /// The source and button that were pressed.
-        button: ButtonSource,
+        button: button::Source,
     },
 
     /// A pointer button was released.
@@ -44,13 +44,13 @@ pub enum Event {
         position: Point,
 
         /// The source and button that were released.
-        button: ButtonSource,
+        button: button::Source,
     },
 
     /// A mouse wheel or touchpad was scrolled.
     MouseWheel {
         /// The scroll movement.
-        delta: ScrollDelta,
+        delta: mouse::ScrollDelta,
     },
 }
 
@@ -60,10 +60,10 @@ impl Event {
         matches!(
             self,
             Self::PointerPressed {
-                button: ButtonSource::Mouse(MouseButton::Left)
-                    | ButtonSource::Touch { .. }
-                    | ButtonSource::TabletTool {
-                        button: TabletToolButton::Contact,
+                button: button::Source::Mouse(mouse::Button::Left)
+                    | button::Source::Touch { .. }
+                    | button::Source::TabletTool {
+                        button: tablet::Button::Contact,
                         ..
                     },
                 ..
@@ -76,10 +76,10 @@ impl Event {
         matches!(
             self,
             Self::PointerReleased {
-                button: ButtonSource::Mouse(MouseButton::Left)
-                    | ButtonSource::Touch { .. }
-                    | ButtonSource::TabletTool {
-                        button: TabletToolButton::Contact,
+                button: button::Source::Mouse(mouse::Button::Left)
+                    | button::Source::Touch { .. }
+                    | button::Source::TabletTool {
+                        button: tablet::Button::Contact,
                         ..
                     },
                 ..
@@ -92,9 +92,9 @@ impl Event {
         matches!(
             self,
             Self::PointerPressed {
-                button: ButtonSource::Mouse(MouseButton::Right)
-                    | ButtonSource::TabletTool {
-                        button: TabletToolButton::Barrel,
+                button: button::Source::Mouse(mouse::Button::Right)
+                    | button::Source::TabletTool {
+                        button: tablet::Button::Barrel,
                         ..
                     },
                 ..
@@ -107,35 +107,13 @@ impl Event {
         matches!(
             self,
             Self::PointerReleased {
-                button: ButtonSource::Mouse(MouseButton::Right)
-                    | ButtonSource::TabletTool {
-                        button: TabletToolButton::Barrel,
+                button: button::Source::Mouse(mouse::Button::Right)
+                    | button::Source::TabletTool {
+                        button: tablet::Button::Barrel,
                         ..
                     },
                 ..
             }
         )
     }
-}
-
-/// A scroll movement.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ScrollDelta {
-    /// A line-based scroll movement.
-    Lines {
-        /// The number of horizontal lines scrolled.
-        x: f32,
-
-        /// The number of vertical lines scrolled.
-        y: f32,
-    },
-
-    /// A pixel-based scroll movement.
-    Pixels {
-        /// The number of horizontal pixels scrolled.
-        x: f32,
-
-        /// The number of vertical pixels scrolled.
-        y: f32,
-    },
 }
