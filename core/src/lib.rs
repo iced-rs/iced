@@ -26,6 +26,7 @@ pub mod length;
 pub mod mouse;
 pub mod overlay;
 pub mod padding;
+pub mod pointer;
 pub mod renderer;
 pub mod shell;
 pub mod svg;
