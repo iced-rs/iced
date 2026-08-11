@@ -1,3 +1,9 @@
+//! Handle touch input.
+
+/// A unique identifier representing a finger in a touch interaction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Finger(pub u64);
+
 /// The force of a touch or tablet interaction.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Force {

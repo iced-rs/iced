@@ -1,6 +1,6 @@
 use crate::Point;
 
-use super::Button;
+use super::{Button, ScrollDelta};
 
 /// A mouse event.
 ///
@@ -32,25 +32,5 @@ pub enum Event {
     WheelScrolled {
         /// The scroll movement.
         delta: ScrollDelta,
-    },
-}
-
-/// A scroll movement.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ScrollDelta {
-    /// A line-based scroll movement
-    Lines {
-        /// The number of horizontal lines scrolled
-        x: f32,
-
-        /// The number of vertical lines scrolled
-        y: f32,
-    },
-    /// A pixel-based scroll movement
-    Pixels {
-        /// The number of horizontal pixels scrolled
-        x: f32,
-        /// The number of vertical pixels scrolled
-        y: f32,
     },
 }
