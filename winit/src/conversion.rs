@@ -6,8 +6,8 @@
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::pointer;
 use crate::core::theme;
-use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
 
@@ -173,90 +173,60 @@ pub fn window_event(
         WindowEvent::CloseRequested => Some(Event::Window(window::Event::CloseRequested)),
         WindowEvent::PointerMoved {
             position, source, ..
-        } => match source {
-            winit::event::PointerSource::Touch { finger_id, .. } => {
-                let position = position.to_logical::<f64>(f64::from(scale_factor));
+        } => {
+            let position = position.to_logical::<f64>(f64::from(scale_factor));
 
-                Some(Event::Touch(touch::Event::FingerMoved {
-                    id: touch::Finger(finger_id.into_raw() as u64),
-                    position: Point::new(position.x as f32, position.y as f32),
-                }))
-            }
-            _ => {
-                let position = position.to_logical::<f64>(f64::from(scale_factor));
+            Some(Event::Pointer(pointer::Event::PointerMoved {
+                position: Point::new(position.x as f32, position.y as f32),
+                source: pointer_source(source)?,
+            }))
+        }
+        WindowEvent::PointerEntered { position, kind, .. } => {
+            let position = position.to_logical::<f64>(f64::from(scale_factor));
 
-                Some(Event::Mouse(mouse::Event::CursorMoved {
-                    position: Point::new(position.x as f32, position.y as f32),
-                }))
-            }
-        },
-        WindowEvent::PointerEntered { kind, .. } => match kind {
-            winit::event::PointerKind::Touch(_) => None,
-            _ => Some(Event::Mouse(mouse::Event::CursorEntered)),
-        },
-        WindowEvent::PointerLeft { position, kind, .. } => match kind {
-            winit::event::PointerKind::Touch(finger_id) => {
-                let id = touch::Finger(finger_id.into_raw() as u64);
-
-                position.map(|position| {
-                    let position = position.to_logical::<f64>(f64::from(scale_factor));
-
-                    Event::Touch(touch::Event::FingerLost {
-                        id,
-                        position: Point::new(position.x as f32, position.y as f32),
-                    })
-                })
-            }
-            _ => Some(Event::Mouse(mouse::Event::CursorLeft)),
-        },
+            Some(Event::Pointer(pointer::Event::PointerEntered {
+                position: Point::new(position.x as f32, position.y as f32),
+                kind: pointer_kind(kind)?,
+            }))
+        }
+        WindowEvent::PointerLeft { kind, .. } => {
+            Some(Event::Pointer(pointer::Event::PointerLeft {
+                kind: pointer_kind(kind)?,
+            }))
+        }
         WindowEvent::PointerButton {
             button,
             state,
             position,
             ..
-        } => match button {
-            winit::event::ButtonSource::Mouse(button) => {
-                let button = mouse_button(button);
+        } => {
+            let position = position.to_logical::<f64>(f64::from(scale_factor));
+            let position = Point::new(position.x as f32, position.y as f32);
+            let button = button_source(button)?;
 
-                Some(Event::Mouse(match state {
-                    winit::event::ElementState::Pressed => mouse::Event::ButtonPressed(button),
-                    winit::event::ElementState::Released => mouse::Event::ButtonReleased(button),
-                }))
-            }
-            winit::event::ButtonSource::Touch { finger_id, .. } => {
-                let id = touch::Finger(finger_id.into_raw() as u64);
-                let position = position.to_logical::<f64>(f64::from(scale_factor));
-                let position = Point::new(position.x as f32, position.y as f32);
-                Some(Event::Touch(match state {
-                    winit::event::ElementState::Pressed => {
-                        touch::Event::FingerPressed { id, position }
-                    }
-                    winit::event::ElementState::Released => {
-                        touch::Event::FingerLifted { id, position }
-                    }
-                }))
-            }
-            _ => None,
-        },
-        WindowEvent::MouseWheel { delta, .. } => match delta {
-            winit::event::MouseScrollDelta::LineDelta(delta_x, delta_y) => {
-                Some(Event::Mouse(mouse::Event::WheelScrolled {
-                    delta: mouse::ScrollDelta::Lines {
-                        x: delta_x,
-                        y: delta_y,
-                    },
-                }))
-            }
-            winit::event::MouseScrollDelta::PixelDelta(position) => {
-                Some(Event::Mouse(mouse::Event::WheelScrolled {
-                    delta: mouse::ScrollDelta::Pixels {
+            Some(Event::Pointer(match state {
+                winit::event::ElementState::Pressed => {
+                    pointer::Event::PointerPressed { position, button }
+                }
+                winit::event::ElementState::Released => {
+                    pointer::Event::PointerReleased { position, button }
+                }
+            }))
+        }
+        WindowEvent::MouseWheel { delta, .. } => Some(Event::Pointer(pointer::Event::MouseWheel {
+            delta: match delta {
+                winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                    pointer::ScrollDelta::Lines { x, y }
+                }
+                winit::event::MouseScrollDelta::PixelDelta(position) => {
+                    pointer::ScrollDelta::Pixels {
                         x: position.x as f32,
                         y: position.y as f32,
-                    },
-                }))
-            }
-            _ => None,
-        },
+                    }
+                }
+                _ => return None,
+            },
+        })),
         // Ignore keyboard presses/releases during window focus/unfocus
         WindowEvent::KeyboardInput { is_synthetic, .. } if is_synthetic => None,
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
@@ -518,44 +488,155 @@ pub fn mouse_interaction(interaction: mouse::Interaction) -> Option<winit::curso
     Some(icon)
 }
 
-/// Converts a `MouseButton` from [`winit`] to an [`iced`] mouse button.
+/// Converts a `MouseButton` from [`winit`] to an [`iced`] pointer button.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced`]: https://github.com/iced-rs/iced/tree/0.12
-pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
+pub fn mouse_button(mouse_button: winit::event::MouseButton) -> pointer::MouseButton {
     match mouse_button {
-        winit::event::MouseButton::Left => mouse::Button::Left,
-        winit::event::MouseButton::Right => mouse::Button::Right,
-        winit::event::MouseButton::Middle => mouse::Button::Middle,
-        winit::event::MouseButton::Back => mouse::Button::Back,
-        winit::event::MouseButton::Forward => mouse::Button::Forward,
-        winit::event::MouseButton::Button6 => mouse::Button::Other(6),
-        winit::event::MouseButton::Button7 => mouse::Button::Other(7),
-        winit::event::MouseButton::Button8 => mouse::Button::Other(8),
-        winit::event::MouseButton::Button9 => mouse::Button::Other(9),
-        winit::event::MouseButton::Button10 => mouse::Button::Other(10),
-        winit::event::MouseButton::Button11 => mouse::Button::Other(11),
-        winit::event::MouseButton::Button12 => mouse::Button::Other(12),
-        winit::event::MouseButton::Button13 => mouse::Button::Other(13),
-        winit::event::MouseButton::Button14 => mouse::Button::Other(14),
-        winit::event::MouseButton::Button15 => mouse::Button::Other(15),
-        winit::event::MouseButton::Button16 => mouse::Button::Other(16),
-        winit::event::MouseButton::Button17 => mouse::Button::Other(17),
-        winit::event::MouseButton::Button18 => mouse::Button::Other(18),
-        winit::event::MouseButton::Button19 => mouse::Button::Other(19),
-        winit::event::MouseButton::Button20 => mouse::Button::Other(20),
-        winit::event::MouseButton::Button21 => mouse::Button::Other(21),
-        winit::event::MouseButton::Button22 => mouse::Button::Other(22),
-        winit::event::MouseButton::Button23 => mouse::Button::Other(23),
-        winit::event::MouseButton::Button24 => mouse::Button::Other(24),
-        winit::event::MouseButton::Button25 => mouse::Button::Other(25),
-        winit::event::MouseButton::Button26 => mouse::Button::Other(26),
-        winit::event::MouseButton::Button27 => mouse::Button::Other(27),
-        winit::event::MouseButton::Button28 => mouse::Button::Other(28),
-        winit::event::MouseButton::Button29 => mouse::Button::Other(29),
-        winit::event::MouseButton::Button30 => mouse::Button::Other(30),
-        winit::event::MouseButton::Button31 => mouse::Button::Other(31),
-        winit::event::MouseButton::Button32 => mouse::Button::Other(32),
+        winit::event::MouseButton::Left => pointer::MouseButton::Left,
+        winit::event::MouseButton::Right => pointer::MouseButton::Right,
+        winit::event::MouseButton::Middle => pointer::MouseButton::Middle,
+        winit::event::MouseButton::Back => pointer::MouseButton::Back,
+        winit::event::MouseButton::Forward => pointer::MouseButton::Forward,
+        winit::event::MouseButton::Button6 => pointer::MouseButton::Button6,
+        winit::event::MouseButton::Button7 => pointer::MouseButton::Button7,
+        winit::event::MouseButton::Button8 => pointer::MouseButton::Button8,
+        winit::event::MouseButton::Button9 => pointer::MouseButton::Button9,
+        winit::event::MouseButton::Button10 => pointer::MouseButton::Button10,
+        winit::event::MouseButton::Button11 => pointer::MouseButton::Button11,
+        winit::event::MouseButton::Button12 => pointer::MouseButton::Button12,
+        winit::event::MouseButton::Button13 => pointer::MouseButton::Button13,
+        winit::event::MouseButton::Button14 => pointer::MouseButton::Button14,
+        winit::event::MouseButton::Button15 => pointer::MouseButton::Button15,
+        winit::event::MouseButton::Button16 => pointer::MouseButton::Button16,
+        winit::event::MouseButton::Button17 => pointer::MouseButton::Button17,
+        winit::event::MouseButton::Button18 => pointer::MouseButton::Button18,
+        winit::event::MouseButton::Button19 => pointer::MouseButton::Button19,
+        winit::event::MouseButton::Button20 => pointer::MouseButton::Button20,
+        winit::event::MouseButton::Button21 => pointer::MouseButton::Button21,
+        winit::event::MouseButton::Button22 => pointer::MouseButton::Button22,
+        winit::event::MouseButton::Button23 => pointer::MouseButton::Button23,
+        winit::event::MouseButton::Button24 => pointer::MouseButton::Button24,
+        winit::event::MouseButton::Button25 => pointer::MouseButton::Button25,
+        winit::event::MouseButton::Button26 => pointer::MouseButton::Button26,
+        winit::event::MouseButton::Button27 => pointer::MouseButton::Button27,
+        winit::event::MouseButton::Button28 => pointer::MouseButton::Button28,
+        winit::event::MouseButton::Button29 => pointer::MouseButton::Button29,
+        winit::event::MouseButton::Button30 => pointer::MouseButton::Button30,
+        winit::event::MouseButton::Button31 => pointer::MouseButton::Button31,
+        winit::event::MouseButton::Button32 => pointer::MouseButton::Button32,
+    }
+}
+
+fn pointer_kind(kind: winit::event::PointerKind) -> Option<pointer::PointerKind> {
+    Some(match kind {
+        winit::event::PointerKind::Mouse => pointer::PointerKind::Mouse,
+        winit::event::PointerKind::Touch(finger_id) => {
+            pointer::PointerKind::Touch(pointer::FingerId::from_raw(finger_id.into_raw()))
+        }
+        winit::event::PointerKind::TabletTool(kind) => {
+            pointer::PointerKind::TabletTool(tablet_tool_kind(kind)?)
+        }
+        winit::event::PointerKind::Unknown => pointer::PointerKind::Unknown,
+        _ => return None,
+    })
+}
+
+fn pointer_source(source: winit::event::PointerSource) -> Option<pointer::PointerSource> {
+    Some(match source {
+        winit::event::PointerSource::Mouse => pointer::PointerSource::Mouse,
+        winit::event::PointerSource::Touch { finger_id, force } => pointer::PointerSource::Touch {
+            finger_id: pointer::FingerId::from_raw(finger_id.into_raw()),
+            force: force.map(pointer_force),
+        },
+        winit::event::PointerSource::TabletTool { kind, data } => {
+            pointer::PointerSource::TabletTool {
+                kind: tablet_tool_kind(kind)?,
+                data: tablet_tool_data(data),
+            }
+        }
+        winit::event::PointerSource::Unknown => pointer::PointerSource::Unknown,
+        _ => return None,
+    })
+}
+
+fn button_source(source: winit::event::ButtonSource) -> Option<pointer::ButtonSource> {
+    Some(match source {
+        winit::event::ButtonSource::Mouse(button) => {
+            pointer::ButtonSource::Mouse(mouse_button(button))
+        }
+        winit::event::ButtonSource::Touch { finger_id, force } => pointer::ButtonSource::Touch {
+            finger_id: pointer::FingerId::from_raw(finger_id.into_raw()),
+            force: force.map(pointer_force),
+        },
+        winit::event::ButtonSource::TabletTool { kind, button, data } => {
+            pointer::ButtonSource::TabletTool {
+                kind: tablet_tool_kind(kind)?,
+                button: tablet_tool_button(button),
+                data: tablet_tool_data(data),
+            }
+        }
+        winit::event::ButtonSource::Unknown(button) => pointer::ButtonSource::Unknown(button),
+        _ => return None,
+    })
+}
+
+fn pointer_force(force: winit::event::Force) -> pointer::Force {
+    match force {
+        winit::event::Force::Calibrated {
+            force,
+            max_possible_force,
+        } => pointer::Force::Calibrated {
+            force,
+            max_possible_force,
+        },
+        winit::event::Force::Normalized(force) => pointer::Force::Normalized(force),
+    }
+}
+
+fn tablet_tool_kind(kind: winit::event::TabletToolKind) -> Option<pointer::TabletToolKind> {
+    Some(match kind {
+        winit::event::TabletToolKind::Pen => pointer::TabletToolKind::Pen,
+        winit::event::TabletToolKind::Eraser => pointer::TabletToolKind::Eraser,
+        winit::event::TabletToolKind::Brush => pointer::TabletToolKind::Brush,
+        winit::event::TabletToolKind::Pencil => pointer::TabletToolKind::Pencil,
+        winit::event::TabletToolKind::Airbrush => pointer::TabletToolKind::Airbrush,
+        winit::event::TabletToolKind::Finger => pointer::TabletToolKind::Finger,
+        winit::event::TabletToolKind::Mouse => pointer::TabletToolKind::Mouse,
+        winit::event::TabletToolKind::Lens => pointer::TabletToolKind::Lens,
+        _ => return None,
+    })
+}
+
+fn tablet_tool_data(data: winit::event::TabletToolData) -> pointer::TabletToolData {
+    pointer::TabletToolData {
+        force: data.force.map(pointer_force),
+        tangential_force: data.tangential_force,
+        twist: data.twist,
+        tilt: data.tilt.map(tablet_tool_tilt),
+        angle: data.angle.map(tablet_tool_angle),
+    }
+}
+
+fn tablet_tool_tilt(tilt: winit::event::TabletToolTilt) -> pointer::TabletToolTilt {
+    pointer::TabletToolTilt {
+        x: tilt.x,
+        y: tilt.y,
+    }
+}
+
+fn tablet_tool_angle(angle: winit::event::TabletToolAngle) -> pointer::TabletToolAngle {
+    pointer::TabletToolAngle {
+        altitude: angle.altitude,
+        azimuth: angle.azimuth,
+    }
+}
+
+fn tablet_tool_button(button: winit::event::TabletToolButton) -> pointer::TabletToolButton {
+    match button {
+        winit::event::TabletToolButton::Contact => pointer::TabletToolButton::Contact,
+        winit::event::TabletToolButton::Barrel => pointer::TabletToolButton::Barrel,
+        winit::event::TabletToolButton::Other(button) => pointer::TabletToolButton::Other(button),
     }
 }
 
