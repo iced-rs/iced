@@ -2,7 +2,7 @@
 use crate::core::border;
 use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::{self, mouse};
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
@@ -160,7 +160,7 @@ where
         let bounds = layout.bounds();
 
         match event {
-            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+            Event::Pointer(pointer::Event::MouseWheel { delta }) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
                     return;
                 };
@@ -214,7 +214,7 @@ where
                 shell.request_redraw();
                 shell.capture_event();
             }
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
                     return;
                 };
@@ -226,12 +226,12 @@ where
 
                 shell.capture_event();
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+            Event::Pointer(event) if event.is_primary_release() => {
                 let state = tree.state.downcast_mut::<State>();
 
                 state.cursor_grabbed_at = None;
             }
-            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+            Event::Pointer(pointer::Event::PointerMoved { position, .. }) => {
                 let state = tree.state.downcast_mut::<State>();
 
                 if let Some(origin) = state.cursor_grabbed_at {

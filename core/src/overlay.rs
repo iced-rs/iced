@@ -8,7 +8,7 @@ pub use group::Group;
 pub use nested::Nested;
 
 use crate::layout;
-use crate::mouse;
+use crate::pointer::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;

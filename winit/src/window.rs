@@ -9,7 +9,7 @@ use crate::conversion;
 use crate::core;
 use crate::core::alignment;
 use crate::core::input_method;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::text;

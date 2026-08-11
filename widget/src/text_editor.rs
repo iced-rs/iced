@@ -34,7 +34,7 @@
 use crate::core::alignment;
 use crate::core::clipboard;
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{self, Editor as _};
 use crate::core::text::highlighter::{self, Highlighter};

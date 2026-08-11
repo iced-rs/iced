@@ -32,7 +32,7 @@
 //! ```
 use crate::core::keyboard;
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::text;

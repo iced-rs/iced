@@ -33,10 +33,9 @@
 use crate::core::alignment;
 use crate::core::border;
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::text;
-use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -325,8 +324,7 @@ where
         };
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {

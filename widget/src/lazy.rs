@@ -10,8 +10,8 @@ mod cache;
 
 use crate::core::Element;
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};

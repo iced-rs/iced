@@ -33,11 +33,10 @@
 //! ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 use crate::core::alignment;
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme::palette;
-use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -320,8 +319,7 @@ where
         _viewport: &Rectangle,
     ) {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over && let Some(on_toggle) = &self.on_toggle {

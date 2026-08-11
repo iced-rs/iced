@@ -57,8 +57,8 @@
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::text::editor;

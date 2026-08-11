@@ -1,6 +1,6 @@
 use crate::layout;
-use crate::mouse;
 use crate::overlay;
+use crate::pointer::mouse;
 use crate::renderer;
 use crate::shell;
 use crate::widget;

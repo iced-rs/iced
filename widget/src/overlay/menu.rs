@@ -2,11 +2,10 @@
 use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::{self, button, mouse};
 use crate::core::renderer;
 use crate::core::text::{self, Text};
-use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -410,7 +409,7 @@ where
             .min(self.options.len().saturating_sub(1));
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 if cursor.is_over(layout.bounds())
                     && let Some(option) = self.options.get(hovered_option)
                 {
@@ -418,7 +417,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+            Event::Pointer(pointer::Event::PointerMoved { .. }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
                     let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
@@ -440,7 +439,10 @@ where
                     *self.hovered_option = Some(new_hovered_option);
                 }
             }
-            Event::Touch(touch::Event::FingerPressed { .. }) => {
+            Event::Pointer(pointer::Event::PointerPressed {
+                button: button::Source::Touch { .. },
+                ..
+            }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
                     let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 

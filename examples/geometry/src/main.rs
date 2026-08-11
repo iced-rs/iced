@@ -6,7 +6,7 @@ mod rainbow {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::mouse;
+    use iced::pointer::mouse;
     use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
 
     #[derive(Debug, Clone, Copy, Default)]
