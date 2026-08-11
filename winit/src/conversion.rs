@@ -212,20 +212,22 @@ pub fn window_event(
                 }
             }))
         }
-        WindowEvent::MouseWheel { delta, .. } => Some(Event::Pointer(pointer::Event::MouseWheel {
-            delta: match delta {
-                winit::event::MouseScrollDelta::LineDelta(x, y) => {
-                    pointer::mouse::ScrollDelta::Lines { x, y }
-                }
-                winit::event::MouseScrollDelta::PixelDelta(position) => {
-                    pointer::mouse::ScrollDelta::Pixels {
-                        x: position.x as f32,
-                        y: position.y as f32,
+        WindowEvent::MouseWheel { delta, .. } => {
+            Some(Event::Pointer(pointer::Event::WheelScrolled {
+                delta: match delta {
+                    winit::event::MouseScrollDelta::LineDelta(x, y) => {
+                        pointer::mouse::ScrollDelta::Lines { x, y }
                     }
-                }
-                _ => return None,
-            },
-        })),
+                    winit::event::MouseScrollDelta::PixelDelta(position) => {
+                        pointer::mouse::ScrollDelta::Pixels {
+                            x: position.x as f32,
+                            y: position.y as f32,
+                        }
+                    }
+                    _ => return None,
+                },
+            }))
+        }
         // Ignore keyboard presses/releases during window focus/unfocus
         WindowEvent::KeyboardInput { is_synthetic, .. } if is_synthetic => None,
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({

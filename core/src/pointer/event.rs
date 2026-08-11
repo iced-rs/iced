@@ -48,7 +48,7 @@ pub enum Event {
     },
 
     /// A mouse wheel or touchpad was scrolled.
-    MouseWheel {
+    WheelScrolled {
         /// The scroll movement.
         delta: mouse::ScrollDelta,
     },

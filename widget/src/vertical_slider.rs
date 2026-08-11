@@ -363,7 +363,7 @@ where
 
                 shell.capture_event();
             }
-            Event::Pointer(pointer::Event::MouseWheel { delta })
+            Event::Pointer(pointer::Event::WheelScrolled { delta })
                 if state.keyboard_modifiers.control() && cursor.is_over(layout.bounds()) =>
             {
                 let delta = match *delta {

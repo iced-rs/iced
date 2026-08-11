@@ -456,7 +456,7 @@ mod grid {
                         _ => action.and_capture(),
                     })
                 }
-                Event::Pointer(pointer::Event::MouseWheel { delta }) => match *delta {
+                Event::Pointer(pointer::Event::WheelScrolled { delta }) => match *delta {
                     mouse::ScrollDelta::Lines { y, .. } | mouse::ScrollDelta::Pixels { y, .. } => {
                         if y < 0.0 && self.scaling > Self::MIN_SCALING
                             || y > 0.0 && self.scaling < Self::MAX_SCALING
