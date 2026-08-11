@@ -38,7 +38,7 @@ pub use error::Error;
 pub use proxy::Proxy;
 
 use crate::core::backend;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::theme;

@@ -54,7 +54,7 @@ impl Example {
 }
 
 mod bezier {
-    use iced::mouse;
+    use iced::pointer::{self, mouse};
     use iced::widget::canvas::{self, Canvas, Event, Frame, Geometry, Path, Stroke};
     use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
 
@@ -97,7 +97,7 @@ mod bezier {
             let cursor_position = cursor.position_in(bounds)?;
 
             match event {
-                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => Some(
+                Event::Pointer(event) if event.is_primary_click() => Some(
                     match *state {
                         None => {
                             *state = Some(Pending::One {
@@ -126,7 +126,7 @@ mod bezier {
                     }
                     .and_capture(),
                 ),
-                Event::Mouse(mouse::Event::CursorMoved { .. }) if state.is_some() => {
+                Event::Pointer(pointer::Event::PointerMoved { .. }) if state.is_some() => {
                     Some(canvas::Action::request_redraw())
                 }
                 _ => None,

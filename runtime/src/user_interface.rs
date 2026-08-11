@@ -1,8 +1,8 @@
 //! Implement your own event loop to drive a user interface.
 use crate::core::event::{self, Event};
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::widget;
@@ -142,7 +142,7 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::mouse;
+    /// use iced_runtime::core::pointer::mouse;
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;
     /// use iced_runtime::core::Size;
@@ -443,7 +443,7 @@ where
     /// #     pub fn view(&self) -> Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::mouse;
+    /// use iced_runtime::core::pointer::mouse;
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;

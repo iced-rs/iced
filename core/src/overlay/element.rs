@@ -1,7 +1,7 @@
 pub use crate::Overlay;
 
 use crate::layout;
-use crate::mouse;
+use crate::pointer::mouse;
 use crate::renderer;
 use crate::shell;
 use crate::widget;

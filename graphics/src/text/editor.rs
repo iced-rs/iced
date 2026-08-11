@@ -550,13 +550,13 @@ impl editor::Editor for Editor {
                     editor.action(
                         font_system.raw(),
                         match kind {
-                            iced_core::mouse::click::Kind::Single => {
+                            iced_core::pointer::mouse::click::Kind::Single => {
                                 cosmic_text::Action::Click { x, y }
                             }
-                            iced_core::mouse::click::Kind::Double => {
+                            iced_core::pointer::mouse::click::Kind::Double => {
                                 cosmic_text::Action::DoubleClick { x, y }
                             }
-                            iced_core::mouse::click::Kind::Triple => {
+                            iced_core::pointer::mouse::click::Kind::Triple => {
                                 cosmic_text::Action::TripleClick { x, y }
                             }
                         },

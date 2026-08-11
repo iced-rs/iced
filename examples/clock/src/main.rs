@@ -1,5 +1,5 @@
 use iced::alignment;
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::time::{self, milliseconds};
 use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
 use iced::widget::{canvas, container, text};

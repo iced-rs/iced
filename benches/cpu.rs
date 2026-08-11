@@ -2,7 +2,7 @@
 use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 
 use iced::border;
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::widget::{canvas, center_y, column, container, row, scrollable, space, text};
 use iced::{Center, Color, Element, Fill, Length, Never, Point, Rectangle, Size, Theme};
 use iced_renderer::Renderer;

@@ -2,8 +2,8 @@
 use crate::core;
 use crate::core::alignment;
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{

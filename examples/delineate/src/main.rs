@@ -1,5 +1,5 @@
 use iced::event::{self, Event};
-use iced::mouse;
+use iced::pointer;
 use iced::widget::{self, column, container, row, scrollable, selector, space, text};
 use iced::window;
 use iced::{Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task, Theme};
@@ -137,7 +137,7 @@ impl Example {
 
     fn subscription(&self) -> Subscription<Message> {
         event::listen_with(|event, _status, _window| match event {
-            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+            Event::Pointer(pointer::Event::PointerMoved { position, .. }) => {
                 Some(Message::MouseMoved(position))
             }
             Event::Window(window::Event::Resized { .. }) => Some(Message::WindowResized),

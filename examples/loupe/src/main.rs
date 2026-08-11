@@ -51,7 +51,7 @@ mod loupe {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::mouse;
+    use iced::pointer::mouse;
     use iced::{Color, Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation};
 
     pub fn loupe<'a, Message>(

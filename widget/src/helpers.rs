@@ -585,7 +585,7 @@ where
     Renderer: core::Renderer + 'a,
 {
     use crate::core::layout::{self, Layout};
-    use crate::core::mouse;
+    use crate::core::pointer::mouse;
     use crate::core::renderer;
     use crate::core::widget::tree::{self, Tree};
     use crate::core::{Event, Rectangle, Shell, Size};
@@ -661,14 +661,16 @@ where
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
-            let is_mouse_press =
-                matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
+            let is_pointer_press = matches!(
+                event,
+                core::Event::Pointer(core::pointer::Event::PointerPressed { .. })
+            );
 
             self.content
                 .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
 
-            if is_mouse_press && cursor.is_over(layout.bounds()) {
+            if is_pointer_press && cursor.is_over(layout.bounds()) {
                 shell.capture_event();
             }
         }
@@ -677,10 +679,10 @@ where
             &self,
             state: &core::widget::Tree,
             layout: core::Layout<'_>,
-            cursor: core::mouse::Cursor,
+            cursor: core::pointer::mouse::Cursor,
             viewport: &core::Rectangle,
             renderer: &Renderer,
-        ) -> core::mouse::Interaction {
+        ) -> core::pointer::mouse::Interaction {
             let interaction = self
                 .content
                 .as_widget()
@@ -728,7 +730,7 @@ where
     Renderer: core::Renderer + 'a,
 {
     use crate::core::layout::{self, Layout};
-    use crate::core::mouse;
+    use crate::core::pointer::mouse;
     use crate::core::renderer;
     use crate::core::widget::tree::{self, Tree};
     use crate::core::{Event, Rectangle, Shell, Size};
@@ -877,7 +879,10 @@ where
 
             if matches!(
                 event,
-                Event::Mouse(mouse::Event::CursorMoved { .. } | mouse::Event::ButtonReleased(_))
+                Event::Pointer(
+                    core::pointer::Event::PointerMoved { .. }
+                        | core::pointer::Event::PointerReleased { .. }
+                )
             ) || is_visible
             {
                 let redraw_request = shell.redraw_request();
@@ -1854,7 +1859,7 @@ where
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// use iced::mouse;
+/// use iced::pointer::mouse;
 /// use iced::widget::canvas;
 /// use iced::{Color, Rectangle, Renderer, Theme};
 ///

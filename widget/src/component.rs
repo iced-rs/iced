@@ -2,8 +2,8 @@
 use crate::Action;
 use crate::core::event;
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::widget;

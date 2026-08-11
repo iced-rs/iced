@@ -1,7 +1,7 @@
 //! Generate messages when content pops in and out of view.
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget;

@@ -7,7 +7,7 @@ use scene::Scene;
 use iced_wgpu::graphics::{Shell, Viewport};
 use iced_wgpu::{Engine, Renderer, wgpu};
 use iced_winit::conversion;
-use iced_winit::core::mouse;
+use iced_winit::core::pointer::mouse;
 use iced_winit::core::renderer;
 use iced_winit::core::shell;
 use iced_winit::core::time::Instant;

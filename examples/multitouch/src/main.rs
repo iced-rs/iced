@@ -1,8 +1,7 @@
 //! This example shows how to use touch events in `Canvas` to draw
 //! a circle around each fingertip. This only works on touch-enabled
 //! computers like Microsoft Surface.
-use iced::mouse;
-use iced::touch;
+use iced::pointer::{self, button, mouse, touch};
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Theme};
@@ -59,13 +58,28 @@ impl canvas::Program<Message> for Multitouch {
         _cursor: mouse::Cursor,
     ) -> Option<canvas::Action<Message>> {
         let message = match event.clone() {
-            Event::Touch(
-                touch::Event::FingerPressed { id, position }
-                | touch::Event::FingerMoved { id, position },
-            ) => Some(Message::FingerPressed { id, position }),
-            Event::Touch(
-                touch::Event::FingerLifted { id, .. } | touch::Event::FingerLost { id, .. },
-            ) => Some(Message::FingerLifted { id }),
+            Event::Pointer(
+                pointer::Event::PointerPressed {
+                    position,
+                    button: button::Source::Touch { finger_id, .. },
+                }
+                | pointer::Event::PointerMoved {
+                    position,
+                    source: pointer::Source::Touch { finger_id, .. },
+                },
+            ) => Some(Message::FingerPressed {
+                id: finger_id,
+                position,
+            }),
+            Event::Pointer(
+                pointer::Event::PointerReleased {
+                    button: button::Source::Touch { finger_id, .. },
+                    ..
+                }
+                | pointer::Event::PointerLeft {
+                    kind: pointer::Kind::Touch(finger_id),
+                },
+            ) => Some(Message::FingerLifted { id: finger_id }),
             _ => None,
         };
 

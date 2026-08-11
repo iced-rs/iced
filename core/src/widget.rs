@@ -11,8 +11,8 @@ pub use text::Text;
 pub use tree::Tree;
 
 use crate::layout::{self, Layout};
-use crate::mouse;
 use crate::overlay;
+use crate::pointer::mouse;
 use crate::renderer;
 use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 

@@ -130,7 +130,7 @@ mod quad {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::border;
-    use iced::mouse;
+    use iced::pointer::mouse;
     use iced::{Border, Color, Element, Length, Rectangle, Shadow, Size};
 
     pub struct CustomQuad {

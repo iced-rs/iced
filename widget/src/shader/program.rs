@@ -1,5 +1,5 @@
 use crate::core::Rectangle;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::renderer::wgpu::Primitive;
 use crate::shader::{self, Action};
 

@@ -15,7 +15,7 @@ use crate::core::Alignment::Center;
 use crate::core::Length::Fill;
 use crate::core::alignment::Horizontal::Right;
 use crate::core::border;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::theme;
 use crate::core::window;
 use crate::core::{Color, Element, Font, Settings, Size, Theme};

@@ -26,8 +26,8 @@
 //! ```
 use crate::container;
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::{Duration, Instant};
@@ -189,7 +189,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        if let Event::Mouse(_) | Event::Window(window::Event::RedrawRequested(_)) = event {
+        if let Event::Pointer(_) | Event::Window(window::Event::RedrawRequested(_)) = event {
             let state = tree.state.downcast_mut::<State>();
             let now = Instant::now();
             let cursor_position = cursor.position_over(layout.bounds());

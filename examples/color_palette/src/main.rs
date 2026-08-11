@@ -1,5 +1,5 @@
 use iced::alignment;
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::theme;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{Slider, column, row, text};

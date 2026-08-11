@@ -23,7 +23,6 @@ pub mod input_method;
 pub mod keyboard;
 pub mod layout;
 pub mod length;
-pub mod mouse;
 pub mod overlay;
 pub mod padding;
 pub mod pointer;
@@ -33,7 +32,6 @@ pub mod svg;
 pub mod text;
 pub mod theme;
 pub mod time;
-pub mod touch;
 pub mod widget;
 pub mod window;
 

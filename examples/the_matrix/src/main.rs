@@ -1,4 +1,4 @@
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::time::{self, milliseconds};
 use iced::widget::canvas;
 use iced::{Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme};

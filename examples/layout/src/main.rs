@@ -1,6 +1,6 @@
 use iced::border;
 use iced::keyboard;
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::widget::{
     button, canvas, center, center_y, checkbox, column, container, pick_list, pin, responsive, row,
     rule, scrollable, space, stack, text,

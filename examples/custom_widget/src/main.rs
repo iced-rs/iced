@@ -4,7 +4,7 @@ mod circle {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::border;
-    use iced::mouse;
+    use iced::pointer::mouse;
     use iced::{Color, Element, Length, Rectangle, Size};
 
     pub struct Circle {
