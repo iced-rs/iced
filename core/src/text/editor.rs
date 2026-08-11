@@ -417,7 +417,7 @@ impl State {
 
                 Some(Update::Action(Action::Drag(position)))
             }
-            Event::Pointer(pointer::Event::MouseWheel { delta }) if cursor.is_over(bounds) => {
+            Event::Pointer(pointer::Event::WheelScrolled { delta }) if cursor.is_over(bounds) => {
                 let bounds = editor.bounds();
 
                 if bounds.height >= i32::MAX as f32 {

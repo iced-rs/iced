@@ -705,7 +705,7 @@ where
                     event,
                     Event::Pointer(
                         pointer::Event::PointerPressed { .. }
-                            | pointer::Event::MouseWheel { .. }
+                            | pointer::Event::WheelScrolled { .. }
                             | pointer::Event::PointerEntered {
                                 kind: pointer::Kind::Touch(_),
                                 ..
@@ -732,7 +732,7 @@ where
             }
 
             if state.last_scrolled.is_none()
-                || !matches!(event, Event::Pointer(pointer::Event::MouseWheel { .. }))
+                || !matches!(event, Event::Pointer(pointer::Event::WheelScrolled { .. }))
             {
                 let translation = state.translation(self.direction, bounds, content_bounds);
 
@@ -786,7 +786,7 @@ where
             }
 
             match event {
-                Event::Pointer(pointer::Event::MouseWheel { delta }) => {
+                Event::Pointer(pointer::Event::WheelScrolled { delta }) => {
                     if cursor_over_scrollable.is_none() {
                         return;
                     }
