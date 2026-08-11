@@ -3,7 +3,7 @@ use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Layout, Shell, Widget};
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::time::Instant;
 use iced::window;
 use iced::{Background, Color, Element, Event, Length, Rectangle, Size};

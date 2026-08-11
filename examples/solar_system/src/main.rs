@@ -7,7 +7,7 @@
 //!
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::backend;
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{Geometry, Path};
 use iced::widget::{canvas, column, container, image, pick_list, stack, text};

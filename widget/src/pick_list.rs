@@ -64,12 +64,11 @@
 use crate::core::alignment;
 use crate::core::keyboard;
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::{self, mouse};
 use crate::core::renderer;
 use crate::core::text::paragraph;
 use crate::core::text::{self, Text};
-use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -440,8 +439,7 @@ where
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 if state.is_open {
                     // Event wasn't processed by overlay, so cursor was clicked either outside its
                     // bounds or on the drop-down, either way we close the overlay.
@@ -469,7 +467,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::WheelScrolled {
+            Event::Pointer(pointer::Event::MouseWheel {
                 delta: mouse::ScrollDelta::Lines { y, .. },
             }) => {
                 let Some(on_select) = &self.on_select else {

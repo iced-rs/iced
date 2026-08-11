@@ -1,7 +1,7 @@
 //! Add some explicit spacing between elements.
 use crate::core;
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{Element, Layout, Length, Rectangle, Size, Widget};

@@ -1,7 +1,7 @@
 use crate::conversion;
 use crate::core::renderer;
 use crate::core::{Color, Size};
-use crate::core::{mouse, theme, window};
+use crate::core::{pointer::mouse, theme, window};
 use crate::graphics::Viewport;
 use crate::program::{self, Program};
 

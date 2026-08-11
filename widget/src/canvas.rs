@@ -6,7 +6,7 @@
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
-//! use iced::mouse;
+//! use iced::pointer::mouse;
 //! use iced::widget::canvas;
 //! use iced::{Color, Rectangle, Renderer, Theme};
 //!
@@ -62,7 +62,7 @@ pub use crate::graphics::geometry::{
 
 use crate::core::event;
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -91,7 +91,7 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
-/// use iced::mouse;
+/// use iced::pointer::mouse;
 /// use iced::widget::canvas;
 /// use iced::{Color, Rectangle, Renderer, Theme};
 ///

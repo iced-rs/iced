@@ -2,7 +2,7 @@
 use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 
 use iced::alignment;
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::widget::{canvas, scrollable, stack, text};
 use iced::{Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme};
 use iced_wgpu::Renderer;
