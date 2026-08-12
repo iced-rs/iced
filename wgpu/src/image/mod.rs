@@ -114,7 +114,7 @@ impl Pipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: mem::size_of::<Instance>() as u64,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &wgpu::vertex_attr_array!(
@@ -137,7 +137,7 @@ impl Pipeline {
                         // Layer
                         8 => Sint32,
                     ),
-                }],
+                })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
