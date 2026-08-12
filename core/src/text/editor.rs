@@ -3,7 +3,7 @@ use crate::clipboard;
 use crate::input_method;
 use crate::keyboard;
 use crate::keyboard::key;
-use crate::mouse;
+use crate::pointer::{self, mouse};
 use crate::renderer;
 use crate::text::highlighter::{self, Highlighter};
 use crate::text::{self, Alignment, LineHeight, Position, Wrapping};
@@ -384,72 +384,64 @@ impl State {
                     text.clone(),
                 )))))
             }
-            Event::Mouse(event) => match event {
-                mouse::Event::ButtonPressed(mouse::Button::Left) => {
-                    if let Some(cursor_position) = cursor.position_in(bounds) {
-                        let cursor_position =
-                            cursor_position - Vector::new(padding.left, padding.top);
+            Event::Pointer(event) if event.is_primary_click() => {
+                if let Some(cursor_position) = cursor.position_in(bounds) {
+                    let cursor_position = cursor_position - Vector::new(padding.left, padding.top);
 
-                        let click = mouse::Click::new(
-                            cursor_position,
-                            mouse::Button::Left,
-                            self.last_click,
-                        );
+                    let click =
+                        mouse::Click::new(cursor_position, mouse::Button::Left, self.last_click);
 
-                        self.focus = Some(Focus::now());
-                        self.last_click = Some(click);
-                        self.is_dragging = true;
+                    self.focus = Some(Focus::now());
+                    self.last_click = Some(click);
+                    self.is_dragging = true;
 
-                        Some(Update::Action(Action::Click(
-                            click.position(),
-                            click.kind(),
-                        )))
-                    } else if self.focus.is_some() {
-                        self.focus = None;
+                    Some(Update::Action(Action::Click(
+                        click.position(),
+                        click.kind(),
+                    )))
+                } else if self.focus.is_some() {
+                    self.focus = None;
 
-                        Some(Update::Unfocus)
-                    } else {
-                        None
-                    }
+                    Some(Update::Unfocus)
+                } else {
+                    None
                 }
-                mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    self.is_dragging = false;
+            }
+            Event::Pointer(event) if event.is_primary_release() => {
+                self.is_dragging = false;
 
-                    Some(Update::Release)
+                Some(Update::Release)
+            }
+            Event::Pointer(pointer::Event::PointerMoved { .. }) if self.is_dragging => {
+                let position = cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
+
+                Some(Update::Action(Action::Drag(position)))
+            }
+            Event::Pointer(pointer::Event::WheelScrolled { delta }) if cursor.is_over(bounds) => {
+                let bounds = editor.bounds();
+
+                if bounds.height >= i32::MAX as f32 {
+                    return None;
                 }
-                mouse::Event::CursorMoved { .. } if self.is_dragging => {
-                    let position =
-                        cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
 
-                    Some(Update::Action(Action::Drag(position)))
-                }
-                mouse::Event::WheelScrolled { delta } if cursor.is_over(bounds) => {
-                    let bounds = editor.bounds();
-
-                    if bounds.height >= i32::MAX as f32 {
-                        return None;
-                    }
-
-                    let lines = match delta {
-                        mouse::ScrollDelta::Lines { y, .. } => {
-                            if y.abs() > 0.0 {
-                                y.signum() * -(y.abs() * 4.0).max(1.0)
-                            } else {
-                                0.0
-                            }
+                let lines = match delta {
+                    mouse::ScrollDelta::Lines { y, .. } => {
+                        if y.abs() > 0.0 {
+                            y.signum() * -(y.abs() * 4.0).max(1.0)
+                        } else {
+                            0.0
                         }
-                        mouse::ScrollDelta::Pixels { y, .. } => -y / 4.0,
-                    };
+                    }
+                    mouse::ScrollDelta::Pixels { y, .. } => -y / 4.0,
+                };
 
-                    let lines = lines + self.partial_scroll;
-                    self.partial_scroll = lines.fract();
+                let lines = lines + self.partial_scroll;
+                self.partial_scroll = lines.fract();
 
-                    Some(Update::Action(Action::Scroll {
-                        lines: lines as i32,
-                    }))
-                }
-                _ => None,
-            },
+                Some(Update::Action(Action::Scroll {
+                    lines: lines as i32,
+                }))
+            }
             Event::InputMethod(event) => match event {
                 input_method::Event::Opened | input_method::Event::Closed => {
                     let is_open = matches!(event, input_method::Event::Opened);

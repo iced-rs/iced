@@ -1,7 +1,7 @@
 use crate::container;
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::theme;
 use crate::core::widget::Operation;

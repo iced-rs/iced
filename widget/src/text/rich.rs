@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
 use crate::core::widget::text::{
@@ -384,7 +384,7 @@ where
         }
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 let state = tree
                     .state
                     .downcast_mut::<State<Link, Renderer::Paragraph>>();
@@ -394,7 +394,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+            Event::Pointer(event) if event.is_primary_release() => {
                 let state = tree
                     .state
                     .downcast_mut::<State<Link, Renderer::Paragraph>>();

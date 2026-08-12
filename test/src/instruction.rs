@@ -1,6 +1,6 @@
 //! A step in an end-to-end test.
 use crate::core::keyboard;
-use crate::core::mouse;
+use crate::core::pointer::{self, button, mouse};
 use crate::core::{Event, Point};
 use crate::simulator;
 
@@ -48,17 +48,23 @@ impl Interaction {
     /// This can be useful for recording tests during real usage.
     pub fn from_event(event: &Event) -> Option<Self> {
         Some(match event {
-            Event::Mouse(mouse) => Self::Mouse(match mouse {
-                mouse::Event::CursorMoved { position } => Mouse::Move(Target::Point(*position)),
-                mouse::Event::ButtonPressed(button) => Mouse::Press {
-                    button: *button,
-                    target: None,
-                },
-                mouse::Event::ButtonReleased(button) => Mouse::Release {
-                    button: *button,
-                    target: None,
-                },
-                _ => None?,
+            Event::Pointer(pointer::Event::PointerMoved {
+                position,
+                source: pointer::Source::Mouse,
+            }) => Self::Mouse(Mouse::Move(Target::Point(*position))),
+            Event::Pointer(pointer::Event::PointerPressed {
+                position,
+                button: button::Source::Mouse(button),
+            }) => Self::Mouse(Mouse::Press {
+                button: *button,
+                target: Some(Target::Point(*position)),
+            }),
+            Event::Pointer(pointer::Event::PointerReleased {
+                position,
+                button: button::Source::Mouse(button),
+            }) => Self::Mouse(Mouse::Release {
+                button: *button,
+                target: Some(Target::Point(*position)),
             }),
             Event::Keyboard(keyboard) => Self::Keyboard(match keyboard {
                 keyboard::Event::KeyPressed { key, text, .. } => match key {
@@ -202,12 +208,31 @@ impl Interaction {
     ///
     /// The `find_target` closure must convert a [`Target`] into its screen
     /// coordinates.
-    pub fn events(&self, find_target: impl FnOnce(&Target) -> Option<Point>) -> Option<Vec<Event>> {
-        let mouse_move_ = |to| Event::Mouse(mouse::Event::CursorMoved { position: to });
+    pub fn events(
+        &self,
+        cursor_position: Option<Point>,
+        find_target: impl FnOnce(&Target) -> Option<Point>,
+    ) -> Option<Vec<Event>> {
+        let mouse_move = |position| {
+            Event::Pointer(pointer::Event::PointerMoved {
+                position,
+                source: pointer::Source::Mouse,
+            })
+        };
 
-        let mouse_press = |button| Event::Mouse(mouse::Event::ButtonPressed(button));
+        let mouse_press = |button, position| {
+            Event::Pointer(pointer::Event::PointerPressed {
+                position,
+                button: button::Source::Mouse(button),
+            })
+        };
 
-        let mouse_release = |button| Event::Mouse(mouse::Event::ButtonReleased(button));
+        let mouse_release = |button, position| {
+            Event::Pointer(pointer::Event::PointerReleased {
+                position,
+                button: button::Source::Mouse(button),
+            })
+        };
 
         let key_press = |key| simulator::press_key(key, None);
 
@@ -215,44 +240,53 @@ impl Interaction {
 
         Some(match self {
             Interaction::Mouse(mouse) => match mouse {
-                Mouse::Move(to) => vec![mouse_move_(find_target(to)?)],
+                Mouse::Move(to) => vec![mouse_move(find_target(to)?)],
                 Mouse::Press {
                     button,
                     target: Some(at),
-                } => vec![mouse_move_(find_target(at)?), mouse_press(*button)],
+                } => {
+                    let position = find_target(at)?;
+
+                    vec![mouse_move(position), mouse_press(*button, position)]
+                }
                 Mouse::Press {
                     button,
                     target: None,
-                } => {
-                    vec![mouse_press(*button)]
-                }
+                } => vec![mouse_press(*button, cursor_position?)],
                 Mouse::Release {
                     button,
                     target: Some(at),
                 } => {
-                    vec![mouse_move_(find_target(at)?), mouse_release(*button)]
+                    let position = find_target(at)?;
+
+                    vec![mouse_move(position), mouse_release(*button, position)]
                 }
                 Mouse::Release {
                     button,
                     target: None,
-                } => {
-                    vec![mouse_release(*button)]
-                }
+                } => vec![mouse_release(*button, cursor_position?)],
                 Mouse::Click {
                     button,
                     target: Some(at),
                 } => {
+                    let position = find_target(at)?;
+
                     vec![
-                        mouse_move_(find_target(at)?),
-                        mouse_press(*button),
-                        mouse_release(*button),
+                        mouse_move(position),
+                        mouse_press(*button, position),
+                        mouse_release(*button, position),
                     ]
                 }
                 Mouse::Click {
                     button,
                     target: None,
                 } => {
-                    vec![mouse_press(*button), mouse_release(*button)]
+                    let position = cursor_position?;
+
+                    vec![
+                        mouse_press(*button, position),
+                        mouse_release(*button, position),
+                    ]
                 }
             },
             Interaction::Keyboard(keyboard) => match keyboard {

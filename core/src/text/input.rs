@@ -2,7 +2,7 @@
 use crate::alignment;
 use crate::clipboard;
 use crate::layout;
-use crate::mouse;
+use crate::pointer::mouse;
 use crate::text::editor;
 use crate::text::paragraph;
 use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};

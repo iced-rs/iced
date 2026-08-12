@@ -1,6 +1,6 @@
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::{self, mouse};
 use crate::core::renderer;
 use crate::core::theme;
 use crate::core::widget;
@@ -372,14 +372,15 @@ fn record<Message>(
     on_record: impl Fn(Interaction) -> Message,
     operate: impl FnMut(&mut dyn widget::Operation),
 ) {
-    if let Event::Mouse(_) = event
+    if let Event::Pointer(_) = event
         && !cursor.is_over(bounds)
     {
         return;
     }
 
-    let interaction = if let Event::Mouse(mouse::Event::CursorMoved { position }) = event {
-        Interaction::from_event(&Event::Mouse(mouse::Event::CursorMoved {
+    let interaction = if let Event::Pointer(pointer::Event::PointerMoved { position, .. }) = event {
+        Interaction::from_event(&Event::Pointer(pointer::Event::PointerMoved {
+            source: pointer::Source::Mouse,
             position: *position - (bounds.position() - Point::ORIGIN),
         }))
     } else {

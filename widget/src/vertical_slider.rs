@@ -36,9 +36,8 @@ use crate::core::border::Border;
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
+use crate::core::pointer::{self, mouse};
 use crate::core::renderer;
-use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
@@ -331,8 +330,7 @@ where
         };
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 if let Some(cursor_position) = cursor.position_over(layout.bounds()) {
                     if state.keyboard_modifiers.control() || state.keyboard_modifiers.command() {
                         let _ = self.default.map(change);
@@ -345,25 +343,27 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. })
-                if is_dragging =>
+            Event::Pointer(event)
+                if is_dragging
+                    && (event.is_primary_release()
+                        || matches!(
+                            event,
+                            pointer::Event::PointerLeft {
+                                kind: pointer::Kind::Touch(_),
+                            }
+                        )) =>
             {
                 if let Some(on_release) = self.on_release.clone() {
                     shell.publish(on_release);
                 }
                 state.is_dragging = false;
             }
-            Event::Mouse(mouse::Event::CursorMoved { .. })
-            | Event::Touch(touch::Event::FingerMoved { .. })
-                if is_dragging =>
-            {
+            Event::Pointer(pointer::Event::PointerMoved { .. }) if is_dragging => {
                 let _ = cursor.land().position().and_then(locate).map(change);
 
                 shell.capture_event();
             }
-            Event::Mouse(mouse::Event::WheelScrolled { delta })
+            Event::Pointer(pointer::Event::WheelScrolled { delta })
                 if state.keyboard_modifiers.control() && cursor.is_over(layout.bounds()) =>
             {
                 let delta = match *delta {

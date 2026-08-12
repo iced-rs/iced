@@ -9,7 +9,7 @@ use crate::conversion;
 use crate::core;
 use crate::core::alignment;
 use crate::core::input_method;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::text;
@@ -51,7 +51,7 @@ where
     pub fn insert(
         &mut self,
         id: Id,
-        window: Arc<winit::window::Window>,
+        window: Arc<dyn winit::window::Window>,
         program: &program::Instance<P>,
         compositor: &mut C,
         proxy: Proxy<P::Message>,
@@ -59,7 +59,7 @@ where
         exit_on_close_request: bool,
         system_theme: theme::Mode,
     ) -> &mut Window<P, C> {
-        let state = State::new(program, id, &window, system_theme);
+        let state = State::new(program, id, &*window, system_theme);
         let surface_size = state.physical_size();
         let surface_version = state.surface_version();
         let surface =
@@ -175,7 +175,7 @@ where
     C: Compositor<Renderer = P::Renderer>,
     P::Theme: theme::Base,
 {
-    pub raw: Arc<winit::window::Window>,
+    pub raw: Arc<dyn winit::window::Window>,
     pub waker: shell::Waker,
     pub state: State<P>,
     pub exit_on_close_request: bool,
@@ -255,7 +255,7 @@ where
     pub fn update_mouse(&mut self, interaction: mouse::Interaction) {
         if interaction != self.mouse_interaction {
             if let Some(icon) = conversion::mouse_interaction(interaction) {
-                self.raw.set_cursor(icon);
+                self.raw.set_cursor(winit::cursor::Cursor::Icon(icon));
 
                 if self.mouse_interaction == mouse::Interaction::Hidden {
                     self.raw.set_cursor_visible(true);
@@ -280,25 +280,31 @@ where
     }
 
     fn enable_ime(&mut self, cursor: Rectangle, purpose: input_method::Purpose) {
-        if self.ime_state.is_none() {
-            self.raw.set_ime_allowed(true);
-        }
+        #[allow(deprecated)]
+        {
+            if self.ime_state.is_none() {
+                self.raw.set_ime_allowed(true);
+            }
 
-        if self.ime_state != Some((cursor, purpose)) {
-            self.raw.set_ime_cursor_area(
-                LogicalPosition::new(cursor.x, cursor.y),
-                LogicalSize::new(cursor.width, cursor.height),
-            );
-            self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
+            if self.ime_state != Some((cursor, purpose)) {
+                self.raw.set_ime_cursor_area(
+                    LogicalPosition::new(cursor.x, cursor.y).into(),
+                    LogicalSize::new(cursor.width, cursor.height).into(),
+                );
+                self.raw.set_ime_purpose(conversion::ime_purpose(purpose));
 
-            self.ime_state = Some((cursor, purpose));
+                self.ime_state = Some((cursor, purpose));
+            }
         }
     }
 
     fn disable_ime(&mut self) {
-        if self.ime_state.is_some() {
-            self.raw.set_ime_allowed(false);
-            self.ime_state = None;
+        #[allow(deprecated)]
+        {
+            if self.ime_state.is_some() {
+                self.raw.set_ime_allowed(false);
+                self.ime_state = None;
+            }
         }
 
         self.preedit = None;

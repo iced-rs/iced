@@ -1,8 +1,8 @@
 //! Build and reuse custom widgets using The Elm Architecture.
 #![allow(deprecated)]
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::widget;

@@ -7,7 +7,7 @@ use pipeline::Pipeline;
 use crate::wgpu;
 use pipeline::cube::{self, Cube};
 
-use iced::mouse;
+use iced::pointer::mouse;
 use iced::time::Duration;
 use iced::widget::shader::{self, Viewport};
 use iced::{Color, Rectangle};

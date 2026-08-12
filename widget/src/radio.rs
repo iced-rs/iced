@@ -59,10 +59,9 @@
 use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::text;
-use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -328,9 +327,8 @@ where
         _viewport: &Rectangle,
     ) {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. })
-                if cursor.is_over(layout.bounds()) =>
+            Event::Pointer(event)
+                if event.is_primary_click() && cursor.is_over(layout.bounds()) =>
             {
                 shell.publish(self.on_click.clone());
                 shell.capture_event();

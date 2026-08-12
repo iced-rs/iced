@@ -162,7 +162,7 @@ mod toast {
     use iced::advanced::shell;
     use iced::advanced::widget::{self, Operation, Tree};
     use iced::advanced::{Shell, Widget};
-    use iced::mouse;
+    use iced::pointer::mouse;
     use iced::time::{self, Duration, Instant};
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
