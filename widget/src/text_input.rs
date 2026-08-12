@@ -349,6 +349,7 @@ where
                 .input
                 .update(event, layout.bounds(), cursor, shell, |key_press| {
                     if let Some(on_submit) = &self.on_submit
+                        && key_press.is_focused
                         && key_press.modified_key
                             == keyboard::Key::Named(keyboard::key::Named::Enter)
                     {
