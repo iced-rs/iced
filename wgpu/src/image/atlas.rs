@@ -332,7 +332,7 @@ impl Atlas {
 
         const PIXEL: usize = 4;
 
-        let mut fragment = buffer_slice.get_mapped_range_mut();
+        let mut fragment = buffer_slice.get_mapped_range_mut().unwrap();
         let w = width as usize;
         let h = height as usize;
         let pad_w = padding.width as usize;
