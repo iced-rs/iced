@@ -68,6 +68,7 @@ use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector};
 use crate::overlay::menu;
+use crate::scrollable;
 use crate::text::LineHeight;
 use crate::text_input;
 
@@ -380,6 +381,7 @@ struct Internal<T, R: text::Renderer> {
     option_matchers: Vec<String>,
     filtered_options: Vec<T>,
     version: u64,
+    option_height: f32,
 }
 
 impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
@@ -425,6 +427,12 @@ where
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
+        let text_size = self.size.unwrap_or_else(|| renderer.default_size());
+
+        let text_line_height = self.line_height.to_absolute(text_size);
+
+        state.option_height = f32::from(text_line_height) + self.padding.y();
+
         state.editor.input.layout(
             renderer,
             limits,
@@ -458,6 +466,7 @@ where
             option_matchers: Vec::new(),
             hovered_option: Some(0),
             version: 0,
+            option_height: 0.0,
         })
     }
 
@@ -556,6 +565,13 @@ where
                             index.saturating_sub(1)
                         });
 
+                        let y = internal.option_height
+                            * (internal.hovered_option.clone().unwrap_or_default() as f32);
+
+                        let scroll_state = internal.menu.tree.state.downcast_mut::<scrollable::State>();
+
+                        scroll_state.scroll_to(scrollable::AbsoluteOffset { x: 0.0, y }.into());
+
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal
                                 .hovered_option
@@ -579,6 +595,13 @@ where
                                     .min(internal.filtered_options.len().saturating_sub(1))
                             },
                         );
+
+                        let y = internal.option_height
+                            * (internal.hovered_option.clone().unwrap_or_default() as f32);
+
+                        let scroll_state = internal.menu.tree.state.downcast_mut::<scrollable::State>();
+
+                        scroll_state.scroll_to(scrollable::AbsoluteOffset { x: 0.0, y }.into());
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal

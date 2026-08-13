@@ -144,7 +144,7 @@ where
 /// The local state of a [`Menu`].
 #[derive(Debug)]
 pub struct State {
-    tree: Tree,
+    pub(crate) tree: Tree,
 }
 
 impl State {
