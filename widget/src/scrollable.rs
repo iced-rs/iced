@@ -817,46 +817,50 @@ where
 
                     state.scroll(self.direction.align(delta), bounds, content_bounds);
 
-                    match phase {
-                        mouse::ScrollPhase::Started => {
-                            state.interaction = Interaction::TrackpadScrolling {
-                                timestamp: Instant::now(),
-                                speed: Vector::new(0.0, 0.0),
-                            };
-                        }
-                        mouse::ScrollPhase::Moved
-                            if let Interaction::TrackpadScrolling { timestamp, .. } =
-                                state.interaction =>
-                        {
-                            let cur = Instant::now();
-                            state.interaction = Interaction::TrackpadScrolling {
-                                timestamp: cur,
-                                speed: delta / (cur.duration_since(timestamp).as_secs_f32()),
-                            };
-                        }
-                        mouse::ScrollPhase::Ended
-                            if let Interaction::TrackpadScrolling { speed, .. } =
-                                state.interaction =>
-                        {
-                            if speed.x.abs() + speed.y.abs() > KINETIC_SCROLL_BOUNDARY {
-                                state.interaction = Interaction::KineticScrolling {
+                    // macOS has its own kinetic scrolling
+                    #[cfg(not(target_os = "macos"))]
+                    {
+                        match phase {
+                            mouse::ScrollPhase::Started => {
+                                state.interaction = Interaction::TrackpadScrolling {
                                     timestamp: Instant::now(),
-                                    speed,
+                                    speed: Vector::new(0.0, 0.0),
                                 };
-                                shell.request_redraw();
-                            } else {
+                            }
+                            mouse::ScrollPhase::Moved
+                                if let Interaction::TrackpadScrolling { timestamp, .. } =
+                                    state.interaction =>
+                            {
+                                let cur = Instant::now();
+                                state.interaction = Interaction::TrackpadScrolling {
+                                    timestamp: cur,
+                                    speed: delta / (cur.duration_since(timestamp).as_secs_f32()),
+                                };
+                            }
+                            mouse::ScrollPhase::Ended
+                                if let Interaction::TrackpadScrolling { speed, .. } =
+                                    state.interaction =>
+                            {
+                                if speed.x.abs() + speed.y.abs() > KINETIC_SCROLL_BOUNDARY {
+                                    state.interaction = Interaction::KineticScrolling {
+                                        timestamp: Instant::now(),
+                                        speed,
+                                    };
+                                    shell.request_redraw();
+                                } else {
+                                    state.interaction = Interaction::None;
+                                }
+                            }
+                            mouse::ScrollPhase::Cancelled
+                                if matches!(
+                                    state.interaction,
+                                    Interaction::TrackpadScrolling { .. }
+                                ) =>
+                            {
                                 state.interaction = Interaction::None;
                             }
+                            _ => {}
                         }
-                        mouse::ScrollPhase::Cancelled
-                            if matches!(
-                                state.interaction,
-                                Interaction::TrackpadScrolling { .. }
-                            ) =>
-                        {
-                            state.interaction = Interaction::None;
-                        }
-                        _ => {}
                     }
 
                     let has_scrolled =
