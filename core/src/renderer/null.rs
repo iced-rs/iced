@@ -137,10 +137,6 @@ impl text::Paragraph for () {
         text::Shaping::default()
     }
 
-    fn grapheme_position(&self, _line: usize, _index: usize) -> Option<Point> {
-        None
-    }
-
     fn bounds(&self) -> Size {
         Size::ZERO
     }
