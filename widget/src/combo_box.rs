@@ -566,9 +566,10 @@ where
                         });
 
                         let y = internal.option_height
-                            * (internal.hovered_option.clone().unwrap_or_default() as f32);
+                            * (internal.hovered_option.unwrap_or_default() as f32);
 
-                        let scroll_state = internal.menu.tree.state.downcast_mut::<scrollable::State>();
+                        let scroll_state =
+                            internal.menu.tree.state.downcast_mut::<scrollable::State>();
 
                         scroll_state.scroll_to(scrollable::AbsoluteOffset { x: 0.0, y }.into());
 
@@ -597,9 +598,10 @@ where
                         );
 
                         let y = internal.option_height
-                            * (internal.hovered_option.clone().unwrap_or_default() as f32);
+                            * (internal.hovered_option.unwrap_or_default() as f32);
 
-                        let scroll_state = internal.menu.tree.state.downcast_mut::<scrollable::State>();
+                        let scroll_state =
+                            internal.menu.tree.state.downcast_mut::<scrollable::State>();
 
                         scroll_state.scroll_to(scrollable::AbsoluteOffset { x: 0.0, y }.into());
 
