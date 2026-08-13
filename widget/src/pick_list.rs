@@ -471,6 +471,7 @@ where
             }
             Event::Mouse(mouse::Event::WheelScrolled {
                 delta: mouse::ScrollDelta::Lines { y, .. },
+                phase: mouse::ScrollPhase::Moved,
             }) => {
                 let Some(on_select) = &self.on_select else {
                     return;

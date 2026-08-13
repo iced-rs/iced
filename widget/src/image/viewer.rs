@@ -160,7 +160,7 @@ where
         let bounds = layout.bounds();
 
         match event {
-            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+            Event::Mouse(mouse::Event::WheelScrolled { delta, .. }) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
                     return;
                 };
