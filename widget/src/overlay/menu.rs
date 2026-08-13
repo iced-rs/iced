@@ -14,7 +14,7 @@ use crate::core::{
     Vector,
 };
 use crate::core::{Element, Shell, Widget};
-use crate::scrollable::{self, Scrollable};
+use crate::scrollable::{self, AbsoluteOffset, Scrollable};
 
 /// A list of selectable options.
 pub struct Menu<'a, 'b, T, Message, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -144,7 +144,12 @@ where
 /// The local state of a [`Menu`].
 #[derive(Debug)]
 pub struct State {
-    pub(crate) tree: Tree,
+    tree: Tree,
+    scroll_top: bool,
+    scroll_bottom: bool,
+    viewport: Rectangle,
+    content: Rectangle,
+    option_height: f32,
 }
 
 impl State {
@@ -152,7 +157,41 @@ impl State {
     pub fn new() -> Self {
         Self {
             tree: Tree::empty(),
+            scroll_top: false,
+            scroll_bottom: false,
+            viewport: Rectangle::default(),
+            content: Rectangle::default(),
+            option_height: 0.0,
         }
+    }
+
+    /// Scroll the Menu to the given offset
+    pub fn scroll_to(&mut self, offset: impl Into<AbsoluteOffset<Option<f32>>>) {
+        let scroll_state = self.tree.state.downcast_mut::<scrollable::State>();
+
+        scroll_state.scroll_to(offset.into());
+    }
+
+    /// Scroll the Menu by the given offset
+    pub fn scroll_by(&mut self, offset: AbsoluteOffset) {
+        let scroll_state = self.tree.state.downcast_mut::<scrollable::State>();
+
+        scroll_state.scroll_by(offset, self.viewport, self.content);
+    }
+
+    /// Returns `true` if the Menu should be scrolled up
+    pub fn scroll_up(&self) -> bool {
+        self.scroll_top
+    }
+
+    /// Returns `true` if the Menu should be scrolled down
+    pub fn scroll_down(&self) -> bool {
+        self.scroll_bottom
+    }
+
+    /// Returns the height of a Menu option
+    pub fn option_height(&self) -> f32 {
+        self.option_height
     }
 }
 
@@ -211,6 +250,11 @@ where
         } = menu;
 
         let mut list = Scrollable::new(List {
+            scroll_top: &mut state.scroll_top,
+            scroll_bottom: &mut state.scroll_bottom,
+            viewport: &mut state.viewport,
+            content: &mut state.content,
+            option_height: &mut state.option_height,
             options,
             hovered_option,
             to_string,
@@ -331,6 +375,13 @@ where
     Renderer: text::Renderer,
 {
     options: &'a [T],
+
+    scroll_top: &'a mut bool,
+    scroll_bottom: &'a mut bool,
+    viewport: &'a mut Rectangle,
+    content: &'a mut Rectangle,
+    option_height: &'a mut f32,
+
     hovered_option: &'a mut Option<usize>,
     to_string: &'a dyn Fn(&T) -> String,
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
@@ -378,15 +429,13 @@ where
     ) -> layout::Node {
         use std::f32;
 
-        let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
-
-        let text_line_height = self.line_height.to_absolute(text_size);
+        *self.option_height = {
+            let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
+            f32::from(self.line_height.to_absolute(text_size)) + self.padding.y()
+        };
 
         let size = {
-            let intrinsic = Size::new(
-                0.0,
-                (f32::from(text_line_height) + self.padding.y()) * self.options.len() as f32,
-            );
+            let intrinsic = Size::new(0.0, *self.option_height * self.options.len() as f32);
 
             limits.resolve(Length::Fill, Length::Shrink, intrinsic)
         };
@@ -400,14 +449,16 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        renderer: &Renderer,
+        _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let hovered_option = self
             .hovered_option
             .unwrap_or_default()
             .min(self.options.len().saturating_sub(1));
+
+        let option_height = *self.option_height;
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -420,11 +471,6 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
-                    let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
-
-                    let option_height =
-                        f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
-
                     let new_hovered_option = (cursor_position.y / option_height) as usize;
 
                     if hovered_option != new_hovered_option
@@ -442,11 +488,6 @@ where
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
-                    let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
-
-                    let option_height =
-                        f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
-
                     *self.hovered_option = Some((cursor_position.y / option_height) as usize);
 
                     if let Some(index) = *self.hovered_option
@@ -458,6 +499,21 @@ where
                 }
             }
             _ => {}
+        }
+
+        let intersects = |index: usize| {
+            let top_y = layout.bounds().position().y + (index as f32 * option_height);
+            let bot_y = top_y + option_height;
+
+            viewport.position().y <= top_y && viewport.position().y + viewport.height >= bot_y
+        };
+
+        if let Some(hovered_option) = self.hovered_option {
+            *self.scroll_top = !intersects(hovered_option.saturating_sub(2));
+            *self.scroll_bottom = !intersects((*hovered_option + 2).min(self.options.len()));
+
+            *self.viewport = *viewport;
+            *self.content = layout.bounds();
         }
 
         let state = tree.state.downcast_mut::<ListState>();
@@ -502,8 +558,7 @@ where
         let style = Catalog::style(theme, self.class);
         let bounds = layout.bounds();
 
-        let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
-        let option_height = f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
+        let option_height = *self.option_height;
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height) as usize;
@@ -544,7 +599,7 @@ where
                 Text {
                     content: (self.to_string)(option),
                     bounds: Size::new(bounds.width - self.padding.x(), bounds.height),
-                    size: text_size,
+                    size: self.text_size.unwrap_or_else(|| renderer.default_size()),
                     line_height: self.line_height,
                     font: self.font.unwrap_or_else(|| renderer.default_font()),
                     align_x: text::Alignment::Default,

@@ -381,7 +381,6 @@ struct Internal<T, R: text::Renderer> {
     option_matchers: Vec<String>,
     filtered_options: Vec<T>,
     version: u64,
-    option_height: f32,
 }
 
 impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
@@ -427,12 +426,6 @@ where
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
-        let text_size = self.size.unwrap_or_else(|| renderer.default_size());
-
-        let text_line_height = self.line_height.to_absolute(text_size);
-
-        state.option_height = f32::from(text_line_height) + self.padding.y();
-
         state.editor.input.layout(
             renderer,
             limits,
@@ -466,7 +459,6 @@ where
             option_matchers: Vec::new(),
             hovered_option: Some(0),
             version: 0,
-            option_height: 0.0,
         })
     }
 
@@ -565,13 +557,19 @@ where
                             index.saturating_sub(1)
                         });
 
-                        let y = internal.option_height
-                            * (internal.hovered_option.unwrap_or_default() as f32);
+                        if index == 0 {
+                            let y =
+                                internal.menu.option_height() * internal.hovered_option() as f32;
 
-                        let scroll_state =
-                            internal.menu.tree.state.downcast_mut::<scrollable::State>();
-
-                        scroll_state.scroll_to(scrollable::AbsoluteOffset { x: 0.0, y }.into());
+                            internal
+                                .menu
+                                .scroll_to(scrollable::AbsoluteOffset { x: 0.0, y });
+                        } else if internal.menu.scroll_up() {
+                            internal.menu.scroll_by(scrollable::AbsoluteOffset {
+                                x: 0.0,
+                                y: -internal.menu.option_height(),
+                            });
+                        }
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal
@@ -597,13 +595,18 @@ where
                             },
                         );
 
-                        let y = internal.option_height
-                            * (internal.hovered_option.unwrap_or_default() as f32);
-
-                        let scroll_state =
-                            internal.menu.tree.state.downcast_mut::<scrollable::State>();
-
-                        scroll_state.scroll_to(scrollable::AbsoluteOffset { x: 0.0, y }.into());
+                        if internal.menu.scroll_down() {
+                            if internal.hovered_option() == 0 {
+                                internal
+                                    .menu
+                                    .scroll_to(scrollable::AbsoluteOffset { x: 0.0, y: 0.0 });
+                            } else {
+                                internal.menu.scroll_by(scrollable::AbsoluteOffset {
+                                    x: 0.0,
+                                    y: internal.menu.option_height(),
+                                });
+                            }
+                        }
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal

@@ -1674,7 +1674,7 @@ impl State {
     }
 
     /// Scroll by the provided [`AbsoluteOffset`].
-    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
+    pub(crate) fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
         self.scroll(Vector::new(offset.x, offset.y), bounds, content_bounds);
     }
 
