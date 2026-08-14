@@ -12,7 +12,7 @@ static CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 pub struct Image {
     pub id: Id,
     url: String,
-    hash: String,
+    hash: Hash,
 }
 
 impl Image {
@@ -47,7 +47,12 @@ impl Image {
 
     pub async fn blurhash(self, width: u32, height: u32) -> Result<Blurhash, Error> {
         task::spawn_blocking(move || {
-            let pixels = blurhash::decode(&self.hash, width, height, 1.0)?;
+            let hash = match &self.hash {
+                Hash::Number(n) => n.to_string(),
+                Hash::String(hash) => hash.clone(),
+            };
+
+            let pixels = blurhash::decode(&hash, width, height, 1.0)?;
 
             Ok::<_, Error>(Blurhash {
                 rgba: Rgba {
@@ -101,6 +106,13 @@ impl Image {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
 pub struct Id(u32);
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+enum Hash {
+    Number(u32),
+    String(String),
+}
 
 #[derive(Debug, Clone)]
 pub struct Blurhash {
