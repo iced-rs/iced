@@ -132,8 +132,14 @@ impl Renderer {
                     let render_span = debug::render(debug::Primitive::Triangle);
 
                     for group in &layer.primitives {
+                        // `clip_bounds()` is already stored in layer space (the
+                        // push sites in `layer.rs` pre-multiply the frame's clip
+                        // bounds by the transformation), so only the viewport
+                        // scale factor is applied here. Multiplying by the
+                        // transformation again would double-apply the canvas's
+                        // placement offset and clip the geometry off-screen for
+                        // any canvas not at the window origin (iced #3243).
                         let Some(group_bounds) = (group.clip_bounds()
-                            * group.transformation()
                             * scale_factor)
                             .intersection(&layer_bounds)
                         else {
@@ -145,8 +151,19 @@ impl Renderer {
                         for primitive in group.as_slice() {
                             self.engine.draw_primitive(
                                 primitive,
-                                group.transformation()
-                                    * Transformation::scale(scale_factor),
+                                // Scale must wrap the layer translation, not the
+                                // other way round: the group's clip bounds are
+                                // scaled whole (`clip_bounds() * scale_factor`, so
+                                // the offset becomes `scale * offset`), so the
+                                // geometry's offset must be scaled the same way.
+                                // `translate * scale` would add the offset AFTER
+                                // scaling (unscaled), placing an offset canvas at
+                                // physical `offset` while its clip sits at
+                                // `scale * offset` — slicing the top/left off at
+                                // scale_factor != 1 (e.g. macOS Retina = 2), while
+                                // looking fine on the board at scale 1 (iced #3243).
+                                Transformation::scale(scale_factor)
+                                    * group.transformation(),
                                 pixels,
                                 clip_mask,
                                 group_bounds,
@@ -182,8 +199,12 @@ impl Renderer {
                         for text in group.as_slice() {
                             self.engine.draw_text(
                                 text,
-                                group.transformation()
-                                    * Transformation::scale(scale_factor),
+                                // Same scale/offset ordering fix as the primitive
+                                // loop above: scale wraps the translation so canvas
+                                // text (e.g. the gauge readout) stays aligned with
+                                // the scaled geometry at scale_factor != 1.
+                                Transformation::scale(scale_factor)
+                                    * group.transformation(),
                                 pixels,
                                 clip_mask,
                                 layer_bounds,

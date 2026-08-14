@@ -268,8 +268,16 @@ impl Layer {
                         .filter_map(|bounds| bounds.intersection(group_bounds))
                         .collect()
                 }
-                Item::Cached(_, bounds, transformation) => {
-                    vec![*bounds * *transformation]
+                Item::Cached(_, bounds, _transformation) => {
+                    // `bounds` is already in layer space (pre-multiplied by the
+                    // transformation at the push site in `draw_primitive_cache`),
+                    // exactly like the `Item::Group` arm above uses `group_bounds`
+                    // directly. Multiplying by the transformation again would
+                    // double-apply the canvas placement offset and mislocate the
+                    // damage rectangle for any canvas not at the window origin
+                    // (iced #3243), leaving the geometry stale under partial
+                    // damage.
+                    vec![*bounds]
                 }
             },
             |primitive_a, primitive_b| match (primitive_a, primitive_b) {
