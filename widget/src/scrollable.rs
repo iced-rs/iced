@@ -105,7 +105,7 @@ where
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
-            kinetic_retention: 0.9,
+            kinetic_retention: 0.98,
         }
     }
 
