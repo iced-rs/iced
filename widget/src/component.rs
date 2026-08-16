@@ -257,9 +257,9 @@ where
             return;
         }
 
-        for event in internal.events.drain() {
+        for (event, receipt) in internal.events.drain() {
             if let Some(message) = self.component.update(&mut internal.state, event, renderer) {
-                shell.publish(message);
+                shell.forward(message, receipt);
             }
         }
 
@@ -485,12 +485,12 @@ where
             return;
         }
 
-        for event in self.internal.events.drain() {
+        for (event, receipt) in self.internal.events.drain() {
             if let Some(message) = self
                 .component
                 .update(&mut self.internal.state, event, renderer)
             {
-                shell.publish(message);
+                shell.forward(message, receipt);
             }
         }
 
