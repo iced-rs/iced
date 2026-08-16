@@ -103,19 +103,6 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
         _operation: &mut dyn widget::Operation,
     ) {
     }
-
-    /// Returns a [`Size`] hint for laying out the [`Component`].
-    ///
-    /// This hint may be used by some widget containers to adjust their sizing strategy
-    /// during construction.
-    ///
-    /// By default, it returns a [`Size`] with both dimensions set to [`Length::Shrink`].
-    fn size_hint(&self) -> Size<Length> {
-        Size {
-            width: Length::Shrink,
-            height: Length::Shrink,
-        }
-    }
 }
 
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
@@ -130,11 +117,8 @@ where
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    let size_hint = component.size_hint();
-
     Element::new(Instance {
         component,
-        size_hint,
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         layout: layout::Node::new(Size::ZERO),
@@ -151,7 +135,6 @@ where
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
     layout: layout::Node,
-    size_hint: Size<Length>,
     is_outdated: bool,
     has_overlay: bool,
 }
@@ -192,7 +175,7 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.size_hint
+        self.view.as_widget().size()
     }
 
     fn layout(
@@ -280,6 +263,8 @@ where
             }
         }
 
+        let previous_sizing = self.view.as_widget().size();
+
         self.view = self.component.view(&internal.state);
         tree.diff_children(std::slice::from_mut(&mut self.view));
 
@@ -289,7 +274,7 @@ where
                 .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, &self.limits);
 
-        let new_size_hint = self.component.size_hint();
+        let new_sizing = self.view.as_widget().size();
 
         // We must invalidate application layout in 3 instances:
         //
@@ -303,11 +288,9 @@ where
         // 3. The overlay status of the component changes. The
         //    runtime will only call `overlay` again if the layout
         //    is invalidated.
-        if new_size_hint != self.size_hint {
-            self.size_hint = new_size_hint;
+        if new_sizing != previous_sizing {
             shell.invalidate_widgets();
-        } else if (self.size_hint.width == Length::Shrink
-            || self.size_hint.height == Length::Shrink)
+        } else if (new_sizing.width == Length::Shrink || new_sizing.height == Length::Shrink)
             && previous_size != self.layout.size()
         {
             shell.invalidate_layout();
