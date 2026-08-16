@@ -184,7 +184,7 @@ where
     ///     cache = user_interface.into_cache();
     ///
     ///     // Process the produced messages
-    ///     for message in messages.drain() {
+    ///     for (message, _receipt) in messages.drain() {
     ///         counter.update(message);
     ///     }
     /// }
@@ -487,7 +487,7 @@ where
     ///
     ///     cache = user_interface.into_cache();
     ///
-    ///     for message in messages.drain() {
+    ///     for (message, _receipt) in messages.drain() {
     ///         counter.update(message);
     ///     }
     ///
