@@ -88,10 +88,10 @@ where
     width: Length,
     size: f32,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_alignment: text::Alignment,
+    line_height: text::LineHeight,
+    alignment: text::Alignment,
     text_shaping: text::Shaping,
-    text_wrapping: text::Wrapping,
+    wrapping: text::Wrapping,
     spacing: f32,
     font: Option<Renderer::Font>,
     class: Theme::Class<'a>,
@@ -122,10 +122,10 @@ where
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_alignment: text::Alignment::Default,
+            line_height: text::LineHeight::default(),
+            alignment: text::Alignment::Default,
             text_shaping: text::Shaping::default(),
-            text_wrapping: text::Wrapping::default(),
+            wrapping: text::Wrapping::default(),
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             class: Theme::default(),
@@ -176,26 +176,26 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Toggler`].
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = line_height.into();
         self
     }
 
     /// Sets the horizontal alignment of the text of the [`Toggler`]
-    pub fn text_alignment(mut self, alignment: impl Into<text::Alignment>) -> Self {
-        self.text_alignment = alignment.into();
+    pub fn alignment(mut self, alignment: impl Into<text::Alignment>) -> Self {
+        self.alignment = alignment.into();
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`Toggler`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
         self
     }
 
     /// Sets the [`text::Wrapping`] strategy of the [`Toggler`].
-    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
-        self.text_wrapping = wrapping;
+    pub fn wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
@@ -270,7 +270,7 @@ where
             },
             |_| {
                 let size = if renderer::CRISP {
-                    let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+                    let scale_factor = renderer.hint_factor().unwrap_or(1.0);
 
                     (self.size * scale_factor).round() / scale_factor
                 } else {
@@ -293,13 +293,14 @@ where
                         widget::text::Format {
                             width: self.width,
                             height: Length::Shrink,
-                            line_height: self.text_line_height,
+                            line_height: self.line_height,
                             size: self.text_size,
                             font: self.font,
-                            align_x: self.text_alignment,
+                            align_x: self.alignment,
                             align_y: alignment::Vertical::Top,
                             shaping: self.text_shaping,
-                            wrapping: self.text_wrapping,
+                            wrapping: self.wrapping,
+                            ellipsis: text::Ellipsis::None,
                         },
                     )
                 } else {
@@ -415,7 +416,7 @@ where
             );
         }
 
-        let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+        let scale_factor = renderer.hint_factor().unwrap_or(1.0);
         let bounds = toggler_layout.bounds();
 
         let border_radius = style
@@ -438,7 +439,7 @@ where
         let toggle_bounds = {
             // Try to align toggle to the pixel grid
             let bounds = if renderer::CRISP {
-                (bounds * scale_factor).round()
+                (bounds * scale_factor).round() * (1.0 / scale_factor)
             } else {
                 bounds
             };
@@ -455,7 +456,7 @@ where
                 y: bounds.y + padding,
                 width: bounds.height - (2.0 * padding),
                 height: bounds.height - (2.0 * padding),
-            } * (1.0 / scale_factor)
+            }
         };
 
         renderer.fill_quad(
@@ -563,7 +564,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Toggler`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let background = match status {
         Status::Active { is_toggled } | Status::Hovered { is_toggled } => {

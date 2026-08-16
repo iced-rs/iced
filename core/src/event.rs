@@ -31,6 +31,9 @@ pub enum Event {
 
     /// A clipboard event
     Clipboard(clipboard::Event),
+
+    /// A wake event, produced by a [`Waker`](crate::shell::Waker).
+    Waken,
 }
 
 /// The status of an [`Event`] after being processed.

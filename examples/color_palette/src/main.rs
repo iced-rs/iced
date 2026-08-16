@@ -1,8 +1,10 @@
 use iced::alignment;
 use iced::mouse;
+use iced::theme;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{Slider, column, row, text};
 use iced::{Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer, Size, Vector};
+
 use palette::{Darken, Hsl, Lighten, ShiftHue, convert::FromColor, rgb::Rgb};
 use std::marker::PhantomData;
 use std::ops::RangeInclusive;
@@ -80,7 +82,7 @@ impl ColorPalette {
     fn theme(&self) -> iced::Theme {
         iced::Theme::custom(
             String::from("Custom"),
-            iced::theme::Palette {
+            theme::palette::Seed {
                 background: self.theme.base,
                 primary: *self.theme.lower.first().unwrap(),
                 text: *self.theme.higher.last().unwrap(),
@@ -252,7 +254,7 @@ impl<Message> canvas::Program<Message> for Theme {
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(renderer, bounds.size(), |frame| {
-            let palette = theme.extended_palette();
+            let palette = theme.palette();
 
             self.draw(frame, palette.background.base.text);
         });

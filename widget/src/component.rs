@@ -5,6 +5,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -90,7 +91,7 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
     /// detect and react to changes in the [`Component`].
     ///
     /// By default, it does nothing.
-    fn diff(&self, _state: &mut Self::State) {}
+    fn diff(&mut self, _state: &mut Self::State) {}
 
     /// Run the provided [`widget::Operation`] on the [`Component`].
     ///
@@ -157,7 +158,7 @@ where
 
 struct Internal<State, Event> {
     state: State,
-    events: Vec<Event>,
+    events: shell::Bus<Event>,
 }
 
 impl<'a, C, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -173,14 +174,21 @@ where
     fn state(&self) -> tree::State {
         tree::State::new(Internal {
             state: C::State::default(),
-            events: Vec::<C::Event>::new(),
+            events: shell::Bus::<C::Event>::new(),
         })
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
 
         self.component.diff(&mut internal.state);
+
+        if self.is_outdated {
+            self.view = self.component.view(&internal.state);
+            tree.diff_children(std::slice::from_mut(&mut self.view));
+
+            self.is_outdated = false;
+        }
     }
 
     fn size(&self) -> Size<Length> {
@@ -193,15 +201,6 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let internal = tree.state.downcast_ref::<Internal<C::State, C::Event>>();
-
-        if self.is_outdated {
-            self.view = self.component.view(&internal.state);
-            tree.diff_children(&[&self.view]);
-
-            self.is_outdated = false;
-        }
-
         if &self.limits != limits {
             self.limits = *limits;
             self.layout = self
@@ -237,10 +236,12 @@ where
             shell.capture_event();
         }
 
-        internal.events.extend(publish);
+        if let Some(event) = publish {
+            let _ = internal.events.push(event);
+        }
 
         if !shell.is_event_captured() {
-            let mut local_shell = Shell::new(&mut internal.events);
+            let mut local_shell = shell.local(&mut internal.events);
 
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
@@ -256,8 +257,8 @@ where
                 shell.capture_event();
             }
 
-            if local_shell.is_layout_invalid() {
-                shell.invalidate_layout();
+            if let Some(diff) = local_shell.is_layout_invalid() {
+                shell.invalidate_layout_with(diff);
             }
 
             if local_shell.are_widgets_invalid() {
@@ -273,14 +274,14 @@ where
             return;
         }
 
-        for event in internal.events.drain(..) {
+        for event in internal.events.drain() {
             if let Some(message) = self.component.update(&mut internal.state, event, renderer) {
                 shell.publish(message);
             }
         }
 
         self.view = self.component.view(&internal.state);
-        tree.diff_children(&[&self.view]);
+        tree.diff_children(std::slice::from_mut(&mut self.view));
 
         let previous_size = self.layout.size();
         self.layout =
@@ -334,7 +335,7 @@ where
         if let Event::Window(window::Event::RedrawRequested(_)) = event {
             let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
 
-            let mut local_shell = Shell::new(&mut internal.events);
+            let mut local_shell = shell.local(&mut internal.events);
 
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
@@ -475,7 +476,7 @@ where
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        let mut local_shell = Shell::new(&mut self.internal.events);
+        let mut local_shell = shell.local(&mut self.internal.events);
 
         self.raw
             .as_overlay_mut()
@@ -485,8 +486,8 @@ where
             shell.capture_event();
         }
 
-        if local_shell.is_layout_invalid() {
-            shell.invalidate_layout();
+        if let Some(diff) = local_shell.is_layout_invalid() {
+            shell.invalidate_layout_with(diff);
         }
 
         if local_shell.are_widgets_invalid() {
@@ -501,7 +502,7 @@ where
             return;
         }
 
-        for event in self.internal.events.drain(..) {
+        for event in self.internal.events.drain() {
             if let Some(message) = self
                 .component
                 .update(&mut self.internal.state, event, renderer)

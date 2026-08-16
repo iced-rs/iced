@@ -1,7 +1,7 @@
 pub use iced_core as core;
 pub use iced_futures as futures;
 
-use crate::core::theme;
+use crate::core::theme::palette;
 use crate::core::window;
 use crate::futures::Subscription;
 
@@ -10,7 +10,7 @@ pub use internal::Span;
 #[derive(Debug, Clone, Copy)]
 pub struct Metadata {
     pub name: &'static str,
-    pub theme: Option<theme::Palette>,
+    pub theme: Option<palette::Seed>,
     pub can_time_travel: bool,
 }
 
@@ -46,7 +46,7 @@ pub fn quit() -> bool {
     internal::quit()
 }
 
-pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
+pub fn theme_changed(f: impl FnOnce() -> Option<palette::Seed>) {
     internal::theme_changed(f);
 }
 
@@ -128,7 +128,7 @@ pub fn is_stale() -> bool {
 
 #[cfg(all(feature = "enable", not(target_arch = "wasm32")))]
 mod internal {
-    use crate::core::theme;
+    use crate::core::theme::palette;
     use crate::core::time::Instant;
     use crate::core::window;
     use crate::futures::Subscription;
@@ -164,7 +164,7 @@ mod internal {
         }
     }
 
-    pub fn theme_changed(f: impl FnOnce() -> Option<theme::Palette>) {
+    pub fn theme_changed(f: impl FnOnce() -> Option<palette::Seed>) {
         let Some(palette) = f() else {
             return;
         };
@@ -198,17 +198,19 @@ mod internal {
         let number = LAST_UPDATE.fetch_add(1, atomic::Ordering::Relaxed);
 
         let start = Instant::now();
-        let message = format!("{message:?}");
+        let message = format!("{message:#?}");
         let elapsed = start.elapsed();
 
         if elapsed.as_millis() >= 1 {
             log::warn!("Slow `Debug` implementation of `Message` (took {elapsed:?})!");
         }
 
-        let message = if message.len() > 49 {
+        const MAX_MESSAGE_LENGTH: usize = 10_000;
+
+        let message = if message.len() > MAX_MESSAGE_LENGTH {
             message
                 .chars()
-                .take(49)
+                .take(MAX_MESSAGE_LENGTH)
                 .chain("...".chars())
                 .collect::<String>()
         } else {
@@ -332,7 +334,7 @@ mod internal {
 
 #[cfg(any(not(feature = "enable"), target_arch = "wasm32"))]
 mod internal {
-    use crate::core::theme;
+    use crate::core::theme::palette;
     use crate::core::window;
     use crate::futures::Subscription;
     use crate::{Command, Metadata, Primitive};
@@ -346,7 +348,7 @@ mod internal {
         false
     }
 
-    pub fn theme_changed(_f: impl FnOnce() -> Option<theme::Palette>) {}
+    pub fn theme_changed(_f: impl FnOnce() -> Option<palette::Seed>) {}
 
     pub fn tasks_spawned(_amount: usize) {}
 

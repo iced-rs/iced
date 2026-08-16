@@ -3,10 +3,153 @@ use crate::{Color, color};
 
 use std::sync::LazyLock;
 
-/// A color palette.
+/// An extended set of colors generated from a [`Seed`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Palette {
+    /// The set of background colors.
+    pub background: Background,
+    /// The set of primary colors.
+    pub primary: Swatch,
+    /// The set of secondary colors.
+    pub secondary: Swatch,
+    /// The set of success colors.
+    pub success: Swatch,
+    /// The set of warning colors.
+    pub warning: Swatch,
+    /// The set of danger colors.
+    pub danger: Swatch,
+    /// Whether the palette is dark or not.
+    pub is_dark: bool,
+}
+
+impl Palette {
+    /// Generates a [`Palette`] from the given [`Seed`].
+    pub fn generate(palette: Seed) -> Self {
+        Self {
+            background: Background::new(palette.background, palette.text),
+            primary: Swatch::generate(palette.primary, palette.background, palette.text),
+            secondary: Swatch::derive(palette.background, palette.text),
+            success: Swatch::generate(palette.success, palette.background, palette.text),
+            warning: Swatch::generate(palette.warning, palette.background, palette.text),
+            danger: Swatch::generate(palette.danger, palette.background, palette.text),
+            is_dark: is_dark(palette.background),
+        }
+    }
+}
+
+/// A pair of background and text colors.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Pair {
+    /// The background color.
+    pub color: Color,
+
+    /// The text color.
+    ///
+    /// It's guaranteed to be readable on top of the background [`color`].
+    ///
+    /// [`color`]: Self::color
+    pub text: Color,
+}
+
+impl Pair {
+    /// Creates a new [`Pair`] from a background [`Color`] and some text [`Color`].
+    pub fn new(color: Color, text: Color) -> Self {
+        Self {
+            color,
+            text: readable(color, text),
+        }
+    }
+}
+
+/// A set of background colors.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Background {
+    /// The base background color.
+    pub base: Pair,
+    /// The weakest version of the base background color.
+    pub weakest: Pair,
+    /// A weaker version of the base background color.
+    pub weaker: Pair,
+    /// A weak version of the base background color.
+    pub weak: Pair,
+    /// A neutral version of the base background color, between weak and strong.
+    pub neutral: Pair,
+    /// A strong version of the base background color.
+    pub strong: Pair,
+    /// A stronger version of the base background color.
+    pub stronger: Pair,
+    /// The strongest version of the base background color.
+    pub strongest: Pair,
+}
+
+impl Background {
+    /// Generates a set of [`Background`] colors from the base and text colors.
+    pub fn new(base: Color, text: Color) -> Self {
+        let weakest = deviate(base, 0.03);
+        let weaker = deviate(base, 0.07);
+        let weak = deviate(base, 0.1);
+        let neutral = deviate(base, 0.125);
+        let strong = deviate(base, 0.15);
+        let stronger = deviate(base, 0.175);
+        let strongest = deviate(base, 0.20);
+
+        Self {
+            base: Pair::new(base, text),
+            weakest: Pair::new(weakest, text),
+            weaker: Pair::new(weaker, text),
+            weak: Pair::new(weak, text),
+            neutral: Pair::new(neutral, text),
+            strong: Pair::new(strong, text),
+            stronger: Pair::new(stronger, text),
+            strongest: Pair::new(strongest, text),
+        }
+    }
+}
+
+/// A color sample in a palette of colors.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Swatch {
+    /// The base color.
+    pub base: Pair,
+    /// A weaker version of the base color.
+    pub weak: Pair,
+    /// A stronger version of the base color.
+    pub strong: Pair,
+}
+
+impl Swatch {
+    /// Generates a [`Swatch`] from a base, background and text color.
+    pub fn generate(base: Color, background: Color, text: Color) -> Self {
+        let weak = base.mix(background, 0.4);
+        let strong = deviate(base, 0.1);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+
+    /// Derives a [`Swatch`] from a base color and text color.
+    pub fn derive(base: Color, text: Color) -> Self {
+        let factor = if is_dark(base) { 0.2 } else { 0.4 };
+
+        let weak = deviate(base, 0.1).mix(text, factor);
+        let strong = deviate(base, 0.3).mix(text, factor);
+        let base = deviate(base, 0.2).mix(text, factor);
+
+        Self {
+            base: Pair::new(base, text),
+            weak: Pair::new(weak, text),
+            strong: Pair::new(strong, text),
+        }
+    }
+}
+
+/// The base set of colors of a [`Palette`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Palette {
+pub struct Seed {
     /// The background [`Color`] of the [`Palette`].
     pub background: Color,
     /// The text [`Color`] of the [`Palette`].
@@ -21,7 +164,7 @@ pub struct Palette {
     pub danger: Color,
 }
 
-impl Palette {
+impl Seed {
     /// The built-in light variant of a [`Palette`].
     pub const LIGHT: Self = Self {
         background: Color::WHITE,
@@ -283,333 +426,88 @@ impl Palette {
     };
 }
 
-/// An extended set of colors generated from a [`Palette`].
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Extended {
-    /// The set of background colors.
-    pub background: Background,
-    /// The set of primary colors.
-    pub primary: Primary,
-    /// The set of secondary colors.
-    pub secondary: Secondary,
-    /// The set of success colors.
-    pub success: Success,
-    /// The set of warning colors.
-    pub warning: Warning,
-    /// The set of danger colors.
-    pub danger: Danger,
-    /// Whether the palette is dark or not.
-    pub is_dark: bool,
-}
+/// The built-in light variant of a [`Palette`].
+pub static LIGHT: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::LIGHT));
 
-/// The built-in light variant of an [`Extended`] palette.
-pub static EXTENDED_LIGHT: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::LIGHT));
+/// The built-in dark variant of a [`Palette`].
+pub static DARK: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::DARK));
 
-/// The built-in dark variant of an [`Extended`] palette.
-pub static EXTENDED_DARK: LazyLock<Extended> = LazyLock::new(|| Extended::generate(Palette::DARK));
+/// The built-in Dracula variant of a [`Palette`].
+pub static DRACULA: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::DRACULA));
 
-/// The built-in Dracula variant of an [`Extended`] palette.
-pub static EXTENDED_DRACULA: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::DRACULA));
+/// The built-in Nord variant of a [`Palette`].
+pub static NORD: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::NORD));
 
-/// The built-in Nord variant of an [`Extended`] palette.
-pub static EXTENDED_NORD: LazyLock<Extended> = LazyLock::new(|| Extended::generate(Palette::NORD));
+/// The built-in Solarized Light variant of a [`Palette`].
+pub static SOLARIZED_LIGHT: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::SOLARIZED_LIGHT));
 
-/// The built-in Solarized Light variant of an [`Extended`] palette.
-pub static EXTENDED_SOLARIZED_LIGHT: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::SOLARIZED_LIGHT));
+/// The built-in Solarized Dark variant of a [`Palette`].
+pub static SOLARIZED_DARK: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::SOLARIZED_DARK));
 
-/// The built-in Solarized Dark variant of an [`Extended`] palette.
-pub static EXTENDED_SOLARIZED_DARK: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::SOLARIZED_DARK));
+/// The built-in Gruvbox Light variant of a [`Palette`].
+pub static GRUVBOX_LIGHT: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::GRUVBOX_LIGHT));
 
-/// The built-in Gruvbox Light variant of an [`Extended`] palette.
-pub static EXTENDED_GRUVBOX_LIGHT: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::GRUVBOX_LIGHT));
+/// The built-in Gruvbox Dark variant of a [`Palette`].
+pub static GRUVBOX_DARK: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::GRUVBOX_DARK));
 
-/// The built-in Gruvbox Dark variant of an [`Extended`] palette.
-pub static EXTENDED_GRUVBOX_DARK: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::GRUVBOX_DARK));
+/// The built-in Catppuccin Latte variant of a [`Palette`].
+pub static CATPPUCCIN_LATTE: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::CATPPUCCIN_LATTE));
 
-/// The built-in Catppuccin Latte variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_LATTE: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_LATTE));
+/// The built-in Catppuccin Frappé variant of a [`Palette`].
+pub static CATPPUCCIN_FRAPPE: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::CATPPUCCIN_FRAPPE));
 
-/// The built-in Catppuccin Frappé variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_FRAPPE: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_FRAPPE));
+/// The built-in Catppuccin Macchiato variant of a [`Palette`].
+pub static CATPPUCCIN_MACCHIATO: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::CATPPUCCIN_MACCHIATO));
 
-/// The built-in Catppuccin Macchiato variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_MACCHIATO: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_MACCHIATO));
+/// The built-in Catppuccin Mocha variant of a [`Palette`].
+pub static CATPPUCCIN_MOCHA: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::CATPPUCCIN_MOCHA));
 
-/// The built-in Catppuccin Mocha variant of an [`Extended`] palette.
-pub static EXTENDED_CATPPUCCIN_MOCHA: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::CATPPUCCIN_MOCHA));
+/// The built-in Tokyo Night variant of a [`Palette`].
+pub static TOKYO_NIGHT: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::TOKYO_NIGHT));
 
-/// The built-in Tokyo Night variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT));
+/// The built-in Tokyo Night Storm variant of a [`Palette`].
+pub static TOKYO_NIGHT_STORM: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::TOKYO_NIGHT_STORM));
 
-/// The built-in Tokyo Night Storm variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT_STORM: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT_STORM));
+/// The built-in Tokyo Night variant of a [`Palette`].
+pub static TOKYO_NIGHT_LIGHT: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::TOKYO_NIGHT_LIGHT));
 
-/// The built-in Tokyo Night variant of an [`Extended`] palette.
-pub static EXTENDED_TOKYO_NIGHT_LIGHT: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::TOKYO_NIGHT_LIGHT));
+/// The built-in Kanagawa Wave variant of a [`Palette`].
+pub static KANAGAWA_WAVE: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::KANAGAWA_WAVE));
 
-/// The built-in Kanagawa Wave variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_WAVE: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_WAVE));
+/// The built-in Kanagawa Dragon variant of a [`Palette`].
+pub static KANAGAWA_DRAGON: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::KANAGAWA_DRAGON));
 
-/// The built-in Kanagawa Dragon variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_DRAGON: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_DRAGON));
+/// The built-in Kanagawa Lotus variant of a [`Palette`].
+pub static KANAGAWA_LOTUS: LazyLock<Palette> =
+    LazyLock::new(|| Palette::generate(Seed::KANAGAWA_LOTUS));
 
-/// The built-in Kanagawa Lotus variant of an [`Extended`] palette.
-pub static EXTENDED_KANAGAWA_LOTUS: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::KANAGAWA_LOTUS));
+/// The built-in Moonfly variant of a [`Palette`].
+pub static MOONFLY: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::MOONFLY));
 
-/// The built-in Moonfly variant of an [`Extended`] palette.
-pub static EXTENDED_MOONFLY: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::MOONFLY));
+/// The built-in Nightfly variant of a [`Palette`].
+pub static NIGHTFLY: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::NIGHTFLY));
 
-/// The built-in Nightfly variant of an [`Extended`] palette.
-pub static EXTENDED_NIGHTFLY: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::NIGHTFLY));
+/// The built-in Oxocarbon variant of a [`Palette`].
+pub static OXOCARBON: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::OXOCARBON));
 
-/// The built-in Oxocarbon variant of an [`Extended`] palette.
-pub static EXTENDED_OXOCARBON: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::OXOCARBON));
-
-/// The built-in Ferra variant of an [`Extended`] palette.
-pub static EXTENDED_FERRA: LazyLock<Extended> =
-    LazyLock::new(|| Extended::generate(Palette::FERRA));
-
-impl Extended {
-    /// Generates an [`Extended`] palette from a simple [`Palette`].
-    pub fn generate(palette: Palette) -> Self {
-        Self {
-            background: Background::new(palette.background, palette.text),
-            primary: Primary::generate(palette.primary, palette.background, palette.text),
-            secondary: Secondary::generate(palette.background, palette.text),
-            success: Success::generate(palette.success, palette.background, palette.text),
-            warning: Warning::generate(palette.warning, palette.background, palette.text),
-            danger: Danger::generate(palette.danger, palette.background, palette.text),
-            is_dark: is_dark(palette.background),
-        }
-    }
-}
-
-/// A pair of background and text colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Pair {
-    /// The background color.
-    pub color: Color,
-
-    /// The text color.
-    ///
-    /// It's guaranteed to be readable on top of the background [`color`].
-    ///
-    /// [`color`]: Self::color
-    pub text: Color,
-}
-
-impl Pair {
-    /// Creates a new [`Pair`] from a background [`Color`] and some text [`Color`].
-    pub fn new(color: Color, text: Color) -> Self {
-        Self {
-            color,
-            text: readable(color, text),
-        }
-    }
-}
-
-/// A set of background colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Background {
-    /// The base background color.
-    pub base: Pair,
-    /// The weakest version of the base background color.
-    pub weakest: Pair,
-    /// A weaker version of the base background color.
-    pub weaker: Pair,
-    /// A weak version of the base background color.
-    pub weak: Pair,
-    /// A neutral version of the base background color, between weak and strong.
-    pub neutral: Pair,
-    /// A strong version of the base background color.
-    pub strong: Pair,
-    /// A stronger version of the base background color.
-    pub stronger: Pair,
-    /// The strongest version of the base background color.
-    pub strongest: Pair,
-}
-
-impl Background {
-    /// Generates a set of [`Background`] colors from the base and text colors.
-    pub fn new(base: Color, text: Color) -> Self {
-        let weakest = deviate(base, 0.03);
-        let weaker = deviate(base, 0.07);
-        let weak = deviate(base, 0.1);
-        let neutral = deviate(base, 0.125);
-        let strong = deviate(base, 0.15);
-        let stronger = deviate(base, 0.175);
-        let strongest = deviate(base, 0.20);
-
-        Self {
-            base: Pair::new(base, text),
-            weakest: Pair::new(weakest, text),
-            weaker: Pair::new(weaker, text),
-            weak: Pair::new(weak, text),
-            neutral: Pair::new(neutral, text),
-            strong: Pair::new(strong, text),
-            stronger: Pair::new(stronger, text),
-            strongest: Pair::new(strongest, text),
-        }
-    }
-}
-
-/// A set of primary colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Primary {
-    /// The base primary color.
-    pub base: Pair,
-    /// A weaker version of the base primary color.
-    pub weak: Pair,
-    /// A stronger version of the base primary color.
-    pub strong: Pair,
-}
-
-impl Primary {
-    /// Generates a set of [`Primary`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-/// A set of secondary colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Secondary {
-    /// The base secondary color.
-    pub base: Pair,
-    /// A weaker version of the base secondary color.
-    pub weak: Pair,
-    /// A stronger version of the base secondary color.
-    pub strong: Pair,
-}
-
-impl Secondary {
-    /// Generates a set of [`Secondary`] colors from the base and text colors.
-    pub fn generate(base: Color, text: Color) -> Self {
-        let factor = if is_dark(base) { 0.2 } else { 0.4 };
-
-        let weak = mix(deviate(base, 0.1), text, factor);
-        let strong = mix(deviate(base, 0.3), text, factor);
-        let base = mix(deviate(base, 0.2), text, factor);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-/// A set of success colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Success {
-    /// The base success color.
-    pub base: Pair,
-    /// A weaker version of the base success color.
-    pub weak: Pair,
-    /// A stronger version of the base success color.
-    pub strong: Pair,
-}
-
-impl Success {
-    /// Generates a set of [`Success`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-/// A set of warning colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Warning {
-    /// The base warning color.
-    pub base: Pair,
-    /// A weaker version of the base warning color.
-    pub weak: Pair,
-    /// A stronger version of the base warning color.
-    pub strong: Pair,
-}
-
-impl Warning {
-    /// Generates a set of [`Warning`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-/// A set of danger colors.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Danger {
-    /// The base danger color.
-    pub base: Pair,
-    /// A weaker version of the base danger color.
-    pub weak: Pair,
-    /// A stronger version of the base danger color.
-    pub strong: Pair,
-}
-
-impl Danger {
-    /// Generates a set of [`Danger`] colors from the base, background, and text colors.
-    pub fn generate(base: Color, background: Color, text: Color) -> Self {
-        let weak = mix(base, background, 0.4);
-        let strong = deviate(base, 0.1);
-
-        Self {
-            base: Pair::new(base, text),
-            weak: Pair::new(weak, text),
-            strong: Pair::new(strong, text),
-        }
-    }
-}
-
-struct Oklch {
-    l: f32,
-    c: f32,
-    h: f32,
-    a: f32,
-}
+/// The built-in Ferra variant of a [`Palette`].
+pub static FERRA: LazyLock<Palette> = LazyLock::new(|| Palette::generate(Seed::FERRA));
 
 /// Darkens a [`Color`] by the given factor.
 pub fn darken(color: Color, amount: f32) -> Color {
-    let mut oklch = to_oklch(color);
+    let mut oklch = color.into_oklch();
 
     // We try to bump the chroma a bit for more colorful palettes
     if oklch.c > 0.0 && oklch.c < (1.0 - oklch.l) / 2.0 {
@@ -623,12 +521,12 @@ pub fn darken(color: Color, amount: f32) -> Color {
         oklch.l - amount
     };
 
-    from_oklch(oklch)
+    Color::from_oklch(oklch)
 }
 
 /// Lightens a [`Color`] by the given factor.
 pub fn lighten(color: Color, amount: f32) -> Color {
-    let mut oklch = to_oklch(color);
+    let mut oklch = color.into_oklch();
 
     // We try to bump the chroma a bit for more colorful palettes
     // Formula empirically and cluelessly derived
@@ -640,7 +538,7 @@ pub fn lighten(color: Color, amount: f32) -> Color {
         oklch.l + amount
     };
 
-    from_oklch(oklch)
+    Color::from_oklch(oklch)
 }
 
 /// Deviates a [`Color`] by the given factor. Lightens if the [`Color`] is
@@ -651,22 +549,6 @@ pub fn deviate(color: Color, amount: f32) -> Color {
     } else {
         darken(color, amount)
     }
-}
-
-/// Mixes two colors by the given factor.
-pub fn mix(a: Color, b: Color, factor: f32) -> Color {
-    let b_amount = factor.clamp(0.0, 1.0);
-    let a_amount = 1.0 - b_amount;
-
-    let a_linear = a.into_linear().map(|c| c * a_amount);
-    let b_linear = b.into_linear().map(|c| c * b_amount);
-
-    Color::from_linear_rgba(
-        a_linear[0] + b_linear[0],
-        a_linear[1] + b_linear[1],
-        a_linear[2] + b_linear[2],
-        a_linear[3] + b_linear[3],
-    )
 }
 
 /// Computes a [`Color`] from the given text color that is
@@ -695,68 +577,13 @@ pub fn readable(background: Color, text: Color) -> Color {
     let black_contrast = background.relative_contrast(Color::BLACK);
 
     if white_contrast >= black_contrast {
-        mix(Color::WHITE, background, 0.05)
+        Color::WHITE.mix(background, 0.05)
     } else {
-        mix(Color::BLACK, background, 0.05)
+        Color::BLACK.mix(background, 0.05)
     }
 }
 
 /// Returns true if the [`Color`] is dark.
 pub fn is_dark(color: Color) -> bool {
-    to_oklch(color).l < 0.6
-}
-
-// https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
-fn to_oklch(color: Color) -> Oklch {
-    let [r, g, b, alpha] = color.into_linear();
-
-    // linear RGB → LMS
-    let l = 0.41222146 * r + 0.53633255 * g + 0.051445995 * b;
-    let m = 0.2119035 * r + 0.6806995 * g + 0.10739696 * b;
-    let s = 0.08830246 * r + 0.28171885 * g + 0.6299787 * b;
-
-    // Nonlinear transform (cube root)
-    let l_ = l.cbrt();
-    let m_ = m.cbrt();
-    let s_ = s.cbrt();
-
-    // LMS → Oklab
-    let l = 0.21045426 * l_ + 0.7936178 * m_ - 0.004072047 * s_;
-    let a = 1.9779985 * l_ - 2.4285922 * m_ + 0.4505937 * s_;
-    let b = 0.025904037 * l_ + 0.78277177 * m_ - 0.80867577 * s_;
-
-    // Oklab → Oklch
-    let c = (a * a + b * b).sqrt();
-    let h = b.atan2(a); // radians
-
-    Oklch { l, c, h, a: alpha }
-}
-
-// https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
-fn from_oklch(oklch: Oklch) -> Color {
-    let Oklch { l, c, h, a: alpha } = oklch;
-
-    let a = c * h.cos();
-    let b = c * h.sin();
-
-    // Oklab → LMS (nonlinear)
-    let l_ = l + 0.39633778 * a + 0.21580376 * b;
-    let m_ = l - 0.105561346 * a - 0.06385417 * b;
-    let s_ = l - 0.08948418 * a - 1.2914855 * b;
-
-    // Cubing back
-    let l = l_ * l_ * l_;
-    let m = m_ * m_ * m_;
-    let s = s_ * s_ * s_;
-
-    let r = 4.0767417 * l - 3.3077116 * m + 0.23096994 * s;
-    let g = -1.268438 * l + 2.6097574 * m - 0.34131938 * s;
-    let b = -0.0041960863 * l - 0.7034186 * m + 1.7076147 * s;
-
-    Color::from_linear_rgba(
-        r.clamp(0.0, 1.0),
-        g.clamp(0.0, 1.0),
-        b.clamp(0.0, 1.0),
-        alpha,
-    )
+    color.into_oklch().l < 0.6
 }

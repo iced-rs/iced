@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "hinting", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
+default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
 # Enables the `wgpu` GPU-accelerated renderer with all its default features (Vulkan, Metal, DX12, OpenGL, and WebGPU)
 wgpu = ["wgpu-bare", "iced_renderer/wgpu"]
 # Enables the `wgpu` GPU-accelerated renderer with the minimum required features (no backends!)
@@ -77,8 +77,6 @@ fira-sans = ["iced_renderer/fira-sans"]
 basic-shaping = ["iced_core/basic-shaping"]
 # Enables advanced text shaping by default
 advanced-shaping = ["iced_core/advanced-shaping"]
-# Enables rendering hints (e.g. metrics hinting)
-hinting = ["iced_winit/hinting"]
 # Enables strict assertions for debugging purposes at the expense of performance
 strict-assertions = ["iced_renderer/strict-assertions"]
 # Redraws on every runtime event, and not only when a widget requests it
@@ -118,9 +116,18 @@ image.optional = true
 [dev-dependencies]
 criterion = "0.5"
 iced_wgpu.workspace = true
+iced_renderer.workspace = true
+
+iced.workspace = true
+iced.features = ["advanced"]
 
 [[bench]]
 name = "wgpu"
+harness = false
+required-features = ["canvas"]
+
+[[bench]]
+name = "cpu"
 harness = false
 required-features = ["canvas"]
 
@@ -193,10 +200,10 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
-cosmic-text = "0.16"
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "3836ca7a17f410d30871c2254dcc0f2400876636" }
+cosmic-text = "0.19"
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "f4e7e4eb84dc1d2f335a98c67d8694640d53a433" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
-glam = "0.25"
+glam = "0.33.2"
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
@@ -214,7 +221,7 @@ png = "0.18"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
-resvg = "0.45"
+resvg = { version = "0.45", default-features = false }
 rfd = "0.16"
 rustc-hash = "2.0"
 semver = "1.0"
@@ -234,9 +241,9 @@ unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
-web-sys = "0.3.69"
+web-sys = "=0.3.85"
 web-time = "1.1"
-wgpu = { version = "28.0", default-features = false, features = ["std", "wgsl"] }
+wgpu = { version = "29", default-features = false, features = ["std", "wgsl"] }
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed", default-features = false, features = ["rwh_06"] }
 
 [workspace.lints.rust]
@@ -250,6 +257,7 @@ type-complexity = "allow"
 map-entry = "allow"
 large-enum-variant = "allow"
 result_large_err = "allow"
+manual_filter = "allow"
 semicolon_if_nothing_returned = "deny"
 trivially-copy-pass-by-ref = "deny"
 default_trait_access = "deny"

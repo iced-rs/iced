@@ -116,7 +116,7 @@ impl IcedCubes {
         ]
         .spacing(40);
 
-        let controls = column![top_controls, bottom_controls,]
+        let controls = column![top_controls, bottom_controls]
             .spacing(10)
             .padding(20)
             .align_x(Center);
@@ -141,5 +141,8 @@ fn control<'a>(
     label: &'static str,
     control: impl Into<Element<'a, Message>>,
 ) -> Element<'a, Message> {
-    row![text(label), control.into()].spacing(10).into()
+    row![text(label), control.into()]
+        .spacing(10)
+        .align_y(Center)
+        .into()
 }

@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::text::Alignment;
-use crate::core::{Rectangle, Size, Transformation};
+use crate::core::{Rectangle, Size, Transformation, Vector};
 use crate::graphics::cache;
 use crate::graphics::color;
 use crate::graphics::text::cache::{self as text_cache, Cache as BufferCache};
@@ -463,6 +463,8 @@ fn prepare(
                 line_height,
                 font,
                 shaping,
+                wrapping,
+                ellipsis,
                 align_x,
                 ..
             } => {
@@ -479,6 +481,8 @@ fn prepare(
                             height: bounds.height,
                         },
                         shaping: *shaping,
+                        wrapping: *wrapping,
+                        ellipsis: *ellipsis,
                     },
                 );
 
@@ -597,7 +601,9 @@ fn prepare(
             let clip_bounds = layer_bounds
                 .intersection(&(clip_bounds * transformation * layer_transformation))?;
 
-            let mut position = position * transformation * layer_transformation;
+            let translation = Vector::new(-buffer.scroll().horizontal, 0.0);
+
+            let mut position = (position + translation) * transformation * layer_transformation;
             let mut scale = transformation.scale_factor() * layer_transformation.scale_factor();
 
             if let Some(hint_factor) = hint_factor {
@@ -618,7 +624,7 @@ fn prepare(
             }
 
             Some(cryoglyph::TextArea {
-                buffer,
+                text: buffer.layout_runs(),
                 left: position.x,
                 top: position.y,
                 scale,

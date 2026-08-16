@@ -1,7 +1,12 @@
+//! Communicate with the iced runtime from widgets.
 use crate::clipboard;
 use crate::event;
 use crate::window;
-use crate::{Clipboard, InputMethod};
+use crate::{Clipboard, InputMethod, Window};
+
+use std::rc::{self, Rc};
+use std::sync::Arc;
+use std::vec;
 
 /// A connection to the state of a shell.
 ///
@@ -11,23 +16,27 @@ use crate::{Clipboard, InputMethod};
 /// [`Widget`]: crate::Widget
 #[derive(Debug)]
 pub struct Shell<'a, Message> {
-    messages: &'a mut Vec<Message>,
+    window: &'a dyn Window,
+    bus: &'a mut Bus<Message>,
+    waker: Waker,
     event_status: event::Status,
     redraw_request: window::RedrawRequest,
     input_method: InputMethod,
-    is_layout_invalid: bool,
+    is_layout_invalid: Option<Diff>,
     are_widgets_invalid: bool,
     clipboard: Clipboard,
 }
 
 impl<'a, Message> Shell<'a, Message> {
     /// Creates a new [`Shell`] with the provided buffer of messages.
-    pub fn new(messages: &'a mut Vec<Message>) -> Self {
+    pub fn new(window: &'a dyn Window, waker: Waker, bus: &'a mut Bus<Message>) -> Self {
         Self {
-            messages,
+            window,
+            bus,
+            waker,
             event_status: event::Status::Ignored,
             redraw_request: window::RedrawRequest::Wait,
-            is_layout_invalid: false,
+            is_layout_invalid: None,
             are_widgets_invalid: false,
             input_method: InputMethod::Disabled,
             clipboard: Clipboard {
@@ -37,15 +46,41 @@ impl<'a, Message> Shell<'a, Message> {
         }
     }
 
+    /// Creates a new [`Shell`] from the current one with the given list of local messages.
+    pub fn local<'b, A>(&self, bus: &'b mut Bus<A>) -> Shell<'b, A>
+    where
+        'a: 'b,
+    {
+        Shell::new(self.window, self.waker.clone(), bus)
+    }
+
+    /// Returns the [`Window`] of the [`Shell`].
+    pub fn window(&self) -> &'a dyn Window {
+        self.window
+    }
+
+    /// Returns the [`Waker`] of the [`Shell`].
+    pub fn waker(&self) -> &Waker {
+        &self.waker
+    }
+
     /// Returns true if the [`Shell`] contains no published messages
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        self.messages.is_empty()
+        self.bus.messages.is_empty()
     }
 
     /// Publish the given `Message` for an application to process it.
     pub fn publish(&mut self, message: Message) {
-        self.messages.push(message);
+        let _ = self.publish_and_track(message);
+    }
+
+    /// Publish the given `Message` for an application to process it.
+    ///
+    /// The returned [`Tracking`] can be used to determine if the message
+    /// was processed.
+    pub fn publish_and_track(&mut self, message: Message) -> Tracking {
+        self.bus.push(message)
     }
 
     /// Marks the current event as captured. Prevents "event bubbling".
@@ -103,8 +138,8 @@ impl<'a, Message> Shell<'a, Message> {
     /// Requests the runtime to write the given [`clipboard::Content`] to the clipboard.
     ///
     /// The runtime will produce a [`clipboard::Event::Written`] when the contents have been written.
-    pub fn write_clipboard(&mut self, content: clipboard::Content) {
-        self.clipboard.write = Some(content);
+    pub fn write_clipboard(&mut self, content: impl Into<clipboard::Content>) {
+        self.clipboard.write = Some(content.into());
     }
 
     /// Returns the [`Clipboard`] requests of the [`Shell`], mutably.
@@ -134,7 +169,7 @@ impl<'a, Message> Shell<'a, Message> {
 
     /// Returns whether the current layout is invalid or not.
     #[must_use]
-    pub fn is_layout_invalid(&self) -> bool {
+    pub fn is_layout_invalid(&self) -> Option<Diff> {
         self.is_layout_invalid
     }
 
@@ -142,16 +177,19 @@ impl<'a, Message> Shell<'a, Message> {
     ///
     /// The shell will relayout the application widgets.
     pub fn invalidate_layout(&mut self) {
-        self.is_layout_invalid = true;
+        self.invalidate_layout_with(Diff::Skip);
+    }
+
+    /// Invalidates the current application layout with the following [`Diff`] strategy.
+    pub fn invalidate_layout_with(&mut self, diff: Diff) {
+        self.is_layout_invalid = Some(diff);
     }
 
     /// Triggers the given function if the layout is invalid, cleaning it in the
     /// process.
-    pub fn revalidate_layout(&mut self, f: impl FnOnce()) {
-        if self.is_layout_invalid {
-            self.is_layout_invalid = false;
-
-            f();
+    pub fn revalidate_layout(&mut self, f: impl FnOnce(Diff)) {
+        if let Some(diff) = self.is_layout_invalid.take() {
+            f(diff);
         }
     }
 
@@ -174,14 +212,152 @@ impl<'a, Message> Shell<'a, Message> {
     ///
     /// This method is useful for composition.
     pub fn merge<B>(&mut self, mut other: Shell<'_, B>, f: impl Fn(B) -> Message) {
-        self.messages.extend(other.messages.drain(..).map(f));
+        self.bus.messages.extend(
+            other
+                .bus
+                .messages
+                .drain(..)
+                .map(|(message, receipt)| (f(message), receipt)),
+        );
 
-        self.is_layout_invalid = self.is_layout_invalid || other.is_layout_invalid;
+        self.is_layout_invalid = match (self.is_layout_invalid, other.is_layout_invalid) {
+            (Some(a), Some(b)) => Some(a.max(b)),
+            _ => self.is_layout_invalid.or(other.is_layout_invalid),
+        };
+
         self.are_widgets_invalid = self.are_widgets_invalid || other.are_widgets_invalid;
         self.redraw_request = self.redraw_request.min(other.redraw_request);
         self.event_status = self.event_status.merge(other.event_status);
 
         self.input_method.merge(&other.input_method);
         self.clipboard.merge(&mut other.clipboard);
+    }
+}
+
+/// A waker can be used to wake up the iced runtime and, consequently, trigger
+/// wake events concurrently from widget logic.
+#[derive(Clone)]
+pub struct Waker {
+    wake: Arc<dyn Fn() + Send + Sync + 'static>,
+}
+
+impl Waker {
+    /// Creates a new [`Waker`] with the given `wake` function.
+    pub fn new(wake: impl Fn() + Send + Sync + 'static) -> Self {
+        Self {
+            wake: Arc::new(wake),
+        }
+    }
+
+    /// Creates a new [`Waker`] that does nothing.
+    pub fn noop() -> Self {
+        Self::new(|| {})
+    }
+
+    /// Wakes up the iced runtime as soon as possible.
+    ///
+    /// You normally want to call this concurrently (e.g. from a different thread).
+    pub fn wake(&self) {
+        (self.wake)();
+    }
+}
+
+impl std::fmt::Debug for Waker {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Waker").finish()
+    }
+}
+
+/// The diffing strategy to follow when invalidating some layout.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Diff {
+    /// Skips the diffing step.
+    Skip,
+    /// Performs diffing again before layouting.
+    Perform,
+}
+
+/// A channel of messages published by a [`Shell`].
+#[derive(Debug)]
+pub struct Bus<T> {
+    messages: Vec<(T, Rc<()>)>,
+}
+
+impl<T> Bus<T> {
+    /// Creates an empty [`Bus`].
+    pub fn new() -> Self {
+        Self {
+            messages: Vec::new(),
+        }
+    }
+
+    /// Returns `true` if the [`Bus`] has no messages pending.
+    pub fn is_empty(&self) -> bool {
+        self.messages.is_empty()
+    }
+
+    /// Returns the amount of messages pending in the [`Bus`].
+    pub fn len(&self) -> usize {
+        self.messages.len()
+    }
+
+    /// Pushes a new message to the [`Bus`].
+    ///
+    /// The returned [`Tracking`] can be used to determine if the message
+    /// was processed.
+    pub fn push(&mut self, message: T) -> Tracking {
+        let receipt = Rc::new(());
+        let tracking = Tracking(Rc::downgrade(&receipt));
+
+        self.messages.push((message, receipt));
+
+        tracking
+    }
+
+    /// Drains the [`Bus`].
+    pub fn drain(&mut self) -> impl Iterator<Item = T> {
+        self.messages.drain(..).map(|(message, _receipt)| message)
+    }
+}
+
+impl<T> Default for Bus<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> IntoIterator for Bus<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            iter: self.messages.into_iter(),
+        }
+    }
+}
+
+/// An iterator returned by the implementation of [`IntoIterator`] for [`Bus`].
+pub struct IntoIter<T> {
+    iter: vec::IntoIter<(T, Rc<()>)>,
+}
+
+impl<T> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(self.iter.next()?.0)
+    }
+}
+
+/// A message tracking returned by [`Shell::publish`].
+#[derive(Debug, Clone)]
+pub struct Tracking(rc::Weak<()>);
+
+impl Tracking {
+    /// Returns `true` if the message of this [`Tracking`] has been processed
+    /// by `update` logic.
+    pub fn is_processed(&self) -> bool {
+        self.0.strong_count() == 0
     }
 }

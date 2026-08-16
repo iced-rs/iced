@@ -24,7 +24,6 @@
 #![allow(missing_docs)]
 pub mod layer;
 pub mod primitive;
-pub mod settings;
 pub mod window;
 
 #[cfg(feature = "geometry")]
@@ -56,7 +55,6 @@ pub use wgpu;
 pub use engine::Engine;
 pub use layer::Layer;
 pub use primitive::Primitive;
-pub use settings::Settings;
 
 #[cfg(feature = "geometry")]
 pub use geometry::Geometry;
@@ -73,11 +71,10 @@ use crate::graphics::{Shell, Viewport};
 /// [`iced`]: https://github.com/iced-rs/iced
 pub struct Renderer {
     engine: Engine,
+    settings: renderer::Settings,
 
-    default_font: Font,
-    default_text_size: Pixels,
     layers: layer::Stack,
-    scale_factor: Option<f32>,
+    scale: Option<renderer::Scale>,
 
     quad: quad::State,
     triangle: triangle::State,
@@ -95,12 +92,11 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(engine: Engine, default_font: Font, default_text_size: Pixels) -> Self {
+    pub fn new(engine: Engine, settings: renderer::Settings) -> Self {
         Self {
-            default_font,
-            default_text_size,
+            settings,
             layers: layer::Stack::new(),
-            scale_factor: None,
+            scale: None,
 
             quad: quad::State::new(),
             triangle: triangle::State::new(&engine.device, &engine.triangle_pipeline),
@@ -125,7 +121,11 @@ impl Renderer {
         }
     }
 
-    fn draw(
+    /// Record commands that draw the current primitives to the target texture view.
+    ///
+    /// You must call [`finish`](Self::finish) and [`recall`](Self::recall) when submitting
+    /// the resulting [`wgpu::CommandEncoder`].
+    pub fn draw(
         &mut self,
         clear_color: Option<Color>,
         target: &wgpu::TextureView,
@@ -638,6 +638,28 @@ impl Renderer {
                 .count()
         });
     }
+
+    /// Prepares currently mapped buffers for use in a submission.
+    ///
+    /// Usually, this method is only needed if you are calling [`Renderer::draw`] directly,
+    /// instead of relying on [`Renderer::present`].
+    ///
+    /// You must call this method _before_ submitting the resulting [`wgpu::CommandEncoder`]
+    /// of [`Renderer::draw`] to a [`wgpu::Queue`].
+    pub fn finish(&mut self) {
+        self.staging_belt.finish();
+    }
+
+    /// Recalls all of the closed buffers back to be reused.
+    ///
+    /// Usually, this method is only needed if you are calling [`Renderer::draw`] directly,
+    /// instead of relying on [`Renderer::present`] to a [`wgpu::Queue`].
+    ///
+    /// You must call this method _after_ submitting the resulting [`wgpu::CommandEncoder`]
+    /// of [`Renderer::draw`] to a [`wgpu::Queue`].
+    pub fn recall(&mut self) {
+        self.staging_belt.recall();
+    }
 }
 
 impl core::Renderer for Renderer {
@@ -673,12 +695,17 @@ impl core::Renderer for Renderer {
             .allocate_image(_handle, _callback);
     }
 
-    fn hint(&mut self, scale_factor: f32) {
-        self.scale_factor = Some(scale_factor);
+    fn hint(&mut self, scale_factor: renderer::Scale) {
+        self.scale = Some(scale_factor);
     }
 
-    fn scale_factor(&self) -> Option<f32> {
-        Some(self.scale_factor? * self.layers.transformation().scale_factor())
+    fn scale(&self) -> Option<renderer::Scale> {
+        let scale_factor = self.scale?;
+
+        Some(renderer::Scale {
+            application: scale_factor.application * self.layers.transformation().scale_factor(),
+            ..scale_factor
+        })
     }
 
     fn tick(&mut self) {
@@ -689,6 +716,10 @@ impl core::Renderer for Renderer {
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
     }
+
+    fn settings(&self) -> renderer::Settings {
+        self.settings
+    }
 }
 
 impl core::text::Renderer for Renderer {
@@ -696,7 +727,7 @@ impl core::text::Renderer for Renderer {
     type Paragraph = Paragraph;
     type Editor = Editor;
 
-    const ICON_FONT: Font = Font::with_name("Iced-Icons");
+    const ICON_FONT: Font = Font::new("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
     const ICED_LOGO: char = '\u{e801}';
@@ -706,11 +737,11 @@ impl core::text::Renderer for Renderer {
     const SCROLL_RIGHT_ICON: char = '\u{e805}';
 
     fn default_font(&self) -> Self::Font {
-        self.default_font
+        self.settings.default_font
     }
 
     fn default_size(&self) -> Pixels {
-        self.default_text_size
+        self.settings.default_text_size
     }
 
     fn fill_paragraph(
@@ -869,19 +900,15 @@ impl graphics::compositor::Default for crate::Renderer {
 }
 
 impl renderer::Headless for Renderer {
-    async fn new(
-        default_font: Font,
-        default_text_size: Pixels,
-        backend: Option<&str>,
-    ) -> Option<Self> {
+    async fn new(settings: renderer::Settings, backend: Option<&str>) -> Option<Self> {
         if backend.is_some_and(|backend| backend != "wgpu") {
             return None;
         }
 
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::from_env().unwrap_or(wgpu::Backends::PRIMARY),
             flags: wgpu::InstanceFlags::empty(),
-            ..wgpu::InstanceDescriptor::default()
+            ..wgpu::InstanceDescriptor::new_without_display_handle()
         });
 
         let adapter = instance
@@ -921,7 +948,7 @@ impl renderer::Headless for Renderer {
             Shell::headless(),
         );
 
-        Some(Self::new(engine, default_font, default_text_size))
+        Some(Self::new(engine, settings))
     }
 
     fn name(&self) -> String {
@@ -935,7 +962,13 @@ impl renderer::Headless for Renderer {
         background_color: Color,
     ) -> Vec<u8> {
         self.screenshot(
-            &Viewport::with_physical_size(size, scale_factor),
+            &Viewport::with_physical_size(
+                size,
+                renderer::Scale {
+                    window: 1.0,
+                    application: scale_factor,
+                },
+            ),
             background_color,
         )
     }

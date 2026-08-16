@@ -76,7 +76,6 @@ where
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     class: Theme::Class<'a>,
-    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -96,30 +95,14 @@ where
     ) -> Self {
         Scrollable {
             id: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             direction: direction.into(),
             auto_scroll: false,
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
-            last_status: None,
         }
-        .enclose()
-    }
-
-    fn enclose(mut self) -> Self {
-        let size_hint = self.content.as_widget().size_hint();
-
-        if self.direction.horizontal().is_none() {
-            self.width = self.width.enclose(size_hint.width);
-        }
-
-        if self.direction.vertical().is_none() {
-            self.height = self.height.enclose(size_hint.height);
-        }
-
-        self
     }
 
     /// Makes the [`Scrollable`] scroll horizontally, with default [`Scrollbar`] settings.
@@ -130,7 +113,7 @@ where
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
-        self.enclose()
+        self
     }
 
     /// Sets the [`widget::Id`] of the [`Scrollable`].
@@ -378,7 +361,7 @@ impl Scrollbar {
 /// on a given axis.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Anchor {
-    /// Scroller is anchoer to the start of the [`Viewport`].
+    /// Scroller is anchored to the start of the [`Viewport`].
     #[default]
     Start,
     /// Content is aligned to the end of the [`Viewport`].
@@ -399,12 +382,18 @@ where
         tree::State::new(State::new())
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+        let size = self.content.as_widget().size();
+
+        if self.direction.horizontal().is_none() {
+            self.width = self.width.stack(size.width);
+        }
+
+        if self.direction.vertical().is_none() {
+            self.height = self.height.stack(size.height);
+        }
     }
 
     fn size(&self) -> Size<Length> {
@@ -765,7 +754,7 @@ where
                 if !had_input_method
                     && let InputMethod::Enabled { cursor, .. } = shell.input_method_mut()
                 {
-                    *cursor = *cursor - translation;
+                    *cursor -= translation;
                 }
             };
 
@@ -1013,11 +1002,11 @@ where
         };
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
-            self.last_status = Some(status);
+            state.last_status = Some(status);
         }
 
         if last_offsets != (state.offset_x, state.offset_y)
-            || self
+            || state
                 .last_status
                 .is_some_and(|last_status| last_status != status)
         {
@@ -1061,7 +1050,7 @@ where
 
         let style = theme.style(
             &self.class,
-            self.last_status.unwrap_or(Status::Active {
+            state.last_status.unwrap_or(Status::Active {
                 is_horizontal_scrollbar_disabled: false,
                 is_vertical_scrollbar_disabled: false,
             }),
@@ -1071,7 +1060,7 @@ where
 
         // Draw inner content
         if scrollbars.active() {
-            let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+            let scale_factor = renderer.hint_factor().unwrap_or(1.0);
             let translation = (translation * scale_factor).round() / scale_factor;
 
             renderer.with_layer(visible_bounds, |renderer| {
@@ -1354,6 +1343,7 @@ where
                 align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Basic,
                 wrapping: text::Wrapping::None,
+                ellipsis: text::Ellipsis::None,
                 hint_factor: None,
             };
 
@@ -1506,6 +1496,7 @@ struct State {
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
+    last_status: Option<Status>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1531,6 +1522,7 @@ impl Default for State {
             last_notified: None,
             last_scrolled: None,
             is_scrollbar_visible: true,
+            last_status: None,
         }
     }
 }
@@ -2137,7 +2129,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Scrollable`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let scrollbar = Rail {
         background: Some(palette.background.weak.color.into()),

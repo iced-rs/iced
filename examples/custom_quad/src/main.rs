@@ -1,7 +1,7 @@
 //! This example showcases a drawing a quad.
 use iced::border;
 use iced::widget::{center, column, slider, text, toggler};
-use iced::{Center, Color, Element, Shadow, Vector};
+use iced::{Center, Color, Element, Fit, Shadow, Vector};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -112,7 +112,7 @@ impl Example {
         ]
         .padding(20)
         .spacing(20)
-        .max_width(500)
+        .width(Fit.max(500))
         .align_x(Center);
 
         center(content).into()

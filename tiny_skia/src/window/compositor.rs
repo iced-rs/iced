@@ -1,16 +1,16 @@
+use crate::core::backend;
+use crate::core::renderer;
 use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
-use crate::graphics::error::{self, Error};
-use crate::graphics::{self, Shell, Viewport};
-use crate::{Layer, Renderer, Settings};
+use crate::graphics::{Shell, Viewport};
+use crate::{Layer, Renderer};
 
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
 pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Display>>,
-    settings: Settings,
 }
 
 pub struct Surface {
@@ -30,31 +30,31 @@ impl crate::graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = Surface;
 
-    async fn with_backend(
-        settings: graphics::Settings,
+    async fn new(
+        settings: backend::Settings,
         display: impl compositor::Display,
         _compatible_window: impl compositor::Window,
         _shell: Shell,
-        backend: Option<&str>,
-    ) -> Result<Self, Error> {
-        match backend {
-            None | Some("tiny-skia") | Some("tiny_skia") => Ok(new(settings.into(), display)),
-            Some(backend) => Err(Error::GraphicsAdapterNotFound {
+    ) -> Result<Self, backend::Error> {
+        if !settings.backend.is_software() && !settings.backend.matches("tiny-skia") {
+            return Err(backend::Error::GraphicsAdapterNotFound {
                 backend: "tiny-skia",
-                reason: error::Reason::DidNotMatch {
-                    preferred_backend: backend.to_owned(),
+                reason: backend::Reason::DidNotMatch {
+                    preferred_backend: settings.backend,
                 },
-            }),
+            });
         }
+
+        Ok(new(display))
     }
 
-    fn create_renderer(&self) -> Self::Renderer {
-        Renderer::new(self.settings.default_font, self.settings.default_text_size)
+    fn create_renderer(&self, settings: renderer::Settings) -> Self::Renderer {
+        Renderer::new(settings)
     }
 
-    fn create_surface<W: compositor::Window + Clone>(
+    fn create_surface(
         &mut self,
-        window: W,
+        window: impl compositor::Window + Clone,
         width: u32,
         height: u32,
     ) -> Self::Surface {
@@ -122,12 +122,12 @@ impl crate::graphics::Compositor for Compositor {
     }
 }
 
-pub fn new(settings: Settings, display: impl compositor::Display) -> Compositor {
+pub fn new(display: impl compositor::Display) -> Compositor {
     #[allow(unsafe_code)]
     let context =
         softbuffer::Context::new(Box::new(display) as _).expect("Create softbuffer context");
 
-    Compositor { context, settings }
+    Compositor { context }
 }
 
 pub fn present(

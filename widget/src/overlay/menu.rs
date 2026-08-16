@@ -32,8 +32,9 @@ where
     width: f32,
     padding: Padding,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
+    line_height: text::LineHeight,
+    shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
@@ -67,8 +68,9 @@ where
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::default(),
+            line_height: text::LineHeight::default(),
+            shaping: text::Shaping::default(),
+            ellipsis: text::Ellipsis::default(),
             font: None,
             class,
         }
@@ -93,14 +95,20 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Menu`].
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = line_height.into();
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`Menu`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Ellipsis`] strategy of the [`Menu`].
+    pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
+        self.ellipsis = ellipsis;
         self
     }
 
@@ -196,12 +204,13 @@ where
             padding,
             font,
             text_size,
-            text_line_height,
-            text_shaping,
+            line_height,
+            shaping,
+            ellipsis,
             class,
         } = menu;
 
-        let list = Scrollable::new(List {
+        let mut list = Scrollable::new(List {
             options,
             hovered_option,
             to_string,
@@ -209,14 +218,15 @@ where
             on_option_hovered,
             font,
             text_size,
-            text_line_height,
-            text_shaping,
+            line_height,
+            shaping,
+            ellipsis,
             padding,
             class,
         })
         .height(menu_height);
 
-        state.tree.diff(&list as &dyn Widget<_, _, _>);
+        state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
 
         Self {
             position,
@@ -327,8 +337,9 @@ where
     on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     padding: Padding,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
+    line_height: text::LineHeight,
+    shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
@@ -369,7 +380,7 @@ where
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
-        let text_line_height = self.text_line_height.to_absolute(text_size);
+        let text_line_height = self.line_height.to_absolute(text_size);
 
         let size = {
             let intrinsic = Size::new(
@@ -393,11 +404,15 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
+        let hovered_option = self
+            .hovered_option
+            .unwrap_or_default()
+            .min(self.options.len().saturating_sub(1));
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if cursor.is_over(layout.bounds())
-                    && let Some(index) = *self.hovered_option
-                    && let Some(option) = self.options.get(index)
+                    && let Some(option) = self.options.get(hovered_option)
                 {
                     shell.publish((self.on_selected)(option.clone()));
                     shell.capture_event();
@@ -408,11 +423,11 @@ where
                     let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
                     let option_height =
-                        f32::from(self.text_line_height.to_absolute(text_size)) + self.padding.y();
+                        f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
 
                     let new_hovered_option = (cursor_position.y / option_height) as usize;
 
-                    if *self.hovered_option != Some(new_hovered_option)
+                    if hovered_option != new_hovered_option
                         && let Some(option) = self.options.get(new_hovered_option)
                     {
                         if let Some(on_option_hovered) = self.on_option_hovered {
@@ -430,7 +445,7 @@ where
                     let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
 
                     let option_height =
-                        f32::from(self.text_line_height.to_absolute(text_size)) + self.padding.y();
+                        f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
 
                     *self.hovered_option = Some((cursor_position.y / option_height) as usize);
 
@@ -488,18 +503,20 @@ where
         let bounds = layout.bounds();
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.default_size());
-        let option_height =
-            f32::from(self.text_line_height.to_absolute(text_size)) + self.padding.y();
+        let option_height = f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height) as usize;
         let end = ((offset + viewport.height) / option_height).ceil() as usize;
 
         let visible_options = &self.options[start..end.min(self.options.len())];
+        let hovered_option = self
+            .hovered_option
+            .map(|index| index.min(self.options.len().saturating_sub(1)));
 
         for (i, option) in visible_options.iter().enumerate() {
             let i = start + i;
-            let is_selected = *self.hovered_option == Some(i);
+            let is_selected = hovered_option == Some(i);
 
             let bounds = Rectangle {
                 x: bounds.x,
@@ -526,15 +543,16 @@ where
             renderer.fill_text(
                 Text {
                     content: (self.to_string)(option),
-                    bounds: Size::new(f32::INFINITY, bounds.height),
+                    bounds: Size::new(bounds.width - self.padding.x(), bounds.height),
                     size: text_size,
-                    line_height: self.text_line_height,
+                    line_height: self.line_height,
                     font: self.font.unwrap_or_else(|| renderer.default_font()),
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,
-                    shaping: self.text_shaping,
-                    wrapping: text::Wrapping::default(),
-                    hint_factor: renderer.scale_factor(),
+                    shaping: self.shaping,
+                    wrapping: text::Wrapping::None,
+                    ellipsis: self.ellipsis,
+                    hint_factor: renderer.hint_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {
@@ -613,7 +631,7 @@ impl Catalog for Theme {
 
 /// The default style of the list of a [`Menu`].
 pub fn default(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         background: palette.background.weak.color.into(),

@@ -1,10 +1,12 @@
 //! Draw and interact with text.
 pub mod editor;
 pub mod highlighter;
+pub mod input;
 pub mod paragraph;
 
 pub use editor::Editor;
 pub use highlighter::Highlighter;
+pub use input::Input;
 pub use paragraph::Paragraph;
 
 use crate::alignment;
@@ -43,6 +45,9 @@ pub struct Text<Content = String, Font = crate::Font> {
     /// The [`Wrapping`] strategy of the [`Text`].
     pub wrapping: Wrapping,
 
+    /// The [`Ellipsis`] strategy of the [`Text`].
+    pub ellipsis: Ellipsis,
+
     /// The scale factor that may be used to internally scale the layout
     /// calculation of the [`Paragraph`] and leverage metrics hinting.
     ///
@@ -71,6 +76,7 @@ where
             align_y: self.align_y,
             shaping: self.shaping,
             wrapping: self.wrapping,
+            ellipsis: self.ellipsis,
             hint_factor: self.hint_factor,
         }
     }
@@ -201,6 +207,22 @@ pub enum Wrapping {
     WordOrGlyph,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+/// The ellipsis strategy of some text.
+pub enum Ellipsis {
+    /// No ellipsis.
+    ///
+    /// This is the default.
+    #[default]
+    None,
+    /// Ellipsize the start of the last visual line in the text.
+    Start,
+    /// Ellipsize the middle of the last visual line in the text.
+    Middle,
+    /// Ellipsize the end of the last visual line in the text.
+    End,
+}
+
 /// The height of a line of text in a paragraph.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LineHeight {
@@ -213,9 +235,9 @@ pub enum LineHeight {
 
 impl LineHeight {
     /// Returns the [`LineHeight`] in absolute logical pixels.
-    pub fn to_absolute(self, text_size: Pixels) -> Pixels {
+    pub fn to_absolute(self, text_size: impl Into<Pixels>) -> Pixels {
         match self {
-            Self::Relative(factor) => Pixels(factor * text_size.0),
+            Self::Relative(factor) => Pixels(factor * text_size.into().0),
             Self::Absolute(pixels) => pixels,
         }
     }
@@ -600,6 +622,16 @@ impl<Link, Font: PartialEq> PartialEq for Span<'_, Link, Font> {
             && self.font == other.font
             && self.color == other.color
     }
+}
+
+/// A specific position in some [`Text`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Position {
+    /// The line of the [`Text`].
+    pub line: usize,
+
+    /// The first byte index of a character boundary in the line.
+    pub index: usize,
 }
 
 /// A fragment of [`Text`].

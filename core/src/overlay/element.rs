@@ -3,6 +3,7 @@ pub use crate::Overlay;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::shell;
 use crate::widget;
 use crate::{Event, Layout, Shell, Size};
 
@@ -83,8 +84,8 @@ where
         renderer: &Renderer,
         shell: &mut Shell<'_, B>,
     ) {
-        let mut local_messages = Vec::new();
-        let mut local_shell = Shell::new(&mut local_messages);
+        let mut local_messages = shell::Bus::new();
+        let mut local_shell = shell.local(&mut local_messages);
 
         self.content
             .update(event, layout, cursor, renderer, &mut local_shell);

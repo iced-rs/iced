@@ -1,13 +1,15 @@
 //! Run a simulation of your application without side effects.
 use crate::core;
 use crate::core::event;
+use crate::core::font;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::shell;
 use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Font, Point, Settings, Size, SmolStr};
+use crate::core::{Element, Event, Point, Settings, Size, SmolStr};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -27,7 +29,7 @@ pub struct Simulator<'a, Message, Theme = core::Theme, Renderer = renderer::Rend
     renderer: Renderer,
     size: Size,
     cursor: mouse::Cursor,
-    messages: Vec<Message>,
+    messages: shell::Bus<Message>,
 }
 
 impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
@@ -56,11 +58,6 @@ where
     ) -> Self {
         let size = size.into();
 
-        let default_font = match settings.default_font {
-            Font::DEFAULT => Font::with_name("Fira Sans"),
-            _ => settings.default_font,
-        };
-
         for font in settings.fonts {
             load_font(font).expect("Font must be valid");
         }
@@ -69,8 +66,11 @@ where
             let backend = env::var("ICED_TEST_BACKEND").ok();
 
             crate::futures::futures::executor::block_on(Renderer::new(
-                default_font,
-                settings.default_text_size,
+                core::renderer::Settings {
+                    default_font: settings.default_font,
+                    default_text_size: settings.default_text_size,
+                    metrics_hinting: settings.metrics_hinting,
+                },
                 backend.as_deref(),
             ))
             .expect("Create new headless renderer")
@@ -88,7 +88,7 @@ where
             renderer,
             size,
             cursor: mouse::Cursor::Unavailable,
-            messages: Vec::new(),
+            messages: shell::Bus::new(),
         }
     }
 
@@ -171,9 +171,14 @@ where
     pub fn simulate(&mut self, events: impl IntoIterator<Item = Event>) -> Vec<event::Status> {
         let events: Vec<Event> = events.into_iter().collect();
 
-        let (_state, statuses) =
-            self.raw
-                .update(&events, self.cursor, &mut self.renderer, &mut self.messages);
+        let (_state, statuses) = self.raw.update(
+            &window::Headless,
+            &shell::Waker::noop(),
+            &events,
+            self.cursor,
+            &mut self.renderer,
+            &mut self.messages,
+        );
 
         statuses
     }
@@ -183,6 +188,8 @@ where
         let base = theme.base();
 
         let _ = self.raw.update(
+            &window::Headless,
+            &shell::Waker::noop(),
             &[Event::Window(window::Event::RedrawRequested(
                 time::Instant::now(),
             ))],
@@ -389,11 +396,11 @@ pub fn typewrite(text: &str) -> impl Iterator<Item = Event> + '_ {
         .flat_map(|c| tap_key(keyboard::Key::Character(c.clone()), Some(c)))
 }
 
-fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
+fn load_font(font: Cow<'static, [u8]>) -> Result<(), font::Error> {
     renderer::graphics::text::font_system()
         .write()
         .expect("Write to font system")
-        .load_font(font.into());
+        .load_font(font);
 
     Ok(())
 }

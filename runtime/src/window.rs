@@ -3,15 +3,11 @@ use crate::core::time::Instant;
 use crate::core::window::{
     Direction, Event, Icon, Id, Level, Mode, Screenshot, Settings, UserAttention,
 };
-use crate::core::{Point, Size};
+use crate::core::{Point, Size, Window};
 use crate::futures::Subscription;
 use crate::futures::event;
 use crate::futures::futures::channel::oneshot;
 use crate::task::{self, Task};
-
-pub use raw_window_handle;
-
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 /// An operation to be performed on some window.
 pub enum Action {
@@ -188,13 +184,6 @@ pub enum Action {
     /// Recompute the layouts of all the windows.
     RelayoutAll,
 }
-
-/// A window managed by iced.
-///
-/// It implements both [`HasWindowHandle`] and [`HasDisplayHandle`].
-pub trait Window: HasWindowHandle + HasDisplayHandle {}
-
-impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle {}
 
 /// Subscribes to the frames of the window of the running application.
 ///

@@ -331,3 +331,9 @@ pub enum Error {
     #[error("not enough memory to allocate the image")]
     OutOfMemory,
 }
+
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
+        Self::Inaccessible(Arc::new(error))
+    }
+}

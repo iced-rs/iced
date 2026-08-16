@@ -1,7 +1,7 @@
 use iced::widget::{center, checkbox, column, row, text};
 use iced::{Element, Font};
 
-const ICON_FONT: Font = Font::with_name("icons");
+const ICON_FONT: Font = Font::new("icons");
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)

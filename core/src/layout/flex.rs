@@ -19,8 +19,9 @@
 use crate::Element;
 
 use crate::layout::{Limits, Node};
+use crate::length;
 use crate::widget;
-use crate::{Alignment, Length, Padding, Point, Size};
+use crate::{Alignment, Length, Padding, Size};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -90,50 +91,125 @@ where
 
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
-    let mut cross = if cross_compress { 0.0 } else { max_cross };
+    let mut some_fill_max = false;
+    let mut some_fill_min = false;
+    let mut min_total = 0.0;
+    let mut min_factors = 0;
+    let mut cross = 0.0;
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
 
-    // FIRST PASS
+    #[derive(Debug, Clone, Copy)]
+    struct Meta {
+        main: Length,
+        cross: Length,
+        category: Category,
+        resolved: bool,
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    enum Category {
+        Static,
+        CrossFluid,
+        CrossFluidDeferred(f32),
+        MainFluid,
+    }
+
+    let mut metas = Vec::with_capacity(items.len());
+
+    // STATIC PASS
     // We lay out non-fluid elements in the main axis.
     // If we need to compress the cross axis, then we skip any of these elements
     // that are also fluid in the cross axis.
-    for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
-        let (fill_main_factor, fill_cross_factor) = {
-            let size = child.as_widget().size();
+    for (i, child) in items.iter_mut().enumerate() {
+        let size = child.as_widget().size();
+        let (size_main, size_cross) = axis.pack(size.width, size.height);
 
-            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+        let fill_main_factor = size_main.fill_factor();
+        let fill_cross_factor = size_cross.fill_factor();
+        let main_is_static = main_compress || fill_main_factor == 0;
+
+        let category = match (main_is_static, cross_compress, fill_cross_factor == 0) {
+            (true, false, _) | (true, _, true) => Category::Static,
+            (true, true, false) => {
+                if let Length::Fixed(main) = size_main {
+                    available -= main;
+                    Category::CrossFluidDeferred(main)
+                } else {
+                    Category::CrossFluid
+                }
+            }
+            (false, _, _) => Category::MainFluid,
         };
 
-        if (main_compress || fill_main_factor == 0) && (!cross_compress || fill_cross_factor == 0) {
-            let (max_width, max_height) = axis.pack(
-                available,
-                if fill_cross_factor == 0 {
-                    max_cross
-                } else {
-                    cross
-                },
-            );
+        let meta = Meta {
+            main: size_main,
+            cross: size_cross,
+            resolved: false,
+            category,
+        };
 
-            let child_limits =
-                Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
+        metas.push(meta);
 
-            let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
-            let size = layout.size();
+        match meta.main {
+            Length::Bounded {
+                sizing: length::Sizing::Fill(_),
+                bounds: length::Bounds::Min(min),
+            }
+            | Length::Fluid(length::Constraint::Min(min)) => {
+                min_total += min;
+                min_factors += fill_main_factor;
+                some_fill_min = true;
+            }
+            Length::Bounded {
+                sizing: length::Sizing::Fill(_),
+                bounds: length::Bounds::Max(_),
+            }
+            | Length::Fluid(length::Constraint::Max) => {
+                some_fill_max = true;
+            }
+            Length::Bounded {
+                sizing: length::Sizing::Fill(_),
+                bounds: length::Bounds::Both { .. },
+            } => {
+                some_fill_max = true;
+                some_fill_min = true;
+            }
+            _ => {}
+        }
 
-            available -= axis.main(size);
-            cross = cross.max(axis.cross(size));
-
-            nodes[i] = layout;
-        } else {
+        let Category::Static = meta.category else {
             fill_main_sum += fill_main_factor;
             some_fill_cross = some_fill_cross || fill_cross_factor != 0;
-        }
+            continue;
+        };
+
+        let (max_width, max_height) = axis.pack(
+            available,
+            if !cross_compress || fill_cross_factor == 0 {
+                max_cross
+            } else {
+                cross
+            },
+        );
+
+        let child_limits =
+            Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
+
+        let layout = child
+            .as_widget_mut()
+            .layout(&mut trees[i], renderer, &child_limits);
+
+        let size = layout.size();
+
+        available -= axis.main(size);
+        cross = cross.max(axis.cross(size));
+        nodes[i] = layout;
     }
 
-    // SECOND PASS (conditional)
+    // CROSS FLUID PASS
     // If we must compress the cross axis and there are fluid elements in the
     // cross axis, we lay out any of these elements that are also non-fluid in
     // the main axis (i.e. the ones we deliberately skipped in the first pass).
@@ -144,134 +220,251 @@ where
     // We can defer the layout of any elements that have a fixed size in the main axis,
     // allowing them to use the cross calculations of the next pass.
     if cross_compress && some_fill_cross {
-        for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
-            let (main_size, cross_size) = {
-                let size = child.as_widget().size();
+        for (i, child) in items.iter_mut().enumerate() {
+            let meta = metas[i];
 
-                axis.pack(size.width, size.height)
+            let Category::CrossFluid = meta.category else {
+                continue;
             };
 
-            if (main_compress || main_size.fill_factor() == 0) && cross_size.fill_factor() != 0 {
-                if let Length::Fixed(main) = main_size {
-                    available -= main;
-                    continue;
-                }
+            let (max_width, max_height) =
+                axis.pack(available, if cross_compress { cross } else { max_cross });
 
-                let (max_width, max_height) = axis.pack(available, cross);
+            let child_limits =
+                Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
 
-                let child_limits = Limits::with_compression(
-                    Size::ZERO,
-                    Size::new(max_width, max_height),
-                    compression,
-                );
+            let layout = child
+                .as_widget_mut()
+                .layout(&mut trees[i], renderer, &child_limits);
 
-                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
-                let size = layout.size();
+            let size = layout.size();
 
-                available -= axis.main(size);
-                cross = cross.max(axis.cross(size));
-
-                nodes[i] = layout;
-            }
+            available -= axis.main(size);
+            cross = cross.max(axis.cross(size));
+            nodes[i] = layout;
         }
     }
 
-    let remaining = available.max(0.0);
+    let mut remaining = available.max(0.0);
 
-    // THIRD PASS (conditional)
+    // MIN / MAX PASSES
+    // We lay out any elements that are either bounded or fluid with some min / max constraints.
+    //
+    // First, we lay out any elements with `Max` bounds to potentially free up space; then
+    // another pass lays out elements with `Min` bounds.
+    //
+    // Since the remaining space may change mid-iteration, we need to revisit previous elements
+    // until they stabilize. Still, `layout` is only called once per element.
+    #[derive(Debug, Clone, Copy)]
+    enum Stage {
+        Max,
+        Min,
+    }
+
+    let mut step = if main_compress {
+        None
+    } else if some_fill_max {
+        Some(Stage::Max)
+    } else if some_fill_min {
+        Some(Stage::Min)
+    } else {
+        None
+    };
+
+    while let Some(stage) = step {
+        let current = remaining;
+        let (reserved_space, reserved_factors) = match stage {
+            Stage::Max => (min_total, min_factors),
+            Stage::Min => (0.0, 0),
+        };
+
+        for (i, child) in items.iter_mut().enumerate() {
+            let meta = &mut metas[i];
+
+            if meta.resolved {
+                continue;
+            }
+
+            let fill_main_factor = meta.main.fill_factor();
+
+            if fill_main_factor == 0 {
+                continue;
+            }
+
+            let bounds = match stage {
+                Stage::Max => match meta.main {
+                    Length::Bounded {
+                        bounds: bounds @ (length::Bounds::Max(_) | length::Bounds::Both { .. }),
+                        ..
+                    } => bounds,
+                    Length::Fluid(length::Constraint::Max) => length::Bounds::Min(0.0),
+                    _ => continue,
+                },
+                Stage::Min => match meta.main {
+                    Length::Bounded {
+                        bounds: bounds @ (length::Bounds::Min(_) | length::Bounds::Both { .. }),
+                        ..
+                    } => bounds,
+                    Length::Fluid(length::Constraint::Min(min)) => length::Bounds::Min(min),
+                    _ => continue,
+                },
+            };
+
+            let max_available = (remaining - reserved_space) * fill_main_factor as f32
+                / (fill_main_sum - reserved_factors) as f32;
+
+            let max_available = if max_available.is_nan() {
+                f32::INFINITY
+            } else {
+                max_available
+            };
+
+            let (min, max) = match bounds {
+                length::Bounds::Max(max) => (0.0, max),
+                length::Bounds::Both { min, max } => (min, max),
+                length::Bounds::Min(min) => (min, max_available),
+            };
+
+            match stage {
+                Stage::Max if max > max_available => continue,
+                Stage::Min if min < max_available => continue,
+                _ => {}
+            }
+
+            let min = min.min(remaining);
+            let max = max.min(max_available).max(min);
+
+            let (min_width, min_height) = axis.pack(min, 0.0);
+            let (max_width, max_height) = axis.pack(
+                max,
+                if !cross_compress || meta.cross.fill_factor() == 0 {
+                    max_cross
+                } else {
+                    cross
+                },
+            );
+
+            let child_limits = Limits::with_compression(
+                Size::new(min_width, min_height),
+                Size::new(max_width, max_height),
+                compression,
+            );
+
+            let layout = child
+                .as_widget_mut()
+                .layout(&mut trees[i], renderer, &child_limits);
+
+            cross = cross.max(axis.cross(layout.size()));
+            remaining -= axis.main(layout.size());
+            fill_main_sum -= fill_main_factor;
+            nodes[i] = layout;
+            meta.resolved = true;
+        }
+
+        if remaining == current {
+            step = match stage {
+                Stage::Max if some_fill_min => Some(Stage::Min),
+                _ => None,
+            };
+        }
+    }
+
+    // MAIN FLUID PASS (conditional)
     // We lay out the elements that are fluid in the main axis.
     // We use the remaining space to evenly allocate space based on fill factors.
     if !main_compress {
-        for (i, (child, tree)) in items.iter_mut().zip(trees.iter_mut()).enumerate() {
-            let (fill_main_factor, fill_cross_factor) = {
-                let size = child.as_widget().size();
+        for (i, child) in items.iter_mut().enumerate() {
+            let meta = &mut metas[i];
 
-                axis.pack(size.width.fill_factor(), size.height.fill_factor())
+            if meta.resolved {
+                continue;
+            }
+
+            let Category::MainFluid = meta.category else {
+                continue;
             };
 
-            if fill_main_factor != 0 {
-                let max_main = remaining * fill_main_factor as f32 / fill_main_sum as f32;
+            let max_main = remaining * meta.main.fill_factor() as f32 / fill_main_sum as f32;
 
-                let max_main = if max_main.is_nan() {
-                    f32::INFINITY
+            let max_main = if max_main.is_nan() {
+                f32::INFINITY
+            } else {
+                max_main
+            };
+
+            let min_main = if max_main.is_infinite() {
+                0.0
+            } else {
+                max_main
+            };
+
+            let (min_width, min_height) = axis.pack(min_main, 0.0);
+            let (max_width, max_height) = axis.pack(
+                max_main,
+                if !cross_compress || meta.cross.fill_factor() == 0 {
+                    max_cross
                 } else {
-                    max_main
-                };
+                    cross
+                },
+            );
 
-                let min_main = if max_main.is_infinite() {
-                    0.0
-                } else {
-                    max_main
-                };
+            let child_limits = Limits::with_compression(
+                Size::new(min_width, min_height),
+                Size::new(max_width, max_height),
+                compression,
+            );
 
-                let (min_width, min_height) = axis.pack(min_main, 0.0);
-                let (max_width, max_height) = axis.pack(
-                    max_main,
-                    if fill_cross_factor == 0 {
-                        max_cross
-                    } else {
-                        cross
-                    },
-                );
+            let layout = child
+                .as_widget_mut()
+                .layout(&mut trees[i], renderer, &child_limits);
 
-                let child_limits = Limits::with_compression(
-                    Size::new(min_width, min_height),
-                    Size::new(max_width, max_height),
-                    compression,
-                );
-
-                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
-                cross = cross.max(axis.cross(layout.size()));
-
-                nodes[i] = layout;
-            }
+            cross = cross.max(axis.cross(layout.size()));
+            nodes[i] = layout;
         }
     }
 
-    // FOURTH PASS (conditional)
+    // CROSS FLUID DEFERRED PASS (conditional)
     // We lay out any elements that were deferred in the second pass.
     // These are elements that must be compressed in their cross axis and have
     // a fixed length in the main axis.
     if cross_compress && some_fill_cross {
-        for (i, (child, tree)) in items.iter_mut().zip(trees).enumerate() {
-            let (main_size, cross_size) = {
-                let size = child.as_widget().size();
+        for (i, child) in items.iter_mut().enumerate() {
+            let meta = metas[i];
 
-                axis.pack(size.width, size.height)
+            let Category::CrossFluidDeferred(main) = meta.category else {
+                continue;
             };
 
-            if cross_size.fill_factor() != 0 {
-                let Length::Fixed(main) = main_size else {
-                    continue;
-                };
+            let (max_width, max_height) = axis.pack(main, cross);
+            let child_limits = Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-                let (max_width, max_height) = axis.pack(main, cross);
+            let layout = child
+                .as_widget_mut()
+                .layout(&mut trees[i], renderer, &child_limits);
 
-                let child_limits = Limits::new(Size::ZERO, Size::new(max_width, max_height));
+            let size = layout.size();
 
-                let layout = child.as_widget_mut().layout(tree, renderer, &child_limits);
-                let size = layout.size();
-
-                cross = cross.max(axis.cross(size));
-
-                nodes[i] = layout;
-            }
+            cross = cross.max(axis.cross(size));
+            nodes[i] = layout;
         }
     }
 
     let pad = axis.pack(padding.left, padding.top);
     let mut main = pad.0;
 
-    // FIFTH PASS
+    let cross = match axis {
+        Axis::Horizontal => limits.resolve_height(height, cross),
+        Axis::Vertical => limits.resolve_width(width, cross),
+    };
+
+    // ALIGNMENT PASS
     // We align all the laid out nodes in the cross axis, if needed.
     for (i, node) in nodes.iter_mut().enumerate() {
         if i > 0 {
             main += spacing;
         }
 
-        let (x, y) = axis.pack(main, pad.1);
-
-        node.move_to_mut(Point::new(x, y));
+        node.move_to_mut(axis.pack(main, pad.1));
 
         match axis {
             Axis::Horizontal => {
@@ -282,13 +475,15 @@ where
             }
         }
 
-        let size = node.size();
-
-        main += axis.main(size);
+        main += axis.main(node.size());
     }
 
-    let (intrinsic_width, intrinsic_height) = axis.pack(main - pad.0, cross);
-    let size = limits.resolve(width, height, Size::new(intrinsic_width, intrinsic_height));
+    let main = match axis {
+        Axis::Horizontal => limits.resolve_width(width, main - pad.0),
+        Axis::Vertical => limits.resolve_height(height, main - pad.0),
+    };
+
+    let size = Size::from(axis.pack(main, cross));
 
     Node::with_children(size.expand(padding), nodes)
 }

@@ -129,6 +129,13 @@ where
     }
 }
 
+impl Animation<f32> {
+    /// Projects the [`Animation`] into an interpolated value at the given [`Instant`].
+    pub fn interpolate(&self, at: Instant) -> f32 {
+        self.interpolate_with(std::convert::identity, at)
+    }
+}
+
 impl Animation<bool> {
     /// Projects the [`Animation`] into an interpolated value at the given [`Instant`]; using the
     /// `start` and `end` values as the origin and destination keyframes.

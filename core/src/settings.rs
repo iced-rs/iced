@@ -1,5 +1,7 @@
 //! Configure your application.
-use crate::{Font, Pixels};
+use crate::backend;
+use crate::renderer;
+use crate::{Backend, Font, Pixels};
 
 use std::borrow::Cow;
 
@@ -22,8 +24,26 @@ pub struct Settings {
 
     /// The text size that will be used by default.
     ///
-    /// The default value is `16.0`.
+    /// By default, it is `16.0`.
     pub default_text_size: Pixels,
+
+    /// Whether certain widgets should be rendered using metrics hinting.
+    ///
+    /// Metrics hinting can improve the readability of smaller text in
+    /// low-DPI screens, as well as the clarity of widgets that render thin lines.
+    ///
+    /// By default, it is enabled.
+    pub metrics_hinting: bool,
+
+    /// The graphical backend to use.
+    ///
+    /// By default, it is [`Backend::Best`].
+    pub backend: Backend,
+
+    /// The [`PowerPreference`](backend::PowerPreference) of the backend.
+    ///
+    /// By default, it is [`backend::PowerPreference::None`].
+    pub power_preference: backend::PowerPreference,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -44,13 +64,28 @@ pub struct Settings {
 
 impl Default for Settings {
     fn default() -> Self {
+        let renderer = renderer::Settings::default();
+
         Self {
             id: None,
             fonts: Vec::new(),
-            default_font: Font::default(),
-            default_text_size: Pixels(16.0),
+            default_font: renderer.default_font,
+            default_text_size: renderer.default_text_size,
+            metrics_hinting: true,
+            backend: Backend::default(),
+            power_preference: backend::PowerPreference::None,
             antialiasing: true,
             vsync: true,
+        }
+    }
+}
+
+impl From<&Settings> for renderer::Settings {
+    fn from(settings: &Settings) -> Self {
+        Self {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
+            metrics_hinting: settings.metrics_hinting,
         }
     }
 }

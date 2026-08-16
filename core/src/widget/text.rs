@@ -29,7 +29,7 @@ use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
 use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
-pub use text::{Alignment, LineHeight, Shaping, Wrapping};
+pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 
 /// A bunch of text.
 ///
@@ -53,6 +53,7 @@ pub use text::{Alignment, LineHeight, Shaping, Wrapping};
 ///         .into()
 /// }
 /// ```
+#[must_use]
 pub struct Text<'a, Theme, Renderer>
 where
     Theme: Catalog,
@@ -147,8 +148,13 @@ where
         self
     }
 
+    /// Sets the [`Ellipsis`] strategy of the [`Text`].
+    pub fn ellipsis(mut self, ellipsis: Ellipsis) -> Self {
+        self.format.ellipsis = ellipsis;
+        self
+    }
+
     /// Sets the style of the [`Text`].
-    #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
     where
         Theme::Class<'a>: From<StyleFn<'a, Theme>>,
@@ -177,7 +183,6 @@ where
 
     /// Sets the style class of the [`Text`].
     #[cfg(feature = "advanced")]
-    #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();
         self
@@ -272,6 +277,7 @@ pub struct Format<Font> {
     pub align_y: alignment::Vertical,
     pub shaping: Shaping,
     pub wrapping: Wrapping,
+    pub ellipsis: Ellipsis,
 }
 
 impl<Font> Default for Format<Font> {
@@ -286,6 +292,7 @@ impl<Font> Default for Format<Font> {
             align_y: alignment::Vertical::Top,
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
         }
     }
 }
@@ -317,7 +324,8 @@ where
             align_y: format.align_y,
             shaping: format.shaping,
             wrapping: format.wrapping,
-            hint_factor: renderer.scale_factor(),
+            ellipsis: format.ellipsis,
+            hint_factor: renderer.hint_factor(),
         });
 
         paragraph.min_bounds()
@@ -426,41 +434,41 @@ pub fn default(_theme: &Theme) -> Style {
 /// Text with the default base color.
 pub fn base(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().text),
+        color: Some(theme.seed().text),
     }
 }
 
 /// Text conveying some important information, like an action.
 pub fn primary(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().primary),
+        color: Some(theme.seed().primary),
     }
 }
 
 /// Text conveying some secondary information, like a footnote.
 pub fn secondary(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.extended_palette().secondary.base.color),
+        color: Some(theme.palette().secondary.base.color),
     }
 }
 
 /// Text conveying some positive information, like a successful event.
 pub fn success(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().success),
+        color: Some(theme.seed().success),
     }
 }
 
 /// Text conveying some mildly negative information, like a warning.
 pub fn warning(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().warning),
+        color: Some(theme.seed().warning),
     }
 }
 
 /// Text conveying some negative information, like an error.
 pub fn danger(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().danger),
+        color: Some(theme.seed().danger),
     }
 }

@@ -3,7 +3,7 @@ use iced::widget::{
     button, center_x, center_y, checkbox, column, container, pick_list, progress_bar, row, rule,
     scrollable, slider, space, text, text_input, toggler,
 };
-use iced::{Center, Element, Fill, Shrink, Subscription, Theme};
+use iced::{Center, Element, Fill, Fit, Shrink, Subscription, Theme};
 
 pub fn main() -> iced::Result {
     iced::application(Styling::default, Styling::update, Styling::view)
@@ -161,7 +161,7 @@ impl Styling {
         ]
         .spacing(20)
         .padding(20)
-        .max_width(600);
+        .width(Fit.max(600));
 
         center_y(scrollable(center_x(content)).spacing(10))
             .padding(10)

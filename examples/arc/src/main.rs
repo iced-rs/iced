@@ -55,8 +55,7 @@ impl<Message> canvas::Program<Message> for Arc {
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
-            let palette = theme.palette();
-
+            let palette = theme.seed();
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 5.0;
 

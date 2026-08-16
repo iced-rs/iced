@@ -107,11 +107,7 @@ mod numeric_input {
                 button("-", Event::DecrementPressed),
                 text_input(
                     "Type a number",
-                    self.value
-                        .as_ref()
-                        .map(i32::to_string)
-                        .as_deref()
-                        .unwrap_or(""),
+                    self.value.as_ref().map(i32::to_string).unwrap_or_default(),
                 )
                 .on_input(Event::InputChanged)
                 .padding(10),

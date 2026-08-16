@@ -2,7 +2,7 @@
 use crate::Widget;
 
 use std::any::{self, Any};
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 
 /// A persistent state widget tree.
@@ -42,7 +42,7 @@ impl Tree {
         Self {
             tag: widget.tag(),
             state: widget.state(),
-            children: widget.children(),
+            children: Vec::new(),
         }
     }
 
@@ -56,27 +56,27 @@ impl Tree {
     /// [`Widget::diff`]: crate::Widget::diff
     pub fn diff<'a, Message, Theme, Renderer>(
         &mut self,
-        new: impl Borrow<dyn Widget<Message, Theme, Renderer> + 'a>,
+        mut new: impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>,
     ) where
         Renderer: crate::Renderer,
     {
-        if self.tag == new.borrow().tag() {
-            new.borrow().diff(self);
-        } else {
-            *self = Self::new(new);
+        if self.tag != new.borrow().tag() {
+            *self = Self::new(new.borrow());
         }
+
+        new.borrow_mut().diff(self);
     }
 
     /// Reconciles the children of the tree with the provided list of widgets.
     pub fn diff_children<'a, Message, Theme, Renderer>(
         &mut self,
-        new_children: &[impl Borrow<dyn Widget<Message, Theme, Renderer> + 'a>],
+        new_children: &mut [impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>],
     ) where
         Renderer: crate::Renderer,
     {
         self.diff_children_custom(
             new_children,
-            |tree, widget| tree.diff(widget.borrow()),
+            |tree, widget| tree.diff(widget.borrow_mut()),
             |widget| Self::new(widget.borrow()),
         );
     }
@@ -85,21 +85,21 @@ impl Tree {
     /// logic both for diffing and creating new widget state.
     pub fn diff_children_custom<T>(
         &mut self,
-        new_children: &[T],
-        diff: impl Fn(&mut Tree, &T),
+        new_children: &mut [T],
+        diff: impl Fn(&mut Tree, &mut T),
         new_state: impl Fn(&T) -> Self,
     ) {
         if self.children.len() > new_children.len() {
             self.children.truncate(new_children.len());
         }
 
-        for (child_state, new) in self.children.iter_mut().zip(new_children.iter()) {
-            diff(child_state, new);
-        }
-
         if self.children.len() < new_children.len() {
             self.children
                 .extend(new_children[self.children.len()..].iter().map(new_state));
+        }
+
+        for (child_state, new) in self.children.iter_mut().zip(new_children.iter_mut()) {
+            diff(child_state, new);
         }
     }
 }
@@ -111,8 +111,8 @@ impl Tree {
 /// `maybe_changed` closure.
 pub fn diff_children_custom_with_search<T>(
     current_children: &mut Vec<Tree>,
-    new_children: &[T],
-    diff: impl Fn(&mut Tree, &T),
+    new_children: &mut [T],
+    diff: impl Fn(&mut Tree, &mut T),
     maybe_changed: impl Fn(usize) -> bool,
     new_state: impl Fn(&T) -> Tree,
 ) {
@@ -123,6 +123,12 @@ pub fn diff_children_custom_with_search<T>(
 
     if current_children.is_empty() {
         current_children.extend(new_children.iter().map(new_state));
+
+        // TODO: Merge loop with extend logic (?)
+        for (child_state, new) in current_children.iter_mut().zip(new_children.iter_mut()) {
+            diff(child_state, new);
+        }
+
         return;
     }
 
@@ -174,7 +180,7 @@ pub fn diff_children_custom_with_search<T>(
     }
 
     // TODO: Merge loop with extend logic (?)
-    for (child_state, new) in current_children.iter_mut().zip(new_children.iter()) {
+    for (child_state, new) in current_children.iter_mut().zip(new_children.iter_mut()) {
         diff(child_state, new);
     }
 }

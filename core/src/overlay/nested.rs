@@ -237,6 +237,7 @@ where
 
             let layout = layouts.next()?;
             let overlay = element.as_overlay_mut();
+            let interaction = overlay.mouse_interaction(layout, cursor, renderer);
 
             Some(
                 overlay
@@ -245,7 +246,8 @@ where
                     .and_then(|(mut overlay, layout)| {
                         recurse(&mut overlay, layout, cursor, renderer)
                     })
-                    .unwrap_or_else(|| overlay.mouse_interaction(layout, cursor, renderer)),
+                    .unwrap_or_default()
+                    .max(interaction),
             )
         }
 

@@ -11,7 +11,7 @@ pub use cosmic_text;
 
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::{Alignment, Shaping, Wrapping};
+use crate::core::text::{Alignment, Ellipsis, Shaping, Wrapping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use std::borrow::Cow;
@@ -59,6 +59,10 @@ pub enum Text {
         align_y: alignment::Vertical,
         /// The shaping strategy of the text.
         shaping: Shaping,
+        /// The wrapping strategy of the text.
+        wrapping: Wrapping,
+        /// The ellipsis strategy of the text.
+        ellipsis: Ellipsis,
         /// The clip bounds of the text.
         clip_bounds: Rectangle,
     },
@@ -116,16 +120,38 @@ pub fn font_system() -> &'static RwLock<FontSystem> {
     static FONT_SYSTEM: OnceLock<RwLock<FontSystem>> = OnceLock::new();
 
     FONT_SYSTEM.get_or_init(|| {
+        #[allow(unused_mut)]
+        let mut raw = cosmic_text::FontSystem::new_with_fonts([
+            cosmic_text::fontdb::Source::Binary(Arc::new(
+                include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+            )),
+            #[cfg(feature = "fira-sans")]
+            cosmic_text::fontdb::Source::Binary(Arc::new(
+                include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
+            )),
+        ]);
+
+        #[cfg(feature = "fira-sans")]
+        raw.db_mut().set_sans_serif_family("Fira Sans");
+
+        #[cfg(target_os = "macos")]
+        {
+            #[cfg(not(feature = "fira-sans"))]
+            raw.db_mut().set_sans_serif_family(".SF NS");
+            raw.db_mut().set_serif_family("Times New Roman");
+            raw.db_mut().set_monospace_family("Menlo");
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            #[cfg(not(feature = "fira-sans"))]
+            raw.db_mut().set_sans_serif_family("Segoe UI");
+            raw.db_mut().set_serif_family("Times New Roman");
+            raw.db_mut().set_monospace_family("Consolas");
+        }
+
         RwLock::new(FontSystem {
-            raw: cosmic_text::FontSystem::new_with_fonts([
-                cosmic_text::fontdb::Source::Binary(Arc::new(
-                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
-                )),
-                #[cfg(feature = "fira-sans")]
-                cosmic_text::fontdb::Source::Binary(Arc::new(
-                    include_bytes!("../fonts/FiraSans-Regular.ttf").as_slice(),
-                )),
-            ]),
+            raw,
             loaded_fonts: HashSet::new(),
             version: Version::default(),
         })
@@ -163,6 +189,16 @@ impl FontSystem {
             )));
 
         self.version = Version(self.version.0 + 1);
+    }
+
+    /// Returns an iterator over the family names of all font faces
+    /// in the font database.
+    pub fn families(&self) -> impl Iterator<Item = &str> {
+        self.raw
+            .db()
+            .faces()
+            .filter_map(|face| face.families.first())
+            .map(|(name, _)| name.as_str())
     }
 
     /// Returns the current [`Version`] of the [`FontSystem`].
@@ -240,7 +276,7 @@ pub fn align(
 
             needs_relayout = true;
         } else if let Some(line) = buffer.lines.first_mut() {
-            needs_relayout = line.set_align(None);
+            needs_relayout |= line.set_align(None);
         }
     }
 
@@ -248,7 +284,8 @@ pub fn align(
     if needs_relayout {
         log::trace!("Relayouting paragraph...");
 
-        buffer.set_size(font_system, Some(min_bounds.width), Some(min_bounds.height));
+        buffer.set_size(Some(min_bounds.width), Some(min_bounds.height));
+        buffer.shape_until_scroll(font_system, false);
     }
 
     min_bounds
@@ -342,6 +379,18 @@ pub fn to_wrap(wrapping: Wrapping) -> cosmic_text::Wrap {
         Wrapping::Word => cosmic_text::Wrap::Word,
         Wrapping::Glyph => cosmic_text::Wrap::Glyph,
         Wrapping::WordOrGlyph => cosmic_text::Wrap::WordOrGlyph,
+    }
+}
+
+/// Converts some [`Ellipsis`] strategy to a [`cosmic_text::Ellipsize`] strategy.
+pub fn to_ellipsize(ellipsis: Ellipsis, max_height: f32) -> cosmic_text::Ellipsize {
+    let limit = cosmic_text::EllipsizeHeightLimit::Height(max_height);
+
+    match ellipsis {
+        Ellipsis::None => cosmic_text::Ellipsize::None,
+        Ellipsis::Start => cosmic_text::Ellipsize::Start(limit),
+        Ellipsis::Middle => cosmic_text::Ellipsize::Middle(limit),
+        Ellipsis::End => cosmic_text::Ellipsize::End(limit),
     }
 }
 

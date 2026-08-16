@@ -47,7 +47,7 @@ use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::theme;
+use crate::core::theme::palette;
 use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme, color};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
@@ -1076,8 +1076,8 @@ pub struct Style {
 }
 
 impl Style {
-    /// Creates a new [`Style`] from the given [`theme::Palette`].
-    pub fn from_palette(palette: theme::Palette) -> Self {
+    /// Creates a new [`Style`] from the given [`palette::Seed`].
+    pub fn from_palette(seed: palette::Seed) -> Self {
         Self {
             font: Font::default(),
             inline_code_padding: padding::left(1).right(1),
@@ -1088,26 +1088,26 @@ impl Style {
             inline_code_color: Color::WHITE,
             inline_code_font: Font::MONOSPACE,
             code_block_font: Font::MONOSPACE,
-            link_color: palette.primary,
+            link_color: seed.primary,
         }
     }
 }
 
-impl From<theme::Palette> for Style {
-    fn from(palette: theme::Palette) -> Self {
-        Self::from_palette(palette)
+impl From<palette::Seed> for Style {
+    fn from(seed: palette::Seed) -> Self {
+        Self::from_palette(seed)
     }
 }
 
 impl From<&Theme> for Style {
     fn from(theme: &Theme) -> Self {
-        Self::from_palette(theme.palette())
+        Self::from_palette(theme.seed())
     }
 }
 
 impl From<Theme> for Style {
     fn from(theme: Theme) -> Self {
-        Self::from_palette(theme.palette())
+        Self::from_palette(theme.seed())
     }
 }
 
@@ -1340,16 +1340,14 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    let digits = ((start + bullets.len() as u64).max(1) as f32)
-        .log10()
-        .ceil();
+    let digits = (start + bullets.len() as u64).max(1).ilog10() + 1;
 
     column(bullets.iter().enumerate().map(|(i, bullet)| {
         row![
             text!("{}.", i as u64 + start)
                 .size(settings.text_size)
                 .align_x(alignment::Horizontal::Right)
-                .width(settings.text_size * ((digits / 2.0).ceil() + 1.0)),
+                .width(settings.text_size * ((digits as f32 / 2.0).ceil() + 1.0)),
             view_with(
                 bullet.items(),
                 Settings {

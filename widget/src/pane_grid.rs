@@ -355,11 +355,7 @@ where
         tree::State::new(Memory::default())
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.contents.iter().map(Content::state).collect()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let Memory { order, .. } = tree.state.downcast_ref();
 
         // `Pane` always increments and is iterated by Ord so new
@@ -382,7 +378,7 @@ where
         });
 
         tree.diff_children_custom(
-            &self.contents,
+            &mut self.contents,
             |state, content| content.diff(state),
             Content::state,
         );
@@ -719,13 +715,9 @@ where
         let node = self.internal.layout();
         let resize_leeway = self.on_resize.as_ref().map(|(leeway, _)| *leeway);
 
-        let picked_pane = action.picked_pane().filter(|(_, origin)| {
-            cursor
-                .position()
-                .map(|position| position.distance(*origin))
-                .unwrap_or_default()
-                > DRAG_DEADBAND_DISTANCE
-        });
+        let picked_pane = action.picked_pane();
+        let dragged_pane = picked_pane
+            .filter(|(_, origin)| is_dragging(*origin, cursor.position().unwrap_or_default()));
 
         let picked_split = action
             .picked_split()
@@ -764,8 +756,6 @@ where
             cursor
         };
 
-        let mut render_picked_pane = None;
-
         let pane_in_edge = if picked_pane.is_some() {
             cursor
                 .position()
@@ -790,10 +780,8 @@ where
             })
         {
             match picked_pane {
-                Some((dragging, origin)) if id == dragging => {
-                    render_picked_pane = Some(((content, tree), origin, pane_layout));
-                }
-                Some((dragging, _)) if id != dragging => {
+                Some((dragging, _)) if id == dragging => {}
+                Some(_) => {
                     content.draw(
                         tree,
                         renderer,
@@ -804,11 +792,10 @@ where
                         viewport,
                     );
 
-                    if picked_pane.is_some()
+                    if let Some(cursor_position) = cursor.position()
+                        && dragged_pane.is_some()
                         && pane_in_edge.is_none()
-                        && let Some(region) = cursor
-                            .position()
-                            .and_then(|cursor_position| layout_region(pane_layout, cursor_position))
+                        && let Some(region) = layout_region(pane_layout, cursor_position)
                     {
                         let bounds = layout_region_bounds(pane_layout, region);
 
@@ -836,7 +823,9 @@ where
             }
         }
 
-        if let Some(edge) = pane_in_edge {
+        if dragged_pane.is_some()
+            && let Some(edge) = pane_in_edge
+        {
             let bounds = edge_bounds(layout, edge);
 
             renderer.fill_quad(
@@ -849,30 +838,7 @@ where
             );
         }
 
-        // Render picked pane last
-        if let Some(((content, tree), origin, layout)) = render_picked_pane
-            && let Some(cursor_position) = cursor.position()
-        {
-            let bounds = layout.bounds();
-
-            let translation = cursor_position - Point::new(origin.x, origin.y);
-
-            renderer.with_translation(translation, |renderer| {
-                renderer.with_layer(bounds, |renderer| {
-                    content.draw(
-                        tree,
-                        renderer,
-                        theme,
-                        defaults,
-                        layout,
-                        pane_cursor,
-                        viewport,
-                    );
-                });
-            });
-        }
-
-        if picked_pane.is_none()
+        if dragged_pane.is_none()
             && let Some((axis, split_region, is_picked)) = picked_split
         {
             let highlight = if is_picked {
@@ -914,6 +880,9 @@ where
         viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        let state = tree.state.downcast_ref::<Memory>();
+        let picked_pane = state.action.picked_pane();
+
         let children = self
             .panes
             .iter()
@@ -921,7 +890,7 @@ where
             .zip(&mut self.contents)
             .zip(&mut tree.children)
             .zip(layout.children())
-            .filter_map(|(((pane, content), state), layout)| {
+            .filter_map(|(((pane, content), tree), layout)| {
                 if self
                     .internal
                     .maximized()
@@ -930,12 +899,79 @@ where
                     return None;
                 }
 
-                content.overlay(state, layout, renderer, viewport, translation)
+                if let Some((picked_pane, origin)) = picked_pane
+                    && picked_pane == pane
+                {
+                    return Some(overlay::Element::new(Box::new(PickedPane {
+                        origin,
+                        content,
+                        tree,
+                        layout,
+                    })));
+                }
+
+                content.overlay(tree, layout, renderer, viewport, translation)
             })
             .collect::<Vec<_>>();
 
         (!children.is_empty()).then(|| Group::with_children(children).overlay())
     }
+}
+
+struct PickedPane<'a, 'b, Message, Theme, Renderer>
+where
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
+{
+    content: &'a Content<'b, Message, Theme, Renderer>,
+    origin: Point,
+    tree: &'a mut Tree,
+    layout: Layout<'a>,
+}
+
+impl<'a, 'b, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
+    for PickedPane<'a, 'b, Message, Theme, Renderer>
+where
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
+{
+    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+        // TODO: Mouse translation
+        layout::Node::new(self.layout.bounds().size()).move_to(self.origin)
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        _layout: Layout<'_>,
+        cursor: mouse::Cursor,
+    ) {
+        let cursor_position = cursor.position().unwrap_or_default();
+
+        let translation = if is_dragging(self.origin, cursor_position) {
+            cursor_position - self.origin
+        } else {
+            Vector::ZERO
+        };
+
+        renderer.with_translation(translation, |renderer| {
+            self.content.draw(
+                self.tree,
+                renderer,
+                theme,
+                style,
+                self.layout,
+                mouse::Cursor::Unavailable,
+                &Rectangle::INFINITE,
+            );
+        });
+    }
+}
+
+fn is_dragging(origin: Point, cursor: Point) -> bool {
+    cursor.distance(origin) > DRAG_DEADBAND_DISTANCE
 }
 
 impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
@@ -1237,7 +1273,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`PaneGrid`].
 pub fn default(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         hovered_region: Highlight {

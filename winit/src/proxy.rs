@@ -47,7 +47,6 @@ impl<T: 'static> Proxy<T> {
                         message = receiver.select_next_some() => {
                             let _ = proxy.send_event(message);
                             count += 1;
-
                         }
                         amount = processed.select_next_some() => {
                             count = count.saturating_sub(amount);
@@ -73,6 +72,11 @@ impl<T: 'static> Proxy<T> {
             },
             worker,
         )
+    }
+
+    /// Creates an input channel for the [`Proxy`].
+    pub fn input(&self) -> mpsc::Sender<Action<T>> {
+        self.sender.clone()
     }
 
     /// Sends a value to the event loop.

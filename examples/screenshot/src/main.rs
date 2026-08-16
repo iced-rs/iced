@@ -131,18 +131,18 @@ impl Example {
 
         let crop_origin_controls = row![
             text("X:").width(30),
-            numeric_input("0", self.x_input_value).map(Message::XInputChanged),
+            numeric_input(self.x_input_value).map(Message::XInputChanged),
             text("Y:").width(30),
-            numeric_input("0", self.y_input_value).map(Message::YInputChanged)
+            numeric_input(self.y_input_value).map(Message::YInputChanged)
         ]
         .spacing(10)
         .align_y(Center);
 
         let crop_dimension_controls = row![
             text("W:").width(30),
-            numeric_input("0", self.width_input_value).map(Message::WidthInputChanged),
+            numeric_input(self.width_input_value).map(Message::WidthInputChanged),
             text("H:").width(30),
-            numeric_input("0", self.height_input_value).map(Message::HeightInputChanged)
+            numeric_input(self.height_input_value).map(Message::HeightInputChanged)
         ]
         .spacing(10)
         .align_y(Center);
@@ -249,22 +249,19 @@ async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
 #[derive(Clone, Debug)]
 struct PngError(String);
 
-fn numeric_input(placeholder: &str, value: Option<u32>) -> Element<'_, Option<u32>> {
-    text_input(
-        placeholder,
-        &value.as_ref().map(ToString::to_string).unwrap_or_default(),
-    )
-    .on_input(move |text| {
-        if text.is_empty() {
-            None
-        } else if let Ok(new_value) = text.parse() {
-            Some(new_value)
-        } else {
-            value
-        }
-    })
-    .width(40)
-    .into()
+fn numeric_input<'a>(value: Option<u32>) -> Element<'a, Option<u32>> {
+    text_input("0", value.unwrap_or_default())
+        .on_input(move |text| {
+            if text.is_empty() {
+                None
+            } else if let Ok(new_value) = text.parse() {
+                Some(new_value)
+            } else {
+                value
+            }
+        })
+        .width(40)
+        .into()
 }
 
 fn centered_text(content: &str) -> Element<'_, Message> {

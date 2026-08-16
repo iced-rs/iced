@@ -337,6 +337,30 @@ impl Rectangle<f32> {
 
         Point::new(x, y)
     }
+
+    /// Returns the two endpoints of a chord through the rectangle's center
+    /// at the given `angle`.
+    ///
+    /// The angle is measured clockwise from the negative y-axis, so `0`
+    /// produces a vertical chord and `π/2` a horizontal one. The returned
+    /// points are `(start, end)`, symmetric about [`Rectangle::center`].
+    pub fn chord(&self, angle: impl Into<Radians>) -> (Point, Point) {
+        use std::f32::consts::FRAC_PI_2;
+
+        let angle = angle.into().0 - FRAC_PI_2;
+        let r = Vector::new(f32::cos(angle), f32::sin(angle));
+
+        let distance_to_rect = f32::max(
+            f32::abs(r.x * self.width / 2.0),
+            f32::abs(r.y * self.height / 2.0),
+        );
+
+        let center = self.center();
+        let start = center - r * distance_to_rect;
+        let end = center + r * distance_to_rect;
+
+        (start, end)
+    }
 }
 
 impl std::ops::Mul<f32> for Rectangle<f32> {
@@ -378,6 +402,16 @@ where
     }
 }
 
+impl<T> std::ops::AddAssign<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::AddAssign,
+{
+    fn add_assign(&mut self, translation: Vector<T>) {
+        self.x += translation.x;
+        self.y += translation.y;
+    }
+}
+
 impl<T> std::ops::Sub<Vector<T>> for Rectangle<T>
 where
     T: std::ops::Sub<Output = T>,
@@ -390,5 +424,15 @@ where
             y: self.y - translation.y,
             ..self
         }
+    }
+}
+
+impl<T> std::ops::SubAssign<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::SubAssign,
+{
+    fn sub_assign(&mut self, translation: Vector<T>) {
+        self.x -= translation.x;
+        self.y -= translation.y;
     }
 }

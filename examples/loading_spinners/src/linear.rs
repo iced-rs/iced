@@ -284,7 +284,7 @@ impl StyleSheet for iced::Theme {
     type Style = ();
 
     fn appearance(&self, _style: &Self::Style) -> Appearance {
-        let palette = self.extended_palette();
+        let palette = self.palette();
 
         Appearance {
             track_color: palette.background.weak.color,

@@ -162,8 +162,9 @@ where
     width: Length,
     padding: Padding,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
+    line_height: text::LineHeight,
+    shaping: text::Shaping,
+    ellipsis: text::Ellipsis,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
     class: <Theme as Catalog>::Class<'a>,
@@ -195,8 +196,9 @@ where
             width: Length::Shrink,
             padding: crate::button::DEFAULT_PADDING,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::default(),
+            line_height: text::LineHeight::default(),
+            shaping: text::Shaping::default(),
+            ellipsis: text::Ellipsis::End,
             font: None,
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
@@ -237,14 +239,20 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`PickList`].
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = line_height.into();
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`PickList`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
+        self
+    }
+
+    /// Sets the [`text::Ellipsis`] strategy of the [`PickList`].
+    pub fn ellipsis(mut self, ellipsis: text::Ellipsis) -> Self {
+        self.ellipsis = ellipsis;
         self
     }
 
@@ -355,17 +363,18 @@ where
         let option_text = Text {
             content: "",
             bounds: Size::new(
-                f32::INFINITY,
-                self.text_line_height.to_absolute(text_size).into(),
+                limits.max().width,
+                self.line_height.to_absolute(text_size).into(),
             ),
             size: text_size,
-            line_height: self.text_line_height,
+            line_height: self.line_height,
             font,
             align_x: text::Alignment::Default,
             align_y: alignment::Vertical::Center,
-            shaping: self.text_shaping,
-            wrapping: text::Wrapping::default(),
-            hint_factor: renderer.scale_factor(),
+            shaping: self.shaping,
+            wrapping: text::Wrapping::None,
+            ellipsis: self.ellipsis,
+            hint_factor: renderer.hint_factor(),
         };
 
         if let Some(placeholder) = &self.placeholder {
@@ -405,7 +414,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 max_width + text_size.0 + self.padding.left,
-                f32::from(self.text_line_height.to_absolute(text_size)),
+                f32::from(self.line_height.to_absolute(text_size)),
             );
 
             limits
@@ -639,7 +648,8 @@ where
                     align_x: text::Alignment::Right,
                     align_y: alignment::Vertical::Center,
                     shaping,
-                    wrapping: text::Wrapping::default(),
+                    wrapping: text::Wrapping::None,
+                    ellipsis: text::Ellipsis::None,
                     hint_factor: None,
                 },
                 Point::new(
@@ -660,17 +670,18 @@ where
                 Text {
                     content: label,
                     size: text_size,
-                    line_height: self.text_line_height,
+                    line_height: self.line_height,
                     font,
                     bounds: Size::new(
                         bounds.width - self.padding.x(),
-                        f32::from(self.text_line_height.to_absolute(text_size)),
+                        f32::from(self.line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,
-                    shaping: self.text_shaping,
-                    wrapping: text::Wrapping::default(),
-                    hint_factor: renderer.scale_factor(),
+                    shaping: self.shaping,
+                    wrapping: text::Wrapping::None,
+                    ellipsis: self.ellipsis,
+                    hint_factor: renderer.hint_factor(),
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if selected.is_some() {
@@ -717,7 +728,8 @@ where
             .width(bounds.width)
             .padding(self.padding)
             .font(font)
-            .text_shaping(self.text_shaping);
+            .ellipsis(self.ellipsis)
+            .shaping(self.shaping);
 
             if let Some(text_size) = self.text_size {
                 menu = menu.text_size(text_size);
@@ -891,7 +903,7 @@ impl Catalog for Theme {
 
 /// The default style of the field of a [`PickList`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let active = Style {
         text_color: palette.background.weak.text,

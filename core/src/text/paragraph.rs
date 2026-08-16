@@ -1,6 +1,8 @@
 //! Draw paragraphs.
 use crate::alignment;
-use crate::text::{Alignment, Difference, Hit, LineHeight, Shaping, Span, Text, Wrapping};
+use crate::text::{
+    Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+};
 use crate::{Pixels, Point, Rectangle, Size};
 
 /// A text paragraph.
@@ -42,6 +44,9 @@ pub trait Paragraph: Sized + Default {
     /// Returns the [`Wrapping`] strategy of the [`Paragraph`]>
     fn wrapping(&self) -> Wrapping;
 
+    /// Returns the [`Ellipsis`] strategy of the [`Paragraph`]>
+    fn ellipsis(&self) -> Ellipsis;
+
     /// Returns the [`Shaping`] strategy of the [`Paragraph`]>
     fn shaping(&self) -> Shaping;
 
@@ -64,9 +69,6 @@ pub trait Paragraph: Sized + Default {
     /// Returns all bounds for the provided [`Span`] index of the [`Paragraph`].
     /// A [`Span`] can have multiple bounds for each line it's on.
     fn span_bounds(&self, index: usize) -> Vec<Rectangle>;
-
-    /// Returns the distance to the given grapheme index in the [`Paragraph`].
-    fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
 
     /// Returns the minimum width that can fit the contents of the [`Paragraph`].
     fn min_width(&self) -> f32 {
@@ -168,6 +170,7 @@ impl<P: Paragraph> Plain<P> {
             align_y: self.raw.align_y(),
             shaping: self.raw.shaping(),
             wrapping: self.raw.wrapping(),
+            ellipsis: self.raw.ellipsis(),
             hint_factor: self.raw.hint_factor(),
         }
     }

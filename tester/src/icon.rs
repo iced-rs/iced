@@ -114,5 +114,5 @@ where
     Theme: text::Catalog + 'a,
     Renderer: program::Renderer,
 {
-    text(codepoint).font(Font::with_name("iced_devtools-icons"))
+    text(codepoint).font("iced_devtools-icons")
 }

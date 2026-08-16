@@ -51,6 +51,10 @@ use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell,
 /// The [`VerticalSlider`] range of numeric values is generic and its step size defaults
 /// to 1 unit.
 ///
+/// Note: Under the hood values are converted to/from f64 so only values representable exactly as an f64
+/// are possible to select via the slider. However it is likely that the precision of the slider at these
+/// scales is already less than the precision lost from the f64 representation.
+///
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
@@ -211,7 +215,7 @@ where
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for VerticalSlider<'_, T, Message, Theme>
 where
-    T: Copy + Into<f64> + num_traits::FromPrimitive,
+    T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
     Message: Clone,
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -267,10 +271,10 @@ where
                 } else {
                     self.step
                 }
-                .into();
+                .as_();
 
-                let start = (*self.range.start()).into();
-                let end = (*self.range.end()).into();
+                let start = (*self.range.start()).as_();
+                let end = (*self.range.end()).as_();
 
                 let percent =
                     1.0 - f64::from(cursor_position.y - bounds.y) / f64::from(bounds.height);
@@ -288,12 +292,12 @@ where
             } else {
                 self.step
             }
-            .into();
+            .as_();
 
-            let steps = (value.into() / step).round();
+            let steps = (value.as_() / step).round();
             let new_value = step * (steps + 1.0);
 
-            if new_value > (*self.range.end()).into() {
+            if new_value > (*self.range.end()).as_() {
                 return Some(*self.range.end());
             }
 
@@ -306,12 +310,12 @@ where
             } else {
                 self.step
             }
-            .into();
+            .as_();
 
-            let steps = (value.into() / step).round();
+            let steps = (value.as_() / step).round();
             let new_value = step * (steps - 1.0);
 
-            if new_value < (*self.range.start()).into() {
+            if new_value < (*self.range.start()).as_() {
                 return Some(*self.range.start());
             }
 
@@ -319,7 +323,7 @@ where
         };
 
         let change = |new_value: T| {
-            if (self.value.into() - new_value.into()).abs() > f64::EPSILON {
+            if (self.value.as_() - new_value.as_()).abs() > f64::EPSILON {
                 shell.publish((self.on_change)(new_value));
 
                 self.value = new_value;
@@ -343,53 +347,51 @@ where
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. }) => {
-                if is_dragging {
-                    if let Some(on_release) = self.on_release.clone() {
-                        shell.publish(on_release);
-                    }
-                    state.is_dragging = false;
+            | Event::Touch(touch::Event::FingerLost { .. })
+                if is_dragging =>
+            {
+                if let Some(on_release) = self.on_release.clone() {
+                    shell.publish(on_release);
                 }
+                state.is_dragging = false;
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
-            | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                if is_dragging {
-                    let _ = cursor.land().position().and_then(locate).map(change);
+            | Event::Touch(touch::Event::FingerMoved { .. })
+                if is_dragging =>
+            {
+                let _ = cursor.land().position().and_then(locate).map(change);
 
-                    shell.capture_event();
-                }
+                shell.capture_event();
             }
             Event::Mouse(mouse::Event::WheelScrolled { delta })
-                if state.keyboard_modifiers.control() =>
+                if state.keyboard_modifiers.control() && cursor.is_over(layout.bounds()) =>
             {
-                if cursor.is_over(layout.bounds()) {
-                    let delta = match *delta {
-                        mouse::ScrollDelta::Lines { x: _, y } => y,
-                        mouse::ScrollDelta::Pixels { x: _, y } => y,
-                    };
+                let delta = match *delta {
+                    mouse::ScrollDelta::Lines { x: _, y } => y,
+                    mouse::ScrollDelta::Pixels { x: _, y } => y,
+                };
 
-                    if delta < 0.0 {
-                        let _ = decrement(current_value).map(change);
-                    } else {
-                        let _ = increment(current_value).map(change);
-                    }
-
-                    shell.capture_event();
+                if delta < 0.0 {
+                    let _ = decrement(current_value).map(change);
+                } else {
+                    let _ = increment(current_value).map(change);
                 }
+
+                shell.capture_event();
             }
-            Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
-                if cursor.is_over(layout.bounds()) {
-                    match key {
-                        Key::Named(key::Named::ArrowUp) => {
-                            let _ = increment(current_value).map(change);
-                            shell.capture_event();
-                        }
-                        Key::Named(key::Named::ArrowDown) => {
-                            let _ = decrement(current_value).map(change);
-                            shell.capture_event();
-                        }
-                        _ => (),
+            Event::Keyboard(keyboard::Event::KeyPressed { key, .. })
+                if cursor.is_over(layout.bounds()) =>
+            {
+                match key {
+                    Key::Named(key::Named::ArrowUp) => {
+                        let _ = increment(current_value).map(change);
+                        shell.capture_event();
                     }
+                    Key::Named(key::Named::ArrowDown) => {
+                        let _ = decrement(current_value).map(change);
+                        shell.capture_event();
+                    }
+                    _ => (),
                 }
             }
             Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
@@ -435,11 +437,11 @@ where
             } => (f32::from(width), bounds.width, border_radius),
         };
 
-        let value = self.value.into() as f32;
+        let value = self.value.as_() as f32;
         let (range_start, range_end) = {
             let (start, end) = self.range.clone().into_inner();
 
-            (start.into() as f32, end.into() as f32)
+            (start.as_() as f32, end.as_() as f32)
         };
 
         let offset = if range_start >= range_end {
@@ -530,7 +532,7 @@ where
 impl<'a, T, Message, Theme, Renderer> From<VerticalSlider<'a, T, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
+    T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive + 'a,
     Message: Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: core::Renderer + 'a,

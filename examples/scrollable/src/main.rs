@@ -316,7 +316,7 @@ impl Default for ScrollableDemo {
 
 fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Style {
     progress_bar::Style {
-        background: theme.extended_palette().background.strong.color.into(),
+        background: theme.palette().background.strong.color.into(),
         bar: Color::from_rgb8(250, 85, 134).into(),
         border: Border::default(),
     }

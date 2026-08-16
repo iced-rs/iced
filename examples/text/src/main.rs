@@ -1,7 +1,8 @@
 use iced::event;
+use iced::font;
 use iced::widget::{center, column, pick_list, right, stack, text};
 use iced::window;
-use iced::{Element, Event, Subscription, Task};
+use iced::{Element, Event, Font, Subscription, Task};
 
 pub fn main() -> iced::Result {
     iced::application(Text::new, Text::update, Text::view)
@@ -12,45 +13,49 @@ pub fn main() -> iced::Result {
 struct Text {
     scale_factor: f32,
     font: Font,
+    families: Vec<font::Family>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     WindowRescaled(f32),
-    FontChanged(Font),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Font {
-    SansSerif,
-    Serif,
-    Monospace,
+    FontChanged(font::Family),
+    FontsListed(Vec<font::Family>),
 }
 
 impl Text {
     fn new() -> (Self, Task<Message>) {
         (
             Self {
-                font: Font::SansSerif,
+                font: Font::DEFAULT,
                 scale_factor: 1.0,
+                families: font::Family::VARIANTS.to_vec(),
             },
-            window::latest()
-                .and_then(window::scale_factor)
-                .map(Message::WindowRescaled),
+            Task::batch([
+                window::latest()
+                    .and_then(window::scale_factor)
+                    .map(Message::WindowRescaled),
+                font::list()
+                    .map(Result::ok)
+                    .and_then(Task::done)
+                    .map(Message::FontsListed),
+            ]),
         )
     }
 
-    fn update(&mut self, message: Message) -> Task<Message> {
+    fn update(&mut self, message: Message) {
         match message {
             Message::WindowRescaled(scale_factor) => {
                 self.scale_factor = scale_factor;
-
-                Task::none()
             }
-            Message::FontChanged(font) => {
-                self.font = font;
-
-                Task::none()
+            Message::FontChanged(family) => {
+                self.font = Font::with_family(family);
+            }
+            Message::FontsListed(families) => {
+                self.families = families
+                    .into_iter()
+                    .chain(font::Family::VARIANTS.iter().copied())
+                    .collect();
             }
         }
     }
@@ -69,9 +74,9 @@ impl Text {
         let sizes = 5..=32;
 
         let font_selector = pick_list(
-            Some(self.font),
-            [Font::SansSerif, Font::Serif, Font::Monospace],
-            Font::to_string,
+            Some(self.font.family),
+            self.families.as_slice(),
+            font::Family::to_string,
         )
         .on_select(Message::FontChanged);
 
@@ -84,14 +89,7 @@ impl Text {
                         "The quick brown fox jumps over the \
                         lazy dog ({physical_size}px)"
                     )
-                    .font(match self.font {
-                        Font::SansSerif => iced::Font::DEFAULT,
-                        Font::Serif => iced::Font {
-                            family: iced::font::Family::Serif,
-                            ..iced::Font::DEFAULT
-                        },
-                        Font::Monospace => iced::Font::MONOSPACE,
-                    })
+                    .font(self.font)
                     .size(size)
                     .into()
                 }))
@@ -100,15 +98,5 @@ impl Text {
             right(font_selector).padding(10)
         ]
         .into()
-    }
-}
-
-impl std::fmt::Display for Font {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(match self {
-            Font::SansSerif => "Sans Serif",
-            Font::Serif => "Serif",
-            Font::Monospace => "Monospace",
-        })
     }
 }

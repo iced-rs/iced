@@ -10,7 +10,10 @@ use std::sync::atomic::{self, AtomicU64};
 pub struct Cache<T> {
     group: Group,
     state: RefCell<State<T>>,
+    version: RefCell<u64>,
 }
+
+static VERSION: AtomicU64 = AtomicU64::new(0);
 
 impl<T> Cache<T> {
     /// Creates a new empty [`Cache`].
@@ -18,6 +21,7 @@ impl<T> Cache<T> {
         Cache {
             group: Group::singleton(),
             state: RefCell::new(State::Empty { previous: None }),
+            version: RefCell::new(VERSION.load(atomic::Ordering::Relaxed)),
         }
     }
 
@@ -36,6 +40,7 @@ impl<T> Cache<T> {
         Cache {
             group,
             state: RefCell::new(State::Empty { previous: None }),
+            version: RefCell::new(VERSION.load(atomic::Ordering::Relaxed)),
         }
     }
 
@@ -55,6 +60,13 @@ impl<T> Cache<T> {
 
     /// Returns a reference cell to the internal [`State`] of the [`Cache`].
     pub fn state(&self) -> &RefCell<State<T>> {
+        let version = VERSION.load(atomic::Ordering::Relaxed);
+
+        if *self.version.borrow() != version {
+            *self.state.borrow_mut() = State::Empty { previous: None };
+            let _ = self.version.replace(version);
+        }
+
         &self.state
     }
 
@@ -181,4 +193,9 @@ impl Cached for () {
     fn load(_cache: &Self::Cache) -> Self {}
 
     fn cache(self, _group: Group, _previous: Option<Self::Cache>) -> Self::Cache {}
+}
+
+/// Invalidates all the existing [`Cache`]; clearing their contents.
+pub fn invalidate_all() {
+    let _ = VERSION.fetch_add(1, atomic::Ordering::Relaxed);
 }
