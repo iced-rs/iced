@@ -81,6 +81,11 @@ pub trait Editor: Sized + Default {
         format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
     );
 
+    /// Returns the underline decorations of the [`Editor`].
+    ///
+    /// Coordinates match [`Self::selection`] (scroll + hint factor applied).
+    fn decorations(&self) -> Vec<Decoration>;
+
     /// Returns an iterator of the text of the lines in the [`Editor`].
     fn lines(&self) -> impl Iterator<Item = Line<'_>> {
         (0..)
@@ -250,6 +255,19 @@ pub enum Direction {
     Left,
     /// ->
     Right,
+}
+
+/// An underline decoration of an [`Editor`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Decoration {
+    /// The bounds of the decoration.
+    pub bounds: Rectangle,
+    /// The underline [`Color`], if known.
+    ///
+    /// If `None`, the editor text color should be used.
+    pub color: Option<Color>,
+    /// The underline style.
+    pub underline: highlighter::Underline,
 }
 
 /// The cursor of an [`Editor`].
@@ -611,13 +629,37 @@ impl State {
             renderer.fill_editor(editor, position, style.value, clip_bounds);
         }
 
-        if !self.is_focused() {
-            return;
-        }
-
         let translation = position - Point::ORIGIN;
         let text_size = editor.text_size();
         let line_height = editor.line_height();
+        let absolute_line_height = line_height.to_absolute(text_size);
+
+        for decoration in editor.decorations() {
+            if decoration.underline == highlighter::Underline::None {
+                continue;
+            }
+
+            let color = decoration.color.unwrap_or(style.value);
+            let bounds = decoration.bounds + translation;
+            let y = bounds.y + text_size.0 + (absolute_line_height.0 - text_size.0) / 2.0
+                - text_size.0 * 0.08;
+
+            let underline = Rectangle::new(Point::new(bounds.x, y), Size::new(bounds.width, 1.0));
+
+            if let Some(clipped) = clip_bounds.intersection(&underline) {
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: clipped,
+                        ..renderer::Quad::default()
+                    },
+                    color,
+                );
+            }
+        }
+
+        if !self.is_focused() {
+            return;
+        }
 
         match editor.selection() {
             Selection::Caret(position) if self.is_cursor_visible() => {

@@ -2,13 +2,14 @@
 use crate::core::text::editor::{self, Action, Cursor, Direction, Edit, Motion, Selection};
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{Alignment, LineHeight, Position, Wrapping};
-use crate::core::{Font, Pixels, Point, Rectangle, Size};
+use crate::core::{Color, Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
 use cosmic_text::Edit as _;
 
 use std::borrow::Cow;
 use std::fmt;
+use std::ops::Range;
 use std::sync::{self, Arc, RwLock};
 
 /// A multi-line text editor.
@@ -26,6 +27,8 @@ struct Internal {
     hint: bool,
     hint_factor: f32,
     version: text::Version,
+    underline_spans: Vec<(usize, Range<usize>, highlighter::Underline, Option<Color>)>,
+    decorations: Vec<editor::Decoration>,
 }
 
 impl Editor {
@@ -758,6 +761,7 @@ impl editor::Editor for Editor {
             }
 
             internal.editor.shape_as_needed(font_system.raw(), false);
+            relayout_decorations(internal);
         });
     }
 
@@ -794,6 +798,8 @@ impl editor::Editor for Editor {
             internal.editor.set_cursor(new_cursor);
 
             shape_until_cursor(&mut internal.editor, &mut font_system.raw);
+            internal.underline_spans.clear();
+            internal.decorations.clear();
         });
     }
 
@@ -845,9 +851,16 @@ impl editor::Editor for Editor {
 
         let attributes = text::to_attributes(font);
 
-        for line in &mut buffer_mut_from_editor(&mut internal.editor).lines
+        internal
+            .underline_spans
+            .retain(|(line, _, _, _)| *line < current_line || *line > last_visible_line);
+
+        for (i, line) in &mut buffer_mut_from_editor(&mut internal.editor).lines
             [current_line..=last_visible_line]
+            .iter_mut()
+            .enumerate()
         {
+            let line_index = current_line + i;
             let mut list = cosmic_text::AttrsList::new(&attributes);
 
             for (range, highlight) in highlighter.highlight_line(line.text()) {
@@ -855,7 +868,7 @@ impl editor::Editor for Editor {
 
                 if format.color.is_some() || format.font.is_some() {
                     list.add_span(
-                        range,
+                        range.clone(),
                         &cosmic_text::Attrs {
                             color_opt: format.color.map(text::to_color),
                             ..if let Some(font) = format.font {
@@ -866,14 +879,28 @@ impl editor::Editor for Editor {
                         },
                     );
                 }
+
+                if format.underline != highlighter::Underline::None {
+                    internal.underline_spans.push((
+                        line_index,
+                        range,
+                        format.underline,
+                        format.underline_color.or(format.color),
+                    ));
+                }
             }
 
             let _ = line.set_attrs_list(list);
         }
 
         internal.editor.shape_as_needed(font_system.raw(), false);
+        relayout_decorations(&mut internal);
 
         self.0 = Some(Arc::new(internal));
+    }
+
+    fn decorations(&self) -> Vec<editor::Decoration> {
+        self.internal().decorations.clone()
     }
 
     fn text_size(&self) -> Pixels {
@@ -928,6 +955,8 @@ impl Default for Internal {
             hint: false,
             hint_factor: 1.0,
             version: text::Version::default(),
+            underline_spans: Vec::new(),
+            decorations: Vec::new(),
         }
     }
 }
@@ -961,6 +990,40 @@ impl PartialEq for Weak {
         match (self.raw.upgrade(), other.raw.upgrade()) {
             (Some(p1), Some(p2)) => p1 == p2,
             _ => false,
+        }
+    }
+}
+
+fn relayout_decorations(internal: &mut Internal) {
+    let buffer = buffer_from_editor(&internal.editor);
+    let scroll = buffer.scroll();
+    let line_height = buffer.metrics().line_height;
+
+    internal.decorations.clear();
+
+    for (line_index, range, underline, color) in &internal.underline_spans {
+        let Some(line) = buffer.lines.get(*line_index) else {
+            continue;
+        };
+
+        let visual_lines_offset = visual_lines_offset(*line_index, buffer);
+
+        for (visual_line, (x, width)) in highlight_line(line, range.start, range.end).enumerate() {
+            if width <= 0.0 {
+                continue;
+            }
+
+            internal.decorations.push(editor::Decoration {
+                bounds: Rectangle {
+                    x: x - scroll.horizontal,
+                    width,
+                    y: (visual_line as i32 + visual_lines_offset) as f32 * line_height
+                        - scroll.vertical,
+                    height: line_height,
+                } * (1.0 / internal.hint_factor),
+                color: *color,
+                underline: *underline,
+            });
         }
     }
 }
