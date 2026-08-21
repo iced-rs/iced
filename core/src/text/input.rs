@@ -7,7 +7,7 @@ use crate::text::editor;
 use crate::text::paragraph;
 use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};
 use crate::widget::operation::{Focusable, TextInput};
-use crate::{Color, Event, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell};
+use crate::{Color, Event, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell, Size};
 
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -117,25 +117,53 @@ impl<R: text::Renderer> Input<R> {
             | Length::FillPortion(_)
             | Length::Fixed(_)
             | Length::Bounded { .. }
-            | Length::Fluid(_) => limits.max(),
+            | Length::Fluid(_) => {
+                let bounds = limits.max();
+
+                let _ = self.placeholder.update(Text {
+                    content: layout.placeholder,
+                    font,
+                    line_height: layout.line_height,
+                    bounds,
+                    size,
+                    align_x: layout.alignment,
+                    align_y: alignment::Vertical::Top,
+                    shaping: text::Shaping::Advanced,
+                    wrapping: text::Wrapping::None,
+                    ellipsis: text::Ellipsis::None,
+                    hint_factor,
+                });
+
+                bounds
+            }
             Length::Shrink | Length::Fit => {
-                limits.resolve(layout.width, layout.height, editor.min_bounds())
+                let _ = self.placeholder.update(Text {
+                    content: layout.placeholder,
+                    font,
+                    line_height: layout.line_height,
+                    bounds: Size::INFINITE,
+                    size,
+                    align_x: layout.alignment,
+                    align_y: alignment::Vertical::Top,
+                    shaping: text::Shaping::Advanced,
+                    wrapping: text::Wrapping::None,
+                    ellipsis: text::Ellipsis::None,
+                    hint_factor,
+                });
+
+                let min_bounds = editor.min_bounds();
+                let placeholder_bounds = self.placeholder.min_bounds();
+
+                limits.resolve(
+                    layout.width,
+                    layout.height,
+                    Size::new(
+                        (min_bounds.width + 1.0).max(placeholder_bounds.width),
+                        min_bounds.height.max(placeholder_bounds.height),
+                    ),
+                )
             }
         };
-
-        let _ = self.placeholder.update(Text {
-            content: layout.placeholder,
-            font,
-            line_height: layout.line_height,
-            bounds,
-            size,
-            align_x: layout.alignment,
-            align_y: alignment::Vertical::Top,
-            shaping: text::Shaping::Advanced,
-            wrapping: text::Wrapping::None,
-            ellipsis: text::Ellipsis::None,
-            hint_factor,
-        });
 
         layout::Node::new(bounds.expand(layout.padding))
     }
