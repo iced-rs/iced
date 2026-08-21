@@ -4,7 +4,7 @@ use iced::widget::{
     toggler, tooltip,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Font, Task, Theme, Window};
+use iced::{Center, Color, Element, Fill, Font, Task, Theme, Window};
 
 use std::ffi;
 use std::io;
@@ -196,12 +196,17 @@ impl Editor {
                 } else {
                     text::Wrapping::None
                 })
-                .highlight(
-                    self.file
-                        .as_deref()
-                        .and_then(Path::extension)
-                        .and_then(ffi::OsStr::to_str)
-                        .unwrap_or("rs"),
+                .highlight_with::<iced::highlighter::Parser>(
+                    iced::highlighter::Settings {
+                        token: self
+                            .file
+                            .as_deref()
+                            .and_then(Path::extension)
+                            .and_then(ffi::OsStr::to_str)
+                            .unwrap_or("rs")
+                            .to_owned(),
+                    },
+                    underline_highlight,
                 )
                 .key_binding(|key_press| {
                     match key_press.key.as_ref() {
@@ -227,6 +232,13 @@ impl Editor {
 pub enum Error {
     DialogClosed,
     IoError(io::ErrorKind),
+}
+
+fn underline_highlight(code: iced::Code, theme: &Theme) -> text::highlighter::Style {
+    let mut style = code.highlight(theme);
+    style.underline = text::highlighter::Underline::Solid;
+    style.underline_color = Some(Color::from_rgb8(220, 50, 47));
+    style
 }
 
 fn open_file(

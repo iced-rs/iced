@@ -19,6 +19,13 @@ pub struct Style {
     pub color: Option<Color>,
     /// The [`font::Style`] of the text.
     pub style: Option<font::Style>,
+    /// The underline decoration of the text.
+    pub underline: Underline,
+    /// The [`Color`] of the underline.
+    ///
+    /// If `None`, the underline uses [`Style::color`], or the editor text color
+    /// if that is also `None`.
+    pub underline_color: Option<Color>,
 }
 
 impl<T, Input, Theme> Highlighter<Input, Theme> for T
@@ -32,4 +39,16 @@ where
     fn highlight(&self, input: Input, theme: &Theme) -> Style {
         (self)(input, theme)
     }
+}
+
+/// The underline decoration of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Underline {
+    /// No underline.
+    ///
+    /// This is the default.
+    #[default]
+    None,
+    /// A solid underline.
+    Solid,
 }

@@ -209,6 +209,10 @@ impl text::Editor for () {
 
     fn overwrite(&mut self, _new_text: &str) {}
 
+    fn decorations(&self) -> Vec<text::editor::Decoration> {
+        Vec::new()
+    }
+
     fn highlight<P: text::Parser>(
         &mut self,
         _font: Font,
