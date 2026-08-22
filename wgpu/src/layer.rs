@@ -255,7 +255,7 @@ impl Layer {
         if !self.pending_meshes.is_empty() {
             self.triangles.push(triangle::Item::Group {
                 transformation: Transformation::IDENTITY,
-                meshes: self.pending_meshes.drain(..).collect(),
+                meshes: std::mem::take(&mut self.pending_meshes),
             });
         }
     }
@@ -264,7 +264,7 @@ impl Layer {
         if !self.pending_text.is_empty() {
             self.text.push(text::Item::Group {
                 transformation: Transformation::IDENTITY,
-                text: self.pending_text.drain(..).collect(),
+                text: std::mem::take(&mut self.pending_text),
             });
         }
     }
