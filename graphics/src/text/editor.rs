@@ -448,7 +448,59 @@ impl editor::Editor for Editor {
                         Edit::Backspace => {
                             editor.action(font_system.raw(), cosmic_text::Action::Backspace);
                         }
+                        Edit::BackspaceWord => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::PreviousWord),
+                                );
+                            }
+
+                            editor.action(font_system.raw(), cosmic_text::Action::Backspace);
+                        }
+                        Edit::BackspaceLine => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::Home),
+                                );
+                            }
+
+                            editor.action(font_system.raw(), cosmic_text::Action::Backspace);
+                        }
                         Edit::Delete => {
+                            editor.action(font_system.raw(), cosmic_text::Action::Delete);
+                        }
+                        Edit::DeleteWord => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::NextWord),
+                                );
+                            }
+
+                            editor.action(font_system.raw(), cosmic_text::Action::Delete);
+                        }
+                        Edit::DeleteLine => {
+                            if editor.selection() == cosmic_text::Selection::None {
+                                editor
+                                    .set_selection(cosmic_text::Selection::Normal(editor.cursor()));
+
+                                editor.action(
+                                    font_system.raw(),
+                                    cosmic_text::Action::Motion(cosmic_text::Motion::End),
+                                );
+                            }
+
                             editor.action(font_system.raw(), cosmic_text::Action::Delete);
                         }
                         Edit::Undo => {
@@ -489,14 +541,24 @@ impl editor::Editor for Editor {
                 }
 
                 // Mouse events
-                Action::Click(position) => {
+                Action::Click(position, kind) => {
                     let scroll = buffer_from_editor(editor).scroll();
+
+                    let x = ((position.x + scroll.horizontal) * internal.hint_factor) as i32;
+                    let y = (position.y * internal.hint_factor) as i32;
 
                     editor.action(
                         font_system.raw(),
-                        cosmic_text::Action::Click {
-                            x: ((position.x + scroll.horizontal) * internal.hint_factor) as i32,
-                            y: (position.y * internal.hint_factor) as i32,
+                        match kind {
+                            iced_core::mouse::click::Kind::Single => {
+                                cosmic_text::Action::Click { x, y }
+                            }
+                            iced_core::mouse::click::Kind::Double => {
+                                cosmic_text::Action::DoubleClick { x, y }
+                            }
+                            iced_core::mouse::click::Kind::Triple => {
+                                cosmic_text::Action::TripleClick { x, y }
+                            }
                         },
                     );
 
@@ -560,6 +622,8 @@ impl editor::Editor for Editor {
                         index: selection.index,
                         affinity: cosmic_text::Affinity::Before,
                     }));
+            } else {
+                internal.editor.set_selection(cosmic_text::Selection::None);
             }
         });
     }

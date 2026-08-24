@@ -70,9 +70,6 @@ pub trait Paragraph: Sized + Default {
     /// A [`Span`] can have multiple bounds for each line it's on.
     fn span_bounds(&self, index: usize) -> Vec<Rectangle>;
 
-    /// Returns the distance to the given grapheme index in the [`Paragraph`].
-    fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
-
     /// Returns the minimum width that can fit the contents of the [`Paragraph`].
     fn min_width(&self) -> f32 {
         self.min_bounds().width

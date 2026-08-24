@@ -377,16 +377,21 @@ struct Internal<T, R: text::Renderer> {
     editor: Editor<R>,
     menu: menu::State,
     hovered_option: Option<usize>,
-    new_selection: Option<T>,
     option_matchers: Vec<String>,
     filtered_options: Vec<T>,
     version: u64,
 }
 
 impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
-    fn filter(&mut self, options: &[T]) {
+    fn hovered_option(&self) -> usize {
+        let index = self.hovered_option.unwrap_or_default();
+
+        index.min(self.filtered_options.len().saturating_sub(1))
+    }
+
+    fn filter(&mut self, options: &[T], value: &str) {
         self.option_matchers = build_matchers(options);
-        self.filtered_options = search(options, &self.option_matchers, &self.editor.value)
+        self.filtered_options = search(options, &self.option_matchers, value)
             .cloned()
             .collect();
     }
@@ -394,7 +399,6 @@ impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
 
 struct Editor<R: text::Renderer> {
     input: text::Input<R>,
-    value: String,
     selection: Option<String>,
 }
 
@@ -434,6 +438,7 @@ where
                 line_height: self.line_height,
                 alignment: text::Alignment::Default,
                 multiline: None,
+                is_secure: false,
             },
         )
     }
@@ -446,14 +451,12 @@ where
         widget::tree::State::new(Internal::<T, Renderer> {
             editor: Editor {
                 input: text::Input::new(),
-                value: String::new(),
                 selection: None,
             },
             menu: menu::State::new(),
             filtered_options: Vec::new(),
             option_matchers: Vec::new(),
             hovered_option: Some(0),
-            new_selection: None,
             version: 0,
         })
     }
@@ -466,8 +469,7 @@ where
         {
             state.editor.input.overwrite(&self.selection);
             state.editor.selection = Some(self.selection.clone());
-            state.editor.value = self.selection.clone();
-            state.filter(&self.state.options);
+            state.filter(&self.state.options, &self.selection);
 
             state.version = self.state.version;
         }
@@ -502,8 +504,7 @@ where
                 shell.publish(on_input(value.clone()));
             }
 
-            internal.editor.value = value;
-            internal.filter(&self.state.options);
+            internal.filter(&self.state.options, &value);
         }
 
         let is_focused = internal.editor.input.is_focused();
@@ -511,7 +512,6 @@ where
         if is_focused {
             if !was_focused {
                 internal.editor.input.overwrite("");
-                internal.editor.value.clear();
                 internal.filtered_options = self.state.options.clone();
 
                 if let Some(on_option_hovered) = &mut self.on_option_hovered {
@@ -531,32 +531,36 @@ where
             {
                 match (named_key, modifiers.shift()) {
                     (key::Named::Enter, _) => {
-                        if let Some(index) = &internal.hovered_option
-                            && let Some(option) = internal.filtered_options.get(*index)
+                        if let Some(option) = internal
+                            .filtered_options
+                            .get(internal.hovered_option())
+                            .cloned()
                         {
-                            internal.new_selection = Some(option.clone());
+                            internal.menu = menu::State::default();
+                            internal.editor.selection = None;
+                            internal.editor.input.overwrite("");
+                            internal.editor.input.unfocus();
+
+                            shell.publish((self.on_selected)(option));
                         }
 
                         shell.capture_event();
                         shell.request_redraw();
                     }
                     (key::Named::ArrowUp, _) | (key::Named::Tab, true) => {
-                        if let Some(index) = &mut internal.hovered_option {
-                            if *index == 0 {
-                                *index = internal.filtered_options.len().saturating_sub(1);
-                            } else {
-                                *index = index.saturating_sub(1);
-                            }
+                        let index = internal.hovered_option();
+
+                        internal.hovered_option = Some(if index == 0 {
+                            internal.filtered_options.len().saturating_sub(1)
                         } else {
-                            internal.hovered_option = Some(0);
-                        }
+                            index.saturating_sub(1)
+                        });
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal
                                 .hovered_option
                                 .and_then(|index| internal.filtered_options.get(index))
                         {
-                            // Notify the selection
                             shell.publish((on_option_hovered)(option.clone()));
                         }
 
@@ -564,24 +568,23 @@ where
                         shell.request_redraw();
                     }
                     (key::Named::ArrowDown, _) | (key::Named::Tab, false) => {
-                        if let Some(index) = &mut internal.hovered_option {
-                            if *index >= internal.filtered_options.len().saturating_sub(1) {
-                                *index = 0;
+                        let index = internal.hovered_option();
+
+                        internal.hovered_option = Some(
+                            if index >= internal.filtered_options.len().saturating_sub(1) {
+                                0
                             } else {
-                                *index = index
+                                index
                                     .saturating_add(1)
-                                    .min(internal.filtered_options.len().saturating_sub(1));
-                            }
-                        } else {
-                            internal.hovered_option = Some(0);
-                        }
+                                    .min(internal.filtered_options.len().saturating_sub(1))
+                            },
+                        );
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal
                                 .hovered_option
                                 .and_then(|index| internal.filtered_options.get(index))
                         {
-                            // Notify the selection
                             shell.publish((on_option_hovered)(option.clone()));
                         }
 
@@ -591,21 +594,6 @@ where
                     _ => {}
                 }
             }
-        }
-
-        // If the overlay menu has selected something
-        if let Some(selection) = internal.new_selection.take() {
-            // Clear the value and reset the options and menu
-            internal.menu = menu::State::default();
-
-            internal.editor.input.overwrite(&selection.to_string());
-            internal.editor.input.unfocus();
-            internal.editor.value = String::new();
-
-            internal.filter(&self.state.options);
-
-            // Notify the selection
-            shell.publish((self.on_selected)(selection));
         }
 
         if was_focused != is_focused {
@@ -717,7 +705,7 @@ where
                 menu,
                 filtered_options,
                 hovered_option,
-                new_selection,
+                editor,
                 ..
             } = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
@@ -732,7 +720,9 @@ where
                     hovered_option,
                     &T::to_string,
                     |selection| {
-                        *new_selection = Some(selection.clone());
+                        editor.selection = None;
+                        editor.input.overwrite("");
+                        editor.input.unfocus();
 
                         (self.on_selected)(selection)
                     },
