@@ -34,6 +34,7 @@
 use crate::core::alignment;
 use crate::core::clipboard;
 use crate::core::layout::{self, Layout};
+use crate::core::length;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{self, Editor as _};
@@ -362,12 +363,12 @@ where
         );
 
         match self.height {
-            Length::Fill
-            | Length::FillPortion(_)
-            | Length::Fixed(_)
-            | Length::Bounded { .. }
-            | Length::Fluid(_) => layout::Node::new(limits.max()),
-            Length::Shrink | Length::Fit => {
+            Length::Shrink
+            | Length::Fit
+            | Length::Bounded {
+                sizing: length::Sizing::Fit | length::Sizing::Shrink,
+                ..
+            } => {
                 let min_bounds = internal.editor.min_bounds();
 
                 layout::Node::new(
@@ -377,6 +378,11 @@ where
                         .expand(Size::new(0.0, self.padding.y())),
                 )
             }
+            Length::Fill
+            | Length::FillPortion(_)
+            | Length::Fixed(_)
+            | Length::Bounded { .. }
+            | Length::Fluid(_) => layout::Node::new(limits.max()),
         }
     }
 
