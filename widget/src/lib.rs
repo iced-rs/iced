@@ -53,7 +53,7 @@ pub use helpers::*;
 mod lazy;
 
 #[cfg(feature = "lazy")]
-pub use crate::lazy::lazy;
+pub use crate::lazy::{Lazy, lazy};
 
 #[doc(no_inline)]
 pub use button::Button;
