@@ -214,7 +214,6 @@ lyon_path = "1.0"
 mundy = { version = "0.2", default-features = false }
 nom = "8"
 num-traits = "0.2"
-ouroboros = "0.18"
 png = "0.18"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }

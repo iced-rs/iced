@@ -37,9 +37,6 @@ rustc-hash.workspace = true
 thiserror.workspace = true
 unicode-segmentation.workspace = true
 
-ouroboros.workspace = true
-ouroboros.optional = true
-
 qrcode.workspace = true
 qrcode.optional = true
 
