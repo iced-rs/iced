@@ -158,13 +158,15 @@ impl Cache {
                 let mut rgba = img.take();
 
                 if let Some(color) = color {
-                    rgba.chunks_exact_mut(4).for_each(|rgba| {
-                        if rgba[3] > 0 {
-                            rgba[0] = color[0];
-                            rgba[1] = color[1];
-                            rgba[2] = color[2];
+                    let (chunks, _) = rgba.as_chunks_mut::<4>();
+
+                    for [r, g, b, a] in chunks {
+                        if *a > 0 {
+                            *r = color[0];
+                            *g = color[1];
+                            *b = color[2];
                         }
-                    });
+                    }
                 }
 
                 let allocation =
