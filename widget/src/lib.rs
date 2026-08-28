@@ -67,6 +67,8 @@ pub use float::Float;
 #[doc(no_inline)]
 pub use grid::Grid;
 #[doc(no_inline)]
+pub use lazy::Lazy;
+#[doc(no_inline)]
 pub use mouse_area::MouseArea;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;

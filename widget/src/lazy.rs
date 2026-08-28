@@ -12,19 +12,6 @@ use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
-/// Creates a new [`Lazy`] widget with the given data `Dependency` and a
-/// closure that can turn this data into a widget tree.
-pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
-    dependency: Dependency,
-    view: impl Fn(&Dependency) -> View + 'a,
-) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
-where
-    Dependency: Hash + 'a,
-    View: Into<Element<'static, Message, Theme, Renderer>>,
-{
-    Lazy::new(dependency, view)
-}
-
 /// A widget that only rebuilds its contents when necessary.
 pub struct Lazy<'a, Message, Theme, Renderer, Dependency, View> {
     dependency: Dependency,
