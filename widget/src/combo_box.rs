@@ -393,9 +393,9 @@ impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
     }
 
     fn filter(&mut self, state: &State<T>, value: &str) {
-        self.filtered_options = search(&state.options, &state.matchers, value)
-            .cloned()
-            .collect();
+        self.filtered_options.clear();
+        self.filtered_options
+            .extend(search(&state.options, &state.matchers, value).cloned());
     }
 }
 
