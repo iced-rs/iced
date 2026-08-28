@@ -832,27 +832,27 @@ impl<Message> Binding<Message> {
 
         match modified_key.as_ref() {
             keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
-            keyboard::Key::Named(key::Named::Backspace) => Some(if modifiers.command() {
-                if modifiers.shift() {
+            keyboard::Key::Named(key::Named::Backspace) => Some(
+                if modifiers.macos_command() || (modifiers.command() && modifiers.shift()) {
                     Self::BackspaceLine
-                } else {
+                } else if modifiers.jump() {
                     Self::BackspaceWord
-                }
-            } else {
-                Self::Backspace
-            }),
+                } else {
+                    Self::Backspace
+                },
+            ),
             keyboard::Key::Named(key::Named::Delete)
                 if text.is_none() || text.as_deref() == Some("\u{7f}") =>
             {
-                Some(if modifiers.command() {
-                    if modifiers.shift() {
+                Some(
+                    if modifiers.macos_command() || (modifiers.command() && modifiers.shift()) {
                         Self::DeleteLine
-                    } else {
+                    } else if modifiers.jump() {
                         Self::DeleteWord
-                    }
-                } else {
-                    Self::Delete
-                })
+                    } else {
+                        Self::Delete
+                    },
+                )
             }
             keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
             _ => {
