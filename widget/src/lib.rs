@@ -25,6 +25,7 @@ pub mod container;
 pub mod float;
 pub mod grid;
 pub mod keyed;
+pub mod lazy;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
@@ -48,12 +49,6 @@ pub mod vertical_slider;
 mod helpers;
 
 pub use helpers::*;
-
-#[cfg(feature = "lazy")]
-mod lazy;
-
-#[cfg(feature = "lazy")]
-pub use crate::lazy::{Lazy, lazy};
 
 #[doc(no_inline)]
 pub use button::Button;

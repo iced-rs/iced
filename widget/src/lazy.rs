@@ -1,3 +1,4 @@
+//! A widget that only rebuilds its contents when necessary.
 use crate::core::Element;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -13,7 +14,6 @@ use std::marker::PhantomData;
 
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
 /// closure that can turn this data into a widget tree.
-#[cfg(feature = "lazy")]
 pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
     dependency: Dependency,
     view: impl Fn(&Dependency) -> View + 'a,
@@ -26,7 +26,6 @@ where
 }
 
 /// A widget that only rebuilds its contents when necessary.
-#[cfg(feature = "lazy")]
 pub struct Lazy<'a, Message, Theme, Renderer, Dependency, View> {
     dependency: Dependency,
     view: Box<dyn Fn(&Dependency) -> View + 'a>,

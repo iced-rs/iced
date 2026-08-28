@@ -7,4 +7,4 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["debug", "lazy"]
+iced.features = ["debug"]

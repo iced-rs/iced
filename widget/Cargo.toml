@@ -18,7 +18,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [features]
-lazy = ["ouroboros"]
 image = ["iced_renderer/image"]
 svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
