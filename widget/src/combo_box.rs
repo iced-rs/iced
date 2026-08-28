@@ -328,6 +328,7 @@ where
 #[derive(Debug, Clone)]
 pub struct State<T> {
     options: Vec<T>,
+    matchers: Vec<String>,
     version: u64,
 }
 
@@ -340,6 +341,7 @@ where
     /// Creates a new [`State`] for a [`ComboBox`] with the given list of options.
     pub fn new(options: Vec<T>) -> Self {
         Self {
+            matchers: options.iter().map(build_matcher).collect(),
             options,
             version: VERSION.fetch_add(1, atomic::Ordering::Relaxed),
         }
@@ -355,6 +357,7 @@ where
 
     /// Pushes a new option to the [`State`].
     pub fn push(&mut self, new_option: T) {
+        self.matchers.push(build_matcher(&new_option));
         self.options.push(new_option);
         self.version = VERSION.fetch_add(1, atomic::Ordering::Relaxed);
     }
@@ -378,7 +381,6 @@ struct Internal<T, R: text::Renderer> {
     editor: Editor<R>,
     menu: menu::State,
     hovered_option: Option<usize>,
-    option_matchers: Vec<String>,
     filtered_options: Vec<T>,
     version: u64,
 }
@@ -390,9 +392,8 @@ impl<T: Display + Clone, R: text::Renderer> Internal<T, R> {
         index.min(self.filtered_options.len().saturating_sub(1))
     }
 
-    fn filter(&mut self, options: &[T], value: &str) {
-        self.option_matchers = build_matchers(options);
-        self.filtered_options = search(options, &self.option_matchers, value)
+    fn filter(&mut self, state: &State<T>, value: &str) {
+        self.filtered_options = search(&state.options, &state.matchers, value)
             .cloned()
             .collect();
     }
@@ -455,7 +456,6 @@ where
             },
             menu: menu::State::new(),
             filtered_options: Vec::new(),
-            option_matchers: Vec::new(),
             hovered_option: Some(0),
             version: 0,
         })
@@ -469,7 +469,7 @@ where
         {
             state.editor.input.overwrite(&self.selection);
             state.editor.selection = Some(self.selection.clone());
-            state.filter(&self.state.options, &self.selection);
+            state.filter(self.state, &self.selection);
 
             state.version = self.state.version;
         }
@@ -504,7 +504,7 @@ where
                 shell.publish(on_input(value.clone()));
             }
 
-            internal.filter(&self.state.options, &value);
+            internal.filter(self.state, &value);
         }
 
         let is_focused = internal.editor.input.is_focused();
@@ -805,11 +805,7 @@ fn search<'a, T, A>(
 where
     A: AsRef<str> + 'a,
 {
-    let query: Vec<String> = query
-        .to_lowercase()
-        .unicode_words()
-        .map(String::from)
-        .collect();
+    let query: Vec<String> = query.unicode_words().map(str::to_lowercase).collect();
 
     options
         .into_iter()
@@ -824,13 +820,6 @@ where
         })
 }
 
-fn build_matchers<'a, T>(options: impl IntoIterator<Item = T> + 'a) -> Vec<String>
-where
-    T: Display + 'a,
-{
-    options.into_iter().map(build_matcher).collect()
-}
-
 fn build_matcher<T>(option: T) -> String
 where
     T: Display,
@@ -838,6 +827,7 @@ where
     option
         .to_string()
         .unicode_words()
+        .flat_map(str::chars)
+        .flat_map(char::to_lowercase)
         .collect::<String>()
-        .to_lowercase()
 }
