@@ -1243,7 +1243,7 @@ where
     let mut outputs = Vec::new();
 
     while !messages.is_empty() {
-        for message in messages.drain() {
+        for (message, _receipt) in messages.drain() {
             let task = runtime.enter(|| program.update(message));
 
             if let Some(mut stream) = runtime::task::into_stream(task) {

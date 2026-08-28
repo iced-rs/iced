@@ -685,13 +685,13 @@ impl core::Renderer for Renderer {
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         _handle: &core::image::Handle,
         _callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>) + Send + 'static,
     ) {
         #[cfg(feature = "image")]
         self.image_cache
-            .get_mut()
+            .borrow_mut()
             .allocate_image(_handle, _callback);
     }
 
