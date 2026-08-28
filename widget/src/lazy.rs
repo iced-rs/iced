@@ -1,7 +1,3 @@
-#![allow(clippy::await_holding_refcell_ref, clippy::type_complexity)]
-
-mod cache;
-
 use crate::core::Element;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -12,8 +8,7 @@ use crate::core::widget::{self, Widget};
 use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector};
 
 use rustc_hash::FxHasher;
-use std::hash::{Hash, Hasher as H};
-#[cfg(feature = "lazy")]
+use std::hash::{Hash, Hasher};
 use std::marker::PhantomData;
 
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
@@ -58,7 +53,6 @@ where
 }
 
 struct Internal<Message, Theme, Renderer> {
-    // TODO: store in widget impl instead?
     element: Element<'static, Message, Theme, Renderer>,
     hash: u64,
 }
@@ -85,11 +79,9 @@ where
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        let Tree {
-            state, children, ..
-        } = tree;
-
-        let current = state.downcast_mut::<Internal<Message, Theme, Renderer>>();
+        let current = tree
+            .state
+            .downcast_mut::<Internal<Message, Theme, Renderer>>();
 
         let new_hash = hash(&self.dependency);
 
@@ -101,12 +93,11 @@ where
         }
 
         tree::diff_children(
-            children,
+            &mut tree.children,
             std::slice::from_mut(&mut current.element.as_widget_mut()),
         );
     }
 
-    // TODO: Pass tree?
     fn size(&self) -> Size<Length> {
         self.size
     }
