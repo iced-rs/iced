@@ -395,13 +395,21 @@ impl Layer {
 
         for mesh in meshes {
             let clip_bounds = mesh.clip_bounds() * transformation;
-            let snap_distance = clip_bounds
-                .snap()
-                .map(|snapped_bounds| {
-                    Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
-                        - clip_bounds.position()
-                })
-                .unwrap_or(Vector::ZERO);
+            let snap_distance = if clip_bounds.x.is_finite()
+                && clip_bounds.y.is_finite()
+                && clip_bounds.width.is_finite()
+                && clip_bounds.height.is_finite()
+            {
+                clip_bounds
+                    .snap()
+                    .map(|snapped_bounds| {
+                        Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
+                            - clip_bounds.position()
+                    })
+                    .unwrap_or(Vector::ZERO)
+            } else {
+                Vector::ZERO
+            };
 
             let uniforms = Uniforms::new(
                 transformation
