@@ -86,7 +86,7 @@ impl Handle {
     ///
     /// This is useful if you already have your SVG data in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    pub fn from_memory(bytes: impl Into<Cow<'static, [u8]>>) -> Handle {
+    pub fn from_bytes(bytes: impl Into<Cow<'static, [u8]>>) -> Handle {
         Self::from_data(Data::Bytes(bytes.into()))
     }
 
