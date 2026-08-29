@@ -110,6 +110,7 @@ impl Pipeline {
         let line_height = f32::from(line_height);
 
         let mut font_system = font_system().write().expect("Write font system");
+        let version = font_system.version();
         let font_system = font_system.raw();
 
         let key = cache::Key {
@@ -124,7 +125,7 @@ impl Pipeline {
             align_x,
         };
 
-        let (_, entry) = self.cache.get_mut().allocate(font_system, key);
+        let (_, entry) = self.cache.get_mut().allocate(font_system, key, version);
 
         let width = entry.min_bounds.width;
         let height = entry.min_bounds.height;
