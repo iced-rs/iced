@@ -11,6 +11,7 @@ use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
+use crate::lazy::Lazy;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
@@ -2091,4 +2092,17 @@ where
 /// containers.
 pub fn void() -> core::widget::Void {
     core::widget::Void
+}
+
+/// Creates a new [`Lazy`] widget with the given data `Dependency` and a
+/// closure that can turn this data into a widget tree.
+pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
+    dependency: Dependency,
+    view: impl Fn(&Dependency) -> View + 'a,
+) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
+where
+    Dependency: std::hash::Hash + 'a,
+    View: Into<Element<'static, Message, Theme, Renderer>>,
+{
+    Lazy::new(dependency, view)
 }
