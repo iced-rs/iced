@@ -25,7 +25,7 @@ pub enum Error {
     IOFailed(Arc<io::Error>),
     /// The decoding of some PNG image failed.
     #[error("the decoding of some PNG image failed: {0}")]
-    PngDecodingFailed(Arc<png::DecodingError>),
+    PngDecodingFailed(Arc<image::ImageError>),
     /// The encoding of some PNG image failed.
     #[error("the encoding of some PNG image failed: {0}")]
     PngEncodingFailed(Arc<png::EncodingError>),
@@ -61,8 +61,8 @@ impl From<io::Error> for Error {
     }
 }
 
-impl From<png::DecodingError> for Error {
-    fn from(error: png::DecodingError) -> Self {
+impl From<image::ImageError> for Error {
+    fn from(error: image::ImageError) -> Self {
         Self::PngDecodingFailed(Arc::new(error))
     }
 }
