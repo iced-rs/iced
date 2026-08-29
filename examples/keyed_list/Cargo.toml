@@ -1,0 +1,10 @@
+[package]
+name = "keyed_list"
+version = "0.1.0"
+authors = ["Ericky Dos Santos <ericky_k_y@hotmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["advanced"]
