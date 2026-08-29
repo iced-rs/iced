@@ -26,32 +26,32 @@
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     let a = radio(
-//!         "A",
 //!         Choice::A,
 //!         state.selection,
 //!         Message::RadioSelected,
-//!     );
+//!     )
+//!     .label("A");
 //!
 //!     let b = radio(
-//!         "B",
 //!         Choice::B,
 //!         state.selection,
 //!         Message::RadioSelected,
-//!     );
+//!     )
+//!     .label("B");
 //!
 //!     let c = radio(
-//!         "C",
 //!         Choice::C,
 //!         state.selection,
 //!         Message::RadioSelected,
-//!     );
+//!     )
+//!     .label("C");
 //!
 //!     let all = radio(
-//!         "All of the above",
 //!         Choice::All,
 //!         state.selection,
 //!         Message::RadioSelected
-//!     );
+//!     )
+//!     .label("All of the above");
 //!
 //!     column![a, b, c, all].into()
 //! }
@@ -99,32 +99,32 @@ use crate::core::{
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     let a = radio(
-///         "A",
 ///         Choice::A,
 ///         state.selection,
 ///         Message::RadioSelected,
-///     );
+///     )
+///     .label("A");
 ///
 ///     let b = radio(
-///         "B",
 ///         Choice::B,
 ///         state.selection,
 ///         Message::RadioSelected,
-///     );
+///     )
+///     .label("B");
 ///
 ///     let c = radio(
-///         "C",
 ///         Choice::C,
 ///         state.selection,
 ///         Message::RadioSelected,
-///     );
+///     )
+///     .label("C");
 ///
 ///     let all = radio(
-///         "All of the above",
 ///         Choice::All,
 ///         state.selection,
 ///         Message::RadioSelected
-///     );
+///     )
+///     .label("All of the above");
 ///
 ///     column![a, b, c, all].into()
 /// }
@@ -136,7 +136,7 @@ where
 {
     is_selected: bool,
     on_click: Message,
-    label: String,
+    label: Option<text::Fragment<'a>>,
     width: Length,
     size: f32,
     spacing: f32,
@@ -158,9 +158,6 @@ where
     /// The default size of a [`Radio`] button.
     pub const DEFAULT_SIZE: f32 = 16.0;
 
-    /// The default spacing of a [`Radio`] button.
-    pub const DEFAULT_SPACING: f32 = 8.0;
-
     /// Creates a new [`Radio`] button.
     ///
     /// It expects:
@@ -169,7 +166,7 @@ where
     ///   * the current selected value
     ///   * a function that will be called when the [`Radio`] is selected. It
     ///     receives the value of the radio and must produce a `Message`.
-    pub fn new<F, V>(label: impl Into<String>, value: V, selected: Option<V>, f: F) -> Self
+    pub fn new<F, V>(value: V, selected: Option<V>, f: F) -> Self
     where
         V: Eq + Copy,
         F: FnOnce(V) -> Message,
@@ -177,10 +174,10 @@ where
         Radio {
             is_selected: Some(value) == selected,
             on_click: f(value),
-            label: label.into(),
+            label: None,
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
-            spacing: Self::DEFAULT_SPACING,
+            spacing: Self::DEFAULT_SIZE / 2.0,
             text_size: None,
             line_height: text::LineHeight::default(),
             shaping: text::Shaping::default(),
@@ -189,6 +186,12 @@ where
             class: Theme::default(),
             last_status: None,
         }
+    }
+
+    /// Sets the label of the [`Radio`].
+    pub fn label(mut self, label: impl text::IntoFragment<'a>) -> Self {
+        self.label = Some(label.into_fragment());
+        self
     }
 
     /// Sets the size of the [`Radio`] button.
@@ -288,31 +291,39 @@ where
     ) -> layout::Node {
         layout::next_to_each_other(
             &limits.width(self.width),
-            self.spacing,
+            if self.label.is_some() {
+                self.spacing
+            } else {
+                0.0
+            },
             |_| layout::Node::new(Size::new(self.size, self.size)),
             |limits| {
-                let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                if let Some(label) = self.label.as_deref() {
+                    let state = tree
+                        .state
+                        .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
-                widget::text::layout(
-                    state,
-                    renderer,
-                    limits,
-                    &self.label,
-                    widget::text::Format {
-                        width: self.width,
-                        height: Length::Shrink,
-                        line_height: self.line_height,
-                        size: self.text_size,
-                        font: self.font,
-                        align_x: text::Alignment::Default,
-                        align_y: alignment::Vertical::Top,
-                        shaping: self.shaping,
-                        wrapping: self.wrapping,
-                        ellipsis: text::Ellipsis::default(),
-                    },
-                )
+                    widget::text::layout(
+                        state,
+                        renderer,
+                        limits,
+                        label,
+                        widget::text::Format {
+                            width: self.width,
+                            height: Length::Shrink,
+                            line_height: self.line_height,
+                            size: self.text_size,
+                            font: self.font,
+                            align_x: text::Alignment::Default,
+                            align_y: alignment::Vertical::Top,
+                            shaping: self.shaping,
+                            wrapping: self.wrapping,
+                            ellipsis: text::Ellipsis::None,
+                        },
+                    )
+                } else {
+                    layout::Node::new(Size::ZERO)
+                }
             },
         )
     }
@@ -430,6 +441,10 @@ where
             }
         }
 
+        if self.label.is_none() {
+            return;
+        }
+
         {
             let label_layout = children.next().unwrap();
             let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
@@ -444,6 +459,18 @@ where
                 },
                 viewport,
             );
+        }
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        if let Some(label) = self.label.as_deref() {
+            operation.text(None, layout.bounds(), label);
         }
     }
 }

@@ -124,40 +124,40 @@ impl ScrollableDemo {
         let scroll_orientation_controls = column![
             text("Scrollbar direction:"),
             radio(
-                "Vertical",
                 Direction::Vertical,
                 Some(self.scrollable_direction),
                 Message::SwitchDirection,
-            ),
+            )
+            .label("Vertical"),
             radio(
-                "Horizontal",
                 Direction::Horizontal,
                 Some(self.scrollable_direction),
                 Message::SwitchDirection,
-            ),
+            )
+            .label("Horizontal"),
             radio(
-                "Both!",
                 Direction::Multi,
                 Some(self.scrollable_direction),
                 Message::SwitchDirection,
-            ),
+            )
+            .label("Both!"),
         ]
         .spacing(10);
 
         let scroll_alignment_controls = column![
             text("Scrollable alignment:"),
             radio(
-                "Start",
                 scrollable::Anchor::Start,
                 Some(self.anchor),
                 Message::AlignmentChanged,
-            ),
+            )
+            .label("Start"),
             radio(
-                "End",
                 scrollable::Anchor::End,
                 Some(self.anchor),
                 Message::AlignmentChanged,
             )
+            .label("End")
         ]
         .spacing(10);
 
