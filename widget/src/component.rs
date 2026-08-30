@@ -288,10 +288,9 @@ where
         // 3. The overlay status of the component changes. The
         //    runtime will only call `overlay` again if the layout
         //    is invalidated.
-        if new_sizing != previous_sizing {
-            shell.invalidate_widgets();
-        } else if (new_sizing.width == Length::Shrink || new_sizing.height == Length::Shrink)
-            && previous_size != self.layout.size()
+        if new_sizing != previous_sizing
+            || ((new_sizing.width == Length::Shrink || new_sizing.height == Length::Shrink)
+                && previous_size != self.layout.size())
         {
             shell.invalidate_layout();
         } else {
