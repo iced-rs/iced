@@ -8,6 +8,7 @@ use crate::renderer;
 use crate::text::highlighter::{self, Highlighter};
 use crate::text::{self, Alignment, LineHeight, Position, Wrapping};
 use crate::time::{Duration, Instant};
+use crate::touch;
 use crate::widget::operation::{Focusable, TextInput};
 use crate::window;
 use crate::{Color, Event, InputMethod, Padding, Pixels, Point, Rectangle, Size, SmolStr, Vector};
@@ -447,6 +448,47 @@ impl State {
                     Some(Update::Action(Action::Scroll {
                         lines: lines as i32,
                     }))
+                }
+                _ => None,
+            },
+            Event::Touch(event) => match event {
+                touch::Event::FingerPressed { .. } => {
+                    if let Some(cursor_position) = cursor.position_in(bounds) {
+                        let cursor_position =
+                            cursor_position - Vector::new(padding.left, padding.top);
+
+                        let click = mouse::Click::new(
+                            cursor_position,
+                            mouse::Button::Left,
+                            self.last_click,
+                        );
+
+                        self.focus = Some(Focus::now());
+                        self.last_click = Some(click);
+                        self.is_dragging = true;
+
+                        Some(Update::Action(Action::Click(
+                            click.position(),
+                            click.kind(),
+                        )))
+                    } else if self.focus.is_some() {
+                        self.focus = None;
+
+                        Some(Update::Unfocus)
+                    } else {
+                        None
+                    }
+                }
+                touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. } => {
+                    self.is_dragging = false;
+
+                    Some(Update::Release)
+                }
+                touch::Event::FingerMoved { .. } if self.is_dragging => {
+                    let position =
+                        cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
+
+                    Some(Update::Action(Action::Drag(position)))
                 }
                 _ => None,
             },
