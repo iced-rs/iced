@@ -354,7 +354,12 @@ where
 
     /// Pushes a new option to the [`State`].
     pub fn push(&mut self, new_option: T) {
-        self.options.push(new_option);
+        self.insert(self.options.len(), new_option);
+    }
+
+    /// Inserts a new option to the [`State`].
+    pub fn insert(&mut self, index: usize, new_option: T) {
+        self.options.insert(index, new_option);
         self.version = VERSION.fetch_add(1, atomic::Ordering::Relaxed);
     }
 
