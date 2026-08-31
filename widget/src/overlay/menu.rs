@@ -293,8 +293,15 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.list
-            .mouse_interaction(self.tree, layout, cursor, &self.viewport, renderer)
+        let interaction =
+            self.list
+                .mouse_interaction(self.tree, layout, cursor, &self.viewport, renderer);
+
+        if interaction == mouse::Interaction::None && cursor.is_over(layout.bounds()) {
+            mouse::Interaction::Idle
+        } else {
+            interaction
+        }
     }
 
     fn draw(
