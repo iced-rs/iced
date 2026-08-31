@@ -1,4 +1,17 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use bitflags::bitflags;
+
+static IS_MACOS: AtomicBool = AtomicBool::new(cfg!(target_os = "macos"));
+
+#[doc(hidden)]
+pub fn set_runtime_macos(value: bool) {
+    IS_MACOS.store(value, Ordering::Relaxed);
+}
+
+fn is_macos() -> bool {
+    IS_MACOS.load(Ordering::Relaxed)
+}
 
 bitflags! {
     /// The current state of the keyboard modifiers.
@@ -36,6 +49,10 @@ impl Modifiers {
     ///
     /// On macOS, this is equivalent to `Self::LOGO`.
     /// Otherwise, this is equivalent to `Self::CTRL`.
+    ///
+    /// This constant is resolved at compile time. On `wasm32` it always
+    /// evaluates to `Self::CTRL` — prefer [`Modifiers::command`] for the
+    /// runtime-aware check.
     pub const COMMAND: Self = if cfg!(target_os = "macos") {
         Self::LOGO
     } else {
@@ -77,14 +94,14 @@ impl Modifiers {
     ///
     /// - It is the `logo` or command key (⌘) on macOS
     /// - It is the `control` key on other platforms
+    ///
+    /// On `wasm32` the host is detected at runtime; see [`set_runtime_macos`].
     pub fn command(self) -> bool {
-        #[cfg(target_os = "macos")]
-        let is_pressed = self.logo();
-
-        #[cfg(not(target_os = "macos"))]
-        let is_pressed = self.control();
-
-        is_pressed
+        if is_macos() {
+            self.logo()
+        } else {
+            self.control()
+        }
     }
 
     /// Returns true if the "jump key" is pressed in the [`Modifiers`].
@@ -92,11 +109,7 @@ impl Modifiers {
     /// The "jump key" is the modifier key used to widen text motions. It is the `Alt`
     /// key in macOS and the `Ctrl` key in other platforms.
     pub fn jump(self) -> bool {
-        if cfg!(target_os = "macos") {
-            self.alt()
-        } else {
-            self.control()
-        }
+        if is_macos() { self.alt() } else { self.control() }
     }
 
     /// Returns true if the "command key" is pressed on a macOS device.
@@ -104,10 +117,6 @@ impl Modifiers {
     /// This is relevant for macOS-specific actions (e.g. `⌘ + ArrowLeft` moves the cursor
     /// to the beginning of the line).
     pub fn macos_command(self) -> bool {
-        if cfg!(target_os = "macos") {
-            self.logo()
-        } else {
-            false
-        }
+        if is_macos() { self.logo() } else { false }
     }
 }
