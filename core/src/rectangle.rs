@@ -161,23 +161,20 @@ impl Rectangle<f32> {
     /// Computes the offset that must be applied to the [`Rectangle`] to be placed
     /// inside the given `container`.
     pub fn offset(&self, container: &Rectangle) -> Vector {
-        let Some(intersection) = self.intersection(container) else {
-            return Vector::ZERO;
-        };
-
-        let left = intersection.x - self.x;
-        let top = intersection.y - self.y;
-
         Vector::new(
-            if left > 0.0 {
-                left
+            if container.x > self.x {
+                container.x - self.x
+            } else if self.x + self.width > container.x + container.width {
+                container.x + container.width - self.x - self.width
             } else {
-                intersection.x + intersection.width - self.x - self.width
+                0.0
             },
-            if top > 0.0 {
-                top
+            if container.y > self.y {
+                container.y - self.y
+            } else if self.y + self.height > container.y + container.height {
+                container.y + container.height - self.y - self.height
             } else {
-                intersection.y + intersection.height - self.y - self.height
+                0.0
             },
         )
     }
