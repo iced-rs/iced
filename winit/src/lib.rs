@@ -817,7 +817,9 @@ async fn run_instance<P>(
 
                             redraw_count += 1;
 
-                            if !messages.is_empty() {
+                            if !messages.is_empty()
+                                || matches!(state, user_interface::State::Outdated)
+                            {
                                 let caches: FxHashMap<_, _> =
                                     ManuallyDrop::into_inner(user_interfaces)
                                         .into_iter()
