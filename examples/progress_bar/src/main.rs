@@ -46,7 +46,8 @@ impl Progress {
                 center(
                     row![
                         bar,
-                        vertical_slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01),
+                        vertical_slider(0.0..=100.0, self.value, Message::SliderChanged)
+                            .scale(slider::continuous()),
                     ]
                     .spacing(20),
                 )
@@ -54,7 +55,8 @@ impl Progress {
                 center(
                     column![
                         bar,
-                        slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01)
+                        slider(0.0..=100.0, self.value, Message::SliderChanged)
+                            .scale(slider::discrete(0.01))
                     ]
                     .spacing(20),
                 )
