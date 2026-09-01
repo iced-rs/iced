@@ -74,9 +74,9 @@ where
         if current.hash != new_hash {
             current.hash = new_hash;
             current.element = (self.view)(&self.dependency).into();
-
-            self.size = current.element.as_widget().size();
         }
+
+        self.size = current.element.as_widget().size();
 
         tree::diff_children(
             &mut tree.children,
