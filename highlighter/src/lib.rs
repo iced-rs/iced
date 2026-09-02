@@ -255,6 +255,12 @@ impl Highlight {
         Format {
             color: self.color(),
             font: self.font(),
+            underline: None,
+            underline_color: None,
+            strikethrough: false,
+            strikethrough_color: None,
+            overline: false,
+            overline_color: None,
         }
     }
 }
