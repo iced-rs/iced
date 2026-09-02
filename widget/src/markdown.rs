@@ -287,10 +287,9 @@ enum Span {
         link: Option<Uri>,
         strong: bool,
         emphasis: bool,
-        code: bool,
+        inline_code: bool,
     },
-    #[cfg(feature = "highlighter")]
-    Highlight {
+    Code {
         text: String,
         color: Option<Color>,
         font: Option<Font>,
@@ -306,11 +305,11 @@ impl Span {
                 link,
                 strong,
                 emphasis,
-                code,
+                inline_code,
             } => {
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
-                let span = if *code {
+                let span = if *inline_code {
                     span.font(style.inline_code_font)
                         .color(style.inline_code_color)
                         .background(style.inline_code_highlight.background)
@@ -340,8 +339,7 @@ impl Span {
                     span
                 }
             }
-            #[cfg(feature = "highlighter")]
-            Span::Highlight { text, color, font } => {
+            Span::Code { text, color, font } => {
                 span(text.clone()).color_maybe(*color).font_maybe(*font)
             }
         }
@@ -484,7 +482,7 @@ impl Highlighter {
                 let mut spans = Vec::new();
 
                 for (range, highlight) in self.parser.highlight_line(text) {
-                    spans.push(Span::Highlight {
+                    spans.push(Span::Code {
                         text: text[range].to_owned(),
                         color: highlight.color(),
                         font: highlight.font(),
@@ -911,13 +909,10 @@ fn parse_with<'a>(
 
                 #[cfg(not(feature = "highlighter"))]
                 for line in text.lines() {
-                    code_lines.push(Text::new(vec![Span::Standard {
+                    code_lines.push(Text::new(vec![Span::Code {
                         text: line.to_owned(),
-                        strong,
-                        emphasis,
-                        strikethrough,
-                        link: link.clone(),
-                        code: false,
+                        font: None,
+                        color: None,
                     }]));
                 }
 
@@ -930,7 +925,7 @@ fn parse_with<'a>(
                 emphasis,
                 strikethrough,
                 link: link.clone(),
-                code: false,
+                inline_code: false,
             };
 
             spans.push(span);
@@ -944,7 +939,7 @@ fn parse_with<'a>(
                 emphasis,
                 strikethrough,
                 link: link.clone(),
-                code: true,
+                inline_code: true,
             };
 
             spans.push(span);
@@ -957,7 +952,7 @@ fn parse_with<'a>(
                 strong,
                 emphasis,
                 link: link.clone(),
-                code: false,
+                inline_code: false,
             });
             None
         }
@@ -968,7 +963,7 @@ fn parse_with<'a>(
                 strong,
                 emphasis,
                 link: link.clone(),
-                code: false,
+                inline_code: false,
             });
             None
         }
