@@ -1803,9 +1803,11 @@ impl Scrollbars {
                 let scroller_offset =
                     translation.y * ratio * scrollbar_bounds.height / bounds.height;
 
+                let max_offset = (scrollbar_bounds.height - scroller_height).max(0.0);
+
                 let scroller_bounds = Rectangle {
                     x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - scroller_width / 2.0,
-                    y: (scrollbar_bounds.y + scroller_offset).max(0.0),
+                    y: scrollbar_bounds.y + scroller_offset.clamp(0.0, max_offset),
                     width: scroller_width,
                     height: scroller_height,
                 };
@@ -1866,8 +1868,10 @@ impl Scrollbars {
                 let scroller_length = (scrollbar_bounds.width * ratio).max(2.0);
                 let scroller_offset = translation.x * ratio * scrollbar_bounds.width / bounds.width;
 
+                let max_offset = (scrollbar_bounds.width - scroller_length).max(0.0);
+
                 let scroller_bounds = Rectangle {
-                    x: (scrollbar_bounds.x + scroller_offset).max(0.0),
+                    x: scrollbar_bounds.x + scroller_offset.clamp(0.0, max_offset),
                     y: bounds.y + bounds.height
                         - total_scrollbar_height / 2.0
                         - scroller_width / 2.0,
