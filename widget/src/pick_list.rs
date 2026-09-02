@@ -914,6 +914,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             radius: 2.0.into(),
             width: 1.0,
             color: palette.background.strong.color,
+            ..Border::default()
         },
     };
 

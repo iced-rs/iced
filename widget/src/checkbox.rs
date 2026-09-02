@@ -695,6 +695,7 @@ fn styled(
             radius: 2.0.into(),
             width: 1.0,
             color: border,
+            ..Border::default()
         },
         text_color: None,
     }

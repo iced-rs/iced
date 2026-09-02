@@ -12,6 +12,60 @@ pub struct Border {
 
     /// The [`Radius`] of the border.
     pub radius: Radius,
+
+    /// Overrides for the top edge of the border.
+    pub top: Side,
+
+    /// Overrides for the right edge of the border.
+    pub right: Side,
+
+    /// Overrides for the bottom edge of the border.
+    pub bottom: Side,
+
+    /// Overrides for the left edge of the border.
+    pub left: Side,
+}
+
+/// Optional overrides for one side of a [`Border`].
+///
+/// A [`Side`] inherits the border's [`Border::color`] and [`Border::width`]
+/// when its corresponding value is `None`.
+///
+/// This is useful for patterns such as a collapsible header, where the open
+/// state can keep only a bottom divider:
+///
+/// ```
+/// # use iced_core::{border, Color};
+/// let header = border::color(Color::BLACK)
+///     .width(1)
+///     .bottom(border::Side::default().color(Color::from_rgb(0.2, 0.4, 1.0)));
+/// let collapsed = header.bottom(border::Side::default().width(0));
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Side {
+    /// An optional color override for this side.
+    pub color: Option<Color>,
+
+    /// An optional width override for this side.
+    pub width: Option<f32>,
+}
+
+impl Side {
+    /// Sets the color override for this side.
+    pub fn color(self, color: impl Into<Color>) -> Self {
+        Self {
+            color: Some(color.into()),
+            ..self
+        }
+    }
+
+    /// Sets the width override for this side.
+    pub fn width(self, width: impl Into<Pixels>) -> Self {
+        Self {
+            width: Some(width.into().0),
+            ..self
+        }
+    }
 }
 
 /// Creates a new [`Border`] with the given [`Radius`].
@@ -72,6 +126,26 @@ impl Border {
             width: width.into().0,
             ..self
         }
+    }
+
+    /// Sets the overrides for the top edge of the [`Border`].
+    pub fn top(self, top: Side) -> Self {
+        Self { top, ..self }
+    }
+
+    /// Sets the overrides for the right edge of the [`Border`].
+    pub fn right(self, right: Side) -> Self {
+        Self { right, ..self }
+    }
+
+    /// Sets the overrides for the bottom edge of the [`Border`].
+    pub fn bottom(self, bottom: Side) -> Self {
+        Self { bottom, ..self }
+    }
+
+    /// Sets the overrides for the left edge of the [`Border`].
+    pub fn left(self, left: Side) -> Self {
+        Self { left, ..self }
     }
 }
 
@@ -274,5 +348,57 @@ impl std::ops::Mul<f32> for Radius {
             bottom_right: self.bottom_right * scale,
             bottom_left: self.bottom_left * scale,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sides_fall_back_to_the_uniform_values() {
+        let border = Border::default().color(Color::BLACK).width(2);
+
+        assert_eq!(border.top.color.unwrap_or(border.color), Color::BLACK);
+        assert_eq!(border.right.width.unwrap_or(border.width), 2.0);
+    }
+
+    #[test]
+    fn sides_override_color_and_width_independently() {
+        let border = Border::default()
+            .color(Color::BLACK)
+            .width(2)
+            .left(Side::default().color(Color::WHITE))
+            .right(Side::default().width(4));
+
+        assert_eq!(border.left.color, Some(Color::WHITE));
+        assert_eq!(border.left.width, None);
+        assert_eq!(border.right.color, None);
+        assert_eq!(border.right.width, Some(4.0));
+    }
+
+    #[test]
+    fn uniform_builders_do_not_replace_side_overrides() {
+        let side = Side::default().color(Color::WHITE).width(4);
+        let before = Border::default().left(side).color(Color::BLACK).width(2);
+        let after = Border::default().color(Color::BLACK).width(2).left(side);
+
+        assert_eq!(before, after);
+    }
+
+    #[test]
+    fn replacing_a_side_with_default_clears_its_overrides() {
+        let border = Border::default()
+            .top(Side::default().color(Color::WHITE).width(3))
+            .top(Side::default());
+
+        assert_eq!(border.top, Side::default());
+    }
+
+    #[test]
+    fn zero_width_is_a_valid_side_override() {
+        let border = Border::default().width(2).bottom(Side::default().width(0));
+
+        assert_eq!(border.bottom.width.unwrap_or(border.width), 0.0);
     }
 }
