@@ -1,7 +1,9 @@
 //! A syntax highlighter for iced.
 use iced_core as core;
 
-use crate::core::text::highlighter::{self, Scope};
+pub use highlighter::{Format, Highlight, Scope};
+
+use crate::core::text::highlighter;
 
 use std::ops::Range;
 use std::sync::LazyLock;
@@ -21,11 +23,15 @@ pub struct Highlighter {
     current_line: usize,
 }
 
-impl highlighter::Highlighter for Highlighter {
-    type Settings = Settings;
-    type Iterator<'a> = Box<dyn Iterator<Item = (Range<usize>, Scope)> + 'a>;
+/// An iterator over the highlighted regions of a line.
+///
+/// Each item is a character range within the line, paired with
+/// the [`Scope`] of the region.
+pub type ScopeIterator<'a> = Box<dyn Iterator<Item = (Range<usize>, Scope)> + 'a>;
 
-    fn new(settings: &Self::Settings) -> Self {
+impl Highlighter {
+    /// Creates a new [`Highlighter`] with the given [`Settings`].
+    pub fn new(settings: &Settings) -> Self {
         let syntax = SYNTAXES
             .find_syntax_by_token(&settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
@@ -40,7 +46,9 @@ impl highlighter::Highlighter for Highlighter {
         }
     }
 
-    fn update(&mut self, new_settings: &Self::Settings) {
+    /// Updates the highlighter with the given [`Settings`],
+    /// restarting it from the first line.
+    pub fn update(&mut self, new_settings: &Settings) {
         self.syntax = SYNTAXES
             .find_syntax_by_token(&new_settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
@@ -49,7 +57,8 @@ impl highlighter::Highlighter for Highlighter {
         self.change_line(0);
     }
 
-    fn change_line(&mut self, line: usize) {
+    /// Changes the line the highlighter is currently on.
+    pub fn change_line(&mut self, line: usize) {
         let snapshot = line / LINES_PER_SNAPSHOT;
 
         if snapshot <= self.caches.len() {
@@ -70,7 +79,8 @@ impl highlighter::Highlighter for Highlighter {
         self.caches.push((parser, stack));
     }
 
-    fn highlight_line(&mut self, line: &str) -> Self::Iterator<'_> {
+    /// Highlights the given line, returning a [`ScopeIterator`].
+    pub fn highlight_line(&mut self, line: &str) -> ScopeIterator<'_> {
         if self.current_line / LINES_PER_SNAPSHOT >= self.caches.len() {
             let (parser, stack) = self.caches.last().expect("Caches must not be empty");
 
@@ -85,8 +95,34 @@ impl highlighter::Highlighter for Highlighter {
         Box::new(scope_iterator(ops, line, stack))
     }
 
-    fn current_line(&self) -> usize {
+    /// Returns the line the highlighter is currently on.
+    pub fn current_line(&self) -> usize {
         self.current_line
+    }
+}
+
+impl highlighter::Highlighter for Highlighter {
+    type Settings = Settings;
+    type Iterator<'a> = ScopeIterator<'a>;
+
+    fn new(settings: &Self::Settings) -> Self {
+        Self::new(settings)
+    }
+
+    fn update(&mut self, new_settings: &Self::Settings) {
+        self.update(new_settings);
+    }
+
+    fn change_line(&mut self, line: usize) {
+        self.change_line(line);
+    }
+
+    fn highlight_line(&mut self, line: &str) -> Self::Iterator<'_> {
+        self.highlight_line(line)
+    }
+
+    fn current_line(&self) -> usize {
+        self.current_line()
     }
 }
 
