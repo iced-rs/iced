@@ -1,6 +1,7 @@
 use iced::keyboard;
 use iced::widget::{
-    button, center_x, column, container, operation, row, space, text, text_editor, toggler, tooltip,
+    button, center_x, column, container, operation, pick_list, row, space, text, text_editor,
+    toggler, tooltip,
 };
 use iced::window;
 use iced::{Center, Element, Fill, Font, Task, Theme, Window};
@@ -21,6 +22,7 @@ pub fn main() -> iced::Result {
 struct Editor {
     file: Option<PathBuf>,
     content: text_editor::Content,
+    theme: Theme,
     word_wrap: bool,
     is_loading: bool,
     is_dirty: bool,
@@ -29,6 +31,7 @@ struct Editor {
 #[derive(Debug, Clone)]
 enum Message {
     ActionPerformed(text_editor::Action),
+    ThemeSelected(Theme),
     WordWrapToggled(bool),
     NewFile,
     OpenFile,
@@ -43,6 +46,7 @@ impl Editor {
             Self {
                 file: None,
                 content: text_editor::Content::new(),
+                theme: Theme::CatppuccinMocha,
                 word_wrap: true,
                 is_loading: true,
                 is_dirty: false,
@@ -63,6 +67,11 @@ impl Editor {
                 self.is_dirty = self.is_dirty || action.is_edit();
 
                 self.content.perform(action);
+
+                Task::none()
+            }
+            Message::ThemeSelected(theme) => {
+                self.theme = theme;
 
                 Task::none()
             }
@@ -146,6 +155,8 @@ impl Editor {
                 self.is_dirty.then_some(Message::SaveFile)
             ),
             space::horizontal(),
+            pick_list(Some(&self.theme), Theme::ALL, Theme::to_string)
+                .on_select(Message::ThemeSelected),
             toggler(self.word_wrap)
                 .label("Word Wrap")
                 .on_toggle(Message::WordWrapToggled),
@@ -208,7 +219,7 @@ impl Editor {
     }
 
     fn theme(&self) -> Theme {
-        Theme::CatppuccinMocha
+        self.theme.clone()
     }
 }
 
