@@ -1,5 +1,6 @@
 //! Highlight text.
-use crate::Color;
+use crate::font;
+use crate::{Color, Theme};
 
 use std::ops::Range;
 
@@ -12,11 +13,8 @@ pub trait Highlighter: 'static {
     /// The settings to configure the [`Highlighter`].
     type Settings: PartialEq + Clone;
 
-    /// The output of the [`Highlighter`].
-    type Highlight;
-
     /// The highlight iterator type.
-    type Iterator<'a>: Iterator<Item = (Range<usize>, Self::Highlight)>
+    type Iterator<'a>: Iterator<Item = (Range<usize>, Scope)>
     where
         Self: 'a;
 
@@ -48,9 +46,8 @@ pub struct PlainText;
 
 impl Highlighter for PlainText {
     type Settings = ();
-    type Highlight = ();
 
-    type Iterator<'a> = std::iter::Empty<(Range<usize>, Self::Highlight)>;
+    type Iterator<'a> = std::iter::Empty<(Range<usize>, Scope)>;
 
     fn new(_settings: &Self::Settings) -> Self {
         Self
@@ -69,20 +66,71 @@ impl Highlighter for PlainText {
     }
 }
 
-/// The format of some text.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Format<Font> {
-    /// The [`Color`] of the text.
-    pub color: Option<Color>,
-    /// The `Font` of the text.
-    pub font: Option<Font>,
+/// The scope of a highlighted region.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Scope {
+    /// A comment.
+    Comment,
+    /// A string or character literal.
+    String,
+    /// A keyword or storage word.
+    Keyword,
+    /// A constant, numeric, or boolean literal.
+    Constant,
+    /// A function or method name.
+    Function,
+    /// A type, class, or tag name.
+    Type,
+    /// A variable.
+    Variable,
+    /// A built-in or support symbol.
+    Support,
+    /// Punctuation.
+    Punctuation,
+    /// An invalid or erroneous construct.
+    Invalid,
+    /// Anything that does not match another class.
+    Other,
 }
 
-impl<Font> Default for Format<Font> {
-    fn default() -> Self {
-        Self {
-            color: None,
-            font: None,
+/// A type that describes how to style the [`Scope`]s of a [`Highlighter`].
+pub trait Highlight {
+    /// Returns the [`Format`] of the given [`Scope`].
+    fn highlight(&self, scope: Scope) -> Format;
+}
+
+impl Highlight for Theme {
+    fn highlight(&self, scope: Scope) -> Format {
+        let palette = self.palette();
+
+        let color = match scope {
+            Scope::Keyword => Some(palette.primary.strong.color),
+            Scope::Function => Some(palette.primary.weak.color),
+            Scope::Constant => Some(palette.danger.base.color),
+
+            Scope::String => Some(palette.success.base.color),
+            Scope::Type => Some(palette.warning.base.color),
+            Scope::Support => Some(palette.primary.base.color),
+
+            Scope::Punctuation => Some(palette.secondary.base.color),
+            Scope::Comment => Some(palette.secondary.base.color),
+
+            Scope::Invalid => Some(palette.danger.base.color),
+            Scope::Variable | Scope::Other => None,
+        };
+
+        Format {
+            color,
+            style: (scope == Scope::Comment).then_some(font::Style::Italic),
         }
     }
+}
+
+/// The format of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Format {
+    /// The [`Color`] of the text.
+    pub color: Option<Color>,
+    /// The [`font::Style`] of the text.
+    pub style: Option<font::Style>,
 }

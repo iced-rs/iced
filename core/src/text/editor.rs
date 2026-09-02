@@ -78,7 +78,7 @@ pub trait Editor: Sized + Default {
         &mut self,
         font: Self::Font,
         highlighter: &mut H,
-        format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
+        format_highlight: impl Fn(highlighter::Scope) -> highlighter::Format,
     );
 
     /// Returns an iterator of the text of the lines in the [`Editor`].

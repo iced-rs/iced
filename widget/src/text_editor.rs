@@ -110,7 +110,6 @@ where
     key_binding: Option<Box<dyn Fn(KeyPress) -> Option<Binding<Message>> + 'a>>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
-    highlighter_format: fn(&Highlighter::Highlight, &Theme) -> highlighter::Format<Renderer::Font>,
     last_status: Option<Status>,
 }
 
@@ -136,7 +135,6 @@ where
             key_binding: None,
             on_edit: None,
             highlighter_settings: (),
-            highlighter_format: |_highlight, _theme| highlighter::Format::default(),
             last_status: None,
         }
     }
@@ -219,18 +217,13 @@ where
     pub fn highlight(
         self,
         syntax: &str,
-        theme: iced_highlighter::Theme,
     ) -> TextEditor<'a, iced_highlighter::Highlighter, Message, Theme, Renderer>
     where
         Renderer: text::Renderer<Font = crate::core::Font>,
     {
-        self.highlight_with::<iced_highlighter::Highlighter>(
-            iced_highlighter::Settings {
-                theme,
-                token: syntax.to_owned(),
-            },
-            |highlight, _theme| highlight.to_format(),
-        )
+        self.highlight_with::<iced_highlighter::Highlighter>(iced_highlighter::Settings {
+            token: syntax.to_owned(),
+        })
     }
 
     /// Highlights the [`TextEditor`] with the given [`Highlighter`] and
@@ -238,7 +231,6 @@ where
     pub fn highlight_with<H: text::Highlighter>(
         self,
         settings: H::Settings,
-        to_format: fn(&H::Highlight, &Theme) -> highlighter::Format<Renderer::Font>,
     ) -> TextEditor<'a, H, Message, Theme, Renderer> {
         TextEditor {
             id: self.id,
@@ -255,7 +247,6 @@ where
             key_binding: self.key_binding,
             on_edit: self.on_edit,
             highlighter_settings: settings,
-            highlighter_format: to_format,
             last_status: self.last_status,
         }
     }
@@ -294,7 +285,6 @@ struct State<H: Highlighter> {
     editor: editor::State,
     highlighter: RefCell<H>,
     highlighter_settings: H::Settings,
-    highlighter_format_address: usize,
     last_theme: RefCell<Option<String>>,
 }
 
@@ -314,7 +304,6 @@ where
             editor: editor::State::new(),
             highlighter: RefCell::new(Highlighter::new(&self.highlighter_settings)),
             highlighter_settings: self.highlighter_settings.clone(),
-            highlighter_format_address: self.highlighter_format as usize,
             last_theme: RefCell::new(None),
         })
     }
@@ -334,11 +323,6 @@ where
     ) -> iced_renderer::core::layout::Node {
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_mut::<State<Highlighter>>();
-
-        if state.highlighter_format_address != self.highlighter_format as usize {
-            state.highlighter.borrow_mut().change_line(0);
-            state.highlighter_format_address = self.highlighter_format as usize;
-        }
 
         if state.highlighter_settings != self.highlighter_settings {
             state
@@ -511,11 +495,11 @@ where
             let _ = state.last_theme.borrow_mut().replace(theme_name.to_owned());
         }
 
-        internal.editor.highlight(
-            font,
-            state.highlighter.borrow_mut().deref_mut(),
-            |highlight| (self.highlighter_format)(highlight, theme),
-        );
+        internal
+            .editor
+            .highlight(font, state.highlighter.borrow_mut().deref_mut(), |scope| {
+                theme.highlight(scope)
+            });
 
         let style = theme.style(&self.class, self.last_status.unwrap_or(Status::Active));
 
@@ -774,7 +758,7 @@ pub struct Style {
 }
 
 /// The theme catalog of a [`TextEditor`].
-pub trait Catalog: theme::Base {
+pub trait Catalog: theme::Base + highlighter::Highlight {
     /// The item class of the [`Catalog`].
     type Class<'a>;
 

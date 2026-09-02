@@ -801,7 +801,7 @@ impl editor::Editor for Editor {
         &mut self,
         font: Self::Font,
         highlighter: &mut H,
-        format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
+        format_highlight: impl Fn(highlighter::Scope) -> highlighter::Format,
     ) {
         let internal = self.internal();
         let buffer = buffer_from_editor(&internal.editor);
@@ -851,15 +851,18 @@ impl editor::Editor for Editor {
             let mut list = cosmic_text::AttrsList::new(&attributes);
 
             for (range, highlight) in highlighter.highlight_line(line.text()) {
-                let format = format_highlight(&highlight);
+                let format = format_highlight(highlight);
 
-                if format.color.is_some() || format.font.is_some() {
+                if format.color.is_some() || format.style.is_some() {
                     list.add_span(
                         range,
                         &cosmic_text::Attrs {
                             color_opt: format.color.map(text::to_color),
-                            ..if let Some(font) = format.font {
-                                text::to_attributes(font)
+                            ..if let Some(style) = format.style {
+                                cosmic_text::Attrs {
+                                    style: text::to_style(style),
+                                    ..attributes.clone()
+                                }
                             } else {
                                 attributes.clone()
                             }

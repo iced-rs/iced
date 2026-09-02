@@ -2,6 +2,7 @@ use crate::alignment;
 use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
 use crate::svg;
+use crate::text::highlighter;
 use crate::text::{self, Text};
 use crate::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
 
@@ -225,7 +226,7 @@ impl text::Editor for () {
         &mut self,
         _font: Self::Font,
         _highlighter: &mut H,
-        _format_highlight: impl Fn(&H::Highlight) -> text::highlighter::Format<Self::Font>,
+        _format_highlight: impl Fn(highlighter::Scope) -> highlighter::Format,
     ) {
     }
 

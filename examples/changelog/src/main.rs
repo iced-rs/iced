@@ -264,7 +264,8 @@ impl Generator {
                             .font(Font::MONOSPACE);
 
                             let description =
-                                markdown(description, self.theme()).map(Message::LinkClicked);
+                                markdown(description, markdown::Settings::default(), &self.theme())
+                                    .map(Message::LinkClicked);
 
                             let labels = row(pull_request.labels.iter().map(|label| {
                                 container(text(label).size(10).font(Font::MONOSPACE))
@@ -323,7 +324,8 @@ impl Generator {
                         scrollable(
                             markdown(
                                 preview,
-                                markdown::Settings::with_text_size(12, self.theme()),
+                                markdown::Settings::with_text_size(12),
+                                &self.theme(),
                             )
                             .map(Message::LinkClicked),
                         )

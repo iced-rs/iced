@@ -2,7 +2,6 @@ mod icon;
 
 use iced::animation;
 use iced::clipboard;
-use iced::highlighter;
 use iced::time::{self, Instant, milliseconds};
 use iced::widget::{
     button, center_x, container, hover, image, markdown, operation, right, row, scrollable, sensor,
@@ -175,10 +174,11 @@ impl Markdown {
             .height(Fill)
             .padding(10)
             .font(Font::MONOSPACE)
-            .highlight("markdown", highlighter::Theme::Base16Ocean);
+            .highlight("markdown");
 
         let preview = markdown::view_with(
             self.content.items(),
+            markdown::Settings::default(),
             &self.theme,
             &CustomViewer {
                 images: &self.images,
@@ -247,6 +247,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
     fn image(
         &self,
         _settings: markdown::Settings,
+        _theme: &Theme,
         url: &'a markdown::Uri,
         _title: &'a str,
         _alt: &markdown::Text,
@@ -270,11 +271,12 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
     fn code_block(
         &self,
         settings: markdown::Settings,
+        theme: &Theme,
         _language: Option<&'a str>,
         code: &'a str,
         lines: &'a [markdown::Text],
     ) -> Element<'a, Message> {
-        let code_block = markdown::code_block(settings, lines, Message::LinkClicked);
+        let code_block = markdown::code_block(settings, theme, lines, Message::LinkClicked);
 
         let copy = button(icon::copy().size(12))
             .padding(2)

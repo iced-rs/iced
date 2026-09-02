@@ -29,7 +29,11 @@
 //!     }
 //!
 //!     fn view(&self) -> Element<'_, Message> {
-//!         markdown::view(&self.markdown, Theme::TokyoNight)
+//!         markdown::view(
+//!             &self.markdown,
+//!             markdown::Settings::default(),
+//!             &Theme::TokyoNight,
+//!         )
 //!             .map(Message::LinkClicked)
 //!             .into()
 //!     }
@@ -47,12 +51,14 @@ use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
+use crate::core::text::highlighter;
+use crate::core::theme;
 use crate::core::theme::palette;
 use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme, color};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::ops::Range;
@@ -250,7 +256,7 @@ pub struct Row {
 #[derive(Debug, Clone)]
 pub struct Text {
     spans: Vec<Span>,
-    last_style: Cell<Option<Style>>,
+    last_style: RefCell<Option<(Settings, String)>>,
     last_styled_spans: RefCell<Arc<[text::Span<'static, Uri>]>>,
 }
 
@@ -258,7 +264,7 @@ impl Text {
     fn new(spans: Vec<Span>) -> Self {
         Self {
             spans,
-            last_style: Cell::default(),
+            last_style: RefCell::default(),
             last_styled_spans: RefCell::default(),
         }
     }
@@ -267,12 +273,27 @@ impl Text {
     ///
     /// This method performs caching for you. It will only reallocate if the [`Style`]
     /// provided changes.
-    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Uri>]> {
-        if Some(style) != self.last_style.get() {
-            *self.last_styled_spans.borrow_mut() =
-                self.spans.iter().map(|span| span.view(&style)).collect();
+    pub fn spans(
+        &self,
+        settings: Settings,
+        theme: &impl Catalog,
+    ) -> Arc<[text::Span<'static, Uri>]> {
+        let is_dirty =
+            self.last_style
+                .borrow()
+                .as_ref()
+                .is_none_or(|(last_settings, last_theme)| {
+                    &settings != last_settings || theme.id() != last_theme
+                });
 
-            self.last_style.set(Some(style));
+        if is_dirty {
+            *self.last_styled_spans.borrow_mut() = self
+                .spans
+                .iter()
+                .map(|span| span.view(&settings, theme))
+                .collect();
+
+            *self.last_style.borrow_mut() = Some((settings, theme.id().to_owned()));
         }
 
         self.last_styled_spans.borrow().clone()
@@ -291,13 +312,12 @@ enum Span {
     },
     Code {
         text: String,
-        color: Option<Color>,
-        font: Option<Font>,
+        scope: highlighter::Scope,
     },
 }
 
 impl Span {
-    fn view(&self, style: &Style) -> text::Span<'static, Uri> {
+    fn view(&self, settings: &Settings, theme: &impl Catalog) -> text::Span<'static, Uri> {
         match self {
             Span::Standard {
                 text,
@@ -307,10 +327,11 @@ impl Span {
                 emphasis,
                 inline_code,
             } => {
+                let style = Catalog::style(theme);
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
                 let span = if *inline_code {
-                    span.font(style.inline_code_font)
+                    span.font(settings.inline_code_font)
                         .color(style.inline_code_color)
                         .background(style.inline_code_highlight.background)
                         .border(style.inline_code_highlight.border)
@@ -327,10 +348,10 @@ impl Span {
                         } else {
                             font::Style::Normal
                         },
-                        ..style.font
+                        ..settings.font
                     })
                 } else {
-                    span.font(style.font)
+                    span.font(settings.font)
                 };
 
                 if let Some(link) = link.as_ref() {
@@ -339,8 +360,15 @@ impl Span {
                     span
                 }
             }
-            Span::Code { text, color, font } => {
-                span(text.clone()).color_maybe(*color).font_maybe(*font)
+            Span::Code { text, scope } => {
+                let format = theme.highlight(*scope);
+
+                span(text.clone())
+                    .color_maybe(format.color)
+                    .font_maybe(format.style.map(|style| Font {
+                        style,
+                        ..settings.code_block_font
+                    }))
             }
         }
     }
@@ -403,7 +431,11 @@ impl Bullet {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(&self.markdown, Theme::TokyoNight)
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             &Theme::TokyoNight,
+///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
 ///     }
@@ -445,7 +477,6 @@ impl Highlighter {
         Self {
             lines: Vec::new(),
             parser: iced_highlighter::Stream::new(&iced_highlighter::Settings {
-                theme: iced_highlighter::Theme::Base16Ocean,
                 token: language.to_owned(),
             }),
             language: language.to_owned(),
@@ -481,11 +512,10 @@ impl Highlighter {
 
                 let mut spans = Vec::new();
 
-                for (range, highlight) in self.parser.highlight_line(text) {
+                for (range, scope) in self.parser.highlight_line(text) {
                     spans.push(Span::Code {
                         text: text[range].to_owned(),
-                        color: highlight.color(),
-                        font: highlight.font(),
+                        scope,
                     });
                 }
 
@@ -911,8 +941,7 @@ fn parse_with<'a>(
                 for line in text.lines() {
                     code_lines.push(Text::new(vec![Span::Code {
                         text: line.to_owned(),
-                        font: None,
-                        color: None,
+                        scope: highlighter::Scope::Other,
                     }]));
                 }
 
@@ -986,8 +1015,14 @@ fn parse_with<'a>(
 }
 
 /// Configuration controlling Markdown rendering in [`view`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
+    /// The [`Font`] to be applied to basic text.
+    pub font: Font,
+    /// The [`Font`] to be applied to inline code.
+    pub inline_code_font: Font,
+    /// The [`Font`] to be applied to code blocks.
+    pub code_block_font: Font,
     /// The base text size.
     pub text_size: Pixels,
     /// The text size of level 1 heading.
@@ -1006,25 +1041,21 @@ pub struct Settings {
     pub code_size: Pixels,
     /// The spacing to be used between elements.
     pub spacing: Pixels,
-    /// The styling of the Markdown.
-    pub style: Style,
 }
 
 impl Settings {
-    /// Creates new [`Settings`] with default text size and the given [`Style`].
-    pub fn with_style(style: impl Into<Style>) -> Self {
-        Self::with_text_size(16, style)
-    }
-
     /// Creates new [`Settings`] with the given base text size in [`Pixels`].
     ///
     /// Heading levels will be adjusted automatically. Specifically,
     /// the first level will be twice the base size, and then every level
     /// after that will be 25% smaller.
-    pub fn with_text_size(text_size: impl Into<Pixels>, style: impl Into<Style>) -> Self {
+    pub fn with_text_size(text_size: impl Into<Pixels>) -> Self {
         let text_size = text_size.into();
 
         Self {
+            font: Font::DEFAULT,
+            inline_code_font: Font::MONOSPACE,
+            code_block_font: Font::MONOSPACE,
             text_size,
             h1_size: text_size * 2.0,
             h2_size: text_size * 1.75,
@@ -1034,38 +1065,25 @@ impl Settings {
             h6_size: text_size,
             code_size: text_size * 0.75,
             spacing: text_size * 0.875,
-            style: style.into(),
         }
     }
 }
 
-impl From<&Theme> for Settings {
-    fn from(theme: &Theme) -> Self {
-        Self::with_style(Style::from(theme))
-    }
-}
-
-impl From<Theme> for Settings {
-    fn from(theme: Theme) -> Self {
-        Self::with_style(Style::from(theme))
+impl Default for Settings {
+    fn default() -> Self {
+        Self::with_text_size(16)
     }
 }
 
 /// The text styling of some Markdown rendering in [`view`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
-    /// The [`Font`] to be applied to basic text.
-    pub font: Font,
     /// The [`Highlight`] to be applied to the background of inline code.
     pub inline_code_highlight: Highlight,
     /// The [`Padding`] to be applied to the background of inline code.
     pub inline_code_padding: Padding,
     /// The [`Color`] to be applied to inline code.
     pub inline_code_color: Color,
-    /// The [`Font`] to be applied to inline code.
-    pub inline_code_font: Font,
-    /// The [`Font`] to be applied to code blocks.
-    pub code_block_font: Font,
     /// The [`Color`] to be applied to links.
     pub link_color: Color,
 }
@@ -1074,15 +1092,12 @@ impl Style {
     /// Creates a new [`Style`] from the given [`palette::Seed`].
     pub fn from_palette(seed: palette::Seed) -> Self {
         Self {
-            font: Font::default(),
             inline_code_padding: padding::left(1).right(1),
             inline_code_highlight: Highlight {
                 background: color!(0x111111).into(),
                 border: border::rounded(4),
             },
             inline_code_color: Color::WHITE,
-            inline_code_font: Font::MONOSPACE,
-            code_block_font: Font::MONOSPACE,
             link_color: seed.primary,
         }
     }
@@ -1134,7 +1149,11 @@ impl From<Theme> for Style {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(&self.markdown, Theme::TokyoNight)
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             &Theme::TokyoNight,
+///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
 ///     }
@@ -1151,12 +1170,13 @@ impl From<Theme> for Style {
 pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: impl Into<Settings>,
+    theme: &Theme,
 ) -> Element<'a, Uri, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    view_with(items, settings, &DefaultViewer)
+    view_with(items, settings, theme, &DefaultViewer)
 }
 
 /// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into
@@ -1167,6 +1187,7 @@ where
 pub fn view_with<'a, Message, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: impl Into<Settings>,
+    theme: &Theme,
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1179,7 +1200,7 @@ where
     let blocks = items
         .into_iter()
         .enumerate()
-        .map(|(i, item_)| item(viewer, settings, item_, i));
+        .map(|(i, item_)| item(viewer, settings, theme, item_, i));
 
     Element::new(column(blocks).spacing(settings.spacing))
 }
@@ -1188,6 +1209,7 @@ where
 pub fn item<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
+    theme: &Theme,
     item: &'a Item,
     index: usize,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1197,31 +1219,32 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     match item {
-        Item::Image { url, title, alt } => viewer.image(settings, url, title, alt),
-        Item::Heading(level, text) => viewer.heading(settings, level, text, index),
-        Item::Paragraph(text) => viewer.paragraph(settings, text),
+        Item::Image { url, title, alt } => viewer.image(settings, theme, url, title, alt),
+        Item::Heading(level, text) => viewer.heading(settings, theme, level, text, index),
+        Item::Paragraph(text) => viewer.paragraph(settings, theme, text),
         Item::CodeBlock {
             language,
             code,
             lines,
-        } => viewer.code_block(settings, language.as_deref(), code, lines),
+        } => viewer.code_block(settings, theme, language.as_deref(), code, lines),
         Item::List {
             start: None,
             bullets,
-        } => viewer.unordered_list(settings, bullets),
+        } => viewer.unordered_list(settings, theme, bullets),
         Item::List {
             start: Some(start),
             bullets,
-        } => viewer.ordered_list(settings, *start, bullets),
-        Item::Quote(quote) => viewer.quote(settings, quote),
+        } => viewer.ordered_list(settings, theme, *start, bullets),
+        Item::Quote(quote) => viewer.quote(settings, theme, quote),
         Item::Rule => viewer.rule(settings),
-        Item::Table { columns, rows } => viewer.table(settings, columns, rows),
+        Item::Table { columns, rows } => viewer.table(settings, theme, columns, rows),
     }
 }
 
 /// Displays a heading using the default look.
 pub fn heading<'a, Message, Theme, Renderer>(
     settings: Settings,
+    theme: &Theme,
     level: &'a HeadingLevel,
     text: &'a Text,
     index: usize,
@@ -1244,7 +1267,7 @@ where
     } = settings;
 
     container(
-        rich_text(text.spans(settings.style))
+        rich_text(text.spans(settings, theme))
             .on_link_click(on_link_click)
             .size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
@@ -1266,6 +1289,7 @@ where
 /// Displays a paragraph using the default look.
 pub fn paragraph<'a, Message, Theme, Renderer>(
     settings: Settings,
+    theme: &Theme,
     text: &Text,
     on_link_click: impl Fn(Uri) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1274,7 +1298,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    rich_text(text.spans(settings.style))
+    rich_text(text.spans(settings, theme))
         .size(settings.text_size)
         .on_link_click(on_link_click)
         .into()
@@ -1285,6 +1309,7 @@ where
 pub fn unordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
+    theme: &Theme,
     bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1311,6 +1336,7 @@ where
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
+                theme,
                 viewer,
             )
         ]
@@ -1327,6 +1353,7 @@ where
 pub fn ordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
+    theme: &Theme,
     start: u64,
     bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1349,6 +1376,7 @@ where
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
+                theme,
                 viewer,
             )
         ]
@@ -1362,6 +1390,7 @@ where
 /// Displays a code block using the default look.
 pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
+    theme: &Theme,
     lines: &'a [Text],
     on_link_click: impl Fn(Uri) -> Message + Clone + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1373,9 +1402,9 @@ where
     container(
         scrollable(
             container(column(lines.iter().map(|line| {
-                rich_text(line.spans(settings.style))
+                rich_text(line.spans(settings, theme))
                     .on_link_click(on_link_click.clone())
-                    .font(settings.style.code_block_font)
+                    .font(settings.code_block_font)
                     .size(settings.code_size)
                     .into()
             })))
@@ -1397,6 +1426,7 @@ where
 pub fn quote<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
+    theme: &Theme,
     contents: &'a [Item],
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1410,7 +1440,7 @@ where
             contents
                 .iter()
                 .enumerate()
-                .map(|(i, content)| item(viewer, settings, content, i)),
+                .map(|(i, content)| item(viewer, settings, theme, content, i)),
         )
         .spacing(settings.spacing.0),
     ]
@@ -1433,6 +1463,7 @@ where
 pub fn table<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
+    theme: &Theme,
     columns: &'a [Column],
     rows: &'a [Row],
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1445,13 +1476,16 @@ where
 
     let table = table(
         columns.iter().enumerate().map(move |(i, column)| {
-            table::column(items(viewer, settings, &column.header), move |row: &Row| {
-                if let Some(cells) = row.cells.get(i) {
-                    items(viewer, settings, cells)
-                } else {
-                    text("").into()
-                }
-            })
+            table::column(
+                items(viewer, settings, theme, &column.header),
+                move |row: &Row| {
+                    if let Some(cells) = row.cells.get(i) {
+                        items(viewer, settings, theme, cells)
+                    } else {
+                        text("").into()
+                    }
+                },
+            )
             .align_x(match column.alignment {
                 pulldown_cmark::Alignment::None | pulldown_cmark::Alignment::Left => {
                     alignment::Horizontal::Left
@@ -1478,6 +1512,7 @@ where
 pub fn items<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
+    theme: &Theme,
     items: &'a [Item],
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1489,7 +1524,7 @@ where
         items
             .iter()
             .enumerate()
-            .map(|(i, content)| item(viewer, settings, content, i)),
+            .map(|(i, content)| item(viewer, settings, theme, content, i)),
     )
     .spacing(settings.spacing.0)
     .into()
@@ -1512,6 +1547,7 @@ where
     fn image(
         &self,
         settings: Settings,
+        theme: &Theme,
         url: &'a Uri,
         title: &'a str,
         alt: &Text,
@@ -1519,7 +1555,7 @@ where
         let _url = url;
         let _title = title;
 
-        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click))
+        container(rich_text(alt.spans(settings, theme)).on_link_click(Self::on_link_click))
             .padding(settings.spacing.0)
             .class(Theme::code_block())
             .into()
@@ -1531,18 +1567,24 @@ where
     fn heading(
         &self,
         settings: Settings,
+        theme: &Theme,
         level: &'a HeadingLevel,
         text: &'a Text,
         index: usize,
     ) -> Element<'a, Message, Theme, Renderer> {
-        heading(settings, level, text, index, Self::on_link_click)
+        heading(settings, theme, level, text, index, Self::on_link_click)
     }
 
     /// Displays a paragraph.
     ///
     /// By default, it calls [`paragraph`].
-    fn paragraph(&self, settings: Settings, text: &Text) -> Element<'a, Message, Theme, Renderer> {
-        paragraph(settings, text, Self::on_link_click)
+    fn paragraph(
+        &self,
+        settings: Settings,
+        theme: &Theme,
+        text: &Text,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        paragraph(settings, theme, text, Self::on_link_click)
     }
 
     /// Displays a code block.
@@ -1551,6 +1593,7 @@ where
     fn code_block(
         &self,
         settings: Settings,
+        theme: &Theme,
         language: Option<&'a str>,
         code: &'a str,
         lines: &'a [Text],
@@ -1558,7 +1601,7 @@ where
         let _language = language;
         let _code = code;
 
-        code_block(settings, lines, Self::on_link_click)
+        code_block(settings, theme, lines, Self::on_link_click)
     }
 
     /// Displays an unordered list.
@@ -1567,9 +1610,10 @@ where
     fn unordered_list(
         &self,
         settings: Settings,
+        theme: &Theme,
         bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        unordered_list(self, settings, bullets)
+        unordered_list(self, settings, theme, bullets)
     }
 
     /// Displays an ordered list.
@@ -1578,10 +1622,11 @@ where
     fn ordered_list(
         &self,
         settings: Settings,
+        theme: &Theme,
         start: u64,
         bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        ordered_list(self, settings, start, bullets)
+        ordered_list(self, settings, theme, start, bullets)
     }
 
     /// Displays a quote.
@@ -1590,9 +1635,10 @@ where
     fn quote(
         &self,
         settings: Settings,
+        theme: &Theme,
         contents: &'a [Item],
     ) -> Element<'a, Message, Theme, Renderer> {
-        quote(self, settings, contents)
+        quote(self, settings, theme, contents)
     }
 
     /// Displays a rule.
@@ -1608,10 +1654,11 @@ where
     fn table(
         &self,
         settings: Settings,
+        theme: &Theme,
         columns: &'a [Column],
         rows: &'a [Row],
     ) -> Element<'a, Message, Theme, Renderer> {
-        table(self, settings, columns, rows)
+        table(self, settings, theme, columns, rows)
     }
 }
 
@@ -1636,12 +1683,31 @@ pub trait Catalog:
     + crate::rule::Catalog
     + checkbox::Catalog
     + crate::table::Catalog
+    + highlighter::Highlight
+    + Clone
+    + PartialEq
 {
+    /// The unique identifier of the [`Catalog`].
+    ///
+    /// This will be used to invalidate span styling when a theme changes.
+    fn id(&self) -> &str;
+
+    /// The [`Style`] of the Markdown rendering, derived from the catalog.
+    fn style(&self) -> Style;
+
     /// The styling class of a Markdown code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
 }
 
 impl Catalog for Theme {
+    fn id(&self) -> &str {
+        theme::Base::name(self)
+    }
+
+    fn style(&self) -> Style {
+        Style::from_palette(self.seed())
+    }
+
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a> {
         Box::new(container::dark)
     }
