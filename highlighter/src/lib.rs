@@ -204,7 +204,7 @@ pub struct Settings {
 }
 
 /// A highlight produced by a [`Highlighter`].
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Highlight(highlighting::StyleModifier);
 
 impl Highlight {
