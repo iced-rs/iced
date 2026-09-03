@@ -62,6 +62,14 @@ where
         delegate!(self, renderer, renderer.end_transformation());
     }
 
+    fn start_group(&mut self, bounds: Rectangle, effect: renderer::GroupEffect) {
+        delegate!(self, renderer, renderer.start_group(bounds, effect));
+    }
+
+    fn end_group(&mut self) {
+        delegate!(self, renderer, renderer.end_group());
+    }
+
     fn allocate_image(
         &self,
         handle: &image::Handle,
