@@ -1684,7 +1684,7 @@ impl Catalog for Theme {
                     .width(1)
                     .color(palette.background.weak.color),
             },
-            color: palette.background.weak.text,
+            color: palette.background.weaker.text,
         }
     }
 
