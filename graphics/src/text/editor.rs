@@ -850,8 +850,8 @@ impl editor::Editor for Editor {
         {
             let mut list = cosmic_text::AttrsList::new(&attributes);
 
-            for (range, highlight) in highlighter.highlight_line(line.text()) {
-                let format = format_highlight(highlight);
+            for (range, scope) in highlighter.highlight_line(line.text()) {
+                let format = format_highlight(scope);
 
                 if format.color.is_some() || format.style.is_some() {
                     list.add_span(

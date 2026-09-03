@@ -1681,7 +1681,7 @@ impl Catalog for Theme {
             highlight: Highlight {
                 background: palette.background.weaker.color.into(),
                 border: border::rounded(4)
-                    .width(1)
+                    .width(0.5)
                     .color(palette.background.weak.color),
             },
             color: palette.background.weaker.text,

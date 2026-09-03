@@ -87,6 +87,8 @@ pub enum Scope {
     Support,
     /// Punctuation.
     Punctuation,
+    /// A path component.
+    Path,
     /// An invalid or erroneous construct.
     Invalid,
     /// Anything that does not match another class.
@@ -104,19 +106,20 @@ impl Highlight for Theme {
         let palette = self.palette();
 
         let color = match scope {
-            Scope::Keyword => Some(palette.primary.strong.color),
-            Scope::Function => Some(palette.primary.weak.color),
+            Scope::Keyword => Some(palette.primary.base.color),
+            Scope::Type | Scope::Path | Scope::Function => Some(palette.warning.base.color),
+
             Scope::Constant => Some(palette.danger.base.color),
 
             Scope::String => Some(palette.success.base.color),
-            Scope::Type => Some(palette.warning.base.color),
             Scope::Support => Some(palette.primary.base.color),
 
-            Scope::Punctuation => Some(palette.secondary.base.color),
+            Scope::Punctuation => Some(palette.secondary.strong.color),
             Scope::Comment => Some(palette.secondary.base.color),
 
             Scope::Invalid => Some(palette.danger.base.color),
-            Scope::Variable | Scope::Other => None,
+            Scope::Variable => Some(palette.danger.base.color),
+            Scope::Other => None,
         };
 
         Format {

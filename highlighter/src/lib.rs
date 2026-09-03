@@ -218,16 +218,20 @@ pub struct Settings {
 /// `entity.name.function` wins over `entity.name`.
 static FAMILIES: LazyLock<Vec<(parsing::Scope, Scope)>> = LazyLock::new(|| {
     [
+        ("meta.path", Scope::Path),
         ("invalid", Scope::Invalid),
         ("constant", Scope::Constant),
         ("string", Scope::String),
         ("comment", Scope::Comment),
         ("keyword", Scope::Keyword),
+        ("storage.type.", Scope::Keyword),
+        ("storage.type", Scope::Type),
         ("storage", Scope::Keyword),
         ("entity.name.function", Scope::Function),
         ("entity.name", Scope::Type),
         ("entity.other.inherited-class", Scope::Type),
         ("support", Scope::Support),
+        ("variable.function", Scope::Function),
         ("variable", Scope::Variable),
         ("punctuation", Scope::Punctuation),
     ]
