@@ -1,7 +1,6 @@
 //! Draw and edit text.
 use crate::core::text::editor::{self, Action, Cursor, Direction, Edit, Motion, Selection};
-use crate::core::text::highlighter::{self, Highlighter};
-use crate::core::text::{Alignment, LineHeight, Position, Wrapping};
+use crate::core::text::{Alignment, Highlighter, LineHeight, Parser, Position, Wrapping};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -655,7 +654,7 @@ impl editor::Editor for Editor {
         new_wrapping: Wrapping,
         new_alignment: Alignment,
         new_hint_factor: Option<f32>,
-        new_highlighter: &mut impl Highlighter,
+        new_parser: &mut impl Parser,
     ) {
         self.with_internal_mut(|internal| {
             let mut font_system = text::font_system().write().expect("Write font system");
@@ -753,8 +752,8 @@ impl editor::Editor for Editor {
             buffer.shape_until_scroll(font_system.raw(), false);
 
             if let Some(topmost_line_changed) = internal.topmost_line_changed.take() {
-                log::trace!("Notifying highlighter of line change: {topmost_line_changed}");
-                new_highlighter.change_line(topmost_line_changed);
+                log::trace!("Notifying parser of line change: {topmost_line_changed}");
+                new_parser.change_line(topmost_line_changed);
             }
 
             internal.editor.shape_as_needed(font_system.raw(), false);
@@ -797,11 +796,11 @@ impl editor::Editor for Editor {
         });
     }
 
-    fn highlight<H: Highlighter>(
+    fn highlight<P: Parser>(
         &mut self,
         font: Self::Font,
-        highlighter: &mut H,
-        format_highlight: impl Fn(highlighter::Scope) -> highlighter::Format,
+        parser: &mut P,
+        highlighter: &impl Highlighter<P::Output>,
     ) {
         let internal = self.internal();
         let buffer = buffer_from_editor(&internal.editor);
@@ -830,7 +829,7 @@ impl editor::Editor for Editor {
             })
             .unwrap_or(buffer.lines.len().saturating_sub(1));
 
-        let current_line = highlighter.current_line();
+        let current_line = parser.current_line();
 
         if current_line > last_visible_line {
             return;
@@ -850,8 +849,8 @@ impl editor::Editor for Editor {
         {
             let mut list = cosmic_text::AttrsList::new(&attributes);
 
-            for (range, scope) in highlighter.highlight_line(line.text()) {
-                let format = format_highlight(scope);
+            for (range, output) in parser.parse_line(line.text()) {
+                let format = highlighter.highlight(output);
 
                 if format.color.is_some() || format.style.is_some() {
                     list.add_span(

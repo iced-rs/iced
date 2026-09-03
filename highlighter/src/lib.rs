@@ -1,9 +1,8 @@
 //! A syntax highlighter for iced.
 use iced_core as core;
 
-pub use highlighter::{Format, Highlight, Scope};
-
-use crate::core::text::highlighter;
+use crate::core::text;
+use crate::core::text::Code;
 
 use std::ops::Range;
 use std::sync::LazyLock;
@@ -15,9 +14,9 @@ static SYNTAXES: LazyLock<parsing::SyntaxSet> = LazyLock::new(two_face::syntax::
 
 const LINES_PER_SNAPSHOT: usize = 50;
 
-/// A syntax highlighter.
+/// A syntax parser.
 #[derive(Debug)]
-pub struct Highlighter {
+pub struct Parser {
     syntax: &'static parsing::SyntaxReference,
     caches: Vec<(parsing::ParseState, parsing::ScopeStack)>,
     current_line: usize,
@@ -26,11 +25,11 @@ pub struct Highlighter {
 /// An iterator over the highlighted regions of a line.
 ///
 /// Each item is a character range within the line, paired with
-/// the [`Scope`] of the region.
-pub type ScopeIterator<'a> = Box<dyn Iterator<Item = (Range<usize>, Scope)> + 'a>;
+/// the [`Code`] of the region.
+pub type CodeIterator<'a> = Box<dyn Iterator<Item = (Range<usize>, Code)> + 'a>;
 
-impl Highlighter {
-    /// Creates a new [`Highlighter`] with the given [`Settings`].
+impl Parser {
+    /// Creates a new [`Parser`] with the given [`Settings`].
     pub fn new(settings: &Settings) -> Self {
         let syntax = SYNTAXES
             .find_syntax_by_token(&settings.token)
@@ -39,25 +38,25 @@ impl Highlighter {
         let parser = parsing::ParseState::new(syntax);
         let stack = parsing::ScopeStack::new();
 
-        Highlighter {
+        Parser {
             syntax,
             caches: vec![(parser, stack)],
             current_line: 0,
         }
     }
 
-    /// Updates the highlighter with the given [`Settings`],
+    /// Updates the parser with the given [`Settings`],
     /// restarting it from the first line.
     pub fn update(&mut self, new_settings: &Settings) {
         self.syntax = SYNTAXES
             .find_syntax_by_token(&new_settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        // Restart the highlighter
+        // Restart the parser
         self.change_line(0);
     }
 
-    /// Changes the line the highlighter is currently on.
+    /// Changes the line the parser is currently on.
     pub fn change_line(&mut self, line: usize) {
         let snapshot = line / LINES_PER_SNAPSHOT;
 
@@ -79,8 +78,8 @@ impl Highlighter {
         self.caches.push((parser, stack));
     }
 
-    /// Highlights the given line, returning a [`ScopeIterator`].
-    pub fn highlight_line(&mut self, line: &str) -> ScopeIterator<'_> {
+    /// Highlights the given line, returning a [`CodeIterator`].
+    pub fn highlight_line(&mut self, line: &str) -> CodeIterator<'_> {
         if self.current_line / LINES_PER_SNAPSHOT >= self.caches.len() {
             let (parser, stack) = self.caches.last().expect("Caches must not be empty");
 
@@ -92,18 +91,19 @@ impl Highlighter {
         let (parser, stack) = self.caches.last_mut().expect("Caches must not be empty");
         let ops = parser.parse_line(line, &SYNTAXES).unwrap_or_default();
 
-        Box::new(scope_iterator(ops, line, stack))
+        Box::new(code_iterator(ops, line, stack))
     }
 
-    /// Returns the line the highlighter is currently on.
+    /// Returns the line the parser is currently on.
     pub fn current_line(&self) -> usize {
         self.current_line
     }
 }
 
-impl highlighter::Highlighter for Highlighter {
+impl text::Parser for Parser {
     type Settings = Settings;
-    type Iterator<'a> = ScopeIterator<'a>;
+    type Output = Code;
+    type Iterator<'a> = CodeIterator<'a>;
 
     fn new(settings: &Self::Settings) -> Self {
         Self::new(settings)
@@ -117,7 +117,7 @@ impl highlighter::Highlighter for Highlighter {
         self.change_line(line);
     }
 
-    fn highlight_line(&mut self, line: &str) -> Self::Iterator<'_> {
+    fn parse_line(&mut self, line: &str) -> Self::Iterator<'_> {
         self.highlight_line(line)
     }
 
@@ -126,11 +126,11 @@ impl highlighter::Highlighter for Highlighter {
     }
 }
 
-fn scope_iterator<'a>(
+fn code_iterator<'a>(
     ops: Vec<(usize, parsing::ScopeStackOp)>,
     line: &str,
     stack: &'a mut parsing::ScopeStack,
-) -> impl Iterator<Item = (Range<usize>, Scope)> + 'a {
+) -> impl Iterator<Item = (Range<usize>, Code)> + 'a {
     ScopeRangeIterator {
         ops,
         line_length: line.len(),
@@ -148,7 +148,7 @@ fn scope_iterator<'a>(
     })
 }
 
-/// A streaming syntax highlighter.
+/// A streaming syntax parser.
 ///
 /// It can efficiently highlight an immutable stream of tokens.
 #[derive(Debug)]
@@ -160,7 +160,7 @@ pub struct Stream {
 }
 
 impl Stream {
-    /// Creates a new [`Stream`] highlighter.
+    /// Creates a new [`Stream`] parser.
     pub fn new(settings: &Settings) -> Self {
         let syntax = SYNTAXES
             .find_syntax_by_token(&settings.token)
@@ -181,12 +181,12 @@ impl Stream {
     pub fn highlight_line(
         &mut self,
         line: &str,
-    ) -> impl Iterator<Item = (Range<usize>, Scope)> + '_ {
+    ) -> impl Iterator<Item = (Range<usize>, Code)> + '_ {
         self.state = self.commit.0.clone();
         self.stack = self.commit.1.clone();
 
         let ops = self.state.parse_line(line, &SYNTAXES).unwrap_or_default();
-        scope_iterator(ops, line, &mut self.stack)
+        code_iterator(ops, line, &mut self.stack)
     }
 
     /// Commits the last highlighted line.
@@ -194,7 +194,7 @@ impl Stream {
         self.commit = (self.state.clone(), self.stack.clone());
     }
 
-    /// Resets the [`Stream`] highlighter.
+    /// Resets the [`Stream`] parser.
     pub fn reset(&mut self) {
         self.state = parsing::ParseState::new(self.syntax);
         self.stack = parsing::ScopeStack::new();
@@ -202,12 +202,12 @@ impl Stream {
     }
 }
 
-/// The settings of a [`Highlighter`].
+/// The settings of a [`Parser`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     /// The extension of the file or the name of the language to highlight.
     ///
-    /// The [`Highlighter`] will use the token to automatically determine
+    /// The [`Parser`] will use the token to automatically determine
     /// the grammar to use for highlighting.
     pub token: String,
 }
@@ -216,24 +216,24 @@ pub struct Settings {
 ///
 /// The families are listed most specific first, so that e.g.
 /// `entity.name.function` wins over `entity.name`.
-static FAMILIES: LazyLock<Vec<(parsing::Scope, Scope)>> = LazyLock::new(|| {
+static FAMILIES: LazyLock<Vec<(parsing::Scope, Code)>> = LazyLock::new(|| {
     [
-        ("meta.path", Scope::Path),
-        ("invalid", Scope::Invalid),
-        ("constant", Scope::Constant),
-        ("string", Scope::String),
-        ("comment", Scope::Comment),
-        ("keyword", Scope::Keyword),
-        ("storage.type.", Scope::Keyword),
-        ("storage.type", Scope::Type),
-        ("storage", Scope::Keyword),
-        ("entity.name.function", Scope::Function),
-        ("entity.name", Scope::Type),
-        ("entity.other.inherited-class", Scope::Type),
-        ("support", Scope::Support),
-        ("variable.function", Scope::Function),
-        ("variable", Scope::Variable),
-        ("punctuation", Scope::Punctuation),
+        ("meta.path", Code::Path),
+        ("invalid", Code::Invalid),
+        ("constant", Code::Constant),
+        ("string", Code::String),
+        ("comment", Code::Comment),
+        ("keyword", Code::Keyword),
+        ("storage.type.", Code::Keyword),
+        ("storage.type", Code::Type),
+        ("storage", Code::Keyword),
+        ("entity.name.function", Code::Function),
+        ("entity.name", Code::Type),
+        ("entity.other.inherited-class", Code::Type),
+        ("support", Code::Support),
+        ("variable.function", Code::Function),
+        ("variable", Code::Variable),
+        ("punctuation", Code::Punctuation),
     ]
     .into_iter()
     .map(|(name, class)| {
@@ -250,8 +250,8 @@ static FAMILIES: LazyLock<Vec<(parsing::Scope, Scope)>> = LazyLock::new(|| {
 /// The stack is walked from the most specific scope (last) to the
 /// least specific (first); the first scope that matches a family
 /// determines the class. If no scope matches, the region is
-/// classified as [`Scope::Other`].
-fn scope_from_stack(stack: &[parsing::Scope]) -> Scope {
+/// classified as [`Code::Other`].
+fn scope_from_stack(stack: &[parsing::Scope]) -> Code {
     for scope in stack.iter().rev() {
         for (family, class) in FAMILIES.iter() {
             if family.is_prefix_of(*scope) {
@@ -260,7 +260,7 @@ fn scope_from_stack(stack: &[parsing::Scope]) -> Scope {
         }
     }
 
-    Scope::Other
+    Code::Other
 }
 
 struct ScopeRangeIterator {
@@ -314,59 +314,59 @@ mod tests {
     fn scopes_are_classified_by_family() {
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "comment.line"])),
-            Scope::Comment
+            Code::Comment
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "comment.block"])),
-            Scope::Comment
+            Code::Comment
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "string.quoted.double"])),
-            Scope::String
+            Code::String
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "keyword.control"])),
-            Scope::Keyword
+            Code::Keyword
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "keyword.operator"])),
-            Scope::Keyword
+            Code::Keyword
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "storage.type"])),
-            Scope::Keyword
+            Code::Keyword
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "constant.numeric"])),
-            Scope::Constant
+            Code::Constant
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "entity.name.function"])),
-            Scope::Function
+            Code::Function
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "entity.name.type"])),
-            Scope::Type
+            Code::Type
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "entity.other.inherited-class"])),
-            Scope::Type
+            Code::Type
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "variable.parameter"])),
-            Scope::Variable
+            Code::Variable
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "support.function.builtin"])),
-            Scope::Support
+            Code::Support
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "punctuation.definition"])),
-            Scope::Punctuation
+            Code::Punctuation
         );
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "invalid.illegal"])),
-            Scope::Invalid
+            Code::Invalid
         );
     }
 
@@ -379,7 +379,7 @@ mod tests {
             "constant.character.escape",
         ];
 
-        assert_eq!(scope_from_stack(&stack(&names)), Scope::Constant);
+        assert_eq!(scope_from_stack(&stack(&names)), Code::Constant);
 
         // A comment marker is punctuation, even inside a comment.
         let names = [
@@ -388,7 +388,7 @@ mod tests {
             "punctuation.definition.comment",
         ];
 
-        assert_eq!(scope_from_stack(&stack(&names)), Scope::Punctuation);
+        assert_eq!(scope_from_stack(&stack(&names)), Code::Punctuation);
     }
 
     #[test]
@@ -397,22 +397,22 @@ mod tests {
         // to the next scope in the stack.
         let names = ["source.rust", "string.quoted.double", "meta.embedded"];
 
-        assert_eq!(scope_from_stack(&stack(&names)), Scope::String);
+        assert_eq!(scope_from_stack(&stack(&names)), Code::String);
     }
 
     #[test]
     fn unmatched_scopes_are_other() {
-        assert_eq!(scope_from_stack(&[]), Scope::Other);
+        assert_eq!(scope_from_stack(&[]), Code::Other);
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "meta.function"])),
-            Scope::Other
+            Code::Other
         );
 
         // A family must match whole scope atoms: `stringify` is not a
         // `string`.
         assert_eq!(
             scope_from_stack(&stack(&["source.rust", "stringify.call"])),
-            Scope::Other
+            Code::Other
         );
     }
 }

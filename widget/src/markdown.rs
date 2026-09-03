@@ -47,13 +47,13 @@
 //!     }
 //! }
 //! ```
+use crate::core;
 use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::text::highlighter;
 use crate::core::theme;
-use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme};
+use crate::core::{Color, Element, Length, Padding, Pixels, Theme};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
@@ -270,7 +270,7 @@ impl Text {
 
     /// Returns the [`rich_text()`] spans ready to be used for the given style.
     ///
-    /// This method performs caching for you. It will only reallocate if the [`Style`]
+    /// This method performs caching for you. It will only reallocate if the [`Settings`]
     /// provided changes.
     pub fn spans(
         &self,
@@ -311,7 +311,7 @@ enum Span {
     },
     Code {
         text: String,
-        scope: highlighter::Scope,
+        code: core::text::Code,
     },
 }
 
@@ -360,8 +360,8 @@ impl Span {
                     span
                 }
             }
-            Span::Code { text, scope } => {
-                let format = theme.highlight(*scope);
+            Span::Code { text, code } => {
+                let format = theme.highlight(*code);
 
                 span(text.clone())
                     .color_maybe(format.color)
@@ -512,10 +512,10 @@ impl Highlighter {
 
                 let mut spans = Vec::new();
 
-                for (range, scope) in self.parser.highlight_line(text) {
+                for (range, code) in self.parser.highlight_line(text) {
                     spans.push(Span::Code {
                         text: text[range].to_owned(),
-                        scope,
+                        code,
                     });
                 }
 
@@ -941,7 +941,7 @@ fn parse_with<'a>(
                 for line in text.lines() {
                     code_lines.push(Text::new(vec![Span::Code {
                         text: line.to_owned(),
-                        scope: highlighter::Scope::Other,
+                        code: core::text::Code::Other,
                     }]));
                 }
 
@@ -1073,14 +1073,6 @@ impl Default for Settings {
     fn default() -> Self {
         Self::with_text_size(16)
     }
-}
-
-/// The style of some inline code.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Code {
-    padding: Padding,
-    highlight: Highlight,
-    color: Color,
 }
 
 /// Display a bunch of Markdown items.
@@ -1645,7 +1637,7 @@ pub trait Catalog:
     + crate::rule::Catalog
     + checkbox::Catalog
     + crate::table::Catalog
-    + highlighter::Highlight
+    + text::Highlighter<core::text::Code>
     + Clone
     + PartialEq
 {
@@ -1657,11 +1649,22 @@ pub trait Catalog:
     /// The [`Color`] of some link.
     fn link_color(&self) -> Color;
 
-    /// The style of some inline [`Code`].
-    fn code(&self) -> Code;
+    /// The [`InlineCode`] style of some inline code.
+    fn code(&self) -> InlineCode;
 
     /// The styling class of a Markdown code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
+}
+
+/// The style of some inline code.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InlineCode {
+    /// The [`Padding`] to apply around the code.
+    pub padding: Padding,
+    /// The [`Highlight`] of the code.
+    pub highlight: Highlight,
+    /// The [`Color`] of the code.
+    pub color: Color,
 }
 
 impl Catalog for Theme {
@@ -1673,10 +1676,10 @@ impl Catalog for Theme {
         self.seed().primary
     }
 
-    fn code(&self) -> Code {
+    fn code(&self) -> InlineCode {
         let palette = self.palette();
 
-        Code {
+        InlineCode {
             padding: padding::horizontal(1),
             highlight: Highlight {
                 background: palette.background.weaker.color.into(),

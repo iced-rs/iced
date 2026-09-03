@@ -1,13 +1,17 @@
 //! Draw and interact with text.
+pub mod code;
 pub mod editor;
 pub mod highlighter;
 pub mod input;
 pub mod paragraph;
+pub mod parser;
 
+pub use code::Code;
 pub use editor::Editor;
 pub use highlighter::Highlighter;
 pub use input::Input;
 pub use paragraph::Paragraph;
+pub use parser::Parser;
 
 use crate::alignment;
 use crate::{Background, Border, Color, Padding, Pixels, Point, Rectangle, Size};

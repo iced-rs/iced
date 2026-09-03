@@ -1444,7 +1444,7 @@ where
 /// ```
 pub fn text_editor<'a, Message, Theme, Renderer>(
     content: &'a text_editor::Content<Renderer>,
-) -> TextEditor<'a, core::text::highlighter::PlainText, Message, Theme, Renderer>
+) -> TextEditor<'a, core::text::parser::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
     Theme: text_editor::Catalog + 'a,
