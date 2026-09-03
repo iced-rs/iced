@@ -1,4 +1,8 @@
-use crate::core::{self, Background, Color, Point, Rectangle, Svg, Transformation, renderer};
+use cryoglyph::cosmic_text;
+
+use crate::core::{
+    self, Background, Color, Point, Rectangle, Size, Svg, Transformation, Vector, renderer,
+};
 use crate::graphics;
 use crate::graphics::Mesh;
 use crate::graphics::color;
@@ -14,6 +18,13 @@ use crate::triangle;
 pub type Stack = layer::Stack<Layer>;
 
 #[derive(Debug)]
+struct TextDecoration {
+    rect: Rectangle,
+    color: Color,
+    transformation: Transformation,
+}
+
+#[derive(Debug)]
 pub struct Layer {
     pub bounds: Rectangle,
     pub quads: quad::Batch,
@@ -23,6 +34,7 @@ pub struct Layer {
     pub text: text::Batch,
     pending_meshes: Vec<Mesh>,
     pending_text: Vec<Text>,
+    pending_decorations: Vec<TextDecoration>,
 }
 
 impl Layer {
@@ -34,6 +46,7 @@ impl Layer {
             && self.text.is_empty()
             && self.pending_meshes.is_empty()
             && self.pending_text.is_empty()
+            && self.pending_decorations.is_empty()
     }
 
     pub fn draw_quad(
@@ -86,6 +99,8 @@ impl Layer {
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
+        self.draw_text_decorations(editor.buffer(), position, color, transformation);
+
         let editor = Text::Editor {
             editor: editor.downgrade(),
             position,
@@ -251,6 +266,109 @@ impl Layer {
             .push(primitive::Instance::new(bounds, primitive));
     }
 
+    fn draw_text_decorations(
+        &mut self,
+        buffer: &cosmic_text::Buffer,
+        position: Point,
+        default_color: Color,
+        transformation: Transformation,
+    ) {
+        for run in buffer.layout_runs() {
+            for span in run.decorations {
+                let glyphs = &run.glyphs[span.glyph_range.clone()];
+                if glyphs.is_empty() {
+                    continue;
+                }
+
+                let deco = &span.data;
+                let td = &deco.text_decoration;
+                let font_size = span.font_size;
+
+                // Compute x extent as min/max over all glyphs, not first/last,
+                // because RTL paragraphs store glyphs in right-to-left order.
+                let mut x_min = f32::INFINITY;
+                let mut x_max = f32::NEG_INFINITY;
+                for g in glyphs {
+                    x_min = x_min.min(g.x);
+                    x_max = x_max.max(g.x + g.w);
+                }
+                let width = x_max - x_min;
+                if width <= 0.0 {
+                    continue;
+                }
+
+                let mut record_quad = |x: f32, y: f32, w: f32, h: f32, color: Color| {
+                    self.pending_decorations.push(TextDecoration {
+                        rect: Rectangle::new(position + Vector::new(x, y), Size::new(w, h)),
+                        color,
+                        transformation,
+                    });
+                };
+
+                // Underline
+                match td.underline {
+                    cosmic_text::UnderlineStyle::None => {}
+                    cosmic_text::UnderlineStyle::Single => {
+                        let color = td
+                            .underline_color_opt
+                            .or(span.color_opt)
+                            .map(from_color)
+                            .unwrap_or(default_color);
+                        let thickness = (deco.underline_metrics.thickness * font_size)
+                            .max(1.0)
+                            .ceil();
+                        let y = run.line_y - deco.underline_metrics.offset * font_size;
+                        record_quad(x_min, y, width, thickness, color);
+                    }
+                    cosmic_text::UnderlineStyle::Double => {
+                        let color = td
+                            .underline_color_opt
+                            .or(span.color_opt)
+                            .map(from_color)
+                            .unwrap_or(default_color);
+                        let thickness = (deco.underline_metrics.thickness * font_size)
+                            .max(1.0)
+                            .ceil();
+                        let gap = thickness;
+                        let y = run.line_y - deco.underline_metrics.offset * font_size;
+                        record_quad(x_min, y, width, thickness, color);
+                        record_quad(x_min, y + thickness + gap, width, thickness, color);
+                    }
+                }
+
+                // Strikethrough
+                if td.strikethrough {
+                    let color = td
+                        .strikethrough_color_opt
+                        .or(span.color_opt)
+                        .map(from_color)
+                        .unwrap_or(default_color);
+                    let thickness = (deco.strikethrough_metrics.thickness * font_size)
+                        .max(1.0)
+                        .ceil();
+                    let y = run.line_y - deco.strikethrough_metrics.offset * font_size;
+                    record_quad(x_min, y, width, thickness, color);
+                }
+
+                // Overline
+                if td.overline {
+                    let color = td
+                        .overline_color_opt
+                        .or(span.color_opt)
+                        .map(from_color)
+                        .unwrap_or(default_color);
+                    // Reuse underline thickness for overline
+                    let thickness = (deco.underline_metrics.thickness * font_size)
+                        .max(1.0)
+                        .ceil();
+                    // clamped so it doesn't go above the line top.
+                    let y = (run.line_y - deco.ascent * font_size).max(run.line_top);
+                    record_quad(x_min, y, width, thickness, color);
+                }
+            }
+        }
+    }
+
     #[allow(clippy::drain_collect)] // We want to reuse `Layer` capacity
     fn flush_meshes(&mut self) {
         if !self.pending_meshes.is_empty() {
@@ -263,6 +381,17 @@ impl Layer {
 
     #[allow(clippy::drain_collect)] // We want to reuse `Layer` capacity
     fn flush_text(&mut self) {
+        for decoration in self.pending_decorations.drain(..).collect::<Vec<_>>() {
+            self.draw_quad(
+                renderer::Quad {
+                    bounds: decoration.rect,
+                    ..renderer::Quad::default()
+                },
+                Background::Color(decoration.color),
+                decoration.transformation,
+            );
+        }
+
         if !self.pending_text.is_empty() {
             self.text.push(text::Item::Group {
                 transformation: Transformation::IDENTITY,
@@ -270,6 +399,12 @@ impl Layer {
             });
         }
     }
+}
+
+fn from_color(color: cosmic_text::Color) -> Color {
+    let [r, g, b, a] = color.as_rgba();
+
+    Color::from_rgba8(r, g, b, a as f32 / 255.0)
 }
 
 impl graphics::Layer for Layer {
@@ -303,10 +438,11 @@ impl graphics::Layer for Layer {
         self.images.clear();
         self.pending_meshes.clear();
         self.pending_text.clear();
+        self.pending_decorations.clear();
     }
 
     fn start(&self) -> usize {
-        if !self.quads.is_empty() {
+        if !self.quads.is_empty() || !self.pending_decorations.is_empty() {
             return 1;
         }
 
@@ -346,7 +482,7 @@ impl graphics::Layer for Layer {
             return 2;
         }
 
-        if !self.quads.is_empty() {
+        if !self.quads.is_empty() || !self.pending_decorations.is_empty() {
             return 1;
         }
 
@@ -373,6 +509,7 @@ impl Default for Layer {
             images: image::Batch::default(),
             pending_meshes: Vec::new(),
             pending_text: Vec::new(),
+            pending_decorations: Vec::new(),
         }
     }
 }
