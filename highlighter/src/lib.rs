@@ -204,7 +204,7 @@ pub struct Settings {
 }
 
 /// A highlight produced by a [`Highlighter`].
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Highlight(highlighting::StyleModifier);
 
 impl Highlight {
@@ -255,6 +255,12 @@ impl Highlight {
         Format {
             color: self.color(),
             font: self.font(),
+            underline: None,
+            underline_color: None,
+            strikethrough: false,
+            strikethrough_color: None,
+            overline: false,
+            overline_color: None,
         }
     }
 }

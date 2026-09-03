@@ -76,6 +76,18 @@ pub struct Format<Font> {
     pub color: Option<Color>,
     /// The `Font` of the text.
     pub font: Option<Font>,
+    /// The underline decoration of the text.
+    pub underline: Option<Underline>,
+    /// The [`Color`] of the underline.
+    pub underline_color: Option<Color>,
+    /// Whether the text is strikethrough.
+    pub strikethrough: bool,
+    /// The [`Color`] of the strikethrough.
+    pub strikethrough_color: Option<Color>,
+    /// Whether the text is overlined.
+    pub overline: bool,
+    /// The [`Color`] of the overline.
+    pub overline_color: Option<Color>,
 }
 
 impl<Font> Default for Format<Font> {
@@ -83,6 +95,32 @@ impl<Font> Default for Format<Font> {
         Self {
             color: None,
             font: None,
+            underline: None,
+            underline_color: None,
+            strikethrough: false,
+            strikethrough_color: None,
+            overline: false,
+            overline_color: None,
         }
     }
+}
+
+impl<Font> Format<Font> {
+    /// Returns whether the [`Format`] needs to be processed.
+    pub fn needs_processing(&self) -> bool {
+        self.color.is_some()
+            || self.font.is_some()
+            || self.underline.is_some()
+            || self.strikethrough
+            || self.overline
+    }
+}
+
+/// The underline decoration of text.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Underline {
+    /// A single underline.
+    Single,
+    /// A double underline.
+    Double,
 }

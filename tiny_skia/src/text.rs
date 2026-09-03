@@ -231,6 +231,117 @@ fn draw(
                 );
             }
         }
+
+        for span in run.decorations {
+            let glyphs = &run.glyphs[span.glyph_range.clone()];
+
+            if glyphs.is_empty() {
+                continue;
+            }
+
+            let deco = &span.data;
+            let td = &deco.text_decoration;
+            let font_size = span.font_size;
+
+            // Compute x extent as min/max over all glyphs, not first/last,
+            // because RTL paragraphs store glyphs in right-to-left order.
+            let mut x_min = f32::INFINITY;
+            let mut x_max = f32::NEG_INFINITY;
+            for g in glyphs {
+                x_min = x_min.min(g.x);
+                x_max = x_max.max(g.x + g.w);
+            }
+            let width = x_max - x_min;
+            if width <= 0.0 {
+                continue;
+            }
+
+            let scale = transformation.scale_factor();
+            let offset_x = position.x - scroll.horizontal;
+            let offset_y = position.y;
+
+            let draw_rect = |pixels: &mut tiny_skia::PixmapMut<'_>,
+                             x: f32,
+                             y: f32,
+                             w: f32,
+                             h: f32,
+                             c: Color| {
+                let x = (x + offset_x) * scale;
+                let y = (y + offset_y) * scale;
+                let w = w * scale;
+                let h = h * scale;
+
+                if let Some(rect) = tiny_skia::Rect::from_xywh(x, y, w, h) {
+                    let mut paint = tiny_skia::Paint::default();
+
+                    let [r, g, b, a] = c.into_rgba8();
+                    paint.set_color_rgba8(b, g, r, a); // Note: we use BGRA order
+
+                    pixels.fill_rect(rect, &paint, tiny_skia::Transform::identity(), clip_mask);
+                }
+            };
+
+            // Underline
+            match td.underline {
+                cosmic_text::UnderlineStyle::None => {}
+                cosmic_text::UnderlineStyle::Single => {
+                    let color = td
+                        .underline_color_opt
+                        .or(span.color_opt)
+                        .map(from_color)
+                        .unwrap_or(color);
+                    let thickness = (deco.underline_metrics.thickness * font_size)
+                        .max(1.0)
+                        .ceil();
+                    let y = run.line_y - deco.underline_metrics.offset * font_size;
+                    draw_rect(pixels, x_min, y, width, thickness, color);
+                }
+                cosmic_text::UnderlineStyle::Double => {
+                    let color = td
+                        .underline_color_opt
+                        .or(span.color_opt)
+                        .map(from_color)
+                        .unwrap_or(color);
+                    let thickness = (deco.underline_metrics.thickness * font_size)
+                        .max(1.0)
+                        .ceil();
+                    let gap = thickness;
+                    let y = run.line_y - deco.underline_metrics.offset * font_size;
+                    draw_rect(pixels, x_min, y, width, thickness, color);
+                    draw_rect(pixels, x_min, y + thickness + gap, width, thickness, color);
+                }
+            }
+
+            // Strikethrough
+            if td.strikethrough {
+                let color = td
+                    .strikethrough_color_opt
+                    .or(span.color_opt)
+                    .map(from_color)
+                    .unwrap_or(color);
+                let thickness = (deco.strikethrough_metrics.thickness * font_size)
+                    .max(1.0)
+                    .ceil();
+                let y = run.line_y - deco.strikethrough_metrics.offset * font_size;
+                draw_rect(pixels, x_min, y, width, thickness, color);
+            }
+
+            // Overline
+            if td.overline {
+                let color = td
+                    .overline_color_opt
+                    .or(span.color_opt)
+                    .map(from_color)
+                    .unwrap_or(color);
+                // Reuse underline thickness for overline
+                let thickness = (deco.underline_metrics.thickness * font_size)
+                    .max(1.0)
+                    .ceil();
+                // clamped so it doesn't go above the line top.
+                let y = (run.line_y - deco.ascent * font_size).max(run.line_top);
+                draw_rect(pixels, x_min, y, width, thickness, color);
+            }
+        }
     }
 }
 
