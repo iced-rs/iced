@@ -155,11 +155,11 @@ impl Editor {
                 self.is_dirty.then_some(Message::SaveFile)
             ),
             space::horizontal(),
-            pick_list(Some(&self.theme), Theme::ALL, Theme::to_string)
-                .on_select(Message::ThemeSelected),
             toggler(self.word_wrap)
                 .label("Word Wrap")
                 .on_toggle(Message::WordWrapToggled),
+            pick_list(Some(&self.theme), Theme::ALL, Theme::to_string)
+                .on_select(Message::ThemeSelected),
         ]
         .spacing(10)
         .align_y(Center);

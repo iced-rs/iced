@@ -53,8 +53,7 @@ use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::text::highlighter;
 use crate::core::theme;
-use crate::core::theme::palette;
-use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme, color};
+use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
@@ -327,15 +326,16 @@ impl Span {
                 emphasis,
                 inline_code,
             } => {
-                let style = Catalog::style(theme);
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
                 let span = if *inline_code {
+                    let code = theme.code();
+
                     span.font(settings.inline_code_font)
-                        .color(style.inline_code_color)
-                        .background(style.inline_code_highlight.background)
-                        .border(style.inline_code_highlight.border)
-                        .padding(style.inline_code_padding)
+                        .color(code.color)
+                        .background(code.highlight.background)
+                        .border(code.highlight.border)
+                        .padding(code.padding)
                 } else if *strong || *emphasis {
                     span.font(Font {
                         weight: if *strong {
@@ -355,7 +355,7 @@ impl Span {
                 };
 
                 if let Some(link) = link.as_ref() {
-                    span.color(style.link_color).link(link.clone())
+                    span.color(theme.link_color()).link(link.clone())
                 } else {
                     span
                 }
@@ -1075,50 +1075,12 @@ impl Default for Settings {
     }
 }
 
-/// The text styling of some Markdown rendering in [`view`].
+/// The style of some inline code.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Style {
-    /// The [`Highlight`] to be applied to the background of inline code.
-    pub inline_code_highlight: Highlight,
-    /// The [`Padding`] to be applied to the background of inline code.
-    pub inline_code_padding: Padding,
-    /// The [`Color`] to be applied to inline code.
-    pub inline_code_color: Color,
-    /// The [`Color`] to be applied to links.
-    pub link_color: Color,
-}
-
-impl Style {
-    /// Creates a new [`Style`] from the given [`palette::Seed`].
-    pub fn from_palette(seed: palette::Seed) -> Self {
-        Self {
-            inline_code_padding: padding::left(1).right(1),
-            inline_code_highlight: Highlight {
-                background: color!(0x111111).into(),
-                border: border::rounded(4),
-            },
-            inline_code_color: Color::WHITE,
-            link_color: seed.primary,
-        }
-    }
-}
-
-impl From<palette::Seed> for Style {
-    fn from(seed: palette::Seed) -> Self {
-        Self::from_palette(seed)
-    }
-}
-
-impl From<&Theme> for Style {
-    fn from(theme: &Theme) -> Self {
-        Self::from_palette(theme.seed())
-    }
-}
-
-impl From<Theme> for Style {
-    fn from(theme: Theme) -> Self {
-        Self::from_palette(theme.seed())
-    }
+pub struct Code {
+    padding: Padding,
+    highlight: Highlight,
+    color: Color,
 }
 
 /// Display a bunch of Markdown items.
@@ -1692,8 +1654,11 @@ pub trait Catalog:
     /// This will be used to invalidate span styling when a theme changes.
     fn id(&self) -> &str;
 
-    /// The [`Style`] of the Markdown rendering, derived from the catalog.
-    fn style(&self) -> Style;
+    /// The [`Color`] of some link.
+    fn link_color(&self) -> Color;
+
+    /// The style of some inline [`Code`].
+    fn code(&self) -> Code;
 
     /// The styling class of a Markdown code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
@@ -1704,8 +1669,23 @@ impl Catalog for Theme {
         theme::Base::name(self)
     }
 
-    fn style(&self) -> Style {
-        Style::from_palette(self.seed())
+    fn link_color(&self) -> Color {
+        self.seed().primary
+    }
+
+    fn code(&self) -> Code {
+        let palette = self.palette();
+
+        Code {
+            padding: padding::horizontal(1),
+            highlight: Highlight {
+                background: palette.background.weaker.color.into(),
+                border: border::rounded(4)
+                    .width(1)
+                    .color(palette.background.weak.color),
+            },
+            color: palette.background.weak.text,
+        }
     }
 
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a> {
