@@ -40,7 +40,7 @@ pub trait Parser: 'static {
     fn current_line(&self) -> usize;
 }
 
-/// A parser that highlights nothing.
+/// A parser that produces no output.
 #[derive(Debug, Clone, Copy)]
 pub struct PlainText;
 

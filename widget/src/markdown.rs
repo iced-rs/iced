@@ -488,7 +488,7 @@ impl Highlighter {
         self.current = 0;
     }
 
-    pub fn highlight_line(&mut self, text: &str) -> &[Span] {
+    pub fn parse_line(&mut self, text: &str) -> &[Span] {
         match self.lines.get(self.current) {
             Some(line) if line.0 == text => {}
             _ => {
@@ -500,7 +500,7 @@ impl Highlighter {
                     for line in &self.lines {
                         log::debug!("Refeeding {n} lines", n = self.lines.len());
 
-                        let _ = self.parser.highlight_line(&line.0);
+                        let _ = self.parser.parse_line(&line.0);
                     }
                 }
 
@@ -512,7 +512,7 @@ impl Highlighter {
 
                 let mut spans = Vec::new();
 
-                for (range, code) in self.parser.highlight_line(text) {
+                for (range, code) in self.parser.parse_line(text) {
                     spans.push(Span::Code {
                         text: text[range].to_owned(),
                         code,
@@ -933,7 +933,7 @@ fn parse_with<'a>(
                 #[cfg(feature = "highlighter")]
                 if let Some(highlighter) = &mut highlighter {
                     for line in text.lines() {
-                        code_lines.push(Text::new(highlighter.highlight_line(line).to_vec()));
+                        code_lines.push(Text::new(highlighter.parse_line(line).to_vec()));
                     }
                 }
 

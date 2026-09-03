@@ -79,7 +79,7 @@ impl Parser {
     }
 
     /// Highlights the given line, returning a [`CodeIterator`].
-    pub fn highlight_line(&mut self, line: &str) -> CodeIterator<'_> {
+    pub fn parse_line(&mut self, line: &str) -> CodeIterator<'_> {
         if self.current_line / LINES_PER_SNAPSHOT >= self.caches.len() {
             let (parser, stack) = self.caches.last().expect("Caches must not be empty");
 
@@ -118,7 +118,7 @@ impl text::Parser for Parser {
     }
 
     fn parse_line(&mut self, line: &str) -> Self::Iterator<'_> {
-        self.highlight_line(line)
+        self.parse_line(line)
     }
 
     fn current_line(&self) -> usize {
@@ -178,10 +178,7 @@ impl Stream {
     }
 
     /// Highlights the given line from the last commit.
-    pub fn highlight_line(
-        &mut self,
-        line: &str,
-    ) -> impl Iterator<Item = (Range<usize>, Code)> + '_ {
+    pub fn parse_line(&mut self, line: &str) -> impl Iterator<Item = (Range<usize>, Code)> + '_ {
         self.state = self.commit.0.clone();
         self.stack = self.commit.1.clone();
 
