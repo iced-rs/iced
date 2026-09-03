@@ -1488,7 +1488,7 @@ fn notify_viewport<Message>(
 }
 
 #[derive(Debug, Clone, Copy)]
-struct State {
+pub(crate) struct State {
     offset_y: Offset,
     offset_x: Offset,
     interaction: Interaction,
@@ -1663,7 +1663,7 @@ impl State {
         }
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
+    pub(crate) fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
         if let Some(x) = offset.x {
             self.offset_x = Offset::Absolute(x.max(0.0));
         }
@@ -1674,7 +1674,7 @@ impl State {
     }
 
     /// Scroll by the provided [`AbsoluteOffset`].
-    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
+    pub(crate) fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
         self.scroll(Vector::new(offset.x, offset.y), bounds, content_bounds);
     }
 

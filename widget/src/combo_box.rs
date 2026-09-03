@@ -68,6 +68,7 @@ use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector};
 use crate::overlay::menu;
+use crate::scrollable;
 use crate::text::LineHeight;
 use crate::text_input;
 
@@ -556,6 +557,20 @@ where
                             index.saturating_sub(1)
                         });
 
+                        if index == 0 {
+                            let y =
+                                internal.menu.option_height() * internal.hovered_option() as f32;
+
+                            internal
+                                .menu
+                                .scroll_to(scrollable::AbsoluteOffset { x: 0.0, y });
+                        } else if internal.menu.scroll_up() {
+                            internal.menu.scroll_by(scrollable::AbsoluteOffset {
+                                x: 0.0,
+                                y: -internal.menu.option_height(),
+                            });
+                        }
+
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal
                                 .hovered_option
@@ -579,6 +594,19 @@ where
                                     .min(internal.filtered_options.len().saturating_sub(1))
                             },
                         );
+
+                        if internal.menu.scroll_down() {
+                            if internal.hovered_option() == 0 {
+                                internal
+                                    .menu
+                                    .scroll_to(scrollable::AbsoluteOffset { x: 0.0, y: 0.0 });
+                            } else {
+                                internal.menu.scroll_by(scrollable::AbsoluteOffset {
+                                    x: 0.0,
+                                    y: internal.menu.option_height(),
+                                });
+                            }
+                        }
 
                         if let Some(on_option_hovered) = &mut self.on_option_hovered
                             && let Some(option) = internal
