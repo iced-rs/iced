@@ -76,6 +76,13 @@ pub struct Format<Font> {
     pub color: Option<Color>,
     /// The `Font` of the text.
     pub font: Option<Font>,
+    /// The underline decoration of the text.
+    pub underline: Underline,
+    /// The [`Color`] of the underline.
+    ///
+    /// If `None`, the underline uses [`Format::color`], or the editor text color
+    /// if that is also `None`.
+    pub underline_color: Option<Color>,
 }
 
 impl<Font> Default for Format<Font> {
@@ -83,6 +90,20 @@ impl<Font> Default for Format<Font> {
         Self {
             color: None,
             font: None,
+            underline: Underline::None,
+            underline_color: None,
         }
     }
+}
+
+/// The underline decoration of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Underline {
+    /// No underline.
+    ///
+    /// This is the default.
+    #[default]
+    None,
+    /// A solid underline.
+    Solid,
 }

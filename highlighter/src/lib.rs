@@ -255,6 +255,8 @@ impl Highlight {
         Format {
             color: self.color(),
             font: self.font(),
+            underline: highlighter::Underline::None,
+            underline_color: None,
         }
     }
 }

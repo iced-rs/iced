@@ -1,3 +1,4 @@
+use iced::advanced::text::highlighter::Underline;
 use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
@@ -5,7 +6,7 @@ use iced::widget::{
     toggler, tooltip,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Font, Task, Theme, Window};
+use iced::{Center, Color, Element, Fill, Font, Task, Theme, Window};
 
 use std::ffi;
 use std::io;
@@ -203,13 +204,23 @@ impl Editor {
                 } else {
                     text::Wrapping::None
                 })
-                .highlight(
-                    self.file
-                        .as_deref()
-                        .and_then(Path::extension)
-                        .and_then(ffi::OsStr::to_str)
-                        .unwrap_or("rs"),
-                    self.theme,
+                .highlight_with::<highlighter::Highlighter>(
+                    highlighter::Settings {
+                        theme: self.theme,
+                        token: self
+                            .file
+                            .as_deref()
+                            .and_then(Path::extension)
+                            .and_then(ffi::OsStr::to_str)
+                            .unwrap_or("rs")
+                            .to_owned(),
+                    },
+                    |highlight, _theme| {
+                        let mut format = highlight.to_format();
+                        format.underline = Underline::Solid;
+                        format.underline_color = Some(Color::from_rgb8(220, 50, 47));
+                        format
+                    },
                 )
                 .key_binding(|key_press| {
                     match key_press.key.as_ref() {
