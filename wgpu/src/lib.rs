@@ -262,12 +262,30 @@ impl Renderer {
         self.staging_belt.recall();
 
         let slice = output_buffer.slice(..);
-        slice.map_async(wgpu::MapMode::Read, |_| {});
+        let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+        slice.map_async(wgpu::MapMode::Read, move |result| {
+            let _ = sender.send(result);
+        });
 
-        let _ = self.engine.device.poll(wgpu::PollType::Wait {
+        if let Err(error) = self.engine.device.poll(wgpu::PollType::Wait {
             submission_index: Some(index),
             timeout: None,
-        });
+        }) {
+            log::error!("Failed to wait for screenshot readback: {error}");
+            return Vec::new();
+        }
+
+        match receiver.try_recv() {
+            Ok(Ok(())) => {}
+            Ok(Err(error)) => {
+                log::error!("Failed to map screenshot buffer: {error}");
+                return Vec::new();
+            }
+            Err(error) => {
+                log::error!("Screenshot buffer mapping did not complete: {error}");
+                return Vec::new();
+            }
+        }
 
         let mapped_buffer = slice.get_mapped_range();
 
