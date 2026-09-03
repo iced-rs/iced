@@ -99,7 +99,13 @@ impl Layer {
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
-        self.draw_text_decorations(editor.buffer(), position, color, transformation);
+        self.draw_text_decorations(
+            editor.buffer(),
+            position,
+            color,
+            clip_bounds,
+            transformation,
+        );
 
         let editor = Text::Editor {
             editor: editor.downgrade(),
@@ -271,6 +277,7 @@ impl Layer {
         buffer: &cosmic_text::Buffer,
         position: Point,
         default_color: Color,
+        clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
         for run in buffer.layout_runs() {
@@ -298,11 +305,14 @@ impl Layer {
                 }
 
                 let mut record_quad = |x: f32, y: f32, w: f32, h: f32, color: Color| {
-                    self.pending_decorations.push(TextDecoration {
-                        rect: Rectangle::new(position + Vector::new(x, y), Size::new(w, h)),
-                        color,
-                        transformation,
-                    });
+                    let rect = Rectangle::new(position + Vector::new(x, y), Size::new(w, h));
+                    if let Some(clipped_bounds) = rect.intersection(&clip_bounds) {
+                        self.pending_decorations.push(TextDecoration {
+                            rect: clipped_bounds,
+                            color,
+                            transformation,
+                        });
+                    }
                 };
 
                 // Underline
