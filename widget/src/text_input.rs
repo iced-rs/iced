@@ -273,7 +273,13 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::<Renderer>::new())
+        tree::State::new(State::<Renderer>::new(self.id.clone()))
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        if tree.state.downcast_mut::<State<Renderer>>().last_id != self.id {
+            tree.state = self.state();
+        }
     }
 
     fn size(&self) -> Size<Length> {
@@ -476,6 +482,7 @@ struct State<R: text::Renderer> {
     input: text::Input<R>,
     value: String,
     transaction: Option<shell::Tracking>,
+    last_id: Option<widget::Id>,
 }
 
 fn state<Renderer: text::Renderer + 'static>(tree: &mut Tree) -> &mut State<Renderer> {
@@ -484,11 +491,12 @@ fn state<Renderer: text::Renderer + 'static>(tree: &mut Tree) -> &mut State<Rend
 
 impl<R: text::Renderer> State<R> {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
-    fn new() -> Self {
+    pub fn new(last_id: Option<widget::Id>) -> Self {
         Self {
             input: text::Input::new(),
             value: String::new(),
             transaction: None,
+            last_id,
         }
     }
 }
