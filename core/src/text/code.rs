@@ -1,7 +1,7 @@
 //! Primitives for parsing code and highlighting.
 use crate::Theme;
 use crate::font;
-use crate::text::highlighter::{self, Highlighter};
+use crate::text::highlighter;
 
 /// A specific region of code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -32,11 +32,12 @@ pub enum Code {
     Other,
 }
 
-impl Highlighter<Code> for Theme {
-    fn highlight(&self, code: Code) -> highlighter::Style {
-        let palette = self.palette();
+impl Code {
+    /// Highlights the [`Code`] with the given [`Theme`].
+    pub fn highlight(self, theme: &Theme) -> highlighter::Style {
+        let palette = theme.palette();
 
-        let color = match code {
+        let color = match self {
             Code::Keyword => Some(palette.primary.base.color),
             Code::Type | Code::Path | Code::Function => Some(palette.warning.base.color),
 
@@ -54,7 +55,7 @@ impl Highlighter<Code> for Theme {
 
         highlighter::Style {
             color,
-            style: (code == Code::Comment).then_some(font::Style::Italic),
+            style: (self == Code::Comment).then_some(font::Style::Italic),
         }
     }
 }

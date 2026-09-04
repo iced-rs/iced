@@ -38,6 +38,7 @@ use crate::core::length;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{self, Editor as _};
+use crate::core::text::highlighter;
 use crate::core::text::parser;
 use crate::core::text::{self, LineHeight, Text, Wrapping};
 use crate::core::theme;
@@ -53,6 +54,7 @@ use std::cell::RefCell;
 use std::fmt;
 use std::ops::DerefMut;
 
+pub use text::Code;
 pub use text::editor::{
     Action, Binding, Cursor, Edit, KeyPress, Line, LineEnding, Motion, Selection,
 };
@@ -110,6 +112,7 @@ where
     key_binding: Option<Box<dyn Fn(KeyPress) -> Option<Binding<Message>> + 'a>>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     parser_settings: Parser::Settings,
+    highlighter: Option<Box<dyn text::Highlighter<Parser::Output, Theme> + 'a>>,
     last_status: Option<Status>,
 }
 
@@ -135,8 +138,51 @@ where
             key_binding: None,
             on_edit: None,
             parser_settings: (),
+            highlighter: None,
             last_status: None,
         }
+    }
+}
+
+impl<'a, Message, Renderer> TextEditor<'a, parser::PlainText, Message, crate::Theme, Renderer>
+where
+    Renderer: text::Renderer,
+{
+    /// Highlights the [`TextEditor`] using the given syntax.
+    ///
+    /// ```no_run
+    /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+    /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+    /// #
+    /// use iced::color;
+    /// use iced::widget::text;
+    /// use iced::widget::text_editor;
+    /// use iced::Theme;
+    ///
+    /// struct State {
+    ///    content: text_editor::Content,
+    /// }
+    ///
+    /// fn view(state: &State) -> Element<'_, ()> {
+    ///     text_editor(&state.content)
+    ///         .highlight("rust")
+    ///         .into()
+    /// }
+    /// ```
+    #[cfg(feature = "highlighter")]
+    pub fn highlight(
+        self,
+        syntax: &str,
+    ) -> TextEditor<'a, iced_highlighter::Parser, Message, crate::Theme, Renderer>
+    where
+        Renderer: text::Renderer<Font = crate::core::Font>,
+    {
+        self.highlight_with(
+            iced_highlighter::Settings {
+                token: syntax.to_owned(),
+            },
+            Code::highlight,
+        )
     }
 }
 
@@ -211,24 +257,12 @@ where
         self
     }
 
-    /// Highlights the [`TextEditor`] using the given syntax and theme.
-    #[cfg(feature = "highlighter")]
-    pub fn highlight(
-        self,
-        syntax: &str,
-    ) -> TextEditor<'a, iced_highlighter::Parser, Message, Theme, Renderer>
-    where
-        Renderer: text::Renderer<Font = crate::core::Font>,
-    {
-        self.highlight_with::<iced_highlighter::Parser>(iced_highlighter::Settings {
-            token: syntax.to_owned(),
-        })
-    }
-
-    /// Highlights the [`TextEditor`] with the given [`text::Parser`].
+    /// Highlights the [`TextEditor`] with the given [`text::Parser`] and
+    /// [`text::Highlighter`].
     pub fn highlight_with<P: text::Parser>(
         self,
         settings: P::Settings,
+        highlighter: impl text::Highlighter<P::Output, Theme> + 'a,
     ) -> TextEditor<'a, P, Message, Theme, Renderer> {
         TextEditor {
             id: self.id,
@@ -245,6 +279,7 @@ where
             key_binding: self.key_binding,
             on_edit: self.on_edit,
             parser_settings: settings,
+            highlighter: Some(Box::new(highlighter)),
             last_status: self.last_status,
         }
     }
@@ -290,7 +325,7 @@ impl<Parser, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for TextEditor<'_, Parser, Message, Theme, Renderer>
 where
     Parser: text::Parser,
-    Theme: Catalog + text::Highlighter<Parser::Output>,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
@@ -492,7 +527,13 @@ where
 
         internal
             .editor
-            .highlight(font, state.parser.borrow_mut().deref_mut(), theme);
+            .highlight(font, state.parser.borrow_mut().deref_mut(), |output| {
+                let Some(highlighter) = &self.highlighter else {
+                    return highlighter::Style::default();
+                };
+
+                highlighter.highlight(output, theme)
+            });
 
         let style = theme.style(&self.class, self.last_status.unwrap_or(Status::Active));
 
@@ -586,7 +627,7 @@ impl<'a, Parser, Message, Theme, Renderer> From<TextEditor<'a, Parser, Message, 
 where
     Parser: text::Parser,
     Message: 'a,
-    Theme: Catalog + text::Highlighter<Parser::Output> + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer,
 {
     fn from(text_editor: TextEditor<'a, Parser, Message, Theme, Renderer>) -> Self {

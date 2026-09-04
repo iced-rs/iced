@@ -1,6 +1,7 @@
 //! Draw and edit text.
 use crate::core::text::editor::{self, Action, Cursor, Direction, Edit, Motion, Selection};
-use crate::core::text::{Alignment, Highlighter, LineHeight, Parser, Position, Wrapping};
+use crate::core::text::highlighter;
+use crate::core::text::{Alignment, LineHeight, Parser, Position, Wrapping};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -800,7 +801,7 @@ impl editor::Editor for Editor {
         &mut self,
         font: Self::Font,
         parser: &mut P,
-        highlighter: &impl Highlighter<P::Output>,
+        highlight: impl Fn(P::Output) -> highlighter::Style,
     ) {
         let internal = self.internal();
         let buffer = buffer_from_editor(&internal.editor);
@@ -850,7 +851,7 @@ impl editor::Editor for Editor {
             let mut list = cosmic_text::AttrsList::new(&attributes);
 
             for (range, output) in parser.parse_line(line.text()) {
-                let format = highlighter.highlight(output);
+                let format = highlight(output);
 
                 if format.color.is_some() || format.style.is_some() {
                     list.add_span(

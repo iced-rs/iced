@@ -185,8 +185,8 @@ impl Markdown {
         let preview = markdown::view_with(
             self.content.items(),
             markdown::Settings::default(),
-            &self.theme,
             &CustomViewer {
+                theme: &self.theme,
                 images: &self.images,
                 now: self.now,
             },
@@ -247,11 +247,20 @@ impl Markdown {
 }
 
 struct CustomViewer<'a> {
+    theme: &'a Theme,
     images: &'a HashMap<markdown::Uri, Image>,
     now: Instant,
 }
 
 impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
+    fn theme(&self) -> &Theme {
+        self.theme
+    }
+
+    fn highlighter(&self) -> &dyn iced::widget::text::Highlighter<iced::widget::text::Code> {
+        &markdown::Code::highlight
+    }
+
     fn on_link_click(url: markdown::Uri) -> Message {
         Message::LinkClicked(url)
     }
@@ -259,7 +268,6 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
     fn image(
         &self,
         _settings: markdown::Settings,
-        _theme: &Theme,
         url: &'a markdown::Uri,
         _title: &'a str,
         _alt: &markdown::Text,
@@ -283,12 +291,11 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
     fn code_block(
         &self,
         settings: markdown::Settings,
-        theme: &Theme,
         _language: Option<&'a str>,
         code: &'a str,
         lines: &'a [markdown::Text],
     ) -> Element<'a, Message> {
-        let code_block = markdown::code_block(settings, theme, lines, Message::LinkClicked);
+        let code_block = markdown::code_block(self, settings, lines, Message::LinkClicked);
 
         let copy = button(icon::copy().size(12))
             .padding(2)

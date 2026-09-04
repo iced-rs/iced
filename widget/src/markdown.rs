@@ -32,7 +32,7 @@
 //!         markdown::view(
 //!             &self.markdown,
 //!             markdown::Settings::default(),
-//!             &Theme::TokyoNight,
+//!             Theme::TokyoNight,
 //!         )
 //!             .map(Message::LinkClicked)
 //!             .into()
@@ -64,7 +64,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub use core::text::Highlight;
+pub use core::text::{Code, Highlight};
 pub use pulldown_cmark::HeadingLevel;
 
 /// A [`String`] representing a [URI] in a Markdown document
@@ -255,7 +255,7 @@ pub struct Row {
 #[derive(Debug, Clone)]
 pub struct Text {
     spans: Vec<Span>,
-    last_style: RefCell<Option<(Settings, String)>>,
+    last_style: RefCell<Option<(Settings, String, String)>>,
     last_styled_spans: RefCell<Arc<[text::Span<'static, Uri>]>>,
 }
 
@@ -271,28 +271,30 @@ impl Text {
     /// Returns the [`rich_text()`] spans ready to be used for the given style.
     ///
     /// This method performs caching for you. It will only reallocate if the [`Settings`]
-    /// provided changes.
-    pub fn spans(
+    /// or the [`Catalog`] provided changes.
+    pub fn spans<Theme: Catalog>(
         &self,
         settings: Settings,
-        theme: &impl Catalog,
+        theme: &Theme,
+        highlighter: &dyn text::Highlighter<Code, Theme>,
     ) -> Arc<[text::Span<'static, Uri>]> {
-        let is_dirty =
-            self.last_style
-                .borrow()
-                .as_ref()
-                .is_none_or(|(last_settings, last_theme)| {
-                    &settings != last_settings || theme.id() != last_theme
-                });
+        let is_dirty = self.last_style.borrow().as_ref().is_none_or(
+            |(last_settings, last_theme, last_highlighter)| {
+                &settings != last_settings
+                    || theme.id() != last_theme
+                    || highlighter.id() != last_highlighter
+            },
+        );
 
         if is_dirty {
             *self.last_styled_spans.borrow_mut() = self
                 .spans
                 .iter()
-                .map(|span| span.view(&settings, theme))
+                .map(|span| span.view(&settings, theme, highlighter))
                 .collect();
 
-            *self.last_style.borrow_mut() = Some((settings, theme.id().to_owned()));
+            *self.last_style.borrow_mut() =
+                Some((settings, theme.id().to_owned(), highlighter.id().to_owned()));
         }
 
         self.last_styled_spans.borrow().clone()
@@ -311,12 +313,17 @@ enum Span {
     },
     Code {
         text: String,
-        code: core::text::Code,
+        code: Code,
     },
 }
 
 impl Span {
-    fn view(&self, settings: &Settings, theme: &impl Catalog) -> text::Span<'static, Uri> {
+    fn view<Theme: Catalog>(
+        &self,
+        settings: &Settings,
+        theme: &Theme,
+        highlighter: &dyn text::Highlighter<Code, Theme>,
+    ) -> text::Span<'static, Uri> {
         match self {
             Span::Standard {
                 text,
@@ -361,7 +368,7 @@ impl Span {
                 }
             }
             Span::Code { text, code } => {
-                let format = theme.highlight(*code);
+                let format = highlighter.highlight(*code, theme);
 
                 span(text.clone())
                     .color_maybe(format.color)
@@ -434,7 +441,7 @@ impl Bullet {
 ///         markdown::view(
 ///             &self.markdown,
 ///             markdown::Settings::default(),
-///             &Theme::TokyoNight,
+///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
@@ -941,7 +948,7 @@ fn parse_with<'a>(
                 for line in text.lines() {
                     code_lines.push(Text::new(vec![Span::Code {
                         text: line.to_owned(),
-                        code: core::text::Code::Other,
+                        code: Code::Other,
                     }]));
                 }
 
@@ -1106,7 +1113,7 @@ impl Default for Settings {
 ///         markdown::view(
 ///             &self.markdown,
 ///             markdown::Settings::default(),
-///             &Theme::TokyoNight,
+///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
@@ -1124,13 +1131,20 @@ impl Default for Settings {
 pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: impl Into<Settings>,
-    theme: &Theme,
+    theme: Theme,
 ) -> Element<'a, Uri, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    view_with(items, settings, theme, &DefaultViewer)
+    view_with(
+        items,
+        settings,
+        &DefaultViewer {
+            theme,
+            highlighter: None,
+        },
+    )
 }
 
 /// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into
@@ -1141,7 +1155,6 @@ where
 pub fn view_with<'a, Message, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: impl Into<Settings>,
-    theme: &Theme,
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1154,7 +1167,7 @@ where
     let blocks = items
         .into_iter()
         .enumerate()
-        .map(|(i, item_)| item(viewer, settings, theme, item_, i));
+        .map(move |(i, item_)| item(viewer, settings, item_, i));
 
     Element::new(column(blocks).spacing(settings.spacing))
 }
@@ -1163,7 +1176,6 @@ where
 pub fn item<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     item: &'a Item,
     index: usize,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1173,32 +1185,32 @@ where
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
     match item {
-        Item::Image { url, title, alt } => viewer.image(settings, theme, url, title, alt),
-        Item::Heading(level, text) => viewer.heading(settings, theme, level, text, index),
-        Item::Paragraph(text) => viewer.paragraph(settings, theme, text),
+        Item::Image { url, title, alt } => viewer.image(settings, url, title, alt),
+        Item::Heading(level, text) => viewer.heading(settings, level, text, index),
+        Item::Paragraph(text) => viewer.paragraph(settings, text),
         Item::CodeBlock {
             language,
             code,
             lines,
-        } => viewer.code_block(settings, theme, language.as_deref(), code, lines),
+        } => viewer.code_block(settings, language.as_deref(), code, lines),
         Item::List {
             start: None,
             bullets,
-        } => viewer.unordered_list(settings, theme, bullets),
+        } => viewer.unordered_list(settings, bullets),
         Item::List {
             start: Some(start),
             bullets,
-        } => viewer.ordered_list(settings, theme, *start, bullets),
-        Item::Quote(quote) => viewer.quote(settings, theme, quote),
-        Item::Rule => viewer.rule(settings),
-        Item::Table { columns, rows } => viewer.table(settings, theme, columns, rows),
+        } => viewer.ordered_list(settings, *start, bullets),
+        Item::Quote(quote) => viewer.quote(settings, quote),
+        Item::Rule => viewer.rule(),
+        Item::Table { columns, rows } => viewer.table(settings, columns, rows),
     }
 }
 
 /// Displays a heading using the default look.
 pub fn heading<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     level: &'a HeadingLevel,
     text: &'a Text,
     index: usize,
@@ -1221,7 +1233,7 @@ where
     } = settings;
 
     container(
-        rich_text(text.spans(settings, theme))
+        rich_text(text.spans(settings, viewer.theme(), viewer.highlighter()))
             .on_link_click(on_link_click)
             .size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
@@ -1242,8 +1254,8 @@ where
 
 /// Displays a paragraph using the default look.
 pub fn paragraph<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     text: &Text,
     on_link_click: impl Fn(Uri) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1252,7 +1264,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    rich_text(text.spans(settings, theme))
+    rich_text(text.spans(settings, viewer.theme(), viewer.highlighter()))
         .size(settings.text_size)
         .on_link_click(on_link_click)
         .into()
@@ -1263,7 +1275,6 @@ where
 pub fn unordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1284,14 +1295,13 @@ where
                     )
                 }
             },
-            view_with(
-                bullet.items(),
+            items(
+                viewer,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
-                theme,
-                viewer,
+                bullet.items(),
             )
         ]
         .spacing(settings.spacing)
@@ -1307,7 +1317,6 @@ where
 pub fn ordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     start: u64,
     bullets: &'a [Bullet],
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1324,14 +1333,13 @@ where
                 .size(settings.text_size)
                 .align_x(alignment::Horizontal::Right)
                 .width(settings.text_size * ((digits as f32 / 2.0).ceil() + 1.0)),
-            view_with(
-                bullet.items(),
+            items(
+                viewer,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
-                theme,
-                viewer,
+                bullet.items(),
             )
         ]
         .spacing(settings.spacing)
@@ -1343,8 +1351,8 @@ where
 
 /// Displays a code block using the default look.
 pub fn code_block<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     lines: &'a [Text],
     on_link_click: impl Fn(Uri) -> Message + Clone + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1356,7 +1364,7 @@ where
     container(
         scrollable(
             container(column(lines.iter().map(|line| {
-                rich_text(line.spans(settings, theme))
+                rich_text(line.spans(settings, viewer.theme(), viewer.highlighter()))
                     .on_link_click(on_link_click.clone())
                     .font(settings.code_block_font)
                     .size(settings.code_size)
@@ -1380,7 +1388,6 @@ where
 pub fn quote<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     contents: &'a [Item],
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1394,7 +1401,7 @@ where
             contents
                 .iter()
                 .enumerate()
-                .map(|(i, content)| item(viewer, settings, theme, content, i)),
+                .map(|(i, content)| item(viewer, settings, content, i)),
         )
         .spacing(settings.spacing.0),
     ]
@@ -1417,7 +1424,6 @@ where
 pub fn table<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     columns: &'a [Column],
     rows: &'a [Row],
 ) -> Element<'a, Message, Theme, Renderer>
@@ -1430,16 +1436,13 @@ where
 
     let table = table(
         columns.iter().enumerate().map(move |(i, column)| {
-            table::column(
-                items(viewer, settings, theme, &column.header),
-                move |row: &Row| {
-                    if let Some(cells) = row.cells.get(i) {
-                        items(viewer, settings, theme, cells)
-                    } else {
-                        text("").into()
-                    }
-                },
-            )
+            table::column(items(viewer, settings, &column.header), move |row: &Row| {
+                if let Some(cells) = row.cells.get(i) {
+                    items(viewer, settings, cells)
+                } else {
+                    text("").into()
+                }
+            })
             .align_x(match column.alignment {
                 pulldown_cmark::Alignment::None | pulldown_cmark::Alignment::Left => {
                     alignment::Horizontal::Left
@@ -1466,7 +1469,6 @@ where
 pub fn items<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
-    theme: &Theme,
     items: &'a [Item],
 ) -> Element<'a, Message, Theme, Renderer>
 where
@@ -1478,13 +1480,16 @@ where
         items
             .iter()
             .enumerate()
-            .map(|(i, content)| item(viewer, settings, theme, content, i)),
+            .map(|(i, content)| item(viewer, settings, content, i)),
     )
     .spacing(settings.spacing.0)
     .into()
 }
 
 /// A view strategy to display a Markdown [`Item`].
+///
+/// A [`Viewer`] is in charge of turning each [`Item`] into an [`Element`]. It
+/// also provides the [`Theme`] and [`text::Highlighter`] used for rendering.
 pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Self: Sized + 'a,
@@ -1492,6 +1497,12 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    /// The [`Theme`] used for styling the Markdown elements.
+    fn theme(&self) -> &Theme;
+
+    /// The [`text::Highlighter`] used for highligthing [`Code`] regions.
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Theme>;
+
     /// Produces a message when a link is clicked with the given [`Uri`].
     fn on_link_click(url: Uri) -> Message;
 
@@ -1501,7 +1512,6 @@ where
     fn image(
         &self,
         settings: Settings,
-        theme: &Theme,
         url: &'a Uri,
         title: &'a str,
         alt: &Text,
@@ -1509,10 +1519,13 @@ where
         let _url = url;
         let _title = title;
 
-        container(rich_text(alt.spans(settings, theme)).on_link_click(Self::on_link_click))
-            .padding(settings.spacing.0)
-            .class(Theme::code_block())
-            .into()
+        container(
+            rich_text(alt.spans(settings, self.theme(), self.highlighter()))
+                .on_link_click(Self::on_link_click),
+        )
+        .padding(settings.spacing.0)
+        .class(Theme::code_block())
+        .into()
     }
 
     /// Displays a heading.
@@ -1521,24 +1534,18 @@ where
     fn heading(
         &self,
         settings: Settings,
-        theme: &Theme,
         level: &'a HeadingLevel,
         text: &'a Text,
         index: usize,
     ) -> Element<'a, Message, Theme, Renderer> {
-        heading(settings, theme, level, text, index, Self::on_link_click)
+        heading(self, settings, level, text, index, Self::on_link_click)
     }
 
     /// Displays a paragraph.
     ///
     /// By default, it calls [`paragraph`].
-    fn paragraph(
-        &self,
-        settings: Settings,
-        theme: &Theme,
-        text: &Text,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        paragraph(settings, theme, text, Self::on_link_click)
+    fn paragraph(&self, settings: Settings, text: &Text) -> Element<'a, Message, Theme, Renderer> {
+        paragraph(self, settings, text, Self::on_link_click)
     }
 
     /// Displays a code block.
@@ -1547,7 +1554,6 @@ where
     fn code_block(
         &self,
         settings: Settings,
-        theme: &Theme,
         language: Option<&'a str>,
         code: &'a str,
         lines: &'a [Text],
@@ -1555,7 +1561,7 @@ where
         let _language = language;
         let _code = code;
 
-        code_block(settings, theme, lines, Self::on_link_click)
+        code_block(self, settings, lines, Self::on_link_click)
     }
 
     /// Displays an unordered list.
@@ -1564,10 +1570,9 @@ where
     fn unordered_list(
         &self,
         settings: Settings,
-        theme: &Theme,
         bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        unordered_list(self, settings, theme, bullets)
+        unordered_list(self, settings, bullets)
     }
 
     /// Displays an ordered list.
@@ -1576,11 +1581,10 @@ where
     fn ordered_list(
         &self,
         settings: Settings,
-        theme: &Theme,
         start: u64,
         bullets: &'a [Bullet],
     ) -> Element<'a, Message, Theme, Renderer> {
-        ordered_list(self, settings, theme, start, bullets)
+        ordered_list(self, settings, start, bullets)
     }
 
     /// Displays a quote.
@@ -1589,16 +1593,15 @@ where
     fn quote(
         &self,
         settings: Settings,
-        theme: &Theme,
         contents: &'a [Item],
     ) -> Element<'a, Message, Theme, Renderer> {
-        quote(self, settings, theme, contents)
+        quote(self, settings, contents)
     }
 
     /// Displays a rule.
     ///
     /// By default, it calls [`rule`](self::rule()).
-    fn rule(&self, _settings: Settings) -> Element<'a, Message, Theme, Renderer> {
+    fn rule(&self) -> Element<'a, Message, Theme, Renderer> {
         rule()
     }
 
@@ -1608,22 +1611,51 @@ where
     fn table(
         &self,
         settings: Settings,
-        theme: &Theme,
         columns: &'a [Column],
         rows: &'a [Row],
     ) -> Element<'a, Message, Theme, Renderer> {
-        table(self, settings, theme, columns, rows)
+        table(self, settings, columns, rows)
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct DefaultViewer;
+/// The default [`Viewer`].
+pub struct DefaultViewer<'a, Theme> {
+    theme: Theme,
+    highlighter: Option<Box<dyn text::Highlighter<Code, Theme> + 'a>>,
+}
 
-impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer
+impl<'a, Theme> DefaultViewer<'a, Theme> {
+    /// Creates a new [`DefaultViewer`] with the given [`Theme`] and
+    /// [`text::Highlighter`].
+    pub fn new(theme: Theme) -> Self {
+        Self {
+            theme,
+            highlighter: None,
+        }
+    }
+
+    /// Sets a custom [`text::Highlighter`] for the [`DefaultViewer`].
+    pub fn highlighter(mut self, highlighter: impl text::Highlighter<Code, Theme> + 'a) -> Self {
+        self.highlighter = Some(Box::new(highlighter));
+        self
+    }
+}
+
+impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer<'a, Theme>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    fn theme(&self) -> &Theme {
+        &self.theme
+    }
+
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Theme> {
+        self.highlighter
+            .as_deref()
+            .unwrap_or_else(|| self.theme.highlighter())
+    }
+
     fn on_link_click(url: Uri) -> Uri {
         url
     }
@@ -1637,7 +1669,6 @@ pub trait Catalog:
     + crate::rule::Catalog
     + checkbox::Catalog
     + crate::table::Catalog
-    + text::Highlighter<core::text::Code>
     + Clone
     + PartialEq
 {
@@ -1654,6 +1685,9 @@ pub trait Catalog:
 
     /// The styling class of a Markdown code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
+
+    /// The default [`text::Highlighter`] to use to highlight code.
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Self>;
 }
 
 /// The style of some inline code.
@@ -1693,5 +1727,9 @@ impl Catalog for Theme {
 
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a> {
         Box::new(container::dark)
+    }
+
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Self> {
+        &Code::highlight
     }
 }

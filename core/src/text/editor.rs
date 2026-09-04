@@ -5,6 +5,7 @@ use crate::keyboard;
 use crate::keyboard::key;
 use crate::mouse;
 use crate::renderer;
+use crate::text::highlighter;
 use crate::text::{self, Alignment, LineHeight, Position, Wrapping};
 use crate::time::{Duration, Instant};
 use crate::widget::operation::{Focusable, TextInput};
@@ -77,7 +78,7 @@ pub trait Editor: Sized + Default {
         &mut self,
         font: Self::Font,
         parser: &mut P,
-        highlighter: &impl text::Highlighter<P::Output>,
+        highlight: impl Fn(P::Output) -> highlighter::Style,
     );
 
     /// Returns an iterator of the text of the lines in the [`Editor`].
