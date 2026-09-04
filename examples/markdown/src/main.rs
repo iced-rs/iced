@@ -73,7 +73,7 @@ impl Markdown {
                 raw: text_editor::Content::with_text(INITIAL_CONTENT),
                 images: HashMap::new(),
                 mode: Mode::Preview,
-                theme: Theme::TokyoNight,
+                theme: Theme::CatppuccinMocha,
                 now: Instant::now(),
             },
             operation::focus_next(),

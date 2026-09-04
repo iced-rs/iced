@@ -1641,9 +1641,7 @@ impl Catalog for Theme {
             padding: padding::horizontal(1),
             highlight: Highlight {
                 background: palette.background.weaker.color.into(),
-                border: border::rounded(4)
-                    .width(0.5)
-                    .color(palette.background.weak.color),
+                border: border::rounded(4),
             },
             color: palette.background.weaker.text,
         }
