@@ -1,5 +1,6 @@
 //! Draw and interact with text.
-pub mod code;
+mod code;
+
 pub mod editor;
 pub mod highlighter;
 pub mod input;

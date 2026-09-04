@@ -1,4 +1,3 @@
-//! Primitives for parsing code and highlighting.
 use crate::Theme;
 use crate::font;
 use crate::text::highlighter;

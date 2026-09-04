@@ -64,7 +64,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub use core::text::{Code, Highlight};
+pub use core::text::{Code, Highlight, Highlighter};
 pub use pulldown_cmark::HeadingLevel;
 
 /// A [`String`] representing a [URI] in a Markdown document
@@ -157,7 +157,7 @@ impl Content {
                         references: self.state.references.clone(),
                         images: HashSet::new(),
                         #[cfg(feature = "highlighter")]
-                        highlighter: None,
+                        parser: None,
                     };
 
                     if let Some((item, _source, _broken_links)) =
@@ -466,82 +466,7 @@ struct State {
     references: HashMap<String, String>,
     images: HashSet<Uri>,
     #[cfg(feature = "highlighter")]
-    highlighter: Option<Highlighter>,
-}
-
-#[cfg(feature = "highlighter")]
-#[derive(Debug)]
-struct Highlighter {
-    lines: Vec<(String, Vec<Span>)>,
-    language: String,
-    parser: iced_highlighter::Stream,
-    current: usize,
-}
-
-#[cfg(feature = "highlighter")]
-impl Highlighter {
-    pub fn new(language: &str) -> Self {
-        Self {
-            lines: Vec::new(),
-            parser: iced_highlighter::Stream::new(&iced_highlighter::Settings {
-                token: language.to_owned(),
-            }),
-            language: language.to_owned(),
-            current: 0,
-        }
-    }
-
-    pub fn prepare(&mut self) {
-        self.current = 0;
-    }
-
-    pub fn parse_line(&mut self, text: &str) -> &[Span] {
-        match self.lines.get(self.current) {
-            Some(line) if line.0 == text => {}
-            _ => {
-                if self.current + 1 < self.lines.len() {
-                    log::debug!("Resetting highlighter...");
-                    self.parser.reset();
-                    self.lines.truncate(self.current);
-
-                    for line in &self.lines {
-                        log::debug!("Refeeding {n} lines", n = self.lines.len());
-
-                        let _ = self.parser.parse_line(&line.0);
-                    }
-                }
-
-                log::trace!("Parsing: {text}", text = text.trim_end());
-
-                if self.current + 1 < self.lines.len() {
-                    self.parser.commit();
-                }
-
-                let mut spans = Vec::new();
-
-                for (range, code) in self.parser.parse_line(text) {
-                    spans.push(Span::Code {
-                        text: text[range].to_owned(),
-                        code,
-                    });
-                }
-
-                if self.current + 1 == self.lines.len() {
-                    let _ = self.lines.pop();
-                }
-
-                self.lines.push((text.to_owned(), spans));
-            }
-        }
-
-        self.current += 1;
-
-        &self
-            .lines
-            .get(self.current - 1)
-            .expect("Line must be parsed")
-            .1
-    }
+    parser: Option<code::Parser>,
 }
 
 fn parse_with<'a>(
@@ -580,7 +505,7 @@ fn parse_with<'a>(
     let mut stack = Vec::new();
 
     #[cfg(feature = "highlighter")]
-    let mut highlighter = None;
+    let mut code_parser = None;
 
     let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
         markdown,
@@ -716,19 +641,19 @@ fn parse_with<'a>(
             {
                 #[cfg(feature = "highlighter")]
                 {
-                    highlighter = Some({
-                        let mut highlighter = state
+                    code_parser = Some({
+                        let mut code_parser = state
                             .borrow_mut()
-                            .highlighter
+                            .parser
                             .take()
-                            .filter(|highlighter| highlighter.language == language.as_ref())
+                            .filter(|parser| parser.language() == language.as_ref())
                             .unwrap_or_else(|| {
-                                Highlighter::new(language.split(',').next().unwrap_or_default())
+                                code::Parser::new(language.split(',').next().unwrap_or_default())
                             });
 
-                        highlighter.prepare();
+                        code_parser.prepare();
 
-                        highlighter
+                        code_parser
                     });
                 }
 
@@ -861,7 +786,7 @@ fn parse_with<'a>(
 
                 #[cfg(feature = "highlighter")]
                 {
-                    state.borrow_mut().highlighter = highlighter.take();
+                    state.borrow_mut().parser = code_parser.take();
                 }
 
                 produce(
@@ -938,7 +863,7 @@ fn parse_with<'a>(
                 code.push_str(&text);
 
                 #[cfg(feature = "highlighter")]
-                if let Some(highlighter) = &mut highlighter {
+                if let Some(highlighter) = &mut code_parser {
                     for line in text.lines() {
                         code_lines.push(Text::new(highlighter.parse_line(line).to_vec()));
                     }
@@ -1625,8 +1550,7 @@ pub struct DefaultViewer<'a, Theme> {
 }
 
 impl<'a, Theme> DefaultViewer<'a, Theme> {
-    /// Creates a new [`DefaultViewer`] with the given [`Theme`] and
-    /// [`text::Highlighter`].
+    /// Creates a new [`DefaultViewer`] with the given [`Theme`].
     pub fn new(theme: Theme) -> Self {
         Self {
             theme,
@@ -1731,5 +1655,87 @@ impl Catalog for Theme {
 
     fn highlighter(&self) -> &dyn text::Highlighter<Code, Self> {
         &Code::highlight
+    }
+}
+
+#[cfg(feature = "highlighter")]
+mod code {
+    use super::Span;
+
+    #[derive(Debug)]
+    pub struct Parser {
+        lines: Vec<(String, Vec<Span>)>,
+        language: String,
+        stream: iced_highlighter::Stream,
+        current: usize,
+    }
+
+    impl Parser {
+        pub fn new(language: &str) -> Self {
+            Self {
+                lines: Vec::new(),
+                stream: iced_highlighter::Stream::new(&iced_highlighter::Settings {
+                    token: language.to_owned(),
+                }),
+                language: language.to_owned(),
+                current: 0,
+            }
+        }
+
+        pub fn language(&self) -> &str {
+            &self.language
+        }
+
+        pub fn prepare(&mut self) {
+            self.current = 0;
+        }
+
+        pub fn parse_line(&mut self, text: &str) -> &[Span] {
+            match self.lines.get(self.current) {
+                Some(line) if line.0 == text => {}
+                _ => {
+                    if self.current + 1 < self.lines.len() {
+                        log::debug!("Resetting highlighter...");
+                        self.stream.reset();
+                        self.lines.truncate(self.current);
+
+                        for line in &self.lines {
+                            log::debug!("Refeeding {n} lines", n = self.lines.len());
+
+                            let _ = self.stream.parse_line(&line.0);
+                        }
+                    }
+
+                    log::trace!("Parsing: {text}", text = text.trim_end());
+
+                    if self.current + 1 < self.lines.len() {
+                        self.stream.commit();
+                    }
+
+                    let mut spans = Vec::new();
+
+                    for (range, code) in self.stream.parse_line(text) {
+                        spans.push(Span::Code {
+                            text: text[range].to_owned(),
+                            code,
+                        });
+                    }
+
+                    if self.current + 1 == self.lines.len() {
+                        let _ = self.lines.pop();
+                    }
+
+                    self.lines.push((text.to_owned(), spans));
+                }
+            }
+
+            self.current += 1;
+
+            &self
+                .lines
+                .get(self.current - 1)
+                .expect("Line must be parsed")
+                .1
+        }
     }
 }

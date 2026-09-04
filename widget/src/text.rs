@@ -1,9 +1,8 @@
 //! Draw and interact with text.
 mod rich;
 
-pub use crate::core::text::code;
 pub use crate::core::text::highlighter;
-pub use crate::core::text::{Code, Fragment, Highlighter, IntoFragment, Parser, Span};
+pub use crate::core::text::{Fragment, Highlighter, IntoFragment, Parser, Span};
 pub use crate::core::widget::text::*;
 pub use rich::Rich;
 

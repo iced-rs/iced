@@ -54,10 +54,10 @@ use std::cell::RefCell;
 use std::fmt;
 use std::ops::DerefMut;
 
-pub use text::Code;
 pub use text::editor::{
     Action, Binding, Cursor, Edit, KeyPress, Line, LineEnding, Motion, Selection,
 };
+pub use text::{Code, Highlighter};
 
 /// A multi-line text input.
 ///

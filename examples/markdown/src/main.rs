@@ -257,7 +257,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         self.theme
     }
 
-    fn highlighter(&self) -> &dyn iced::widget::text::Highlighter<iced::widget::text::Code> {
+    fn highlighter(&self) -> &dyn markdown::Highlighter<markdown::Code> {
         &markdown::Code::highlight
     }
 
