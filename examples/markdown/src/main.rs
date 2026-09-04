@@ -8,7 +8,7 @@ use iced::widget::{
     scrollable, sensor, space, text_editor, toggler,
 };
 use iced::window;
-use iced::{Animation, Center, Element, Fill, Font, Function, Subscription, Task, Theme};
+use iced::{Animation, Center, Code, Element, Fill, Font, Function, Subscription, Task, Theme};
 
 use std::collections::HashMap;
 use std::io;
@@ -257,8 +257,8 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         self.theme
     }
 
-    fn highlighter(&self) -> &dyn markdown::Highlighter<markdown::Code> {
-        &markdown::Code::highlight
+    fn highlighter(&self) -> &dyn markdown::Highlighter<Code> {
+        &Code::highlight
     }
 
     fn on_link_click(url: markdown::Uri) -> Message {

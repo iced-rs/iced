@@ -45,8 +45,8 @@ use crate::core::theme;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size,
-    Theme,
+    Background, Border, Code, Color, Element, Event, Length, Padding, Pixels, Rectangle, Shell,
+    Size, Theme,
 };
 
 use std::borrow::Cow;
@@ -54,10 +54,10 @@ use std::cell::RefCell;
 use std::fmt;
 use std::ops::DerefMut;
 
+pub use text::Highlighter;
 pub use text::editor::{
     Action, Binding, Cursor, Edit, KeyPress, Line, LineEnding, Motion, Selection,
 };
-pub use text::{Code, Highlighter};
 
 /// A multi-line text input.
 ///

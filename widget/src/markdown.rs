@@ -53,7 +53,7 @@ use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::theme;
-use crate::core::{Color, Element, Length, Padding, Pixels, Theme};
+use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
@@ -64,7 +64,7 @@ use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub use core::text::{Code, Highlight, Highlighter};
+pub use core::text::{Highlight, Highlighter};
 pub use pulldown_cmark::HeadingLevel;
 
 /// A [`String`] representing a [URI] in a Markdown document

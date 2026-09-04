@@ -1,8 +1,8 @@
 //! A syntax highlighter for iced.
 use iced_core as core;
 
+use crate::core::Code;
 use crate::core::text;
-use crate::core::text::Code;
 
 use std::ops::Range;
 use std::sync::LazyLock;
