@@ -34,6 +34,7 @@ impl Tiger {
                 } else {
                     None
                 },
+                ..Default::default()
             });
 
         let apply_color_filter = checkbox(self.apply_color_filter)
