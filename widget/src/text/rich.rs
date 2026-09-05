@@ -1,4 +1,5 @@
 use crate::core::alignment;
+use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -8,8 +9,8 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    self, Border, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A bunch of [`Rich`] text.
@@ -272,16 +273,43 @@ where
                 let regions = state.paragraph.span_bounds(index);
 
                 if let Some(highlight) = span.highlight {
-                    for bounds in &regions {
+                    for (i, bounds) in regions.iter().enumerate() {
                         let bounds = Rectangle::new(
                             bounds.position() - Vector::new(span.padding.left, span.padding.top),
                             bounds.size() + Size::new(span.padding.x(), span.padding.y()),
                         );
 
+                        let starts = i == 0;
+                        let ends = i + 1 == regions.len();
+
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: bounds + translation,
-                                border: highlight.border,
+                                border: Border {
+                                    radius: border::Radius {
+                                        top_left: if starts {
+                                            highlight.border.radius.top_left
+                                        } else {
+                                            0.0
+                                        },
+                                        bottom_left: if starts {
+                                            highlight.border.radius.bottom_left
+                                        } else {
+                                            0.0
+                                        },
+                                        top_right: if ends {
+                                            highlight.border.radius.top_right
+                                        } else {
+                                            0.0
+                                        },
+                                        bottom_right: if ends {
+                                            highlight.border.radius.bottom_right
+                                        } else {
+                                            0.0
+                                        },
+                                    },
+                                    ..highlight.border
+                                },
                                 ..Default::default()
                             },
                             highlight.background,

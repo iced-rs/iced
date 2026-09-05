@@ -1,4 +1,3 @@
-use iced::highlighter;
 use iced::keyboard;
 use iced::widget::{
     button, center_x, column, container, operation, pick_list, row, space, text, text_editor,
@@ -23,7 +22,7 @@ pub fn main() -> iced::Result {
 struct Editor {
     file: Option<PathBuf>,
     content: text_editor::Content,
-    theme: highlighter::Theme,
+    theme: Theme,
     word_wrap: bool,
     is_loading: bool,
     is_dirty: bool,
@@ -32,7 +31,7 @@ struct Editor {
 #[derive(Debug, Clone)]
 enum Message {
     ActionPerformed(text_editor::Action),
-    ThemeSelected(highlighter::Theme),
+    ThemeSelected(Theme),
     WordWrapToggled(bool),
     NewFile,
     OpenFile,
@@ -47,7 +46,7 @@ impl Editor {
             Self {
                 file: None,
                 content: text_editor::Content::new(),
-                theme: highlighter::Theme::SolarizedDark,
+                theme: Theme::CatppuccinMocha,
                 word_wrap: true,
                 is_loading: true,
                 is_dirty: false,
@@ -159,14 +158,8 @@ impl Editor {
             toggler(self.word_wrap)
                 .label("Word Wrap")
                 .on_toggle(Message::WordWrapToggled),
-            pick_list(
-                Some(self.theme),
-                highlighter::Theme::ALL,
-                highlighter::Theme::to_string,
-            )
-            .on_select(Message::ThemeSelected)
-            .text_size(14)
-            .padding([5, 10])
+            pick_list(Some(&self.theme), Theme::ALL, Theme::to_string)
+                .on_select(Message::ThemeSelected),
         ]
         .spacing(10)
         .align_y(Center);
@@ -209,7 +202,6 @@ impl Editor {
                         .and_then(Path::extension)
                         .and_then(ffi::OsStr::to_str)
                         .unwrap_or("rs"),
-                    self.theme,
                 )
                 .key_binding(|key_press| {
                     match key_press.key.as_ref() {
@@ -227,11 +219,7 @@ impl Editor {
     }
 
     fn theme(&self) -> Theme {
-        if self.theme.is_dark() {
-            Theme::Dark
-        } else {
-            Theme::Light
-        }
+        self.theme.clone()
     }
 }
 

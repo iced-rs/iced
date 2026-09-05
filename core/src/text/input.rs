@@ -109,7 +109,7 @@ impl<R: text::Renderer> Input<R> {
             layout.multiline.unwrap_or(text::Wrapping::None),
             layout.alignment,
             hint_factor,
-            &mut text::highlighter::PlainText,
+            &mut text::parser::PlainText,
         );
 
         let bounds = match layout.height {

@@ -38,6 +38,7 @@ pub mod window;
 
 mod angle;
 mod background;
+mod code;
 mod content_fit;
 mod element;
 mod pixels;
@@ -57,6 +58,7 @@ pub use backend::Backend;
 pub use background::Background;
 pub use border::Border;
 pub use clipboard::Clipboard;
+pub use code::Code;
 pub use color::Color;
 pub use content_fit::ContentFit;
 pub use element::Element;

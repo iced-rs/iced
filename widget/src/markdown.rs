@@ -29,7 +29,11 @@
 //!     }
 //!
 //!     fn view(&self) -> Element<'_, Message> {
-//!         markdown::view(&self.markdown, Theme::TokyoNight)
+//!         markdown::view(
+//!             &self.markdown,
+//!             markdown::Settings::default(),
+//!             Theme::TokyoNight,
+//!         )
 //!             .map(Message::LinkClicked)
 //!             .into()
 //!     }
@@ -43,23 +47,24 @@
 //!     }
 //! }
 //! ```
+use crate::core;
 use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::theme::palette;
-use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme, color};
+use crate::core::theme;
+use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub use core::text::Highlight;
+pub use core::text::{Highlight, Highlighter};
 pub use pulldown_cmark::HeadingLevel;
 
 /// A [`String`] representing a [URI] in a Markdown document
@@ -152,7 +157,7 @@ impl Content {
                         references: self.state.references.clone(),
                         images: HashSet::new(),
                         #[cfg(feature = "highlighter")]
-                        highlighter: None,
+                        parser: None,
                     };
 
                     if let Some((item, _source, _broken_links)) =
@@ -250,7 +255,7 @@ pub struct Row {
 #[derive(Debug, Clone)]
 pub struct Text {
     spans: Vec<Span>,
-    last_style: Cell<Option<Style>>,
+    last_style: RefCell<Option<(Settings, String, String)>>,
     last_styled_spans: RefCell<Arc<[text::Span<'static, Uri>]>>,
 }
 
@@ -258,21 +263,38 @@ impl Text {
     fn new(spans: Vec<Span>) -> Self {
         Self {
             spans,
-            last_style: Cell::default(),
+            last_style: RefCell::default(),
             last_styled_spans: RefCell::default(),
         }
     }
 
     /// Returns the [`rich_text()`] spans ready to be used for the given style.
     ///
-    /// This method performs caching for you. It will only reallocate if the [`Style`]
-    /// provided changes.
-    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Uri>]> {
-        if Some(style) != self.last_style.get() {
-            *self.last_styled_spans.borrow_mut() =
-                self.spans.iter().map(|span| span.view(&style)).collect();
+    /// This method performs caching for you. It will only reallocate if the [`Settings`]
+    /// or the [`Catalog`] provided changes.
+    pub fn spans<Theme: Catalog>(
+        &self,
+        settings: Settings,
+        theme: &Theme,
+        highlighter: &dyn text::Highlighter<Code, Theme>,
+    ) -> Arc<[text::Span<'static, Uri>]> {
+        let is_dirty = self.last_style.borrow().as_ref().is_none_or(
+            |(last_settings, last_theme, last_highlighter)| {
+                &settings != last_settings
+                    || theme.id() != last_theme
+                    || highlighter.id() != last_highlighter
+            },
+        );
 
-            self.last_style.set(Some(style));
+        if is_dirty {
+            *self.last_styled_spans.borrow_mut() = self
+                .spans
+                .iter()
+                .map(|span| span.view(&settings, theme, highlighter))
+                .collect();
+
+            *self.last_style.borrow_mut() =
+                Some((settings, theme.id().to_owned(), highlighter.id().to_owned()));
         }
 
         self.last_styled_spans.borrow().clone()
@@ -291,13 +313,17 @@ enum Span {
     },
     Code {
         text: String,
-        color: Option<Color>,
-        font: Option<Font>,
+        code: Code,
     },
 }
 
 impl Span {
-    fn view(&self, style: &Style) -> text::Span<'static, Uri> {
+    fn view<Theme: Catalog>(
+        &self,
+        settings: &Settings,
+        theme: &Theme,
+        highlighter: &dyn text::Highlighter<Code, Theme>,
+    ) -> text::Span<'static, Uri> {
         match self {
             Span::Standard {
                 text,
@@ -310,11 +336,13 @@ impl Span {
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
                 let span = if *inline_code {
-                    span.font(style.inline_code_font)
-                        .color(style.inline_code_color)
-                        .background(style.inline_code_highlight.background)
-                        .border(style.inline_code_highlight.border)
-                        .padding(style.inline_code_padding)
+                    let code = theme.code();
+
+                    span.font(settings.inline_code_font)
+                        .color(code.color)
+                        .background(code.highlight.background)
+                        .border(code.highlight.border)
+                        .padding(code.padding)
                 } else if *strong || *emphasis {
                     span.font(Font {
                         weight: if *strong {
@@ -327,20 +355,27 @@ impl Span {
                         } else {
                             font::Style::Normal
                         },
-                        ..style.font
+                        ..settings.font
                     })
                 } else {
-                    span.font(style.font)
+                    span.font(settings.font)
                 };
 
                 if let Some(link) = link.as_ref() {
-                    span.color(style.link_color).link(link.clone())
+                    span.color(theme.link_color()).link(link.clone())
                 } else {
                     span
                 }
             }
-            Span::Code { text, color, font } => {
-                span(text.clone()).color_maybe(*color).font_maybe(*font)
+            Span::Code { text, code } => {
+                let format = highlighter.highlight(*code, theme);
+
+                span(text.clone())
+                    .color_maybe(format.color)
+                    .font_maybe(format.style.map(|style| Font {
+                        style,
+                        ..settings.code_block_font
+                    }))
             }
         }
     }
@@ -403,7 +438,11 @@ impl Bullet {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(&self.markdown, Theme::TokyoNight)
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             Theme::TokyoNight,
+///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
 ///     }
@@ -427,84 +466,7 @@ struct State {
     references: HashMap<String, String>,
     images: HashSet<Uri>,
     #[cfg(feature = "highlighter")]
-    highlighter: Option<Highlighter>,
-}
-
-#[cfg(feature = "highlighter")]
-#[derive(Debug)]
-struct Highlighter {
-    lines: Vec<(String, Vec<Span>)>,
-    language: String,
-    parser: iced_highlighter::Stream,
-    current: usize,
-}
-
-#[cfg(feature = "highlighter")]
-impl Highlighter {
-    pub fn new(language: &str) -> Self {
-        Self {
-            lines: Vec::new(),
-            parser: iced_highlighter::Stream::new(&iced_highlighter::Settings {
-                theme: iced_highlighter::Theme::Base16Ocean,
-                token: language.to_owned(),
-            }),
-            language: language.to_owned(),
-            current: 0,
-        }
-    }
-
-    pub fn prepare(&mut self) {
-        self.current = 0;
-    }
-
-    pub fn highlight_line(&mut self, text: &str) -> &[Span] {
-        match self.lines.get(self.current) {
-            Some(line) if line.0 == text => {}
-            _ => {
-                if self.current + 1 < self.lines.len() {
-                    log::debug!("Resetting highlighter...");
-                    self.parser.reset();
-                    self.lines.truncate(self.current);
-
-                    for line in &self.lines {
-                        log::debug!("Refeeding {n} lines", n = self.lines.len());
-
-                        let _ = self.parser.highlight_line(&line.0);
-                    }
-                }
-
-                log::trace!("Parsing: {text}", text = text.trim_end());
-
-                if self.current + 1 < self.lines.len() {
-                    self.parser.commit();
-                }
-
-                let mut spans = Vec::new();
-
-                for (range, highlight) in self.parser.highlight_line(text) {
-                    spans.push(Span::Code {
-                        text: text[range].to_owned(),
-                        color: highlight.color(),
-                        font: highlight.font(),
-                    });
-                }
-
-                if self.current + 1 == self.lines.len() {
-                    let _ = self.lines.pop();
-                }
-
-                self.lines.push((text.to_owned(), spans));
-            }
-        }
-
-        self.current += 1;
-
-        &self
-            .lines
-            .get(self.current - 1)
-            .expect("Line must be parsed")
-            .1
-    }
+    parser: Option<code::Parser>,
 }
 
 fn parse_with<'a>(
@@ -543,7 +505,7 @@ fn parse_with<'a>(
     let mut stack = Vec::new();
 
     #[cfg(feature = "highlighter")]
-    let mut highlighter = None;
+    let mut code_parser = None;
 
     let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
         markdown,
@@ -679,19 +641,19 @@ fn parse_with<'a>(
             {
                 #[cfg(feature = "highlighter")]
                 {
-                    highlighter = Some({
-                        let mut highlighter = state
+                    code_parser = Some({
+                        let mut code_parser = state
                             .borrow_mut()
-                            .highlighter
+                            .parser
                             .take()
-                            .filter(|highlighter| highlighter.language == language.as_ref())
+                            .filter(|parser| parser.language() == language.as_ref())
                             .unwrap_or_else(|| {
-                                Highlighter::new(language.split(',').next().unwrap_or_default())
+                                code::Parser::new(language.split(',').next().unwrap_or_default())
                             });
 
-                        highlighter.prepare();
+                        code_parser.prepare();
 
-                        highlighter
+                        code_parser
                     });
                 }
 
@@ -824,7 +786,7 @@ fn parse_with<'a>(
 
                 #[cfg(feature = "highlighter")]
                 {
-                    state.borrow_mut().highlighter = highlighter.take();
+                    state.borrow_mut().parser = code_parser.take();
                 }
 
                 produce(
@@ -901,9 +863,9 @@ fn parse_with<'a>(
                 code.push_str(&text);
 
                 #[cfg(feature = "highlighter")]
-                if let Some(highlighter) = &mut highlighter {
+                if let Some(highlighter) = &mut code_parser {
                     for line in text.lines() {
-                        code_lines.push(Text::new(highlighter.highlight_line(line).to_vec()));
+                        code_lines.push(Text::new(highlighter.parse_line(line).to_vec()));
                     }
                 }
 
@@ -911,8 +873,7 @@ fn parse_with<'a>(
                 for line in text.lines() {
                     code_lines.push(Text::new(vec![Span::Code {
                         text: line.to_owned(),
-                        font: None,
-                        color: None,
+                        code: Code::Other,
                     }]));
                 }
 
@@ -986,8 +947,14 @@ fn parse_with<'a>(
 }
 
 /// Configuration controlling Markdown rendering in [`view`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
+    /// The [`Font`] to be applied to basic text.
+    pub font: Font,
+    /// The [`Font`] to be applied to inline code.
+    pub inline_code_font: Font,
+    /// The [`Font`] to be applied to code blocks.
+    pub code_block_font: Font,
     /// The base text size.
     pub text_size: Pixels,
     /// The text size of level 1 heading.
@@ -1006,25 +973,21 @@ pub struct Settings {
     pub code_size: Pixels,
     /// The spacing to be used between elements.
     pub spacing: Pixels,
-    /// The styling of the Markdown.
-    pub style: Style,
 }
 
 impl Settings {
-    /// Creates new [`Settings`] with default text size and the given [`Style`].
-    pub fn with_style(style: impl Into<Style>) -> Self {
-        Self::with_text_size(16, style)
-    }
-
     /// Creates new [`Settings`] with the given base text size in [`Pixels`].
     ///
     /// Heading levels will be adjusted automatically. Specifically,
     /// the first level will be twice the base size, and then every level
     /// after that will be 25% smaller.
-    pub fn with_text_size(text_size: impl Into<Pixels>, style: impl Into<Style>) -> Self {
+    pub fn with_text_size(text_size: impl Into<Pixels>) -> Self {
         let text_size = text_size.into();
 
         Self {
+            font: Font::DEFAULT,
+            inline_code_font: Font::MONOSPACE,
+            code_block_font: Font::MONOSPACE,
             text_size,
             h1_size: text_size * 2.0,
             h2_size: text_size * 1.75,
@@ -1034,75 +997,13 @@ impl Settings {
             h6_size: text_size,
             code_size: text_size * 0.75,
             spacing: text_size * 0.875,
-            style: style.into(),
         }
     }
 }
 
-impl From<&Theme> for Settings {
-    fn from(theme: &Theme) -> Self {
-        Self::with_style(Style::from(theme))
-    }
-}
-
-impl From<Theme> for Settings {
-    fn from(theme: Theme) -> Self {
-        Self::with_style(Style::from(theme))
-    }
-}
-
-/// The text styling of some Markdown rendering in [`view`].
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Style {
-    /// The [`Font`] to be applied to basic text.
-    pub font: Font,
-    /// The [`Highlight`] to be applied to the background of inline code.
-    pub inline_code_highlight: Highlight,
-    /// The [`Padding`] to be applied to the background of inline code.
-    pub inline_code_padding: Padding,
-    /// The [`Color`] to be applied to inline code.
-    pub inline_code_color: Color,
-    /// The [`Font`] to be applied to inline code.
-    pub inline_code_font: Font,
-    /// The [`Font`] to be applied to code blocks.
-    pub code_block_font: Font,
-    /// The [`Color`] to be applied to links.
-    pub link_color: Color,
-}
-
-impl Style {
-    /// Creates a new [`Style`] from the given [`palette::Seed`].
-    pub fn from_palette(seed: palette::Seed) -> Self {
-        Self {
-            font: Font::default(),
-            inline_code_padding: padding::left(1).right(1),
-            inline_code_highlight: Highlight {
-                background: color!(0x111111).into(),
-                border: border::rounded(4),
-            },
-            inline_code_color: Color::WHITE,
-            inline_code_font: Font::MONOSPACE,
-            code_block_font: Font::MONOSPACE,
-            link_color: seed.primary,
-        }
-    }
-}
-
-impl From<palette::Seed> for Style {
-    fn from(seed: palette::Seed) -> Self {
-        Self::from_palette(seed)
-    }
-}
-
-impl From<&Theme> for Style {
-    fn from(theme: &Theme) -> Self {
-        Self::from_palette(theme.seed())
-    }
-}
-
-impl From<Theme> for Style {
-    fn from(theme: Theme) -> Self {
-        Self::from_palette(theme.seed())
+impl Default for Settings {
+    fn default() -> Self {
+        Self::with_text_size(16)
     }
 }
 
@@ -1134,7 +1035,11 @@ impl From<Theme> for Style {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(&self.markdown, Theme::TokyoNight)
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             Theme::TokyoNight,
+///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
 ///     }
@@ -1151,12 +1056,20 @@ impl From<Theme> for Style {
 pub fn view<'a, Theme, Renderer>(
     items: impl IntoIterator<Item = &'a Item>,
     settings: impl Into<Settings>,
+    theme: Theme,
 ) -> Element<'a, Uri, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    view_with(items, settings, &DefaultViewer)
+    view_with(
+        items,
+        settings,
+        &DefaultViewer {
+            theme,
+            highlighter: None,
+        },
+    )
 }
 
 /// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into
@@ -1179,7 +1092,7 @@ where
     let blocks = items
         .into_iter()
         .enumerate()
-        .map(|(i, item_)| item(viewer, settings, item_, i));
+        .map(move |(i, item_)| item(viewer, settings, item_, i));
 
     Element::new(column(blocks).spacing(settings.spacing))
 }
@@ -1214,13 +1127,14 @@ where
             bullets,
         } => viewer.ordered_list(settings, *start, bullets),
         Item::Quote(quote) => viewer.quote(settings, quote),
-        Item::Rule => viewer.rule(settings),
+        Item::Rule => viewer.rule(),
         Item::Table { columns, rows } => viewer.table(settings, columns, rows),
     }
 }
 
 /// Displays a heading using the default look.
 pub fn heading<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     level: &'a HeadingLevel,
     text: &'a Text,
@@ -1244,7 +1158,7 @@ where
     } = settings;
 
     container(
-        rich_text(text.spans(settings.style))
+        rich_text(text.spans(settings, viewer.theme(), viewer.highlighter()))
             .on_link_click(on_link_click)
             .size(match level {
                 pulldown_cmark::HeadingLevel::H1 => h1_size,
@@ -1265,6 +1179,7 @@ where
 
 /// Displays a paragraph using the default look.
 pub fn paragraph<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     text: &Text,
     on_link_click: impl Fn(Uri) -> Message + 'a,
@@ -1274,7 +1189,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
-    rich_text(text.spans(settings.style))
+    rich_text(text.spans(settings, viewer.theme(), viewer.highlighter()))
         .size(settings.text_size)
         .on_link_click(on_link_click)
         .into()
@@ -1305,13 +1220,13 @@ where
                     )
                 }
             },
-            view_with(
-                bullet.items(),
+            items(
+                viewer,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
-                viewer,
+                bullet.items(),
             )
         ]
         .spacing(settings.spacing)
@@ -1343,13 +1258,13 @@ where
                 .size(settings.text_size)
                 .align_x(alignment::Horizontal::Right)
                 .width(settings.text_size * ((digits as f32 / 2.0).ceil() + 1.0)),
-            view_with(
-                bullet.items(),
+            items(
+                viewer,
                 Settings {
                     spacing: settings.spacing * 0.6,
                     ..settings
                 },
-                viewer,
+                bullet.items(),
             )
         ]
         .spacing(settings.spacing)
@@ -1361,6 +1276,7 @@ where
 
 /// Displays a code block using the default look.
 pub fn code_block<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     lines: &'a [Text],
     on_link_click: impl Fn(Uri) -> Message + Clone + 'a,
@@ -1373,9 +1289,9 @@ where
     container(
         scrollable(
             container(column(lines.iter().map(|line| {
-                rich_text(line.spans(settings.style))
+                rich_text(line.spans(settings, viewer.theme(), viewer.highlighter()))
                     .on_link_click(on_link_click.clone())
-                    .font(settings.style.code_block_font)
+                    .font(settings.code_block_font)
                     .size(settings.code_size)
                     .into()
             })))
@@ -1496,6 +1412,9 @@ where
 }
 
 /// A view strategy to display a Markdown [`Item`].
+///
+/// A [`Viewer`] is in charge of turning each [`Item`] into an [`Element`]. It
+/// also provides the [`Theme`] and [`text::Highlighter`] used for rendering.
 pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Self: Sized + 'a,
@@ -1503,6 +1422,12 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    /// The [`Theme`] used for styling the Markdown elements.
+    fn theme(&self) -> &Theme;
+
+    /// The [`text::Highlighter`] used for highligthing [`Code`] regions.
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Theme>;
+
     /// Produces a message when a link is clicked with the given [`Uri`].
     fn on_link_click(url: Uri) -> Message;
 
@@ -1519,10 +1444,13 @@ where
         let _url = url;
         let _title = title;
 
-        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click))
-            .padding(settings.spacing.0)
-            .class(Theme::code_block())
-            .into()
+        container(
+            rich_text(alt.spans(settings, self.theme(), self.highlighter()))
+                .on_link_click(Self::on_link_click),
+        )
+        .padding(settings.spacing.0)
+        .class(Theme::code_block())
+        .into()
     }
 
     /// Displays a heading.
@@ -1535,14 +1463,14 @@ where
         text: &'a Text,
         index: usize,
     ) -> Element<'a, Message, Theme, Renderer> {
-        heading(settings, level, text, index, Self::on_link_click)
+        heading(self, settings, level, text, index, Self::on_link_click)
     }
 
     /// Displays a paragraph.
     ///
     /// By default, it calls [`paragraph`].
     fn paragraph(&self, settings: Settings, text: &Text) -> Element<'a, Message, Theme, Renderer> {
-        paragraph(settings, text, Self::on_link_click)
+        paragraph(self, settings, text, Self::on_link_click)
     }
 
     /// Displays a code block.
@@ -1558,7 +1486,7 @@ where
         let _language = language;
         let _code = code;
 
-        code_block(settings, lines, Self::on_link_click)
+        code_block(self, settings, lines, Self::on_link_click)
     }
 
     /// Displays an unordered list.
@@ -1598,7 +1526,7 @@ where
     /// Displays a rule.
     ///
     /// By default, it calls [`rule`](self::rule()).
-    fn rule(&self, _settings: Settings) -> Element<'a, Message, Theme, Renderer> {
+    fn rule(&self) -> Element<'a, Message, Theme, Renderer> {
         rule()
     }
 
@@ -1615,14 +1543,43 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct DefaultViewer;
+/// The default [`Viewer`].
+pub struct DefaultViewer<'a, Theme> {
+    theme: Theme,
+    highlighter: Option<Box<dyn text::Highlighter<Code, Theme> + 'a>>,
+}
 
-impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer
+impl<'a, Theme> DefaultViewer<'a, Theme> {
+    /// Creates a new [`DefaultViewer`] with the given [`Theme`].
+    pub fn new(theme: Theme) -> Self {
+        Self {
+            theme,
+            highlighter: None,
+        }
+    }
+
+    /// Sets a custom [`text::Highlighter`] for the [`DefaultViewer`].
+    pub fn highlighter(mut self, highlighter: impl text::Highlighter<Code, Theme> + 'a) -> Self {
+        self.highlighter = Some(Box::new(highlighter));
+        self
+    }
+}
+
+impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer<'a, Theme>
 where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer<Font = Font> + 'a,
 {
+    fn theme(&self) -> &Theme {
+        &self.theme
+    }
+
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Theme> {
+        self.highlighter
+            .as_deref()
+            .unwrap_or_else(|| self.theme.highlighter())
+    }
+
     fn on_link_click(url: Uri) -> Uri {
         url
     }
@@ -1636,13 +1593,147 @@ pub trait Catalog:
     + crate::rule::Catalog
     + checkbox::Catalog
     + crate::table::Catalog
+    + Clone
+    + PartialEq
 {
+    /// The unique identifier of the [`Catalog`].
+    ///
+    /// This will be used to invalidate span styling when a theme changes.
+    fn id(&self) -> &str;
+
+    /// The [`Color`] of some link.
+    fn link_color(&self) -> Color;
+
+    /// The [`InlineCode`] style of some inline code.
+    fn code(&self) -> InlineCode;
+
     /// The styling class of a Markdown code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
+
+    /// The default [`text::Highlighter`] to use to highlight code.
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Self>;
+}
+
+/// The style of some inline code.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InlineCode {
+    /// The [`Padding`] to apply around the code.
+    pub padding: Padding,
+    /// The [`Highlight`] of the code.
+    pub highlight: Highlight,
+    /// The [`Color`] of the code.
+    pub color: Color,
 }
 
 impl Catalog for Theme {
+    fn id(&self) -> &str {
+        theme::Base::name(self)
+    }
+
+    fn link_color(&self) -> Color {
+        self.seed().primary
+    }
+
+    fn code(&self) -> InlineCode {
+        let palette = self.palette();
+
+        InlineCode {
+            padding: padding::horizontal(1),
+            highlight: Highlight {
+                background: palette.background.weaker.color.into(),
+                border: border::rounded(4),
+            },
+            color: palette.background.weaker.text,
+        }
+    }
+
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a> {
         Box::new(container::dark)
+    }
+
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Self> {
+        &Code::highlight
+    }
+}
+
+#[cfg(feature = "highlighter")]
+mod code {
+    use super::Span;
+
+    #[derive(Debug)]
+    pub struct Parser {
+        lines: Vec<(String, Vec<Span>)>,
+        language: String,
+        stream: iced_highlighter::Stream,
+        current: usize,
+    }
+
+    impl Parser {
+        pub fn new(language: &str) -> Self {
+            Self {
+                lines: Vec::new(),
+                stream: iced_highlighter::Stream::new(&iced_highlighter::Settings {
+                    token: language.to_owned(),
+                }),
+                language: language.to_owned(),
+                current: 0,
+            }
+        }
+
+        pub fn language(&self) -> &str {
+            &self.language
+        }
+
+        pub fn prepare(&mut self) {
+            self.current = 0;
+        }
+
+        pub fn parse_line(&mut self, text: &str) -> &[Span] {
+            match self.lines.get(self.current) {
+                Some(line) if line.0 == text => {}
+                _ => {
+                    if self.current + 1 < self.lines.len() {
+                        log::debug!("Resetting highlighter...");
+                        self.stream.reset();
+                        self.lines.truncate(self.current);
+
+                        for line in &self.lines {
+                            log::debug!("Refeeding {n} lines", n = self.lines.len());
+
+                            let _ = self.stream.parse_line(&line.0);
+                        }
+                    }
+
+                    log::trace!("Parsing: {text}", text = text.trim_end());
+
+                    if self.current + 1 < self.lines.len() {
+                        self.stream.commit();
+                    }
+
+                    let mut spans = Vec::new();
+
+                    for (range, code) in self.stream.parse_line(text) {
+                        spans.push(Span::Code {
+                            text: text[range].to_owned(),
+                            code,
+                        });
+                    }
+
+                    if self.current + 1 == self.lines.len() {
+                        let _ = self.lines.pop();
+                    }
+
+                    self.lines.push((text.to_owned(), spans));
+                }
+            }
+
+            self.current += 1;
+
+            &self
+                .lines
+                .get(self.current - 1)
+                .expect("Line must be parsed")
+                .1
+        }
     }
 }

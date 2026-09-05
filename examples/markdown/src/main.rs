@@ -2,14 +2,13 @@ mod icon;
 
 use iced::animation;
 use iced::clipboard;
-use iced::highlighter;
 use iced::time::{self, Instant, milliseconds};
 use iced::widget::{
-    button, center_x, container, hover, image, markdown, operation, right, row, scrollable, sensor,
-    space, text_editor, toggler,
+    button, center_x, container, hover, image, markdown, operation, pick_list, right, row,
+    scrollable, sensor, space, text_editor, toggler,
 };
 use iced::window;
-use iced::{Animation, Element, Fill, Font, Function, Subscription, Task, Theme};
+use iced::{Animation, Center, Code, Element, Fill, Font, Function, Subscription, Task, Theme};
 
 use std::collections::HashMap;
 use std::io;
@@ -59,6 +58,7 @@ enum Message {
     ImageShown(markdown::Uri),
     ImageDownloaded(markdown::Uri, Result<image::Handle, Error>),
     ToggleStream(bool),
+    ThemeSelected(Theme),
     NextToken,
     Tick,
 }
@@ -73,7 +73,7 @@ impl Markdown {
                 raw: text_editor::Content::with_text(INITIAL_CONTENT),
                 images: HashMap::new(),
                 mode: Mode::Preview,
-                theme: Theme::TokyoNight,
+                theme: Theme::CatppuccinMocha,
                 now: Instant::now(),
             },
             operation::focus_next(),
@@ -144,6 +144,11 @@ impl Markdown {
                     Task::none()
                 }
             }
+            Message::ThemeSelected(theme) => {
+                self.theme = theme;
+
+                Task::none()
+            }
             Message::NextToken => {
                 match &mut self.mode {
                     Mode::Preview => {}
@@ -175,12 +180,13 @@ impl Markdown {
             .height(Fill)
             .padding(10)
             .font(Font::MONOSPACE)
-            .highlight("markdown", highlighter::Theme::Base16Ocean);
+            .highlight("markdown");
 
         let preview = markdown::view_with(
             self.content.items(),
-            &self.theme,
+            markdown::Settings::default(),
             &CustomViewer {
+                theme: &self.theme,
                 images: &self.images,
                 now: self.now,
             },
@@ -195,9 +201,15 @@ impl Markdown {
                     .height(Fill)
                     .id("preview"),
                 right(
-                    toggler(matches!(self.mode, Mode::Stream { .. }))
-                        .label("Stream")
-                        .on_toggle(Message::ToggleStream)
+                    row![
+                        toggler(matches!(self.mode, Mode::Stream { .. }))
+                            .label("Stream")
+                            .on_toggle(Message::ToggleStream),
+                        pick_list(Some(&self.theme), Theme::ALL, Theme::to_string)
+                            .on_select(Message::ThemeSelected),
+                    ]
+                    .spacing(10)
+                    .align_y(Center)
                 )
                 .padding([0, 20])
             )
@@ -235,11 +247,20 @@ impl Markdown {
 }
 
 struct CustomViewer<'a> {
+    theme: &'a Theme,
     images: &'a HashMap<markdown::Uri, Image>,
     now: Instant,
 }
 
 impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
+    fn theme(&self) -> &Theme {
+        self.theme
+    }
+
+    fn highlighter(&self) -> &dyn markdown::Highlighter<Code> {
+        &Code::highlight
+    }
+
     fn on_link_click(url: markdown::Uri) -> Message {
         Message::LinkClicked(url)
     }
@@ -274,7 +295,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         code: &'a str,
         lines: &'a [markdown::Text],
     ) -> Element<'a, Message> {
-        let code_block = markdown::code_block(settings, lines, Message::LinkClicked);
+        let code_block = markdown::code_block(self, settings, lines, Message::LinkClicked);
 
         let copy = button(icon::copy().size(12))
             .padding(2)

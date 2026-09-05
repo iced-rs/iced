@@ -7,6 +7,8 @@ Inspired by [The Elm Architecture], Iced expects you to split user interfaces in
 * __View logic__ — a way to display your __state__ as widgets that may produce __messages__ on user interaction
 * __Update logic__ — a way to react to __messages__ and update your __state__
 
+[The Elm Architecture]: https://guide.elm-lang.org/architecture/
+
 We can build something to see how this works! Let's say we want a simple counter that can be incremented and decremented using two buttons.
 
 We start by modelling the __state__ of our application:
@@ -90,4 +92,3 @@ Read the [book], the [documentation], and the [examples] to learn more!
 [book]: https://book.iced.rs/
 [documentation]: https://docs.rs/iced/
 [examples]: https://github.com/iced-rs/iced/tree/master/examples#examples
-[The Elm Architecture]: https://guide.elm-lang.org/architecture/
