@@ -304,8 +304,8 @@ where
                                 on_open,
                             } => {
                                 let exit_on_close_request = settings.exit_on_close_request;
-
                                 let visible = settings.visible;
+                                let blank = settings.blank;
 
                                 #[cfg(target_arch = "wasm32")]
                                 let target = settings.platform_specific.target.clone();
@@ -388,7 +388,8 @@ where
                                         id,
                                         window: Arc::new(window),
                                         exit_on_close_request,
-                                        make_visible: visible,
+                                        visible,
+                                        blank,
                                         on_open,
                                     },
                                 );
@@ -446,7 +447,8 @@ enum Event<Message: 'static> {
         id: window::Id,
         window: Arc<winit::window::Window>,
         exit_on_close_request: bool,
-        make_visible: bool,
+        visible: bool,
+        blank: bool,
         on_open: oneshot::Sender<window::Id>,
     },
     EventLoopAwakened(winit::event::Event<Message>),
@@ -551,7 +553,8 @@ async fn run_instance<P>(
                 id,
                 window,
                 exit_on_close_request,
-                make_visible,
+                visible,
+                blank,
                 on_open,
             } => {
                 if compositor.is_none() {
@@ -637,6 +640,7 @@ async fn run_instance<P>(
                     proxy.clone(),
                     renderer_settings,
                     exit_on_close_request,
+                    blank,
                     system_theme,
                 );
 
@@ -654,21 +658,23 @@ async fn run_instance<P>(
 
                 let logical_size = window.state.logical_size();
 
-                window.renderer.hint(window.state.scale());
+                if let Some(interface) = &mut window.interface {
+                    interface.renderer.hint(window.state.scale());
 
-                let _ = user_interfaces.insert(
-                    id,
-                    build_user_interface(
-                        &program,
-                        user_interface::Cache::default(),
-                        &mut window.renderer,
-                        logical_size,
+                    let _ = user_interfaces.insert(
                         id,
-                    ),
-                );
-                let _ = ui_caches.insert(id, user_interface::Cache::default());
+                        build_user_interface(
+                            &program,
+                            user_interface::Cache::default(),
+                            &mut interface.renderer,
+                            logical_size,
+                            id,
+                        ),
+                    );
+                    let _ = ui_caches.insert(id, user_interface::Cache::default());
+                }
 
-                if make_visible {
+                if visible {
                     window.raw.set_visible(true);
                 }
 
@@ -695,11 +701,12 @@ async fn run_instance<P>(
                         let now = Instant::now();
 
                         for (_id, window) in window_manager.iter_mut() {
-                            if let Some(redraw_at) = window.redraw_at
+                            if let Some(interface) = &mut window.interface
+                                && let Some(redraw_at) = interface.redraw_at
                                 && redraw_at <= now
                             {
                                 window.raw.request_redraw();
-                                window.redraw_at = None;
+                                interface.redraw_at = None;
                             }
                         }
 
@@ -753,6 +760,10 @@ async fn run_instance<P>(
                             continue;
                         };
 
+                        let Some(mut interface_) = window.interface.as_mut() else {
+                            continue;
+                        };
+
                         let physical_size = window.state.physical_size();
                         let mut logical_size = window.state.logical_size();
 
@@ -761,23 +772,23 @@ async fn run_instance<P>(
                         }
 
                         // Window was resized between redraws
-                        if window.surface_version != window.state.surface_version() {
-                            window.renderer.hint(window.state.scale());
+                        if interface_.surface_version != window.state.surface_version() {
+                            interface_.renderer.hint(window.state.scale());
 
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
                             let layout_span = debug::layout(id);
                             let _ = user_interfaces
-                                .insert(id, ui.relayout(logical_size, &mut window.renderer));
+                                .insert(id, ui.relayout(logical_size, &mut interface_.renderer));
                             layout_span.finish();
 
                             current_compositor.configure_surface(
-                                &mut window.surface,
+                                &mut interface_.surface,
                                 physical_size.width,
                                 physical_size.height,
                             );
 
-                            window.surface_version = window.state.surface_version();
+                            interface_.surface_version = window.state.surface_version();
                         }
 
                         let redraw_event =
@@ -795,10 +806,10 @@ async fn run_instance<P>(
                             let message_count = messages.len();
                             let (state, _) = interface.update(
                                 &window.raw,
-                                &window.waker,
+                                &interface_.waker,
                                 slice::from_ref(&redraw_event),
                                 cursor,
-                                &mut window.renderer,
+                                &mut interface_.renderer,
                                 &mut messages,
                             );
 
@@ -877,6 +888,7 @@ async fn run_instance<P>(
 
                                 current_compositor = next_compositor;
                                 window = window_manager.get_mut(id).unwrap();
+                                interface_ = window.interface.as_mut().unwrap();
 
                                 // Window scale factor changed during a redraw request
                                 if logical_size != window.state.logical_size() {
@@ -892,7 +904,7 @@ async fn run_instance<P>(
                                     let layout_span = debug::layout(id);
                                     let _ = user_interfaces.insert(
                                         id,
-                                        ui.relayout(logical_size, &mut window.renderer),
+                                        ui.relayout(logical_size, &mut interface_.renderer),
                                     );
                                     layout_span.finish();
                                 }
@@ -904,7 +916,7 @@ async fn run_instance<P>(
 
                         let draw_span = debug::draw(id);
                         interface.draw(
-                            &mut window.renderer,
+                            &mut interface_.renderer,
                             window.state.theme(),
                             &renderer::Style {
                                 text_color: window.state.text_color(),
@@ -921,9 +933,13 @@ async fn run_instance<P>(
                             ..
                         } = state
                         {
-                            window.request_redraw(redraw_request);
-                            window.request_input_method(input_method);
-                            window.update_mouse(mouse_interaction);
+                            interface_.request_redraw(redraw_request, &window.raw);
+                            interface_.request_input_method(
+                                input_method,
+                                &window.raw,
+                                &window.state,
+                            );
+                            interface_.update_mouse(mouse_interaction, &window.raw);
 
                             run_clipboard(&mut proxy, &mut clipboard, clipboard_requests, id);
                         }
@@ -934,12 +950,12 @@ async fn run_instance<P>(
                             status: core::event::Status::Ignored,
                         });
 
-                        window.draw_preedit();
+                        interface_.draw_preedit(&window.state);
 
                         let present_span = debug::present(id);
                         match current_compositor.present(
-                            &mut window.renderer,
-                            &mut window.surface,
+                            &mut interface_.renderer,
+                            &mut interface_.surface,
                             window.state.viewport(),
                             window.state.background_color(),
                             || window.raw.pre_present_notify(),
@@ -960,14 +976,14 @@ async fn run_instance<P>(
                                     let physical_size = window.state.physical_size();
 
                                     if error == compositor::SurfaceError::Lost {
-                                        window.surface = current_compositor.create_surface(
+                                        interface_.surface = current_compositor.create_surface(
                                             window.raw.clone(),
                                             physical_size.width,
                                             physical_size.height,
                                         );
                                     } else {
                                         current_compositor.configure_surface(
-                                            &mut window.surface,
+                                            &mut interface_.surface,
                                             physical_size.width,
                                             physical_size.height,
                                         );
@@ -1092,20 +1108,35 @@ async fn run_instance<P>(
                                 continue;
                             }
 
+                            let Some(interface) = &mut window.interface else {
+                                for event in window_events {
+                                    runtime.broadcast(subscription::Event::Interaction {
+                                        window: id,
+                                        event,
+                                        status: core::event::Status::Ignored,
+                                    });
+                                }
+
+                                continue;
+                            };
+
                             let (ui_state, statuses) = user_interfaces
                                 .get_mut(&id)
                                 .expect("Get user interface")
                                 .update(
                                     &window.raw,
-                                    &window.waker,
+                                    &interface.waker,
                                     &window_events,
                                     window.state.cursor(),
-                                    &mut window.renderer,
+                                    &mut interface.renderer,
                                     &mut messages,
                                 );
 
                             #[cfg(feature = "unconditional-rendering")]
-                            window.request_redraw(window::RedrawRequest::NextFrame);
+                            interface.request_redraw(
+                                core::window::RedrawRequest::NextFrame,
+                                &window.raw,
+                            );
 
                             match ui_state {
                                 user_interface::State::Updated {
@@ -1114,10 +1145,10 @@ async fn run_instance<P>(
                                     clipboard: clipboard_requests,
                                     ..
                                 } => {
-                                    window.update_mouse(mouse_interaction);
+                                    interface.update_mouse(mouse_interaction, &window.raw);
 
                                     #[cfg(not(feature = "unconditional-rendering"))]
-                                    window.request_redraw(_redraw_request);
+                                    interface.request_redraw(_redraw_request, &window.raw);
 
                                     run_clipboard(
                                         &mut proxy,
@@ -1558,9 +1589,10 @@ fn run_action<'a, P, C>(
             window::Action::Screenshot(id, channel) => {
                 if let Some(window) = window_manager.get_mut(id)
                     && let Some(compositor) = compositor
+                    && let Some(interface) = &mut window.interface
                 {
                     let bytes = compositor.screenshot(
-                        &mut window.renderer,
+                        &mut interface.renderer,
                         window.state.viewport(),
                         window.state.background_color(),
                     );
@@ -1609,7 +1641,10 @@ fn run_action<'a, P, C>(
                     if let Some(ui) = interfaces.remove(&id) {
                         let _ = interfaces.insert(
                             id,
-                            ui.relayout(window.state.logical_size(), &mut window.renderer),
+                            ui.relayout(
+                                window.state.logical_size(),
+                                &mut window.interface.as_mut().unwrap().renderer,
+                            ),
                         );
                     }
 
@@ -1678,14 +1713,16 @@ fn run_action<'a, P, C>(
 
                 // Recreate renderers and relayout all windows
                 for (id, window) in window_manager.iter_mut() {
-                    window.renderer = compositor.create_renderer(*renderer_settings);
-
                     let Some(ui) = interfaces.remove(&id) else {
                         continue;
                     };
 
+                    let interface = window.interface.as_mut().unwrap();
+
+                    interface.renderer = compositor.create_renderer(*renderer_settings);
+
                     let size = window.state.logical_size();
-                    let ui = ui.relayout(size, &mut window.renderer);
+                    let ui = ui.relayout(size, &mut interface.renderer);
                     let _ = interfaces.insert(id, ui);
 
                     window.raw.request_redraw();
@@ -1698,7 +1735,10 @@ fn run_action<'a, P, C>(
             while let Some(mut operation) = current_operation.take() {
                 for (id, ui) in interfaces.iter_mut() {
                     if let Some(window) = window_manager.get_mut(*id) {
-                        ui.operate(&window.renderer, operation.as_mut());
+                        ui.operate(
+                            &window.interface.as_ref().unwrap().renderer,
+                            operation.as_mut(),
+                        );
                     }
                 }
 
@@ -1719,10 +1759,14 @@ fn run_action<'a, P, C>(
         Action::Image(action) => match action {
             image::Action::Allocate(handle, sender) => {
                 // TODO: Shared image cache in compositor
-                if let Some((_id, window)) = window_manager.iter_mut().next() {
-                    window.renderer.allocate_image(&handle, move |allocation| {
-                        let _ = sender.send(allocation);
-                    });
+                if let Some((_id, window)) = window_manager.iter_mut().next()
+                    && let Some(interface) = &mut window.interface
+                {
+                    interface
+                        .renderer
+                        .allocate_image(&handle, move |allocation| {
+                            let _ = sender.send(allocation);
+                        });
                 }
             }
         },
@@ -1751,14 +1795,20 @@ fn run_action<'a, P, C>(
                 graphics::cache::invalidate_all();
 
                 window_manager.replace_with(|mut window| {
+                    let Some(mut interface) = window.interface.take() else {
+                        return window;
+                    };
+
                     let size = window.state.physical_size();
 
-                    drop(window.renderer);
-                    drop(window.surface);
+                    drop(interface.renderer);
+                    drop(interface.surface);
 
-                    window.renderer = new_compositor.create_renderer(*renderer_settings);
-                    window.surface =
+                    interface.renderer = new_compositor.create_renderer(*renderer_settings);
+                    interface.surface =
                         new_compositor.create_surface(window.raw.clone(), size.width, size.height);
+
+                    window.interface = Some(interface);
 
                     window
                 });
@@ -1775,7 +1825,9 @@ fn run_action<'a, P, C>(
         }
         Action::Tick => {
             for (_id, window) in window_manager.iter_mut() {
-                window.renderer.tick();
+                if let Some(interface) = &mut window.interface {
+                    interface.renderer.tick();
+                }
             }
         }
         Action::Reload => {
@@ -1789,7 +1841,13 @@ fn run_action<'a, P, C>(
 
                 let _ = interfaces.insert(
                     id,
-                    build_user_interface(program, cache, &mut window.renderer, size, id),
+                    build_user_interface(
+                        program,
+                        cache,
+                        &mut window.interface.as_mut().unwrap().renderer,
+                        size,
+                        id,
+                    ),
                 );
 
                 window.raw.request_redraw();
@@ -1828,7 +1886,9 @@ where
             });
         }
 
-        window.renderer.hint(window.state.scale());
+        if let Some(interface) = &mut window.interface {
+            interface.renderer.hint(window.state.scale());
+        }
     }
 
     debug::theme_changed(|| {
@@ -1847,7 +1907,7 @@ where
                 build_user_interface(
                     program,
                     cache,
-                    &mut window.renderer,
+                    &mut window.interface.as_mut().unwrap().renderer,
                     window.state.logical_size(),
                     id,
                 ),
