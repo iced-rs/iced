@@ -19,6 +19,9 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use iced_debug as debug;
+use iced_debug::core::window::MonitorIndex;
+use iced_debug::core::window::MonitorList;
+use iced_debug::core::window::PositionOnMonitor;
 pub use iced_program as program;
 pub use iced_runtime as runtime;
 pub use program::core;
@@ -36,6 +39,7 @@ mod window;
 pub use clipboard::Clipboard;
 pub use error::Error;
 pub use proxy::Proxy;
+use winit::dpi::PhysicalPosition;
 
 use crate::core::backend;
 use crate::core::mouse;
@@ -300,9 +304,24 @@ where
                                 settings,
                                 title,
                                 scale_factor,
-                                monitor,
+                                last_monitor,
                                 on_open,
                             } => {
+                                let requested_monitor = match settings.position {
+                                    core::window::Position::Default => None,
+                                    core::window::Position::Centered => None,
+                                    core::window::Position::Specific(position) => position
+                                        .monitor_index
+                                        .map(|index| {
+                                            event_loop.available_monitors().skip(index.0).next()
+                                        })
+                                        .flatten(),
+                                };
+
+                                let monitor = requested_monitor
+                                    .or(last_monitor)
+                                    .or(event_loop.primary_monitor());
+
                                 let exit_on_close_request = settings.exit_on_close_request;
 
                                 let visible = settings.visible;
@@ -314,7 +333,7 @@ where
                                     settings,
                                     &title,
                                     scale_factor,
-                                    monitor.or(event_loop.primary_monitor()),
+                                    monitor,
                                     self.id.clone(),
                                 )
                                 .with_visible(false);
@@ -409,6 +428,14 @@ where
                                     event_loop.set_allows_automatic_window_tabbing(_enabled);
                                 }
                             }
+                            Control::ListMonitors(on_done) => {
+                                let monitors = crate::conversion::monitor_list(
+                                    event_loop.available_monitors(),
+                                    event_loop.primary_monitor(),
+                                );
+
+                                let _ = on_done.send(monitors);
+                            }
                         },
                         _ => {
                             break;
@@ -462,11 +489,12 @@ enum Control {
         id: window::Id,
         settings: window::Settings,
         title: String,
-        monitor: Option<winit::monitor::MonitorHandle>,
+        last_monitor: Option<winit::monitor::MonitorHandle>,
         on_open: oneshot::Sender<window::Id>,
         scale_factor: f32,
     },
     SetAutomaticWindowTabbing(bool),
+    ListMonitors(oneshot::Sender<MonitorList>),
 }
 
 async fn run_instance<P>(
@@ -1330,7 +1358,7 @@ fn run_action<'a, P, C>(
         },
         Action::Window(action) => match action {
             window::Action::Open(id, settings, channel) => {
-                let monitor = window_manager.last_monitor();
+                let last_monitor = window_manager.last_monitor();
 
                 control_sender
                     .start_send(Control::CreateWindow {
@@ -1338,12 +1366,17 @@ fn run_action<'a, P, C>(
                         settings,
                         title: program.title(id),
                         scale_factor: program.scale_factor(id),
-                        monitor,
+                        last_monitor,
                         on_open: channel,
                     })
                     .expect("Send control action");
 
                 *is_window_opening = true;
+            }
+            window::Action::ListMonitors(channel) => {
+                control_sender
+                    .start_send(Control::ListMonitors(channel))
+                    .expect("Send control action");
             }
             window::Action::Close(id) => {
                 let _ = ui_caches.remove(&id);
@@ -1460,13 +1493,36 @@ fn run_action<'a, P, C>(
                         .raw
                         .outer_position()
                         .map(|position| {
+                            let position = match window.raw.current_monitor() {
+                                Some(current_monitor) => PhysicalPosition {
+                                    x: position.x - current_monitor.position().x,
+                                    y: position.y - current_monitor.position().y,
+                                },
+                                None => position,
+                            };
                             let position = position.to_logical::<f32>(window.raw.scale_factor());
 
                             Point::new(position.x, position.y)
                         })
                         .ok();
 
-                    let _ = channel.send(position);
+                    let monitor_index = window
+                        .raw
+                        .current_monitor()
+                        .map(|monitor| {
+                            window
+                                .raw
+                                .available_monitors()
+                                .enumerate()
+                                .find(|(_, handle)| handle == &monitor)
+                                .map(|(index, _)| MonitorIndex(index))
+                        })
+                        .flatten();
+
+                    let _ = channel.send(position.map(|position| PositionOnMonitor {
+                        monitor_index,
+                        position,
+                    }));
                 }
             }
             window::Action::GetScaleFactor(id, channel) => {
@@ -1478,10 +1534,16 @@ fn run_action<'a, P, C>(
             }
             window::Action::Move(id, position) => {
                 if let Some(window) = window_manager.get_mut(id) {
-                    window.raw.set_outer_position(winit::dpi::LogicalPosition {
-                        x: position.x,
-                        y: position.y,
-                    });
+                    let monitor = position
+                        .monitor_index
+                        // Option 1: try to get given monitor from index
+                        .map(|index| window.raw.available_monitors().skip(index.0).next())
+                        .flatten()
+                        // Option 2 try to get the current monitor
+                        .or_else(|| window.raw.current_monitor());
+                    let winit_position =
+                        conversion::position_on_monitor(monitor.as_ref(), position.position);
+                    window.raw.set_outer_position(winit_position);
                 }
             }
             window::Action::SetMode(id, mode) => {
@@ -1582,16 +1644,11 @@ fn run_action<'a, P, C>(
                     let _ = window.raw.set_cursor_hittest(true);
                 }
             }
-            window::Action::GetMonitorSize(id, channel) => {
+            window::Action::GetMonitor(id, channel) => {
                 if let Some(window) = window_manager.get(id) {
-                    let size = window.raw.current_monitor().map(|monitor| {
-                        let scale = window.state.scale_factor();
-                        let size = monitor.size().to_logical(f64::from(scale));
+                    let monitor_data = window.raw.current_monitor().map(conversion::monitor);
 
-                        Size::new(size.width, size.height)
-                    });
-
-                    let _ = channel.send(size);
+                    let _ = channel.send(monitor_data);
                 }
             }
             window::Action::SetAllowAutomaticTabbing(enabled) => {
