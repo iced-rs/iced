@@ -3,7 +3,7 @@
 mod null;
 
 use crate::image;
-use crate::text::LineHeight;
+use crate::text;
 use crate::{
     Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size, Transformation, Vector,
 };
@@ -176,7 +176,7 @@ pub struct Settings {
     /// The default line height of text.
     ///
     /// By default, it will be set to `LineHeight::Relative(1.375)`.
-    pub line_height: LineHeight,
+    pub line_height: text::LineHeight,
 
     /// Whether the [`Renderer`] should perform metrics hinting.
     ///
@@ -189,7 +189,7 @@ impl Default for Settings {
         Self {
             font: Font::DEFAULT,
             text_size: Pixels(16.0),
-            line_height: LineHeight::default(),
+            line_height: text::LineHeight::default(),
             metrics_hinting: true,
         }
     }

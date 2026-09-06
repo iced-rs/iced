@@ -1,7 +1,7 @@
 //! Configure your application.
 use crate::backend;
 use crate::renderer;
-use crate::text::LineHeight;
+use crate::text;
 use crate::{Backend, Font, Pixels};
 
 use std::borrow::Cow;
@@ -31,7 +31,7 @@ pub struct Settings {
     /// The default line height of text.
     ///
     /// By default, it is `LineHeight::Relative(1.375)`.
-    pub line_height: LineHeight,
+    pub line_height: text::LineHeight,
 
     /// Whether certain widgets should be rendered using metrics hinting.
     ///

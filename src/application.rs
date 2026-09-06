@@ -31,11 +31,11 @@
 //! }
 //! ```
 use crate::backend;
-use crate::core::text::LineHeight;
 use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
+use crate::widget::text;
 use crate::window;
 use crate::{
     Backend, Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task,
@@ -229,21 +229,21 @@ impl<P: Program> Application<P> {
     }
 
     /// Sets the default [`Font`] of the [`Application`].
-    pub fn font(self, default_font: Font) -> Self {
+    pub fn font(self, font: Font) -> Self {
         Self {
             settings: Settings {
-                font: default_font,
+                font,
                 ..self.settings
             },
             ..self
         }
     }
 
-    /// Sets the default [`LineHeight`] of the [`Application`].
-    pub fn line_height(self, default_line_height: LineHeight) -> Self {
+    /// Sets the default [`text::LineHeight`] of the [`Application`].
+    pub fn line_height(self, line_height: text::LineHeight) -> Self {
         Self {
             settings: Settings {
-                line_height: default_line_height,
+                line_height,
                 ..self.settings
             },
             ..self
