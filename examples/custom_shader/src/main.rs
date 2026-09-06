@@ -70,7 +70,7 @@ impl IcedCubes {
             control(
                 "Size",
                 slider(0.1..=0.25, self.scene.size, Message::CubeSizeChanged)
-                    .step(0.01)
+                    .scale(slider::continuous())
                     .width(100),
             ),
             checkbox(self.scene.show_depth_buffer)
@@ -88,7 +88,7 @@ impl IcedCubes {
                         ..self.scene.light_color
                     })
                 })
-                .step(0.01)
+                .scale(slider::continuous())
                 .width(100)
             ),
             control(
@@ -99,7 +99,7 @@ impl IcedCubes {
                         ..self.scene.light_color
                     })
                 })
-                .step(0.01)
+                .scale(slider::continuous())
                 .width(100)
             ),
             control(
@@ -110,7 +110,7 @@ impl IcedCubes {
                         ..self.scene.light_color
                     })
                 })
-                .step(0.01)
+                .scale(slider::continuous())
                 .width(100)
             )
         ]

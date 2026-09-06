@@ -2,7 +2,7 @@ use iced::alignment;
 use iced::mouse;
 use iced::theme;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
-use iced::widget::{Slider, column, row, text};
+use iced::widget::{Slider, column, row, slider, text};
 use iced::{Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer, Size, Vector};
 
 use palette::{Darken, Hsl, Lighten, ShiftHue, convert::FromColor, rgb::Rgb};
@@ -304,7 +304,8 @@ impl<C: ColorSpace + Copy> ColorPicker<C> {
             component: f32,
             update: impl Fn(f32) -> C + 'a,
         ) -> Slider<'a, f64, C> {
-            Slider::new(range, f64::from(component), move |v| update(v as f32)).step(0.01)
+            Slider::new(range, f64::from(component), move |v| update(v as f32))
+                .scale(slider::continuous())
         }
 
         row![

@@ -1491,7 +1491,7 @@ pub fn slider<'a, T, Message, Theme>(
     on_change: impl Fn(T) -> Message + 'a,
 ) -> Slider<'a, T, Message, Theme>
 where
-    T: Copy + std::cmp::PartialOrd,
+    T: Copy + std::cmp::PartialOrd + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
     Message: Clone,
     Theme: slider::Catalog + 'a,
 {
@@ -1536,7 +1536,7 @@ pub fn vertical_slider<'a, T, Message, Theme>(
     on_change: impl Fn(T) -> Message + 'a,
 ) -> VerticalSlider<'a, T, Message, Theme>
 where
-    T: Copy + std::cmp::PartialOrd,
+    T: Copy + std::cmp::PartialOrd + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
     Message: Clone,
     Theme: vertical_slider::Catalog + 'a,
 {
