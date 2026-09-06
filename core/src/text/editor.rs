@@ -417,8 +417,8 @@ impl State {
                     Some(Update::Release)
                 }
                 mouse::Event::CursorMoved { .. } if self.is_dragging => {
-                    let position =
-                        cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
+                    let position = cursor.position_from(bounds.position())?
+                        - Vector::new(padding.left, padding.top);
 
                     Some(Update::Action(Action::Drag(position)))
                 }
