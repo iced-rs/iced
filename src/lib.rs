@@ -564,10 +564,10 @@ pub mod clipboard {
     pub use crate::core::clipboard::{Content, Error, Kind};
     pub use crate::runtime::clipboard::{read, read_files, read_html, read_text, write};
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image-without-codecs")]
     pub use crate::core::clipboard::Image;
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image-without-codecs")]
     pub use crate::runtime::clipboard::read_image;
 }
 
