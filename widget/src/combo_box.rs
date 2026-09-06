@@ -141,7 +141,7 @@ where
     placeholder: text::Fragment<'a>,
     selection: String,
     width: Length,
-    line_height: LineHeight,
+    line_height: Option<LineHeight>,
     font: Option<Font>,
     on_selected: Box<dyn Fn(T) -> Message + 'a>,
     on_option_hovered: Option<Box<dyn Fn(T) -> Message + 'a>>,
@@ -178,7 +178,7 @@ where
             placeholder: placeholder.into_fragment(),
             selection: selection.map(T::to_string).unwrap_or_default(),
             width: Length::Fill,
-            line_height: LineHeight::default(),
+            line_height: None,
             font: None,
             on_selected: Box::new(on_selected),
             on_option_hovered: None,
@@ -258,7 +258,7 @@ where
 
     /// Sets the [`LineHeight`] of the [`ComboBox`].
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -435,7 +435,7 @@ where
                 placeholder: &self.placeholder,
                 font: self.font,
                 size: self.size,
-                line_height: self.line_height,
+                line_height: self.line_height.unwrap_or_else(|| renderer.line_height()),
                 alignment: text::Alignment::Default,
                 multiline: None,
                 is_secure: false,

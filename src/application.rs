@@ -31,6 +31,7 @@
 //! }
 //! ```
 use crate::backend;
+use crate::core::text::LineHeight;
 use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
@@ -232,6 +233,17 @@ impl<P: Program> Application<P> {
         Self {
             settings: Settings {
                 font: default_font,
+                ..self.settings
+            },
+            ..self
+        }
+    }
+
+    /// Sets the default [`LineHeight`] of the [`Application`].
+    pub fn line_height(self, default_line_height: LineHeight) -> Self {
+        Self {
+            settings: Settings {
+                line_height: default_line_height,
                 ..self.settings
             },
             ..self

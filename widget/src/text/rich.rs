@@ -21,7 +21,7 @@ where
 {
     spans: Box<dyn AsRef<[Span<'a, Link>]> + 'a>,
     size: Option<Pixels>,
-    line_height: LineHeight,
+    line_height: Option<LineHeight>,
     width: Length,
     height: Length,
     font: Option<Font>,
@@ -44,7 +44,7 @@ where
         Self {
             spans: Box::new([]),
             size: None,
-            line_height: LineHeight::default(),
+            line_height: None,
             width: Length::Shrink,
             height: Length::Shrink,
             font: None,
@@ -74,7 +74,7 @@ where
 
     /// Sets the default [`LineHeight`] of the [`Rich`] text.
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -317,7 +317,8 @@ where
 
                     let line_height = span
                         .line_height
-                        .unwrap_or(self.line_height)
+                        .or(self.line_height)
+                        .unwrap_or_else(|| renderer.line_height())
                         .to_absolute(size);
 
                     let color = span.color.or(style.color).unwrap_or(defaults.text_color);
@@ -466,7 +467,7 @@ fn layout<Link, Renderer>(
     width: Length,
     height: Length,
     spans: &[Span<'_, Link>],
-    line_height: LineHeight,
+    line_height: Option<LineHeight>,
     size: Option<Pixels>,
     font: Option<Font>,
     align_x: Alignment,
@@ -483,6 +484,7 @@ where
 
         let size = size.unwrap_or_else(|| renderer.text_size());
         let font = font.unwrap_or_else(|| renderer.font());
+        let line_height = line_height.unwrap_or_else(|| renderer.line_height());
 
         let text_with_spans = || core::Text {
             content: spans,

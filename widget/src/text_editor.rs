@@ -103,7 +103,7 @@ where
     placeholder: Option<text::Fragment<'a>>,
     font: Option<Font>,
     text_size: Option<Pixels>,
-    line_height: LineHeight,
+    line_height: Option<LineHeight>,
     width: Length,
     height: Length,
     padding: Padding,
@@ -129,7 +129,7 @@ where
             placeholder: None,
             font: None,
             text_size: None,
-            line_height: LineHeight::default(),
+            line_height: None,
             width: Length::Fill,
             height: Length::Fit,
             padding: Padding::new(5.0),
@@ -241,7 +241,7 @@ where
 
     /// Sets the [`text::LineHeight`] of the [`TextEditor`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -369,7 +369,7 @@ where
             limits.shrink(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.font()),
             self.text_size.unwrap_or_else(|| renderer.text_size()),
-            self.line_height,
+            self.line_height.unwrap_or_else(|| renderer.line_height()),
             self.wrapping,
             text::Alignment::Default,
             renderer.hint_factor(),
@@ -556,7 +556,7 @@ where
                     content: placeholder.clone().into_owned(),
                     bounds: text_bounds.size(),
                     size: self.text_size.unwrap_or_else(|| renderer.text_size()),
-                    line_height: self.line_height,
+                    line_height: self.line_height.unwrap_or_else(|| renderer.line_height()),
                     font,
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Top,
