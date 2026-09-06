@@ -435,7 +435,7 @@ where
                 placeholder: &self.placeholder,
                 font: self.font,
                 size: self.size,
-                line_height: self.line_height.unwrap_or_else(|| renderer.line_height()),
+                line_height: self.line_height,
                 alignment: text::Alignment::Default,
                 multiline: None,
                 is_secure: false,

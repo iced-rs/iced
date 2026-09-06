@@ -308,7 +308,7 @@ where
                 placeholder: self.placeholder.as_ref(),
                 font: self.font,
                 size: self.size,
-                line_height: self.line_height.unwrap_or_else(|| renderer.line_height()),
+                line_height: self.line_height,
                 alignment: self.alignment,
                 multiline: self.multiline,
                 is_secure: self.is_secure,
