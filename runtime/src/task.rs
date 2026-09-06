@@ -78,7 +78,7 @@ impl<T> Task<T> {
     #[cfg(feature = "sipper")]
     pub fn sip<S>(
         sipper: S,
-        on_progress: impl FnMut(S::Progress) -> T + MaybeSend + 'static,
+        on_progress: impl FnMut(S::Item) -> T + MaybeSend + 'static,
         on_output: impl FnOnce(<S as Future>::Output) -> T + MaybeSend + 'static,
     ) -> Self
     where

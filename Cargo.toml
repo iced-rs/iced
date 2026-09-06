@@ -224,7 +224,7 @@ rustc-hash = "2.0"
 semver = "1.0"
 serde = "1.0"
 sha2 = "0.10"
-sipper = "0.1"
+sipper = "0.2"
 smol = "2"
 smol_str = "0.2"
 softbuffer = { version = "0.4", default-features = false }
