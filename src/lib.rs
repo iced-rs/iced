@@ -437,14 +437,14 @@
 //!                     }
 //!                  }
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!         Message::Conversation(message) => {
 //!             if let Screen::Conversation(conversation) = &mut state.screen {
 //!                 conversation.update(message).map(Message::Conversation)
 //!             } else {
-//!                 Task::none()    
+//!                 Task::none()
 //!             }
 //!         }
 //!     }
@@ -593,9 +593,9 @@ pub mod keyboard {
     pub use iced_futures::keyboard::listen;
 }
 
-pub mod mouse {
-    //! Listen and react to mouse events.
-    pub use crate::core::mouse::{Button, Cursor, Event, Interaction, ScrollDelta};
+pub mod pointer {
+    //! Listen and react to pointer events.
+    pub use crate::core::pointer::*;
 }
 
 pub mod system {
@@ -618,11 +618,6 @@ pub mod overlay {
         crate::core::overlay::Element<'a, Message, Theme, Renderer>;
 
     pub use iced_widget::overlay::*;
-}
-
-pub mod touch {
-    //! Listen and react to touch events.
-    pub use crate::core::touch::{Event, Finger};
 }
 
 #[allow(hidden_glob_reexports)]

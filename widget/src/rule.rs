@@ -19,7 +19,7 @@
 use crate::core;
 use crate::core::border;
 use crate::core::layout;
-use crate::core::mouse;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};

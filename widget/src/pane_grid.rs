@@ -80,10 +80,9 @@ pub use title_bar::TitleBar;
 
 use crate::container;
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay::{self, Group};
+use crate::core::pointer::{self, mouse};
 use crate::core::renderer;
-use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -499,8 +498,7 @@ where
         }
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 let bounds = layout.bounds();
 
                 if let Some(cursor_position) = cursor.position_over(bounds) {
@@ -552,9 +550,15 @@ where
                     }
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. }) => {
+            Event::Pointer(event)
+                if event.is_primary_release()
+                    || matches!(
+                        event,
+                        pointer::Event::PointerLeft {
+                            kind: pointer::Kind::Touch(_),
+                        }
+                    ) =>
+            {
                 if let Some((pane, origin)) = action.picked_pane()
                     && let Some(on_drag) = on_drag
                     && let Some(cursor_position) = cursor.position()
@@ -596,8 +600,7 @@ where
 
                 *action = state::Action::Idle;
             }
-            Event::Mouse(mouse::Event::CursorMoved { .. })
-            | Event::Touch(touch::Event::FingerMoved { .. }) => {
+            Event::Pointer(pointer::Event::PointerMoved { .. }) => {
                 if let Some((_, on_resize)) = &self.on_resize {
                     if let Some((split, _)) = action.picked_split() {
                         let bounds = layout.bounds();

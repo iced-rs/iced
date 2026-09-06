@@ -2,8 +2,7 @@
 use crate::clipboard;
 use crate::input_method;
 use crate::keyboard;
-use crate::mouse;
-use crate::touch;
+use crate::pointer;
 use crate::window;
 
 /// A user interface event.
@@ -17,14 +16,11 @@ pub enum Event {
     /// A keyboard event
     Keyboard(keyboard::Event),
 
-    /// A mouse event
-    Mouse(mouse::Event),
+    /// A pointer event
+    Pointer(pointer::Event),
 
     /// A window event
     Window(window::Event),
-
-    /// A touch event
-    Touch(touch::Event),
 
     /// An input method event
     InputMethod(input_method::Event),

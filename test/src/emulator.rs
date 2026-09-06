@@ -1,7 +1,7 @@
 //! Run your application in a headless runtime.
 use crate::core;
 use crate::core::font;
-use crate::core::mouse;
+use crate::core::pointer::{self, mouse};
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;
@@ -304,50 +304,54 @@ impl<P: Program + 'static> Emulator<P> {
 
         match instruction {
             Instruction::Interact(interaction) => {
-                let Some(events) = interaction.events(|target| match target {
-                    instruction::Target::Id(id) => {
-                        use widget::Operation;
+                let Some(events) =
+                    interaction.events(self.cursor.position(), |target| match target {
+                        instruction::Target::Id(id) => {
+                            use widget::Operation;
 
-                        let mut operation = Selector::find(widget::Id::from(id.to_owned()));
+                            let mut operation = Selector::find(widget::Id::from(id.to_owned()));
 
-                        user_interface.operate(
-                            &self.renderer,
-                            &mut widget::operation::black_box(&mut operation),
-                        );
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
 
-                        match operation.finish() {
-                            widget::operation::Outcome::Some(widget) => {
-                                Some(widget?.visible_bounds()?.center())
+                            match operation.finish() {
+                                widget::operation::Outcome::Some(widget) => {
+                                    Some(widget?.visible_bounds()?.center())
+                                }
+                                _ => None,
                             }
-                            _ => None,
                         }
-                    }
-                    instruction::Target::Text(text) => {
-                        use widget::Operation;
+                        instruction::Target::Text(text) => {
+                            use widget::Operation;
 
-                        let mut operation = Selector::find(text.as_str());
+                            let mut operation = Selector::find(text.as_str());
 
-                        user_interface.operate(
-                            &self.renderer,
-                            &mut widget::operation::black_box(&mut operation),
-                        );
+                            user_interface.operate(
+                                &self.renderer,
+                                &mut widget::operation::black_box(&mut operation),
+                            );
 
-                        match operation.finish() {
-                            widget::operation::Outcome::Some(text) => {
-                                Some(text?.visible_bounds()?.center())
+                            match operation.finish() {
+                                widget::operation::Outcome::Some(text) => {
+                                    Some(text?.visible_bounds()?.center())
+                                }
+                                _ => None,
                             }
-                            _ => None,
                         }
-                    }
-                    instruction::Target::Point(position) => Some(*position),
-                }) else {
+                        instruction::Target::Point(position) => Some(*position),
+                    })
+                else {
                     self.runtime.send(Event::Failed(instruction.clone()));
                     self.cache = Some(user_interface.into_cache());
                     return;
                 };
 
                 for event in &events {
-                    if let core::Event::Mouse(mouse::Event::CursorMoved { position }) = event {
+                    if let core::Event::Pointer(pointer::Event::PointerMoved { position, .. }) =
+                        event
+                    {
                         self.cursor = mouse::Cursor::Available(*position);
                     }
                 }

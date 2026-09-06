@@ -3,8 +3,8 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::core::animation::{Animation, Float};
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;

@@ -24,12 +24,11 @@ use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::keyboard;
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::{self, button, mouse};
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::{Duration, Instant};
-use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
@@ -564,12 +563,12 @@ where
 
         if let Some(last_scrolled) = state.last_scrolled {
             let clear_transaction = match event {
-                Event::Mouse(
-                    mouse::Event::ButtonPressed(_)
-                    | mouse::Event::ButtonReleased(_)
-                    | mouse::Event::CursorLeft,
+                Event::Pointer(
+                    pointer::Event::PointerPressed { .. }
+                    | pointer::Event::PointerReleased { .. }
+                    | pointer::Event::PointerLeft { .. },
                 ) => true,
-                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                Event::Pointer(pointer::Event::PointerMoved { .. }) => {
                     last_scrolled.elapsed() > Duration::from_millis(100)
                 }
                 _ => last_scrolled.elapsed() > Duration::from_millis(1500),
@@ -583,8 +582,7 @@ where
         let mut update = || {
             if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at() {
                 match event {
-                    Event::Mouse(mouse::Event::CursorMoved { .. })
-                    | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    Event::Pointer(pointer::Event::PointerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
                             let Some(cursor_position) = cursor.land().position() else {
                                 return;
@@ -611,8 +609,7 @@ where
                 }
             } else if mouse_over_y_scrollbar {
                 match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                    | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    Event::Pointer(event) if event.is_primary_click() => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
                         };
@@ -645,8 +642,7 @@ where
 
             if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at() {
                 match event {
-                    Event::Mouse(mouse::Event::CursorMoved { .. })
-                    | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    Event::Pointer(pointer::Event::PointerMoved { .. }) => {
                         let Some(cursor_position) = cursor.land().position() else {
                             return;
                         };
@@ -673,8 +669,7 @@ where
                 }
             } else if mouse_over_x_scrollbar {
                 match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                    | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    Event::Pointer(event) if event.is_primary_click() => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
                         };
@@ -708,10 +703,25 @@ where
             if matches!(state.interaction, Interaction::AutoScrolling { .. })
                 && matches!(
                     event,
-                    Event::Mouse(
-                        mouse::Event::ButtonPressed(_) | mouse::Event::WheelScrolled { .. }
-                    ) | Event::Touch(_)
-                        | Event::Keyboard(_)
+                    Event::Pointer(
+                        pointer::Event::PointerPressed { .. }
+                            | pointer::Event::WheelScrolled { .. }
+                            | pointer::Event::PointerEntered {
+                                kind: pointer::Kind::Touch(_),
+                                ..
+                            }
+                            | pointer::Event::PointerLeft {
+                                kind: pointer::Kind::Touch(_),
+                            }
+                            | pointer::Event::PointerMoved {
+                                source: pointer::Source::Touch { .. },
+                                ..
+                            }
+                            | pointer::Event::PointerReleased {
+                                button: button::Source::Touch { .. },
+                                ..
+                            }
+                    ) | Event::Keyboard(_)
                 )
             {
                 state.interaction = Interaction::None;
@@ -722,7 +732,7 @@ where
             }
 
             if state.last_scrolled.is_none()
-                || !matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
+                || !matches!(event, Event::Pointer(pointer::Event::WheelScrolled { .. }))
             {
                 let translation = state.translation(self.direction, bounds, content_bounds);
 
@@ -758,13 +768,15 @@ where
                 }
             };
 
-            if matches!(
-                event,
-                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-                    | Event::Touch(
-                        touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. }
-                    )
-            ) {
+            if let Event::Pointer(event) = event
+                && (event.is_primary_release()
+                    || matches!(
+                        event,
+                        pointer::Event::PointerLeft {
+                            kind: pointer::Kind::Touch(_),
+                        }
+                    ))
+            {
                 state.interaction = Interaction::None;
                 return;
             }
@@ -774,7 +786,7 @@ where
             }
 
             match event {
-                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                Event::Pointer(pointer::Event::WheelScrolled { delta }) => {
                     if cursor_over_scrollable.is_none() {
                         return;
                     }
@@ -813,9 +825,10 @@ where
                         shell.capture_event();
                     }
                 }
-                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))
-                    if self.auto_scroll && matches!(state.interaction, Interaction::None) =>
-                {
+                Event::Pointer(pointer::Event::PointerPressed {
+                    button: button::Source::Mouse(mouse::Button::Middle),
+                    ..
+                }) if self.auto_scroll && matches!(state.interaction, Interaction::None) => {
                     let Some(origin) = cursor_over_scrollable else {
                         return;
                     };
@@ -830,19 +843,27 @@ where
                     shell.invalidate_layout();
                     shell.request_redraw();
                 }
-                Event::Touch(event)
-                    if matches!(state.interaction, Interaction::TouchScrolling(_))
-                        || (!mouse_over_y_scrollbar && !mouse_over_x_scrollbar) =>
+                Event::Pointer(
+                    event @ (pointer::Event::PointerPressed {
+                        button: button::Source::Touch { .. },
+                        ..
+                    }
+                    | pointer::Event::PointerMoved {
+                        source: pointer::Source::Touch { .. },
+                        ..
+                    }),
+                ) if matches!(state.interaction, Interaction::TouchScrolling(_))
+                    || (!mouse_over_y_scrollbar && !mouse_over_x_scrollbar) =>
                 {
                     match event {
-                        touch::Event::FingerPressed { .. } => {
+                        pointer::Event::PointerPressed { .. } => {
                             let Some(position) = cursor_over_scrollable else {
                                 return;
                             };
 
                             state.interaction = Interaction::TouchScrolling(position);
                         }
-                        touch::Event::FingerMoved { .. } => {
+                        pointer::Event::PointerMoved { .. } => {
                             let Interaction::TouchScrolling(scroll_box_touched_at) =
                                 state.interaction
                             else {
@@ -876,7 +897,7 @@ where
 
                     shell.capture_event();
                 }
-                Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                Event::Pointer(pointer::Event::PointerMoved { position, .. }) => {
                     if let Interaction::AutoScrolling {
                         origin, last_frame, ..
                     } = state.interaction

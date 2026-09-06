@@ -1,9 +1,8 @@
 //! A container for capturing mouse events.
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::{self, button, mouse};
 use crate::core::renderer;
-use crate::core::touch;
 use crate::core::widget::{Operation, Tree, tree};
 use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
@@ -345,8 +344,7 @@ fn update<Message: Clone, Theme, Renderer>(
     }
 
     match event {
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerPressed { .. }) => {
+        Event::Pointer(event) if event.is_primary_click() => {
             if let Some(message) = widget.on_press.as_ref() {
                 shell.publish(message.clone());
                 shell.capture_event();
@@ -369,35 +367,40 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.capture_event();
             }
         }
-        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerLifted { .. }) => {
+        Event::Pointer(event) if event.is_primary_release() => {
             if let Some(message) = widget.on_release.as_ref() {
                 shell.publish(message.clone());
             }
         }
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
+        Event::Pointer(event) if event.is_secondary_click() => {
             if let Some(message) = widget.on_right_press.as_ref() {
                 shell.publish(message.clone());
                 shell.capture_event();
             }
         }
-        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Right)) => {
+        Event::Pointer(event) if event.is_secondary_release() => {
             if let Some(message) = widget.on_right_release.as_ref() {
                 shell.publish(message.clone());
             }
         }
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle)) => {
+        Event::Pointer(pointer::Event::PointerPressed {
+            button: button::Source::Mouse(mouse::Button::Middle),
+            ..
+        }) => {
             if let Some(message) = widget.on_middle_press.as_ref() {
                 shell.publish(message.clone());
                 shell.capture_event();
             }
         }
-        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Middle)) => {
+        Event::Pointer(pointer::Event::PointerReleased {
+            button: button::Source::Mouse(mouse::Button::Middle),
+            ..
+        }) => {
             if let Some(message) = widget.on_middle_release.as_ref() {
                 shell.publish(message.clone());
             }
         }
-        Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+        Event::Pointer(pointer::Event::WheelScrolled { delta }) => {
             if let Some(on_scroll) = widget.on_scroll.as_ref() {
                 shell.publish(on_scroll(*delta));
                 shell.capture_event();

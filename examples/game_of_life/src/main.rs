@@ -177,9 +177,8 @@ fn view_controls<'a>(
 mod grid {
     use crate::Preset;
     use iced::alignment;
-    use iced::mouse;
+    use iced::pointer::{self, button, mouse};
     use iced::time::{Duration, Instant};
-    use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::{Cache, Canvas, Event, Frame, Geometry, Path, Text};
     use iced::widget::text;
@@ -365,7 +364,11 @@ mod grid {
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Option<canvas::Action<Message>> {
-            if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
+            if let Event::Pointer(pointer::Event::PointerReleased {
+                button: button::Source::Mouse(_),
+                ..
+            }) = event
+            {
                 *interaction = Interaction::None;
             }
 
@@ -381,7 +384,10 @@ mod grid {
             };
 
             match event {
-                Event::Touch(touch::Event::FingerMoved { .. }) => {
+                Event::Pointer(pointer::Event::PointerMoved {
+                    source: pointer::Source::Touch { .. },
+                    ..
+                }) => {
                     let message = {
                         *interaction = if is_populated {
                             Interaction::Erasing
@@ -399,96 +405,93 @@ mod grid {
                             .and_capture(),
                     )
                 }
-                Event::Mouse(mouse_event) => match mouse_event {
-                    mouse::Event::ButtonPressed(button) => {
-                        let message = match button {
-                            mouse::Button::Left => {
-                                *interaction = if is_populated {
-                                    Interaction::Erasing
-                                } else {
-                                    Interaction::Drawing
-                                };
+                Event::Pointer(pointer::Event::PointerPressed {
+                    button: button::Source::Mouse(button),
+                    ..
+                }) => {
+                    let message = match button {
+                        mouse::Button::Left => {
+                            *interaction = if is_populated {
+                                Interaction::Erasing
+                            } else {
+                                Interaction::Drawing
+                            };
 
-                                populate.or(unpopulate)
-                            }
-                            mouse::Button::Right => {
-                                *interaction = Interaction::Panning {
-                                    translation: self.translation,
-                                    start: cursor_position,
-                                };
+                            populate.or(unpopulate)
+                        }
+                        mouse::Button::Right => {
+                            *interaction = Interaction::Panning {
+                                translation: self.translation,
+                                start: cursor_position,
+                            };
 
-                                None
-                            }
-                            _ => None,
-                        };
+                            None
+                        }
+                        _ => None,
+                    };
 
-                        Some(
-                            message
-                                .map(canvas::Action::publish)
-                                .unwrap_or(canvas::Action::request_redraw())
-                                .and_capture(),
-                        )
-                    }
-                    mouse::Event::CursorMoved { .. } => {
-                        let message = match *interaction {
-                            Interaction::Drawing => populate,
-                            Interaction::Erasing => unpopulate,
-                            Interaction::Panning { translation, start } => {
-                                Some(Message::Translated(
-                                    translation + (cursor_position - start) * (1.0 / self.scaling),
-                                ))
-                            }
-                            Interaction::None => None,
-                        };
-
-                        let action = message
+                    Some(
+                        message
                             .map(canvas::Action::publish)
-                            .unwrap_or(canvas::Action::request_redraw());
+                            .unwrap_or(canvas::Action::request_redraw())
+                            .and_capture(),
+                    )
+                }
+                Event::Pointer(pointer::Event::PointerMoved { .. }) => {
+                    let message = match *interaction {
+                        Interaction::Drawing => populate,
+                        Interaction::Erasing => unpopulate,
+                        Interaction::Panning { translation, start } => Some(Message::Translated(
+                            translation + (cursor_position - start) * (1.0 / self.scaling),
+                        )),
+                        Interaction::None => None,
+                    };
 
-                        Some(match interaction {
-                            Interaction::None => action,
-                            _ => action.and_capture(),
-                        })
-                    }
-                    mouse::Event::WheelScrolled { delta } => match *delta {
-                        mouse::ScrollDelta::Lines { y, .. }
-                        | mouse::ScrollDelta::Pixels { y, .. } => {
-                            if y < 0.0 && self.scaling > Self::MIN_SCALING
-                                || y > 0.0 && self.scaling < Self::MAX_SCALING
+                    let action = message
+                        .map(canvas::Action::publish)
+                        .unwrap_or(canvas::Action::request_redraw());
+
+                    Some(match interaction {
+                        Interaction::None => action,
+                        _ => action.and_capture(),
+                    })
+                }
+                Event::Pointer(pointer::Event::WheelScrolled { delta }) => match *delta {
+                    mouse::ScrollDelta::Lines { y, .. } | mouse::ScrollDelta::Pixels { y, .. } => {
+                        if y < 0.0 && self.scaling > Self::MIN_SCALING
+                            || y > 0.0 && self.scaling < Self::MAX_SCALING
+                        {
+                            let old_scaling = self.scaling;
+
+                            let scaling = (self.scaling * (1.0 + y / 30.0))
+                                .clamp(Self::MIN_SCALING, Self::MAX_SCALING);
+
+                            let translation = if let Some(cursor_to_center) =
+                                cursor.position_from(bounds.center())
                             {
-                                let old_scaling = self.scaling;
-
-                                let scaling = (self.scaling * (1.0 + y / 30.0))
-                                    .clamp(Self::MIN_SCALING, Self::MAX_SCALING);
-
-                                let translation = if let Some(cursor_to_center) =
-                                    cursor.position_from(bounds.center())
-                                {
-                                    let factor = scaling - old_scaling;
-
-                                    Some(
-                                        self.translation
-                                            - Vector::new(
-                                                cursor_to_center.x * factor
-                                                    / (old_scaling * old_scaling),
-                                                cursor_to_center.y * factor
-                                                    / (old_scaling * old_scaling),
-                                            ),
-                                    )
-                                } else {
-                                    None
-                                };
+                                let factor = scaling - old_scaling;
 
                                 Some(
-                                    canvas::Action::publish(Message::Scaled(scaling, translation))
-                                        .and_capture(),
+                                    self.translation
+                                        - Vector::new(
+                                            cursor_to_center.x * factor
+                                                / (old_scaling * old_scaling),
+                                            cursor_to_center.y * factor
+                                                / (old_scaling * old_scaling),
+                                        ),
                                 )
                             } else {
-                                Some(canvas::Action::capture())
-                            }
+                                None
+                            };
+
+                            Some(
+                                canvas::Action::publish(Message::Scaled(scaling, translation))
+                                    .and_capture(),
+                            )
+                        } else {
+                            Some(canvas::Action::capture())
                         }
-                    },
-                    _ => None,
+                    }
                 },
                 _ => None,
             }

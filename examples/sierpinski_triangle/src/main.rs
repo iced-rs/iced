@@ -1,4 +1,4 @@
-use iced::mouse;
+use iced::pointer::{self, button, mouse};
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
 use iced::{Center, Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
@@ -82,7 +82,10 @@ impl canvas::Program<Message> for SierpinskiGraph {
         let cursor_position = cursor.position_in(bounds)?;
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(button)) => match button {
+            Event::Pointer(pointer::Event::PointerPressed {
+                button: button::Source::Mouse(button),
+                ..
+            }) => match button {
                 mouse::Button::Left => Some(canvas::Action::publish(Message::PointAdded(
                     cursor_position,
                 ))),

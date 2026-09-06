@@ -22,7 +22,7 @@
 //! ```
 use crate::alignment;
 use crate::layout;
-use crate::mouse;
+use crate::pointer::mouse;
 use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};

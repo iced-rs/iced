@@ -18,11 +18,10 @@
 //! ```
 use crate::core::border::{self, Border};
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::{self, mouse};
 use crate::core::renderer;
 use crate::core::theme::palette;
-use crate::core::touch;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
@@ -283,10 +282,7 @@ where
         }
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. })
-                if self.on_press.is_some() =>
-            {
+            Event::Pointer(event) if event.is_primary_click() && self.on_press.is_some() => {
                 let bounds = layout.bounds();
 
                 if cursor.is_over(bounds) {
@@ -297,8 +293,7 @@ where
                     shell.capture_event();
                 }
             }
-            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. }) => {
+            Event::Pointer(event) if event.is_primary_release() => {
                 if let Some(on_press) = &self.on_press {
                     let state = tree.state.downcast_mut::<State>();
 
@@ -315,7 +310,9 @@ where
                     }
                 }
             }
-            Event::Touch(touch::Event::FingerLost { .. }) => {
+            Event::Pointer(pointer::Event::PointerLeft {
+                kind: pointer::Kind::Touch(_),
+            }) => {
                 let state = tree.state.downcast_mut::<State>();
 
                 state.is_pressed = false;
@@ -519,11 +516,11 @@ impl Default for Style {
 ///
 /// impl Catalog for MyTheme {
 ///     type Class<'a> = ButtonClass;
-///     
+///
 ///     fn default<'a>() -> Self::Class<'a> {
 ///         ButtonClass::default()
 ///     }
-///     
+///
 ///
 ///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
 ///         let mut style = Style::default();

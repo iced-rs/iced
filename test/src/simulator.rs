@@ -3,7 +3,7 @@ use crate::core;
 use crate::core::event;
 use crate::core::font;
 use crate::core::keyboard;
-use crate::core::mouse;
+use crate::core::pointer::{self, button, mouse};
 use crate::core::shell;
 use crate::core::theme;
 use crate::core::time;
@@ -143,9 +143,11 @@ where
             });
         };
 
-        self.point_at(visible_bounds.center());
+        let position = visible_bounds.center();
 
-        let _ = self.simulate(click());
+        self.point_at(position);
+
+        let _ = self.simulate(click(position));
 
         Ok(target)
     }
@@ -338,11 +340,17 @@ where
     Simulator::new(element)
 }
 
-/// Returns the sequence of events of a click.
-pub fn click() -> impl Iterator<Item = Event> {
+/// Returns the sequence of events of a click at the given position.
+pub fn click(position: Point) -> impl Iterator<Item = Event> {
     [
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
-        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)),
+        Event::Pointer(pointer::Event::PointerPressed {
+            position,
+            button: button::Source::Mouse(mouse::Button::Left),
+        }),
+        Event::Pointer(pointer::Event::PointerReleased {
+            position,
+            button: button::Source::Mouse(mouse::Button::Left),
+        }),
     ]
     .into_iter()
 }

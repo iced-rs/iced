@@ -1,9 +1,10 @@
 //! Track mouse clicks.
-use crate::mouse::Button;
 use crate::time::Instant;
 use crate::{Point, Transformation};
 
 use std::ops::Mul;
+
+use super::Button;
 
 /// A mouse click.
 #[derive(Debug, Clone, Copy)]

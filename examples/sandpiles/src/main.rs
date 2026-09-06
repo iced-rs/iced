@@ -1,4 +1,4 @@
-use iced::mouse;
+use iced::pointer::{self, mouse};
 use iced::widget::{canvas, column, container, row, slider, text};
 use iced::window;
 use iced::{
@@ -189,14 +189,14 @@ impl canvas::Program<Message> for Viewer<'_> {
         cursor: mouse::Cursor,
     ) -> Option<canvas::Action<Message>> {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Pointer(event) if event.is_primary_click() => {
                 let position = cursor.position_in(bounds)? - (bounds.center() - Point::ORIGIN);
                 let row = (position.x / Self::CELL_SIZE).round() as isize;
                 let column = (position.y / Self::CELL_SIZE).round() as isize;
 
                 Some(canvas::Action::publish(Message::Add(Cell { row, column })))
             }
-            Event::Mouse(mouse::Event::CursorMoved { .. }) if cursor.is_over(bounds) => {
+            Event::Pointer(pointer::Event::PointerMoved { .. }) if cursor.is_over(bounds) => {
                 Some(canvas::Action::request_redraw())
             }
             _ => None,

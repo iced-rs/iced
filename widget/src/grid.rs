@@ -1,7 +1,7 @@
 //! Distribute content on a grid.
 use crate::core::layout::{self, Layout};
-use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::pointer::mouse;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{Element, Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
