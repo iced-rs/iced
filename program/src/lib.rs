@@ -107,79 +107,6 @@ pub trait Program: Sized {
     }
 }
 
-/// Decorates a [`Program`] with the given title function.
-pub fn with_title<P: Program>(
-    program: P,
-    title: impl Fn(&P::State, window::Id) -> String,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
-    struct WithTitle<P, Title> {
-        program: P,
-        title: Title,
-    }
-
-    impl<P, Title> Program for WithTitle<P, Title>
-    where
-        P: Program,
-        Title: Fn(&P::State, window::Id) -> String,
-    {
-        type State = P::State;
-        type Message = P::Message;
-        type Theme = P::Theme;
-        type Renderer = P::Renderer;
-        type Executor = P::Executor;
-
-        fn title(&self, state: &Self::State, window: window::Id) -> String {
-            (self.title)(state, window)
-        }
-
-        fn name() -> &'static str {
-            P::name()
-        }
-
-        fn settings(&self) -> Settings {
-            self.program.settings()
-        }
-
-        fn window(&self) -> Option<window::Settings> {
-            self.program.window()
-        }
-
-        fn boot(&self) -> (Self::State, Task<Self::Message>) {
-            self.program.boot()
-        }
-
-        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
-            self.program.update(state, message)
-        }
-
-        fn view<'a>(
-            &self,
-            state: &'a Self::State,
-            window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
-        }
-
-        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
-            self.program.theme(state, window)
-        }
-
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
-            self.program.subscription(state)
-        }
-
-        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
-            self.program.style(state, theme)
-        }
-
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
-            self.program.scale_factor(state, window)
-        }
-    }
-
-    WithTitle { program, title }
-}
-
 /// Decorates a [`Program`] with the given subscription function.
 pub fn with_subscription<P: Program>(
     program: P,
@@ -200,30 +127,37 @@ pub fn with_subscription<P: Program>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
+        #[inline]
         fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             (self.subscription)(state)
         }
 
+        #[inline]
         fn name() -> &'static str {
             P::name()
         }
 
+        #[inline]
         fn settings(&self) -> Settings {
             self.program.settings()
         }
 
+        #[inline]
         fn window(&self) -> Option<window::Settings> {
             self.program.window()
         }
 
+        #[inline]
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
+        #[inline]
         fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
+        #[inline]
         fn view<'a>(
             &self,
             state: &'a Self::State,
@@ -232,18 +166,22 @@ pub fn with_subscription<P: Program>(
             self.program.view(state, window)
         }
 
+        #[inline]
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
         }
 
+        #[inline]
         fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
+        #[inline]
         fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             self.program.style(state, theme)
         }
 
+        #[inline]
         fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
@@ -253,78 +191,6 @@ pub fn with_subscription<P: Program>(
         program,
         subscription: f,
     }
-}
-
-/// Decorates a [`Program`] with the given theme function.
-pub fn with_theme<P: Program>(
-    program: P,
-    f: impl Fn(&P::State, window::Id) -> Option<P::Theme>,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
-    struct WithTheme<P, F> {
-        program: P,
-        theme: F,
-    }
-
-    impl<P: Program, F> Program for WithTheme<P, F>
-    where
-        F: Fn(&P::State, window::Id) -> Option<P::Theme>,
-    {
-        type State = P::State;
-        type Message = P::Message;
-        type Theme = P::Theme;
-        type Renderer = P::Renderer;
-        type Executor = P::Executor;
-
-        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
-            (self.theme)(state, window)
-        }
-
-        fn name() -> &'static str {
-            P::name()
-        }
-
-        fn settings(&self) -> Settings {
-            self.program.settings()
-        }
-
-        fn window(&self) -> Option<window::Settings> {
-            self.program.window()
-        }
-
-        fn boot(&self) -> (Self::State, Task<Self::Message>) {
-            self.program.boot()
-        }
-
-        fn title(&self, state: &Self::State, window: window::Id) -> String {
-            self.program.title(state, window)
-        }
-
-        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
-            self.program.update(state, message)
-        }
-
-        fn view<'a>(
-            &self,
-            state: &'a Self::State,
-            window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
-        }
-
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
-            self.program.subscription(state)
-        }
-
-        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
-            self.program.style(state, theme)
-        }
-
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
-            self.program.scale_factor(state, window)
-        }
-    }
-
-    WithTheme { program, theme: f }
 }
 
 /// Decorates a [`Program`] with the given style function.
@@ -347,34 +213,42 @@ pub fn with_style<P: Program>(
         type Renderer = P::Renderer;
         type Executor = P::Executor;
 
+        #[inline]
         fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             (self.style)(state, theme)
         }
 
+        #[inline]
         fn name() -> &'static str {
             P::name()
         }
 
+        #[inline]
         fn settings(&self) -> Settings {
             self.program.settings()
         }
 
+        #[inline]
         fn window(&self) -> Option<window::Settings> {
             self.program.window()
         }
 
+        #[inline]
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
+        #[inline]
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
         }
 
+        #[inline]
         fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
+        #[inline]
         fn view<'a>(
             &self,
             state: &'a Self::State,
@@ -383,95 +257,23 @@ pub fn with_style<P: Program>(
             self.program.view(state, window)
         }
 
+        #[inline]
         fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
 
+        #[inline]
         fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
+        #[inline]
         fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
     }
 
     WithStyle { program, style: f }
-}
-
-/// Decorates a [`Program`] with the given scale factor function.
-pub fn with_scale_factor<P: Program>(
-    program: P,
-    f: impl Fn(&P::State, window::Id) -> f32,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
-    struct WithScaleFactor<P, F> {
-        program: P,
-        scale_factor: F,
-    }
-
-    impl<P: Program, F> Program for WithScaleFactor<P, F>
-    where
-        F: Fn(&P::State, window::Id) -> f32,
-    {
-        type State = P::State;
-        type Message = P::Message;
-        type Theme = P::Theme;
-        type Renderer = P::Renderer;
-        type Executor = P::Executor;
-
-        fn title(&self, state: &Self::State, window: window::Id) -> String {
-            self.program.title(state, window)
-        }
-
-        fn name() -> &'static str {
-            P::name()
-        }
-
-        fn settings(&self) -> Settings {
-            self.program.settings()
-        }
-
-        fn window(&self) -> Option<window::Settings> {
-            self.program.window()
-        }
-
-        fn boot(&self) -> (Self::State, Task<Self::Message>) {
-            self.program.boot()
-        }
-
-        fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
-            self.program.update(state, message)
-        }
-
-        fn view<'a>(
-            &self,
-            state: &'a Self::State,
-            window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
-        }
-
-        fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
-            self.program.subscription(state)
-        }
-
-        fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
-            self.program.theme(state, window)
-        }
-
-        fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
-            self.program.style(state, theme)
-        }
-
-        fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
-            (self.scale_factor)(state, window)
-        }
-    }
-
-    WithScaleFactor {
-        program,
-        scale_factor: f,
-    }
 }
 
 /// Decorates a [`Program`] with the given executor function.
@@ -495,30 +297,37 @@ pub fn with_executor<P: Program, E: Executor>(
         type Renderer = P::Renderer;
         type Executor = E;
 
+        #[inline]
         fn title(&self, state: &Self::State, window: window::Id) -> String {
             self.program.title(state, window)
         }
 
+        #[inline]
         fn name() -> &'static str {
             P::name()
         }
 
+        #[inline]
         fn settings(&self) -> Settings {
             self.program.settings()
         }
 
+        #[inline]
         fn window(&self) -> Option<window::Settings> {
             self.program.window()
         }
 
+        #[inline]
         fn boot(&self) -> (Self::State, Task<Self::Message>) {
             self.program.boot()
         }
 
+        #[inline]
         fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
             self.program.update(state, message)
         }
 
+        #[inline]
         fn view<'a>(
             &self,
             state: &'a Self::State,
@@ -527,18 +336,22 @@ pub fn with_executor<P: Program, E: Executor>(
             self.program.view(state, window)
         }
 
+        #[inline]
         fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
 
+        #[inline]
         fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
             self.program.theme(state, window)
         }
 
+        #[inline]
         fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
             self.program.style(state, theme)
         }
 
+        #[inline]
         fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
             self.program.scale_factor(state, window)
         }
@@ -570,36 +383,43 @@ impl<P: Program> Instance<P> {
     }
 
     /// Returns the current title of the [`Instance`].
+    #[inline]
     pub fn title(&self, window: window::Id) -> String {
         self.program.title(&self.state, window)
     }
 
     /// Processes the given message and updates the [`Instance`].
+    #[inline]
     pub fn update(&mut self, message: P::Message) -> Task<P::Message> {
         self.program.update(&mut self.state, message)
     }
 
     /// Produces the current widget tree of the [`Instance`].
+    #[inline]
     pub fn view(&self, window: window::Id) -> Element<'_, P::Message, P::Theme, P::Renderer> {
         self.program.view(&self.state, window)
     }
 
     /// Returns the current [`Subscription`] of the [`Instance`].
+    #[inline]
     pub fn subscription(&self) -> Subscription<P::Message> {
         self.program.subscription(&self.state)
     }
 
     /// Returns the current theme of the [`Instance`].
+    #[inline]
     pub fn theme(&self, window: window::Id) -> Option<P::Theme> {
         self.program.theme(&self.state, window)
     }
 
     /// Returns the current [`theme::Style`] of the [`Instance`].
+    #[inline]
     pub fn style(&self, theme: &P::Theme) -> theme::Style {
         self.program.style(&self.state, theme)
     }
 
     /// Returns the current scale factor of the [`Instance`].
+    #[inline]
     pub fn scale_factor(&self, window: window::Id) -> f32 {
         self.program.scale_factor(&self.state, window)
     }
