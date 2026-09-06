@@ -513,6 +513,9 @@ pub use iced_renderer::wgpu::wgpu;
 
 mod error;
 
+#[cfg(feature = "hot")]
+mod hot;
+
 pub mod application;
 pub mod daemon;
 pub mod time;

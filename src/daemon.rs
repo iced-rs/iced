@@ -8,7 +8,7 @@ use crate::window;
 use crate::{Element, Executor, Font, Preset, Result, Settings, Subscription, Task, Theme};
 
 #[cfg(feature = "hot")]
-use iced_debug as debug;
+use crate::hot::Hot;
 
 use std::borrow::Cow;
 
@@ -143,6 +143,9 @@ impl<P: Program> Daemon<P> {
 
         #[cfg(not(any(feature = "tester", feature = "debug")))]
         let program = self;
+
+        #[cfg(feature = "hot")]
+        let program = Hot::new(program);
 
         Ok(shell::run(program)?)
     }
@@ -301,14 +304,7 @@ impl<P: Program> Program for Daemon<P> {
 
     #[inline]
     fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
-        #[cfg(feature = "hot")]
-        {
-            debug::hot(|| self.raw.update(state, message))
-        }
-        #[cfg(not(feature = "hot"))]
-        {
-            self.raw.update(state, message)
-        }
+        self.raw.update(state, message)
     }
 
     #[inline]
@@ -317,74 +313,32 @@ impl<P: Program> Program for Daemon<P> {
         state: &'a Self::State,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-        #[cfg(feature = "hot")]
-        {
-            debug::hot(|| self.raw.view(state, window))
-        }
-        #[cfg(not(feature = "hot"))]
-        {
-            self.raw.view(state, window)
-        }
+        self.raw.view(state, window)
     }
 
     #[inline]
     fn title(&self, state: &Self::State, window: window::Id) -> String {
-        #[cfg(feature = "hot")]
-        {
-            debug::hot(|| self.raw.title(state, window))
-        }
-        #[cfg(not(feature = "hot"))]
-        {
-            self.raw.title(state, window)
-        }
+        self.raw.title(state, window)
     }
 
     #[inline]
     fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
-        #[cfg(feature = "hot")]
-        {
-            debug::hot(|| self.raw.subscription(state))
-        }
-        #[cfg(not(feature = "hot"))]
-        {
-            self.raw.subscription(state)
-        }
+        self.raw.subscription(state)
     }
 
     #[inline]
     fn theme(&self, state: &Self::State, window: iced_core::window::Id) -> Option<Self::Theme> {
-        #[cfg(feature = "hot")]
-        {
-            debug::hot(|| self.raw.theme(state, window))
-        }
-        #[cfg(not(feature = "hot"))]
-        {
-            self.raw.theme(state, window)
-        }
+        self.raw.theme(state, window)
     }
 
     #[inline]
     fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
-        #[cfg(feature = "hot")]
-        {
-            debug::hot(|| self.raw.style(state, theme))
-        }
-        #[cfg(not(feature = "hot"))]
-        {
-            self.raw.style(state, theme)
-        }
+        self.raw.style(state, theme)
     }
 
     #[inline]
     fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
-        #[cfg(feature = "hot")]
-        {
-            debug::hot(|| self.raw.scale_factor(state, window))
-        }
-        #[cfg(not(feature = "hot"))]
-        {
-            self.raw.scale_factor(state, window)
-        }
+        self.raw.scale_factor(state, window)
     }
 
     fn presets(&self) -> &[Preset<Self::State, Self::Message>] {
