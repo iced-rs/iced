@@ -241,7 +241,7 @@ wasmtimer = "0.4.2"
 web-sys = "=0.3.85"
 web-time = "1.1"
 wgpu = { version = "29", default-features = false, features = ["std", "wgsl"] }
-winit = { git = "https://github.com/rust-windowing/winit.git", rev = "f5e20bd7da25934f39abe8dc44a0597110ef6357", default-features = false }
+winit = { version = "0.31.0-beta.3", default-features = false }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
