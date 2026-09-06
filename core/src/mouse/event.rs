@@ -33,6 +33,16 @@ pub enum Event {
         /// The scroll movement.
         delta: ScrollDelta,
     },
+
+    /// A pinch ("magnify") gesture was performed on a trackpad.
+    ///
+    /// `delta` is the incremental change in magnification since the previous
+    /// event: a positive value means the user is zooming in (fingers moving
+    /// apart), a negative value zooming out. Useful for pinch-to-zoom.
+    PinchGesture {
+        /// The incremental magnification change.
+        delta: f32,
+    },
 }
 
 /// A scroll movement.
