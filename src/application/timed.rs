@@ -6,6 +6,7 @@ use crate::time::Instant;
 use crate::window;
 use crate::{Element, Program, Settings, Subscription, Task};
 
+#[cfg(feature = "hot")]
 use iced_debug as debug;
 
 /// Creates an [`Application`] with an `update` function that also
@@ -81,33 +82,59 @@ where
             (state, task.map(|message| (message, Instant::now())))
         }
 
+        #[inline]
         fn update(
             &self,
             state: &mut Self::State,
             (message, now): Self::Message,
         ) -> Task<Self::Message> {
-            debug::hot(move || {
+            #[cfg(feature = "hot")]
+            let task = debug::hot(move || {
                 self.update
                     .update(state, message, now)
                     .into()
                     .map(|message| (message, Instant::now()))
-            })
+            });
+            #[cfg(not(feature = "hot"))]
+            let task = self
+                .update
+                .update(state, message, now)
+                .into()
+                .map(|message| (message, Instant::now()));
+
+            task
         }
 
+        #[inline]
         fn view<'a>(
             &self,
             state: &'a Self::State,
             _window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            debug::hot(|| {
+            #[cfg(feature = "hot")]
+            let widget = debug::hot(|| {
                 self.view
                     .view(state)
                     .map(|message| (message, Instant::now()))
-            })
+            });
+            #[cfg(not(feature = "hot"))]
+            let widget = self
+                .view
+                .view(state)
+                .map(|message| (message, Instant::now()));
+
+            widget
         }
 
+        #[inline]
         fn subscription(&self, state: &Self::State) -> self::Subscription<Self::Message> {
-            debug::hot(|| (self.subscription)(state).map(|message| (message, Instant::now())))
+            #[cfg(feature = "hot")]
+            let subscription =
+                debug::hot(|| (self.subscription)(state).map(|message| (message, Instant::now())));
+            #[cfg(not(feature = "hot"))]
+            let subscription = (self.subscription)(state).map(|message| (message, Instant::now()));
+
+            subscription
         }
     }
 

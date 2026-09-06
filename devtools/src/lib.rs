@@ -50,23 +50,27 @@ where
     P::Message: std::fmt::Debug + message::MaybeClone,
 {
     type State = DevTools<P>;
-    type Message = Event<P>;
+    type Message = Event<P::Message>;
     type Theme = P::Theme;
     type Renderer = P::Renderer;
     type Executor = P::Executor;
 
+    #[inline]
     fn name() -> &'static str {
         P::name()
     }
 
+    #[inline]
     fn settings(&self) -> Settings {
         self.program.settings()
     }
 
+    #[inline]
     fn window(&self) -> Option<window::Settings> {
         self.program.window()
     }
 
+    #[inline]
     fn boot(&self) -> (Self::State, Task<Self::Message>) {
         let (state, boot) = self.program.boot();
         let (devtools, task) = DevTools::new(state);
@@ -77,10 +81,12 @@ where
         )
     }
 
+    #[inline]
     fn update(&self, state: &mut Self::State, message: Self::Message) -> Task<Self::Message> {
         state.update(&self.program, message)
     }
 
+    #[inline]
     fn view<'a>(
         &self,
         state: &'a Self::State,
@@ -89,22 +95,27 @@ where
         state.view(&self.program, window)
     }
 
+    #[inline]
     fn title(&self, state: &Self::State, window: window::Id) -> String {
         state.title(&self.program, window)
     }
 
+    #[inline]
     fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
         state.subscription(&self.program)
     }
 
+    #[inline]
     fn theme(&self, state: &Self::State, window: window::Id) -> Option<Self::Theme> {
         state.theme(&self.program, window)
     }
 
+    #[inline]
     fn style(&self, state: &Self::State, theme: &Self::Theme) -> theme::Style {
         state.style(&self.program, theme)
     }
 
+    #[inline]
     fn scale_factor(&self, state: &Self::State, window: window::Id) -> f32 {
         state.scale_factor(&self.program, window)
     }
@@ -171,7 +182,7 @@ where
         program.title(&self.state, window)
     }
 
-    pub fn update(&mut self, program: &P, event: Event<P>) -> Task<Event<P>> {
+    pub fn update(&mut self, program: &P, event: Event<P::Message>) -> Task<Event<P::Message>> {
         match event {
             Event::Message(message) => match message {
                 Message::HideNotification => {
@@ -297,7 +308,7 @@ where
         &self,
         program: &P,
         window: window::Id,
-    ) -> Element<'_, Event<P>, P::Theme, P::Renderer> {
+    ) -> Element<'_, Event<P::Message>, P::Theme, P::Renderer> {
         let state = self.state();
 
         let view = {
@@ -360,7 +371,7 @@ where
             .into()
     }
 
-    pub fn subscription(&self, program: &P) -> Subscription<Event<P>> {
+    pub fn subscription(&self, program: &P) -> Subscription<Event<P::Message>> {
         let subscription = program.subscription(&self.state).map(Event::Program);
         debug::subscriptions_tracked(subscription.units());
 
@@ -396,20 +407,16 @@ where
     }
 }
 
-pub enum Event<P>
-where
-    P: Program,
-{
+pub enum Event<T> {
     Message(Message),
-    Program(P::Message),
+    Program(T),
     Command(debug::Command),
     Discard,
 }
 
-impl<P> fmt::Debug for Event<P>
+impl<T> fmt::Debug for Event<T>
 where
-    P: Program,
-    P::Message: std::fmt::Debug,
+    T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
