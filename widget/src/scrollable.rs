@@ -74,7 +74,7 @@ where
     direction: Direction,
     auto_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Viewport) -> Option<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
@@ -134,11 +134,11 @@ where
         self
     }
 
-    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    /// Sets a handler to call when the [`Scrollable`] is scrolled.
     ///
     /// The function takes the [`Viewport`] of the [`Scrollable`]
-    pub fn on_scroll(mut self, f: impl Fn(Viewport) -> Message + 'a) -> Self {
-        self.on_scroll = Some(Box::new(f));
+    pub fn on_scroll<T: Into<Option<Message>>>(mut self, f: impl Fn(Viewport) -> T + 'a) -> Self {
+        self.on_scroll = Some(Box::new(move |viewport| f(viewport).into()));
         self
     }
 
@@ -1424,7 +1424,7 @@ where
 
 fn notify_scroll<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -1440,7 +1440,7 @@ fn notify_scroll<Message>(
 
 fn notify_viewport<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -1480,8 +1480,10 @@ fn notify_viewport<Message>(
 
     state.last_notified = Some(viewport);
 
-    if let Some(on_scroll) = on_scroll {
-        shell.publish(on_scroll(viewport));
+    if let Some(on_scroll) = on_scroll
+        && let Some(message) = on_scroll(viewport)
+    {
+        shell.publish(message);
     }
 
     true
