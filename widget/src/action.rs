@@ -88,3 +88,9 @@ impl<Message> Action<Message> {
         )
     }
 }
+
+impl<Message> Default for Action<Message> {
+    fn default() -> Self {
+        Self::none()
+    }
+}
