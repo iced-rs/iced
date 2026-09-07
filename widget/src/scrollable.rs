@@ -137,7 +137,10 @@ where
     /// Sets a handler to call when the [`Scrollable`] is scrolled.
     ///
     /// The function takes the [`Viewport`] of the [`Scrollable`]
-    pub fn on_scroll<T: Into<Option<Message>>>(mut self, f: impl Fn(Viewport) -> T + 'a) -> Self {
+    pub fn on_scroll<T>(mut self, f: impl Fn(Viewport) -> T + 'a) -> Self
+    where
+        T: Into<Option<Message>>,
+    {
         self.on_scroll = Some(Box::new(move |viewport| f(viewport).into()));
         self
     }

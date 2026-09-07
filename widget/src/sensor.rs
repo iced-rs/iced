@@ -18,7 +18,7 @@ pub struct Sensor<'a, Key, Message, Theme = crate::Theme, Renderer = crate::Rend
     content: Element<'a, Message, Theme, Renderer>,
     key: Key,
     on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
-    on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
+    on_resize: Option<Box<dyn Fn(Size) -> Option<Message> + 'a>>,
     on_hide: Option<Message>,
     anticipate: Pixels,
     delay: Duration,
@@ -58,8 +58,11 @@ where
     /// Sets the message to be produced when the content changes [`Size`] once its in view.
     ///
     /// The closure will receive the new [`Size`] of the content.
-    pub fn on_resize(mut self, on_resize: impl Fn(Size) -> Message + 'a) -> Self {
-        self.on_resize = Some(Box::new(on_resize));
+    pub fn on_resize<T>(mut self, on_resize: impl Fn(Size) -> T + 'a) -> Self
+    where
+        T: Into<Option<Message>>,
+    {
+        self.on_resize = Some(Box::new(move |size| on_resize(size).into()));
         self
     }
 
@@ -192,9 +195,11 @@ where
                 if let Some(on_resize) = &self.on_resize {
                     let size = bounds.size();
 
-                    if Some(size) != state.last_size {
+                    if Some(size) != state.last_size
+                        && let Some(message) = on_resize(size)
+                    {
                         state.last_size = Some(size);
-                        shell.publish(on_resize(size));
+                        shell.publish(message);
                     }
                 }
             } else if state.has_popped_in {
@@ -202,9 +207,11 @@ where
                     if let Some(on_resize) = &self.on_resize {
                         let size = bounds.size();
 
-                        if Some(size) != state.last_size {
+                        if Some(size) != state.last_size
+                            && let Some(message) = on_resize(size)
+                        {
                             state.last_size = Some(size);
-                            shell.publish(on_resize(size));
+                            shell.publish(message);
                         }
                     }
                 } else if self.on_hide.is_some() {
