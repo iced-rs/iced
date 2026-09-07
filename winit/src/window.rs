@@ -363,7 +363,7 @@ where
                 content: &spans,
                 bounds: Size::INFINITE,
                 size: preedit.text_size.unwrap_or_else(|| renderer.text_size()),
-                line_height: text::LineHeight::default(),
+                line_height: renderer.line_height(),
                 font: renderer.font(),
                 align_x: text::Alignment::Default,
                 align_y: alignment::Vertical::Top,

@@ -161,7 +161,7 @@ where
     width: Length,
     padding: Padding,
     text_size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
     font: Option<Font>,
@@ -194,7 +194,7 @@ where
             width: Length::Shrink,
             padding: crate::button::DEFAULT_PADDING,
             text_size: None,
-            line_height: text::LineHeight::default(),
+            line_height: None,
             shaping: text::Shaping::default(),
             ellipsis: text::Ellipsis::End,
             font: None,
@@ -238,7 +238,7 @@ where
 
     /// Sets the text [`text::LineHeight`] of the [`PickList`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -356,16 +356,17 @@ where
 
         let font = self.font.unwrap_or_else(|| renderer.font());
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
+        let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
         let options = self.options.borrow();
 
         let option_text = Text {
             content: "",
             bounds: Size::new(
                 limits.max().width,
-                self.line_height.to_absolute(text_size).into(),
+                line_height.to_absolute(text_size).into(),
             ),
             size: text_size,
-            line_height: self.line_height,
+            line_height,
             font,
             align_x: text::Alignment::Default,
             align_y: alignment::Vertical::Center,
@@ -412,7 +413,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 max_width + text_size.0 + self.padding.left,
-                f32::from(self.line_height.to_absolute(text_size)),
+                f32::from(line_height.to_absolute(text_size)),
             );
 
             limits
@@ -601,7 +602,7 @@ where
                 Renderer::ICON_FONT,
                 Renderer::ARROW_DOWN_ICON,
                 *size,
-                text::LineHeight::default(),
+                None,
                 text::Shaping::Basic,
             )),
             Handle::Static(Icon {
@@ -635,6 +636,7 @@ where
 
         if let Some((font, code_point, size, line_height, shaping)) = handle {
             let size = size.unwrap_or_else(|| renderer.text_size());
+            let line_height = line_height.unwrap_or_else(|| renderer.line_height());
 
             renderer.fill_text(
                 Text {
@@ -663,16 +665,17 @@ where
 
         if let Some(label) = label.or_else(|| self.placeholder.clone()) {
             let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
+            let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
 
             renderer.fill_text(
                 Text {
                     content: label,
                     size: text_size,
-                    line_height: self.line_height,
+                    line_height,
                     font,
                     bounds: Size::new(
                         bounds.width - self.padding.x(),
-                        f32::from(self.line_height.to_absolute(text_size)),
+                        f32::from(line_height.to_absolute(text_size)),
                     ),
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,
@@ -829,7 +832,7 @@ pub struct Icon {
     /// Font size of the content.
     pub size: Option<Pixels>,
     /// Line height of the content.
-    pub line_height: text::LineHeight,
+    pub line_height: Option<text::LineHeight>,
     /// The shaping strategy of the icon.
     pub shaping: text::Shaping,
 }

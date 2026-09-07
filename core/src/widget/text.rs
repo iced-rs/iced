@@ -84,7 +84,7 @@ where
 
     /// Sets the [`LineHeight`] of the [`Text`].
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
-        self.format.line_height = line_height.into();
+        self.format.line_height = Some(line_height.into());
         self
     }
 
@@ -266,7 +266,7 @@ pub struct Format {
     pub height: Length,
     pub size: Option<Pixels>,
     pub font: Option<Font>,
-    pub line_height: LineHeight,
+    pub line_height: Option<LineHeight>,
     pub align_x: text::Alignment,
     pub align_y: alignment::Vertical,
     pub shaping: Shaping,
@@ -278,7 +278,7 @@ impl Default for Format {
     fn default() -> Self {
         Self {
             size: None,
-            line_height: LineHeight::default(),
+            line_height: None,
             font: None,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -307,12 +307,13 @@ where
 
         let size = format.size.unwrap_or_else(|| renderer.text_size());
         let font = format.font.unwrap_or_else(|| renderer.font());
+        let line_height = format.line_height.unwrap_or_else(|| renderer.line_height());
 
         let _ = paragraph.update(text::Text {
             content,
             bounds,
             size,
-            line_height: format.line_height,
+            line_height,
             font,
             align_x: format.align_x,
             align_y: format.align_y,

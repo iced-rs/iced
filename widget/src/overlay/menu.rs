@@ -31,7 +31,7 @@ where
     width: f32,
     padding: Padding,
     text_size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
     font: Option<Font>,
@@ -66,7 +66,7 @@ where
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
-            line_height: text::LineHeight::default(),
+            line_height: None,
             shaping: text::Shaping::default(),
             ellipsis: text::Ellipsis::default(),
             font: None,
@@ -94,7 +94,7 @@ where
 
     /// Sets the text [`text::LineHeight`] of the [`Menu`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -338,7 +338,7 @@ where
     on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     padding: Padding,
     text_size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
     font: Option<Font>,
@@ -380,8 +380,9 @@ where
         use std::f32;
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
+        let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
 
-        let text_line_height = self.line_height.to_absolute(text_size);
+        let text_line_height = line_height.to_absolute(text_size);
 
         let size = {
             let intrinsic = Size::new(
@@ -422,9 +423,10 @@ where
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
                     let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
+                    let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
 
                     let option_height =
-                        f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
+                        f32::from(line_height.to_absolute(text_size)) + self.padding.y();
 
                     let new_hovered_option = (cursor_position.y / option_height) as usize;
 
@@ -444,9 +446,10 @@ where
             Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
                     let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
+                    let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
 
                     let option_height =
-                        f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
+                        f32::from(line_height.to_absolute(text_size)) + self.padding.y();
 
                     *self.hovered_option = Some((cursor_position.y / option_height) as usize);
 
@@ -504,7 +507,8 @@ where
         let bounds = layout.bounds();
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
-        let option_height = f32::from(self.line_height.to_absolute(text_size)) + self.padding.y();
+        let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
+        let option_height = f32::from(line_height.to_absolute(text_size)) + self.padding.y();
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height) as usize;
@@ -546,7 +550,7 @@ where
                     content: (self.to_string)(option),
                     bounds: Size::new(bounds.width - self.padding.x(), bounds.height),
                     size: text_size,
-                    line_height: self.line_height,
+                    line_height,
                     font: self.font.unwrap_or_else(|| renderer.font()),
                     align_x: text::Alignment::Default,
                     align_y: alignment::Vertical::Center,

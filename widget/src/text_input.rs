@@ -92,7 +92,7 @@ where
     height: Length,
     padding: Padding,
     size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     alignment: text::Alignment,
     multiline: Option<text::Wrapping>,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
@@ -126,7 +126,7 @@ where
             height: Length::Fit,
             padding: DEFAULT_PADDING,
             size: None,
-            line_height: text::LineHeight::default(),
+            line_height: None,
             alignment: text::Alignment::Default,
             multiline: None,
             on_input: None,
@@ -223,7 +223,7 @@ where
 
     /// Sets the [`text::LineHeight`] of the [`TextInput`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 

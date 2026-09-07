@@ -69,6 +69,7 @@ where
                 core::renderer::Settings {
                     font: settings.font,
                     text_size: settings.text_size,
+                    line_height: settings.line_height,
                     metrics_hinting: settings.metrics_hinting,
                 },
                 backend.as_deref(),

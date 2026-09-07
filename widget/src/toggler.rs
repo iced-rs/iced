@@ -87,7 +87,7 @@ where
     width: Length,
     size: f32,
     text_size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     alignment: text::Alignment,
     text_shaping: text::Shaping,
     wrapping: text::Wrapping,
@@ -120,7 +120,7 @@ where
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
             text_size: None,
-            line_height: text::LineHeight::default(),
+            line_height: None,
             alignment: text::Alignment::Default,
             text_shaping: text::Shaping::default(),
             wrapping: text::Wrapping::default(),
@@ -175,7 +175,7 @@ where
 
     /// Sets the text [`text::LineHeight`] of the [`Toggler`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 

@@ -93,7 +93,7 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     shaping: text::Shaping,
     wrapping: text::Wrapping,
     font: Option<Font>,
@@ -124,7 +124,7 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SIZE / 2.0,
             text_size: None,
-            line_height: text::LineHeight::default(),
+            line_height: None,
             shaping: text::Shaping::default(),
             wrapping: text::Wrapping::default(),
             font: None,
@@ -132,7 +132,7 @@ where
                 font: Renderer::ICON_FONT,
                 code_point: Renderer::CHECKMARK_ICON,
                 size: None,
-                line_height: text::LineHeight::default(),
+                line_height: None,
                 shaping: text::Shaping::Basic,
             },
             class: Theme::default(),
@@ -198,7 +198,7 @@ where
 
     /// Sets the text [`text::LineHeight`] of the [`Checkbox`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -415,6 +415,7 @@ where
                 shaping,
             } = &self.icon;
             let size = size.unwrap_or(Pixels(bounds.height * 0.7));
+            let line_height = line_height.unwrap_or_else(|| renderer.line_height());
 
             if self.is_checked {
                 renderer.fill_text(
@@ -422,7 +423,7 @@ where
                         content: code_point.to_string(),
                         font: *font,
                         size,
-                        line_height: *line_height,
+                        line_height,
                         bounds: bounds.size(),
                         align_x: text::Alignment::Center,
                         align_y: alignment::Vertical::Center,
@@ -496,7 +497,7 @@ pub struct Icon {
     /// Font size of the content.
     pub size: Option<Pixels>,
     /// The line height of the icon.
-    pub line_height: text::LineHeight,
+    pub line_height: Option<text::LineHeight>,
     /// The shaping strategy of the icon.
     pub shaping: text::Shaping,
 }

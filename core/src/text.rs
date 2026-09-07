@@ -371,6 +371,11 @@ pub trait Renderer: crate::Renderer {
         self.settings().text_size
     }
 
+    /// Returns the default line height of [`Text`].
+    fn line_height(&self) -> LineHeight {
+        self.settings().line_height
+    }
+
     /// Draws the given [`Paragraph`] at the given position and with the given
     /// [`Color`].
     fn fill_paragraph(

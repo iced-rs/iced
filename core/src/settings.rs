@@ -1,6 +1,7 @@
 //! Configure your application.
 use crate::backend;
 use crate::renderer;
+use crate::text;
 use crate::{Backend, Font, Pixels};
 
 use std::borrow::Cow;
@@ -26,6 +27,11 @@ pub struct Settings {
     ///
     /// By default, it is `16.0`.
     pub text_size: Pixels,
+
+    /// The default line height of text.
+    ///
+    /// By default, it is `LineHeight::Relative(1.375)`.
+    pub line_height: text::LineHeight,
 
     /// Whether certain widgets should be rendered using metrics hinting.
     ///
@@ -71,6 +77,7 @@ impl Default for Settings {
             fonts: Vec::new(),
             font: renderer.font,
             text_size: renderer.text_size,
+            line_height: renderer.line_height,
             metrics_hinting: true,
             backend: Backend::default(),
             power_preference: backend::PowerPreference::None,
@@ -85,6 +92,7 @@ impl From<&Settings> for renderer::Settings {
         Self {
             font: settings.font,
             text_size: settings.text_size,
+            line_height: settings.line_height,
             metrics_hinting: settings.metrics_hinting,
         }
     }
