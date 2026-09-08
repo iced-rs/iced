@@ -1751,7 +1751,7 @@ impl Catalog for Theme {
         let palette = self.palette();
 
         InlineCode {
-            padding: padding::horizontal(4),
+            padding: padding::horizontal(4).vertical(1),
             highlight: Highlight {
                 background: palette.background.weaker.color.into(),
                 border: border::rounded(4),
