@@ -271,6 +271,43 @@ impl<T> Task<T> {
     }
 }
 
+impl<T> Task<Option<T>> {
+    /// Creates a new [`Task`] that produces the `Some` value(s) contained in this task's output.
+    ///
+    /// Useful for [`Task`]s that only sometimes produce a value.
+    pub fn discard_none(self) -> Task<T>
+    where
+        T: MaybeSend + 'static,
+    {
+        self.and_then(Task::done)
+    }
+}
+
+impl<T, E> Task<Result<T, E>> {
+    /// Creates a new [`Task`] that produces the `Ok` value(s) contained in this task's output.
+    ///
+    /// Useful for fallible [`Task`]s when you only care about success values.
+    pub fn discard_err(self) -> Task<T>
+    where
+        T: MaybeSend + 'static,
+        E: MaybeSend + 'static,
+    {
+        self.map(Result::ok).discard_none()
+    }
+
+    /// Creates a new [`Task`] that produces the `Err` value(s) contained in this task's output.
+    ///
+    /// Useful for fallible [`Task`]s when you only care about error values, for example when a
+    /// side-effect may fail.
+    pub fn discard_ok(self) -> Task<E>
+    where
+        T: MaybeSend + 'static,
+        E: MaybeSend + 'static,
+    {
+        self.map(Result::err).discard_none()
+    }
+}
+
 impl<T> std::fmt::Debug for Task<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(&format!("Task<{}>", std::any::type_name::<T>()))
