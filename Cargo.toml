@@ -273,4 +273,4 @@ broken_intra_doc_links = "forbid"
 
 [patch.crates-io]
 cosmic-text.git = "https://github.com/hecrj/cosmic-text.git"
-cosmic-text.rev = "bff7050390dcb9bde57b9f38eb042fdfc223b8a7"
+cosmic-text.rev = "6e10ac2ce889f48c9eeb1f19c1340a37d6afae31"
