@@ -175,6 +175,13 @@ impl core::text::Paragraph for Paragraph {
                     attrs
                 };
 
+                let attrs = attrs.padding(cosmic_text::SpanPadding {
+                    // top: span.padding.top,
+                    // bottom: span.padding.bottom,
+                    start: span.padding.left,
+                    end: span.padding.right,
+                });
+
                 (span.text.as_ref(), attrs.metadata(i))
             }),
             &text::to_attributes(text.font),
@@ -344,7 +351,7 @@ impl core::text::Paragraph for Paragraph {
         let mut current_bounds = None;
 
         let mut y = 0.0;
-        let line_height = internal.buffer.metrics().line_height;
+        let buffer_height = internal.buffer.metrics().line_height;
         let glyphs = internal
             .buffer
             .lines
@@ -356,17 +363,25 @@ impl core::text::Paragraph for Paragraph {
                     .unwrap_or_default()
                     .iter()
                     .flat_map(move |line| {
-                        let glyph_height = line.max_ascent + line.max_descent;
+                        let line_height = line.line_height(buffer_height);
+                        let ink_height = line.max_ascent + line.max_descent;
 
                         let glyphs = line.glyphs.iter().map(move |glyph| {
-                            (
-                                y + (line_height - glyph_height) / 2.0,
-                                y + glyph_height,
-                                glyph,
-                            )
+                            let span_height = glyph.line_height_opt.unwrap_or(buffer_height);
+
+                            // TODO:
+                            let top_pad = 0.0;
+                            let bottom_pad = 0.0;
+
+                            let centering_offset =
+                                (line_height - top_pad - bottom_pad - span_height) / 2.0
+                                    + (span_height - ink_height).abs() / 2.0;
+
+                            let top = y + top_pad + centering_offset;
+
+                            (top, top + span_height, glyph)
                         });
 
-                        let line_height = line.line_height_opt.unwrap_or(line_height);
                         y += line_height;
 
                         glyphs

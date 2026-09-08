@@ -269,40 +269,31 @@ where
 
                 if let Some(highlight) = span.highlight {
                     for (i, bounds) in regions.iter().enumerate() {
-                        let bounds = Rectangle::new(
-                            bounds.position() - Vector::new(span.padding.left, span.padding.top),
-                            bounds.size() + Size::new(span.padding.x(), span.padding.y()),
-                        );
-
                         let starts = i == 0;
                         let ends = i + 1 == regions.len();
+
+                        // The horizontal padding belongs to the start and end
+                        // of the span, not to each of its lines
+                        let left = if starts { span.padding.left } else { 0.0 };
+                        let right = if ends { span.padding.right } else { 0.0 };
+
+                        let bounds = Rectangle::new(
+                            bounds.position() - Vector::new(left, span.padding.top),
+                            bounds.size() + Size::new(left + right, span.padding.y()),
+                        );
+
+                        let radius = border::Radius {
+                            top_left: highlight.border.radius.top_left * f32::from(starts),
+                            bottom_left: highlight.border.radius.bottom_left * f32::from(starts),
+                            top_right: highlight.border.radius.top_right * f32::from(ends),
+                            bottom_right: highlight.border.radius.bottom_right * f32::from(ends),
+                        };
 
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: bounds + translation,
                                 border: Border {
-                                    radius: border::Radius {
-                                        top_left: if starts {
-                                            highlight.border.radius.top_left
-                                        } else {
-                                            0.0
-                                        },
-                                        bottom_left: if starts {
-                                            highlight.border.radius.bottom_left
-                                        } else {
-                                            0.0
-                                        },
-                                        top_right: if ends {
-                                            highlight.border.radius.top_right
-                                        } else {
-                                            0.0
-                                        },
-                                        bottom_right: if ends {
-                                            highlight.border.radius.bottom_right
-                                        } else {
-                                            0.0
-                                        },
-                                    },
+                                    radius,
                                     ..highlight.border
                                 },
                                 ..Default::default()
@@ -331,8 +322,7 @@ where
                             renderer.fill_quad(
                                 renderer::Quad {
                                     bounds: Rectangle::new(
-                                        bounds.position() + baseline
-                                            - Vector::new(0.0, size.0 * 0.08),
+                                        bounds.position() + baseline,
                                         Size::new(bounds.width, 1.0),
                                     ),
                                     ..Default::default()

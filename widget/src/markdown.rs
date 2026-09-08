@@ -424,6 +424,7 @@ impl Span {
                     let code = theme.code();
 
                     span.font(settings.inline_code_font)
+                        .size(settings.inline_code_size)
                         .color(code.color)
                         .background(code.highlight.background)
                         .border(code.highlight.border)
@@ -1040,10 +1041,14 @@ pub struct Settings {
     pub inline_code_font: Font,
     /// The [`Font`] to be applied to code blocks.
     pub code_block_font: Font,
-    /// The base text size.
-    pub text_size: Pixels,
     /// The base line height.
     pub line_height: LineHeight,
+    /// The base text size.
+    pub text_size: Pixels,
+    /// The text size used in code blocks.
+    pub code_block_size: Pixels,
+    /// The text size used in inline code.
+    pub inline_code_size: Pixels,
     /// The text size of level 1 heading.
     pub h1_size: Pixels,
     /// The text size of level 2 heading.
@@ -1056,8 +1061,6 @@ pub struct Settings {
     pub h5_size: Pixels,
     /// The text size of level 6 heading.
     pub h6_size: Pixels,
-    /// The text size used in code blocks.
-    pub code_size: Pixels,
     /// The spacing to be used between elements.
     pub spacing: Pixels,
 }
@@ -1077,15 +1080,16 @@ impl Settings {
             font: Font::DEFAULT,
             inline_code_font: Font::MONOSPACE,
             code_block_font: Font::MONOSPACE,
-            text_size,
             line_height,
+            text_size,
+            inline_code_size: text_size * 0.85,
+            code_block_size: text_size * 0.85,
             h1_size: text_size * 1.5,
             h2_size: text_size * 1.25,
             h3_size: text_size * 1.125,
             h4_size: text_size,
             h5_size: text_size,
             h6_size: text_size,
-            code_size: text_size * 0.85,
             spacing: line_height.to_absolute(text_size) / 1.5,
         }
     }
@@ -1389,14 +1393,14 @@ where
             rich_text(line.spans(settings, viewer.theme(), viewer.highlighter()))
                 .on_link_click(on_link_click.clone())
                 .font(settings.code_block_font)
-                .size(settings.code_size)
+                .size(settings.code_block_size)
                 .line_height(settings.line_height)
                 .into()
         })))
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()
-                .width(settings.code_size / 2)
-                .scroller_width(settings.code_size / 2),
+                .width(settings.code_block_size / 2)
+                .scroller_width(settings.code_block_size / 2),
         ))
         .spacing(settings.spacing * 0.75),
     )
@@ -1747,7 +1751,7 @@ impl Catalog for Theme {
         let palette = self.palette();
 
         InlineCode {
-            padding: padding::horizontal(1),
+            padding: padding::horizontal(4),
             highlight: Highlight {
                 background: palette.background.weaker.color.into(),
                 border: border::rounded(4),
