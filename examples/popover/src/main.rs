@@ -64,8 +64,8 @@ impl Popover {
                     .padding(10)
                     .style(container::rounded_box)
                 }),
-                self.position,
             )
+            .position(self.position)
             .gap(10)
             .on_close(Message::Close),
         )

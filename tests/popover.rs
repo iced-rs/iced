@@ -38,8 +38,8 @@ fn new_popover(open: bool) -> Element<'static, Message, Theme, ()> {
     popover(
         space().width(50).height(50),
         open.then(|| space().width(80).height(80)),
-        popover::Position::Bottom,
     )
+    .position(popover::Position::Bottom)
     .on_close(ON_CLOSE)
     .into()
 }
@@ -152,7 +152,6 @@ fn base_mouse_interaction_is_delegated() {
     let mut element: Element<'static, Message, Theme, ()> = popover(
         button("Open").width(50).height(50).on_press(0x01),
         Some(space().width(80).height(80)),
-        popover::Position::Bottom,
     )
     .on_close(ON_CLOSE)
     .into();
@@ -263,7 +262,6 @@ fn no_on_close_publishes_nothing() {
     let mut element: Element<'static, Message, Theme, ()> = popover(
         space().width(50).height(50),
         Some(space().width(80).height(80)),
-        popover::Position::Bottom,
     )
     .into();
 
@@ -288,7 +286,6 @@ fn auto_position_prefers_the_side_with_the_most_space() {
     let mut element: Element<'static, Message, Theme, ()> = popover(
         space().width(50).height(50),
         Some(space().width(80).height(80)),
-        popover::Position::Auto,
     )
     .on_close(ON_CLOSE)
     .into();

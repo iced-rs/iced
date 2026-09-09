@@ -35,8 +35,8 @@
 //!         state.is_open.then(|| {
 //!             container(text("This is the popover contents!")).padding(10)
 //!         }),
-//!         popover::Position::Bottom,
 //!     )
+//!     .position(popover::Position::Bottom)
 //!     .on_close(Message::Close)
 //!     .into()
 //! }
@@ -82,8 +82,8 @@ use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, She
 ///         state.is_open.then(|| {
 ///             container(text("This is the popover contents!")).padding(10)
 ///         }),
-///         popover::Position::Bottom,
 ///     )
+///     .position(popover::Position::Bottom)
 ///     .on_close(Message::Close)
 ///     .into()
 /// }
@@ -111,22 +111,22 @@ where
     /// Creates a new [`Popover`].
     ///
     /// It expects:
-    ///   * the `content` element that the popover is anchored to (the base),
+    ///   * the `content` element that the popover is anchored to (the base), and
     ///   * the optional `popover` element to display: `Some` when the popover
-    ///     is open and `None` when it is closed, and
-    ///   * the `position` of the popover relative to the base.
+    ///     is open and `None` when it is closed.
     ///
     /// The base is always present; it is the `popover` argument that controls
-    /// whether the overlay is displayed.
+    /// whether the overlay is displayed. By default, the [`Popover`] is
+    /// positioned [`Position::Auto`]; use the [`Self::position`] method to set
+    /// a specific position.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         popover: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-        position: Position,
     ) -> Self {
         Popover {
             content: content.into(),
             popover: popover.map(Into::into),
-            position,
+            position: Position::default(),
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
@@ -146,8 +146,8 @@ where
 
     /// Sets the [`Position`] of the [`Popover`].
     ///
-    /// The default [`Position`] is [`Position::Auto`], which places the
-    /// popover on the side of the base with the most available space.
+    /// By default, the [`Popover`] is positioned [`Position::Auto`], which
+    /// places it on the side of the base with the most available space.
     pub fn position(mut self, position: Position) -> Self {
         self.position = position;
         self
