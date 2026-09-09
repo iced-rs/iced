@@ -17,8 +17,6 @@ mod responsive;
 mod stack;
 mod themer;
 
-pub mod popover;
-
 pub mod button;
 pub mod checkbox;
 pub mod combo_box;
@@ -32,6 +30,7 @@ pub mod opaque;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
+pub mod popover;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
