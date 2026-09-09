@@ -15,7 +15,7 @@ use crate::lazy::Lazy;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
-use crate::popover::{self, Popover};
+use crate::popover::Popover;
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::scrollable::{self, Scrollable};
@@ -1042,14 +1042,14 @@ where
     Button::new(content)
 }
 
-/// Creates a new [`Popover`] for the provided content with the given
-/// [`Element`] and [`popover::Position`].
+/// Creates a new [`Popover`] for the provided content with the given [`Element`].
 ///
 /// Popovers display a floating piece of content over some element. The `popover`
 /// argument is an `Option`: `Some` displays the overlay (open), and `None`
-/// hides it (closed). The base is always present. When the user clicks outside
-/// of its bounds, the popover notifies the application through its `on_close`
-/// handler.
+/// hides it (closed). The base is always present. By default, the popover is
+/// positioned [`crate::popover::Position::Auto`]; use the [`Popover::position`]
+/// method to set a specific position. When the user clicks outside of its
+/// bounds, the popover notifies the application through its `on_close` handler.
 ///
 /// # Example
 /// ```no_run
@@ -1074,8 +1074,8 @@ where
 ///         state.is_open.then(|| {
 ///             container(text("This is the popover contents!")).padding(10)
 ///         }),
-///         popover::Position::Bottom,
 ///     )
+///     .position(popover::Position::Bottom)
 ///     .on_close(Message::Close)
 ///     .into()
 /// }
@@ -1083,14 +1083,13 @@ where
 pub fn popover<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
     popover: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    position: popover::Position,
 ) -> crate::Popover<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
     Theme: 'a,
     Renderer: core::text::Renderer,
 {
-    Popover::new(content, popover, position)
+    Popover::new(content, popover)
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given
