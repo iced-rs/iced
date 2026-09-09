@@ -420,19 +420,26 @@ where
             translation,
         );
 
-        // The wrapper below borrows the component's state mutably, so it can
-        // only wrap a single overlay. A component's view is expected to
-        // produce at most one overlay.
-        let Some(overlay) = overlays.pop() else {
+        if overlays.is_empty() {
             return Vec::new();
-        };
+        }
+
+        // The wrapper below borrows the component's state mutably, so it
+        // wraps all of the overlays together. They are sorted by index so
+        // that they are drawn in z-order within it.
+        overlays.sort_by(|a, b| {
+            a.as_overlay()
+                .index()
+                .partial_cmp(&b.as_overlay().index())
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         self.has_overlay = true;
 
         vec![overlay::Element::new(Box::new(Overlay {
             component: &mut self.component,
             internal: tree.state.downcast_mut(),
-            raw: overlay,
+            raw: overlays,
             is_outdated: &mut self.is_outdated,
         }))]
     }
@@ -445,7 +452,7 @@ where
     component: &'b mut C,
     internal: &'b mut Internal<C::State, C::Event>,
     is_outdated: &'b mut bool,
-    raw: overlay::Element<'b, C::Event, Theme, Renderer>,
+    raw: Vec<overlay::Element<'b, C::Event, Theme, Renderer>>,
 }
 
 impl<'a, 'b, C, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
@@ -455,11 +462,28 @@ where
     Renderer: core::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.raw.as_overlay_mut().layout(renderer, bounds)
+        let children: Vec<layout::Node> = self
+            .raw
+            .iter_mut()
+            .map(|raw| raw.as_overlay_mut().layout(renderer, bounds))
+            .collect();
+
+        let size = children.iter().fold(Size::ZERO, |size, node| {
+            Size::new(
+                size.width.max(node.size().width),
+                size.height.max(node.size().height),
+            )
+        });
+
+        layout::Node::with_children(size, children)
     }
 
     fn index(&self) -> f32 {
-        self.raw.as_overlay().index()
+        self.raw
+            .iter()
+            .map(|raw| raw.as_overlay().index())
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(1.0)
     }
 
     fn update(
@@ -472,9 +496,10 @@ where
     ) {
         let mut local_shell = shell.local(&mut self.internal.events);
 
-        self.raw
-            .as_overlay_mut()
-            .update(event, layout, cursor, renderer, &mut local_shell);
+        for (raw, child_layout) in self.raw.iter_mut().zip(layout.children()) {
+            raw.as_overlay_mut()
+                .update(event, child_layout, cursor, renderer, &mut local_shell);
+        }
 
         if local_shell.is_event_captured() {
             shell.capture_event();
@@ -519,9 +544,10 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        self.raw
-            .as_overlay()
-            .draw(renderer, theme, style, layout, cursor);
+        for (raw, child_layout) in self.raw.iter().zip(layout.children()) {
+            raw.as_overlay()
+                .draw(renderer, theme, style, child_layout, cursor);
+        }
     }
 
     fn mouse_interaction(
@@ -530,9 +556,17 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.raw
-            .as_overlay()
-            .mouse_interaction(layout, cursor, renderer)
+        for (raw, child_layout) in self.raw.iter().zip(layout.children()) {
+            let interaction = raw
+                .as_overlay()
+                .mouse_interaction(child_layout, cursor, renderer);
+
+            if interaction != mouse::Interaction::None {
+                return interaction;
+            }
+        }
+
+        mouse::Interaction::None
     }
 
     fn operate(
@@ -541,8 +575,173 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.raw
+        for (raw, child_layout) in self.raw.iter_mut().zip(layout.children()) {
+            raw.as_overlay_mut()
+                .operate(child_layout, renderer, operation);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::image;
+    use crate::core::{Background, Transformation};
+
+    /// An overlay with a fixed index.
+    struct ByIndex(f32);
+
+    impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer> for ByIndex
+    where
+        Renderer: core::Renderer,
+    {
+        fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+            layout::Node::new(Size::ZERO)
+        }
+
+        fn draw(
+            &self,
+            _renderer: &mut Renderer,
+            _theme: &Theme,
+            _style: &renderer::Style,
+            _layout: Layout<'_>,
+            _cursor: mouse::Cursor,
+        ) {
+        }
+
+        fn index(&self) -> f32 {
+            self.0
+        }
+    }
+
+    /// A widget that produces two overlays.
+    struct TwoOverlays;
+
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TwoOverlays
+    where
+        Renderer: core::Renderer,
+    {
+        fn size(&self) -> Size<Length> {
+            Size::new(Length::Fill, Length::Fill)
+        }
+
+        fn layout(
+            &mut self,
+            _tree: &mut widget::Tree,
+            _renderer: &Renderer,
+            _limits: &layout::Limits,
+        ) -> layout::Node {
+            layout::Node::new(Size::new(100.0, 100.0))
+        }
+
+        fn draw(
+            &self,
+            _tree: &widget::Tree,
+            _renderer: &mut Renderer,
+            _theme: &Theme,
+            _style: &renderer::Style,
+            _layout: Layout<'_>,
+            _cursor: mouse::Cursor,
+            _viewport: &Rectangle,
+        ) {
+        }
+
+        fn overlay<'a>(
+            &'a mut self,
+            _tree: &'a mut widget::Tree,
+            _layout: Layout<'a>,
+            _renderer: &Renderer,
+            _viewport: &Rectangle,
+            _translation: Vector,
+        ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
+            vec![
+                overlay::Element::new(Box::new(ByIndex(1.0))),
+                overlay::Element::new(Box::new(ByIndex(2.0))),
+            ]
+        }
+    }
+
+    /// A minimal renderer that does nothing.
+    struct Dummy;
+
+    impl core::Renderer for Dummy {
+        fn start_layer(&mut self, _bounds: Rectangle) {}
+
+        fn end_layer(&mut self) {}
+
+        fn start_transformation(&mut self, _transformation: Transformation) {}
+
+        fn end_transformation(&mut self) {}
+
+        fn fill_quad(&mut self, _quad: renderer::Quad, _background: impl Into<Background>) {}
+
+        fn allocate_image(
+            &self,
+            _handle: &image::Handle,
+            _callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
+        ) {
+        }
+
+        fn hint(&mut self, _scale: renderer::Scale) {}
+
+        fn scale(&self) -> Option<renderer::Scale> {
+            None
+        }
+
+        fn reset(&mut self, _new_bounds: Rectangle) {}
+
+        fn settings(&self) -> renderer::Settings {
+            renderer::Settings::default()
+        }
+    }
+
+    /// A component whose view produces two overlays.
+    struct TwoOverlayComponent;
+
+    impl<'a> Component<'a, (), crate::Theme, Dummy> for TwoOverlayComponent {
+        type State = ();
+        type Event = ();
+
+        fn update(
+            &mut self,
+            _state: &mut Self::State,
+            _event: Self::Event,
+            _renderer: &Dummy,
+        ) -> Option<()> {
+            None
+        }
+
+        fn view(&self, _state: &Self::State) -> Element<'a, Self::Event, crate::Theme, Dummy> {
+            Element::new(TwoOverlays)
+        }
+    }
+
+    #[test]
+    fn component_wraps_all_overlays() {
+        let mut element = component(TwoOverlayComponent);
+
+        let mut tree = Tree::new(element.as_widget());
+        element.as_widget_mut().diff(&mut tree);
+
+        let node = layout::Node::new(Size::new(100.0, 100.0));
+        let layout = Layout::with_offset(Vector::ZERO, &node);
+        let viewport = Rectangle::new(Point::ORIGIN, Size::new(100.0, 100.0));
+        let renderer = Dummy;
+
+        let mut overlays =
+            element
+                .as_widget_mut()
+                .overlay(&mut tree, layout, &renderer, &viewport, Vector::ZERO);
+
+        // All of the view's overlays are wrapped together in a single
+        // overlay, which takes the index of its topmost overlay.
+        assert_eq!(overlays.len(), 1);
+        assert_eq!(overlays[0].as_overlay().index(), 2.0);
+
+        // The wrapped overlay lays out each of the overlays as a child.
+        let layout_node = overlays[0]
             .as_overlay_mut()
-            .operate(layout, renderer, operation);
+            .layout(&renderer, Size::new(100.0, 100.0));
+        assert_eq!(layout_node.children().len(), 2);
     }
 }

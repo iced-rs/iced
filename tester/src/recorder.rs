@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -41,8 +43,8 @@ impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
 }
 
 struct State {
-    last_hovered: Option<Rectangle>,
-    last_hovered_overlay: Option<Rectangle>,
+    last_hovered: Cell<Option<Rectangle>>,
+    last_hovered_overlay: Cell<Option<Rectangle>>,
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -57,8 +59,8 @@ where
 
     fn state(&self) -> tree::State {
         tree::State::new(State {
-            last_hovered: None,
-            last_hovered_overlay: None,
+            last_hovered: Cell::new(None),
+            last_hovered_overlay: Cell::new(None),
         })
     }
 
@@ -94,7 +96,7 @@ where
                 cursor,
                 shell,
                 layout.bounds(),
-                &mut state.last_hovered,
+                &state.last_hovered,
                 on_record,
                 |operation| {
                     self.content.as_widget_mut().operate(
@@ -151,14 +153,14 @@ where
 
         let state = tree.state.downcast_ref::<State>();
 
-        let Some(last_hovered) = &state.last_hovered else {
+        let Some(last_hovered) = state.last_hovered.get() else {
             return;
         };
 
         renderer.with_layer(*viewport, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
-                    bounds: *last_hovered,
+                    bounds: last_hovered,
                     ..renderer::Quad::default()
                 },
                 highlight(theme).scale_alpha(0.7),
@@ -203,9 +205,7 @@ where
         _viewport: &Rectangle,
         translation: Vector,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.has_overlay = false;
-
-        let mut raw_overlays = self.content.as_widget_mut().overlay(
+        let raw_overlays = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
             renderer,
@@ -213,22 +213,29 @@ where
             translation,
         );
 
-        // The wrapper below borrows the recorder's state mutably, so it can
-        // only wrap a single overlay.
-        let Some(raw) = raw_overlays.pop() else {
+        self.has_overlay = !raw_overlays.is_empty();
+
+        if !self.has_overlay {
             return Vec::new();
-        };
+        }
 
-        self.has_overlay = true;
-
+        // Each overlay gets its own wrapper so that the runtime can still
+        // z-order them by index. The `Cell` below lets all of the wrappers
+        // share the recorder's "last hovered" highlight.
         let state = tree.state.downcast_mut::<State>();
 
-        vec![overlay::Element::new(Box::new(Overlay {
-            raw,
-            bounds: layout.bounds(),
-            last_hovered: &mut state.last_hovered_overlay,
-            on_record: self.on_record.as_deref(),
-        }))]
+        let mut overlays = Vec::with_capacity(raw_overlays.len());
+
+        for raw in raw_overlays {
+            overlays.push(overlay::Element::new(Box::new(Overlay {
+                raw,
+                bounds: layout.bounds(),
+                last_hovered: &state.last_hovered_overlay,
+                on_record: self.on_record.as_deref(),
+            })));
+        }
+
+        overlays
     }
 }
 
@@ -247,7 +254,7 @@ where
 struct Overlay<'a, Message, Theme, Renderer> {
     raw: overlay::Element<'a, Message, Theme, Renderer>,
     bounds: Rectangle,
-    last_hovered: &'a mut Option<Rectangle>,
+    last_hovered: &'a Cell<Option<Rectangle>>,
     on_record: Option<&'a dyn Fn(Interaction) -> Message>,
 }
 
@@ -277,14 +284,14 @@ where
             .as_overlay()
             .draw(renderer, theme, style, layout, cursor);
 
-        let Some(last_hovered) = &self.last_hovered else {
+        let Some(last_hovered) = self.last_hovered.get() else {
             return;
         };
 
         renderer.with_layer(self.bounds, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
-                    bounds: *last_hovered,
+                    bounds: last_hovered,
                     ..renderer::Quad::default()
                 },
                 highlight(theme).scale_alpha(0.7),
@@ -353,7 +360,7 @@ fn record<Message>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     bounds: Rectangle,
-    last_hovered: &mut Option<Rectangle>,
+    last_hovered: &Cell<Option<Rectangle>>,
     on_record: impl Fn(Interaction) -> Message,
     operate: impl FnMut(&mut dyn widget::Operation),
 ) {
@@ -404,9 +411,9 @@ fn record<Message>(
         find_text(position + (bounds.position() - Point::ORIGIN), operate)
     {
         *target = Target::Text(content);
-        *last_hovered = visible_bounds;
+        last_hovered.set(visible_bounds);
     } else {
-        *last_hovered = None;
+        last_hovered.set(None);
     }
 
     shell.publish(on_record(interaction));
@@ -462,4 +469,138 @@ fn highlight(theme: &impl theme::Base) -> Color {
         .seed()
         .map(|seed| seed.primary)
         .unwrap_or(Color::from_rgb(0.0, 0.0, 1.0))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::image;
+    use crate::core::{Background, Transformation};
+
+    /// An overlay with a fixed index.
+    struct ByIndex(f32);
+
+    impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer> for ByIndex
+    where
+        Renderer: core::Renderer,
+    {
+        fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+            layout::Node::new(Size::ZERO)
+        }
+
+        fn draw(
+            &self,
+            _renderer: &mut Renderer,
+            _theme: &Theme,
+            _style: &renderer::Style,
+            _layout: Layout<'_>,
+            _cursor: mouse::Cursor,
+        ) {
+        }
+
+        fn index(&self) -> f32 {
+            self.0
+        }
+    }
+
+    /// A widget that produces two overlays.
+    struct TwoOverlays;
+
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TwoOverlays
+    where
+        Renderer: core::Renderer,
+    {
+        fn size(&self) -> Size<Length> {
+            Size::new(Length::Fill, Length::Fill)
+        }
+
+        fn layout(
+            &mut self,
+            _tree: &mut widget::Tree,
+            _renderer: &Renderer,
+            _limits: &layout::Limits,
+        ) -> layout::Node {
+            layout::Node::new(Size::new(100.0, 100.0))
+        }
+
+        fn draw(
+            &self,
+            _tree: &widget::Tree,
+            _renderer: &mut Renderer,
+            _theme: &Theme,
+            _style: &renderer::Style,
+            _layout: Layout<'_>,
+            _cursor: mouse::Cursor,
+            _viewport: &Rectangle,
+        ) {
+        }
+
+        fn overlay<'a>(
+            &'a mut self,
+            _tree: &'a mut widget::Tree,
+            _layout: Layout<'a>,
+            _renderer: &Renderer,
+            _viewport: &Rectangle,
+            _translation: Vector,
+        ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
+            vec![
+                overlay::Element::new(Box::new(ByIndex(1.0))),
+                overlay::Element::new(Box::new(ByIndex(2.0))),
+            ]
+        }
+    }
+
+    /// A minimal renderer that does nothing.
+    struct Dummy;
+
+    impl core::Renderer for Dummy {
+        fn start_layer(&mut self, _bounds: Rectangle) {}
+
+        fn end_layer(&mut self) {}
+
+        fn start_transformation(&mut self, _transformation: Transformation) {}
+
+        fn end_transformation(&mut self) {}
+
+        fn fill_quad(&mut self, _quad: renderer::Quad, _background: impl Into<Background>) {}
+
+        fn allocate_image(
+            &self,
+            _handle: &image::Handle,
+            _callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
+        ) {
+        }
+
+        fn hint(&mut self, _scale: renderer::Scale) {}
+
+        fn scale(&self) -> Option<renderer::Scale> {
+            None
+        }
+
+        fn reset(&mut self, _new_bounds: Rectangle) {}
+
+        fn settings(&self) -> renderer::Settings {
+            renderer::Settings::default()
+        }
+    }
+
+    #[test]
+    fn recorder_wraps_all_overlays() {
+        let mut recorder: Recorder<'_, (), iced_widget::Theme, Dummy> =
+            Recorder::new(Element::new(TwoOverlays));
+
+        let mut tree = widget::Tree::new(&recorder as &dyn Widget<(), iced_widget::Theme, Dummy>);
+        recorder.diff(&mut tree);
+
+        let node = layout::Node::new(Size::new(100.0, 100.0));
+        let layout = Layout::with_offset(Vector::ZERO, &node);
+        let viewport = Rectangle::new(Point::ORIGIN, Size::new(100.0, 100.0));
+
+        let overlays = recorder.overlay(&mut tree, layout, &Dummy, &viewport, Vector::ZERO);
+
+        // Both overlays are wrapped, each keeping its own index.
+        assert_eq!(overlays.len(), 2);
+        assert_eq!(overlays[0].as_overlay().index(), 1.0);
+        assert_eq!(overlays[1].as_overlay().index(), 2.0);
+    }
 }
