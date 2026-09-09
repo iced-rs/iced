@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- `popover` widget, an analogue of `tooltip` that appears on click and dismisses when clicking outside.
+- `popover` widget, a floating piece of content anchored to a base element. Unlike a `tooltip`, it is a *controlled* widget: the application provides its open state on creation, and the popover notifies the application of a close request through its `on_close` handler when the user clicks outside of its bounds.
 
 ## [0.14.0] - 2025-12-07
 ### Added
