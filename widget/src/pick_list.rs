@@ -702,9 +702,9 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let Some(on_select) = &self.on_select else {
-            return None;
+            return Vec::new();
         };
 
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
@@ -736,14 +736,14 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            Some(menu.overlay(
+            vec![menu.overlay(
                 layout.position() + translation,
                 *viewport,
                 bounds.height,
                 self.menu_height,
-            ))
+            )]
         } else {
-            None
+            Vec::new()
         }
     }
 }

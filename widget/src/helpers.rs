@@ -700,7 +700,7 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             self.content
                 .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, translation)
@@ -935,24 +935,32 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            let mut overlays = [&mut self.base, &mut self.top]
-                .into_iter()
-                .zip(layout.children().zip(tree.children.iter_mut()))
-                .map(|(child, (layout, tree))| {
-                    child
-                        .as_widget_mut()
-                        .overlay(tree, layout, renderer, viewport, translation)
-                });
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
+            let mut children = layout.children().zip(tree.children.iter_mut());
 
-            if let Some(base_overlay) = overlays.next()? {
-                return Some(base_overlay);
-            }
+            let (base_layout, base_tree) = children.next().unwrap();
+            let base_overlays = self.base.as_widget_mut().overlay(
+                base_tree,
+                base_layout,
+                renderer,
+                viewport,
+                translation,
+            );
 
-            let top_overlay = overlays.next()?;
-            self.is_top_overlay_active = top_overlay.is_some();
+            let (top_layout, top_tree) = children.next().unwrap();
+            let top_overlays = self.top.as_widget_mut().overlay(
+                top_tree,
+                top_layout,
+                renderer,
+                viewport,
+                translation,
+            );
 
-            top_overlay
+            self.is_top_overlay_active = !top_overlays.is_empty();
+
+            let mut overlays = base_overlays;
+            overlays.extend(top_overlays);
+            overlays
         }
     }
 

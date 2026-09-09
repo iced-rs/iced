@@ -202,30 +202,33 @@ where
         renderer: &Renderer,
         _viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.has_overlay = false;
 
-        self.content
-            .as_widget_mut()
-            .overlay(
-                &mut tree.children[0],
-                layout,
-                renderer,
-                &layout.bounds(),
-                translation,
-            )
-            .map(|raw| {
-                self.has_overlay = true;
+        let mut raw_overlays = self.content.as_widget_mut().overlay(
+            &mut tree.children[0],
+            layout,
+            renderer,
+            &layout.bounds(),
+            translation,
+        );
 
-                let state = tree.state.downcast_mut::<State>();
+        // The wrapper below borrows the recorder's state mutably, so it can
+        // only wrap a single overlay.
+        let Some(raw) = raw_overlays.pop() else {
+            return Vec::new();
+        };
 
-                overlay::Element::new(Box::new(Overlay {
-                    raw,
-                    bounds: layout.bounds(),
-                    last_hovered: &mut state.last_hovered_overlay,
-                    on_record: self.on_record.as_deref(),
-                }))
-            })
+        self.has_overlay = true;
+
+        let state = tree.state.downcast_mut::<State>();
+
+        vec![overlay::Element::new(Box::new(Overlay {
+            raw,
+            bounds: layout.bounds(),
+            last_hovered: &mut state.last_hovered_overlay,
+            on_record: self.on_record.as_deref(),
+        }))]
     }
 }
 
@@ -256,6 +259,10 @@ where
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         self.raw.as_overlay_mut().layout(renderer, bounds)
+    }
+
+    fn index(&self) -> f32 {
+        self.raw.as_overlay().index()
     }
 
     fn draw(
@@ -338,28 +345,6 @@ where
         self.raw
             .as_overlay()
             .mouse_interaction(layout, cursor, renderer)
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.raw
-            .as_overlay_mut()
-            .overlay(layout, renderer)
-            .map(|raw| {
-                overlay::Element::new(Box::new(Overlay {
-                    raw,
-                    bounds: self.bounds,
-                    last_hovered: self.last_hovered,
-                    on_record: self.on_record,
-                }))
-            })
-    }
-
-    fn index(&self) -> f32 {
-        self.raw.as_overlay().index()
     }
 }
 

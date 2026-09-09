@@ -1,11 +1,7 @@
 //! Display interactive elements on top of other widgets.
 mod element;
-mod group;
-mod nested;
 
 pub use element::Element;
-pub use group::Group;
-pub use nested::Nested;
 
 use crate::layout;
 use crate::mouse;
@@ -71,19 +67,11 @@ where
         mouse::Interaction::None
     }
 
-    /// Returns the nested overlay of the [`Overlay`], if there is any.
-    fn overlay<'a>(
-        &'a mut self,
-        _layout: Layout<'a>,
-        _renderer: &Renderer,
-    ) -> Option<Element<'a, Message, Theme, Renderer>> {
-        None
-    }
-
-    /// The index of the overlay.
+    /// Returns the z-order of the [`Overlay`].
     ///
-    /// Overlays with a higher index will be rendered on top of overlays with
-    /// a lower index.
+    /// Overlays with a higher index are drawn on top of overlays with a lower
+    /// index. Overlays with an equal index keep their document order, as the
+    /// runtime sorts them stably.
     ///
     /// By default, it returns `1.0`.
     fn index(&self) -> f32 {
@@ -91,7 +79,7 @@ where
     }
 }
 
-/// Returns a [`Group`] of overlay [`Element`] children.
+/// Returns the flat list of overlay [`Element`]s of the given children.
 ///
 /// This method will generally only be used by advanced users that are
 /// implementing the [`Widget`](crate::Widget) trait.
@@ -102,20 +90,18 @@ pub fn from_children<'a, Message, Theme, Renderer>(
     renderer: &Renderer,
     viewport: &Rectangle,
     translation: Vector,
-) -> Option<Element<'a, Message, Theme, Renderer>>
+) -> Vec<Element<'a, Message, Theme, Renderer>>
 where
     Renderer: crate::Renderer,
 {
-    let children = children
+    children
         .iter_mut()
         .zip(&mut tree.children)
         .zip(layout.children())
-        .filter_map(|((child, state), layout)| {
+        .flat_map(|((child, state), layout)| {
             child
                 .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, translation)
         })
-        .collect::<Vec<_>>();
-
-    (!children.is_empty()).then(|| Group::with_children(children).overlay())
+        .collect()
 }

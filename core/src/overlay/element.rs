@@ -102,6 +102,10 @@ where
         self.content.mouse_interaction(layout, cursor, renderer)
     }
 
+    fn index(&self) -> f32 {
+        self.content.index()
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,
@@ -111,15 +115,5 @@ where
         cursor: mouse::Cursor,
     ) {
         self.content.draw(renderer, theme, style, layout, cursor);
-    }
-
-    fn overlay<'a>(
-        &'a mut self,
-        layout: Layout<'a>,
-        renderer: &Renderer,
-    ) -> Option<Element<'a, B, Theme, Renderer>> {
-        self.content
-            .overlay(layout, renderer)
-            .map(|overlay| overlay.map(self.mapper))
     }
 }

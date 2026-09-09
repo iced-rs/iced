@@ -1229,7 +1229,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -1237,7 +1237,7 @@ where
         let visible_bounds = bounds.intersection(viewport).unwrap_or(*viewport);
         let offset = state.translation(self.direction, bounds, content_bounds);
 
-        let overlay = self.content.as_widget_mut().overlay(
+        let mut overlays = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
@@ -1245,27 +1245,18 @@ where
             translation - offset,
         );
 
-        let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
+        if let Interaction::AutoScrolling { origin, .. } = state.interaction {
             let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
-            Some(overlay::Element::new(Box::new(AutoScrollIcon {
+            overlays.push(overlay::Element::new(Box::new(AutoScrollIcon {
                 origin,
                 vertical: scrollbars.y.is_some(),
                 horizontal: scrollbars.x.is_some(),
                 class: &self.class,
-            })))
-        } else {
-            None
-        };
-
-        match (overlay, icon) {
-            (None, None) => None,
-            (None, Some(icon)) => Some(icon),
-            (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
-                overlay::Group::with_children(vec![overlay, icon]),
-            ))),
+            })));
         }
+
+        overlays
     }
 }
 
@@ -1291,6 +1282,12 @@ where
     fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
         layout::Node::new(Size::new(Self::SIZE, Self::SIZE))
             .move_to(self.origin - Vector::new(Self::SIZE, Self::SIZE) / 2.0)
+    }
+
+    fn index(&self) -> f32 {
+        // The auto-scroll indicator should always be drawn on top of the
+        // content (and any overlays, such as tooltips).
+        f32::MAX
     }
 
     fn draw(
@@ -1404,10 +1401,6 @@ where
                 );
             }
         });
-    }
-
-    fn index(&self) -> f32 {
-        f32::MAX
     }
 }
 

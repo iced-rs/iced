@@ -63,13 +63,13 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: core::Vector,
-    ) -> Option<overlay::Element<'a, (), core::Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, (), core::Theme, Renderer>> {
         if self.overlay_visible {
-            Some(overlay::Element::new(Box::new(HidingOverlay {
+            vec![overlay::Element::new(Box::new(HidingOverlay {
                 overlay_visible: &mut self.overlay_visible,
-            })))
+            }))]
         } else {
-            None
+            Vec::new()
         }
     }
 }

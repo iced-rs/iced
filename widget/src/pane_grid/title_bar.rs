@@ -529,12 +529,16 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.children();
-        let padded = children.next()?;
+        let Some(padded) = children.next() else {
+            return Vec::new();
+        };
 
         let mut children = padded.children();
-        let title_layout = children.next()?;
+        let Some(title_layout) = children.next() else {
+            return Vec::new();
+        };
 
         let Self {
             content, controls, ..
@@ -544,46 +548,57 @@ where
         let title_state = states.next().unwrap();
         let controls_state = states.next().unwrap();
 
-        content
-            .as_widget_mut()
-            .overlay(title_state, title_layout, renderer, viewport, translation)
-            .or_else(move || {
-                controls.as_mut().and_then(|controls| {
-                    let controls_layout = children.next()?;
+        let content_overlays = content.as_widget_mut().overlay(
+            title_state,
+            title_layout,
+            renderer,
+            viewport,
+            translation,
+        );
 
-                    if title_layout.bounds().width + controls_layout.bounds().width
-                        > padded.bounds().width
-                    {
-                        if let Some(compact) = controls.compact.as_mut() {
-                            let compact_state = states.next().unwrap();
-                            let compact_layout = children.next()?;
+        if !content_overlays.is_empty() {
+            return content_overlays;
+        }
 
-                            compact.as_widget_mut().overlay(
-                                compact_state,
-                                compact_layout,
-                                renderer,
-                                viewport,
-                                translation,
-                            )
-                        } else {
-                            controls.full.as_widget_mut().overlay(
-                                controls_state,
-                                controls_layout,
-                                renderer,
-                                viewport,
-                                translation,
-                            )
-                        }
-                    } else {
-                        controls.full.as_widget_mut().overlay(
-                            controls_state,
-                            controls_layout,
-                            renderer,
-                            viewport,
-                            translation,
-                        )
-                    }
-                })
-            })
+        let Some(controls) = controls.as_mut() else {
+            return Vec::new();
+        };
+
+        let Some(controls_layout) = children.next() else {
+            return Vec::new();
+        };
+
+        if title_layout.bounds().width + controls_layout.bounds().width > padded.bounds().width {
+            if let Some(compact) = controls.compact.as_mut() {
+                let compact_state = states.next().unwrap();
+                let Some(compact_layout) = children.next() else {
+                    return Vec::new();
+                };
+
+                compact.as_widget_mut().overlay(
+                    compact_state,
+                    compact_layout,
+                    renderer,
+                    viewport,
+                    translation,
+                )
+            } else {
+                controls.full.as_widget_mut().overlay(
+                    controls_state,
+                    controls_layout,
+                    renderer,
+                    viewport,
+                    translation,
+                )
+            }
+        } else {
+            controls.full.as_widget_mut().overlay(
+                controls_state,
+                controls_layout,
+                renderer,
+                viewport,
+                translation,
+            )
+        }
     }
 }

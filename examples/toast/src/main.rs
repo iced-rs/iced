@@ -412,12 +412,12 @@ mod toast {
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: Vector,
-        ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
             let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
             let (content_state, toasts_state) = tree.children.split_at_mut(1);
 
-            let content = self.content.as_widget_mut().overlay(
+            let mut overlays = self.content.as_widget_mut().overlay(
                 &mut content_state[0],
                 layout,
                 renderer,
@@ -425,8 +425,8 @@ mod toast {
                 translation,
             );
 
-            let toasts = (!self.toasts.is_empty()).then(|| {
-                overlay::Element::new(Box::new(Overlay {
+            if !self.toasts.is_empty() {
+                overlays.push(overlay::Element::new(Box::new(Overlay {
                     position: layout.bounds().position() + translation,
                     viewport: *viewport,
                     toasts: &mut self.toasts,
@@ -434,11 +434,10 @@ mod toast {
                     instants,
                     on_close: &self.on_close,
                     timeout_secs: self.timeout_secs,
-                }))
-            });
-            let overlays = content.into_iter().chain(toasts).collect::<Vec<_>>();
+                })));
+            }
 
-            (!overlays.is_empty()).then(|| overlay::Group::with_children(overlays).overlay())
+            overlays
         }
     }
 

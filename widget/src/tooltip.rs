@@ -294,12 +294,12 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
 
         let mut children = tree.children.iter_mut();
 
-        let content = self.content.as_widget_mut().overlay(
+        let mut overlays = self.content.as_widget_mut().overlay(
             children.next().unwrap(),
             layout,
             renderer,
@@ -307,8 +307,8 @@ where
             translation,
         );
 
-        let tooltip = if let State::Open { cursor_position } = *state {
-            Some(overlay::Element::new(Box::new(Overlay {
+        if let State::Open { cursor_position } = *state {
+            overlays.push(overlay::Element::new(Box::new(Overlay {
                 position: layout.position() + translation,
                 tooltip: &mut self.tooltip,
                 tree: children.next().unwrap(),
@@ -319,19 +319,10 @@ where
                 gap: self.gap,
                 padding: self.padding,
                 class: &self.class,
-            })))
-        } else {
-            None
-        };
-
-        if content.is_some() || tooltip.is_some() {
-            Some(
-                overlay::Group::with_children(content.into_iter().chain(tooltip).collect())
-                    .overlay(),
-            )
-        } else {
-            None
+            })));
         }
+
+        overlays
     }
 
     fn operate(

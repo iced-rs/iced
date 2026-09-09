@@ -122,7 +122,7 @@ where
         mouse::Interaction::None
     }
 
-    /// Returns the overlay of the [`Widget`], if there is any.
+    /// Returns the flat list of the [`Widget`]'s overlays.
     fn overlay<'a>(
         &'a mut self,
         _tree: &'a mut Tree,
@@ -130,8 +130,8 @@ where
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        None
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
+        Vec::new()
     }
 
     /// Returns whether the [`Widget`] is [`Void`].

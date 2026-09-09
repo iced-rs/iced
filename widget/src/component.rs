@@ -295,7 +295,7 @@ where
         {
             shell.invalidate_layout();
         } else {
-            let has_overlay = self
+            let has_overlay = !self
                 .view
                 .as_widget_mut()
                 .overlay(
@@ -305,7 +305,7 @@ where
                     viewport,
                     Vector::ZERO,
                 )
-                .is_some();
+                .is_empty();
 
             if self.has_overlay != has_overlay {
                 self.has_overlay = has_overlay;
@@ -411,23 +411,30 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let overlay = self.view.as_widget_mut().overlay(
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
+        let mut overlays = self.view.as_widget_mut().overlay(
             &mut tree.children[0],
             Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
             renderer,
             viewport,
             translation,
-        )?;
+        );
+
+        // The wrapper below borrows the component's state mutably, so it can
+        // only wrap a single overlay. A component's view is expected to
+        // produce at most one overlay.
+        let Some(overlay) = overlays.pop() else {
+            return Vec::new();
+        };
 
         self.has_overlay = true;
 
-        Some(overlay::Element::new(Box::new(Overlay {
+        vec![overlay::Element::new(Box::new(Overlay {
             component: &mut self.component,
             internal: tree.state.downcast_mut(),
             raw: overlay,
             is_outdated: &mut self.is_outdated,
-        })))
+        }))]
     }
 }
 
@@ -449,6 +456,10 @@ where
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         self.raw.as_overlay_mut().layout(renderer, bounds)
+    }
+
+    fn index(&self) -> f32 {
+        self.raw.as_overlay().index()
     }
 
     fn update(
@@ -524,10 +535,6 @@ where
             .mouse_interaction(layout, cursor, renderer)
     }
 
-    fn index(&self) -> f32 {
-        self.raw.as_overlay().index()
-    }
-
     fn operate(
         &mut self,
         layout: Layout<'_>,
@@ -537,20 +544,5 @@ where
         self.raw
             .as_overlay_mut()
             .operate(layout, renderer, operation);
-    }
-
-    fn overlay<'c>(
-        &'c mut self,
-        layout: Layout<'c>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'c, Message, Theme, Renderer>> {
-        let overlay = self.raw.as_overlay_mut().overlay(layout, renderer)?;
-
-        Some(overlay::Element::new(Box::new(Overlay {
-            component: self.component,
-            raw: overlay,
-            internal: self.internal,
-            is_outdated: self.is_outdated,
-        })))
     }
 }

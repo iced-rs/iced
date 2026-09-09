@@ -32,8 +32,27 @@ pub struct UserInterface<'a, Message, Theme, Renderer> {
 }
 
 struct Overlay {
-    layout: layout::Node,
+    layouts: Vec<layout::Node>,
     interaction: mouse::Interaction,
+}
+
+/// Sorts a flat list of overlays by their [`overlay::Overlay::index`], so that
+/// overlays with a higher index are drawn on top.
+///
+/// The sort is stable: overlays with an equal index keep their document order.
+fn sort_overlays<'a, Message, Theme, Renderer>(
+    overlays: &mut Vec<overlay::Element<'a, Message, Theme, Renderer>>,
+) where
+    Renderer: crate::core::Renderer,
+{
+    use std::cmp::Ordering;
+
+    overlays.sort_by(|a, b| {
+        a.as_overlay()
+            .index()
+            .partial_cmp(&b.as_overlay().index())
+            .unwrap_or(Ordering::Equal)
+    });
 }
 
 impl<'a, Message, Theme, Renderer> UserInterface<'a, Message, Theme, Renderer>
@@ -205,29 +224,37 @@ where
         let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
 
-        let mut maybe_overlay = self
-            .root
-            .as_widget_mut()
-            .overlay(
-                &mut self.state,
-                Layout::new(&self.base),
-                renderer,
-                &viewport,
-                Vector::ZERO,
-            )
-            .map(overlay::Nested::new);
+        let mut overlays = self.root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+            &viewport,
+            Vector::ZERO,
+        );
 
-        let (base_cursor, overlay_statuses, overlay_interaction) = if maybe_overlay.is_some() {
+        sort_overlays(&mut overlays);
+
+        let (base_cursor, overlay_statuses, overlay_interaction) = if !overlays.is_empty() {
             let bounds = self.bounds;
 
-            let mut overlay = maybe_overlay.as_mut().unwrap();
-            let mut layout = overlay.layout(renderer, bounds);
+            let mut layouts: Vec<layout::Node> = overlays
+                .iter_mut()
+                .map(|overlay| overlay.as_overlay_mut().layout(renderer, bounds))
+                .collect();
             let mut event_statuses = Vec::new();
 
             for event in events {
                 let mut shell = Shell::new(window, waker.clone(), messages);
 
-                overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
+                for (overlay, layout) in overlays.iter_mut().zip(&layouts) {
+                    overlay.as_overlay_mut().update(
+                        event,
+                        Layout::new(layout),
+                        cursor,
+                        renderer,
+                        &mut shell,
+                    );
+                }
 
                 event_statuses.push(shell.event_status());
                 redraw_request = redraw_request.min(shell.redraw_request());
@@ -235,7 +262,7 @@ where
                 clipboard.merge(shell.clipboard_mut());
 
                 if let Some(diff) = shell.is_layout_invalid() {
-                    drop(maybe_overlay);
+                    drop(overlays);
 
                     match diff {
                         shell::Diff::Perform => {
@@ -250,27 +277,26 @@ where
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    maybe_overlay = self
-                        .root
-                        .as_widget_mut()
-                        .overlay(
-                            &mut self.state,
-                            Layout::new(&self.base),
-                            renderer,
-                            &viewport,
-                            Vector::ZERO,
-                        )
-                        .map(overlay::Nested::new);
+                    overlays = self.root.as_widget_mut().overlay(
+                        &mut self.state,
+                        Layout::new(&self.base),
+                        renderer,
+                        &viewport,
+                        Vector::ZERO,
+                    );
 
-                    if maybe_overlay.is_none() {
+                    sort_overlays(&mut overlays);
+
+                    if overlays.is_empty() {
                         event_statuses.resize(events.len(), event::Status::Ignored);
                         break;
                     }
 
-                    overlay = maybe_overlay.as_mut().unwrap();
-
                     shell.revalidate_layout(|_diff| {
-                        layout = overlay.layout(renderer, bounds);
+                        layouts = overlays
+                            .iter_mut()
+                            .map(|overlay| overlay.as_overlay_mut().layout(renderer, bounds))
+                            .collect();
                         has_layout_changed = true;
                     });
                 }
@@ -280,15 +306,22 @@ where
                 }
             }
 
-            let (base_cursor, interaction) = if let Some(overlay) = maybe_overlay.as_mut() {
+            let (base_cursor, interaction) = if !overlays.is_empty() {
                 let interaction = cursor
                     .position()
                     .map(|cursor_position| {
-                        overlay.mouse_interaction(
-                            Layout::new(&layout),
-                            mouse::Cursor::Available(cursor_position),
-                            renderer,
-                        )
+                        overlays
+                            .iter()
+                            .zip(&layouts)
+                            .map(|(overlay, layout)| {
+                                overlay.as_overlay().mouse_interaction(
+                                    Layout::new(layout),
+                                    mouse::Cursor::Available(cursor_position),
+                                    renderer,
+                                )
+                            })
+                            .max()
+                            .unwrap_or_default()
                     })
                     .unwrap_or_default();
 
@@ -301,8 +334,8 @@ where
                 (cursor, mouse::Interaction::None)
             };
 
-            self.overlay = maybe_overlay.as_ref().map(|_| Overlay {
-                layout,
+            self.overlay = (!overlays.is_empty()).then_some(Overlay {
+                layouts,
                 interaction,
             });
 
@@ -317,7 +350,7 @@ where
             )
         };
 
-        drop(maybe_overlay);
+        drop(overlays);
 
         let event_statuses = events
             .iter()
@@ -363,24 +396,36 @@ where
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    if let Some(mut overlay) = self
-                        .root
-                        .as_widget_mut()
-                        .overlay(
-                            &mut self.state,
-                            Layout::new(&self.base),
-                            renderer,
-                            &viewport,
-                            Vector::ZERO,
-                        )
-                        .map(overlay::Nested::new)
-                    {
-                        let layout = overlay.layout(renderer, self.bounds);
-                        let interaction =
-                            overlay.mouse_interaction(Layout::new(&layout), cursor, renderer);
+                    let mut overlays = self.root.as_widget_mut().overlay(
+                        &mut self.state,
+                        Layout::new(&self.base),
+                        renderer,
+                        &viewport,
+                        Vector::ZERO,
+                    );
+
+                    sort_overlays(&mut overlays);
+
+                    if !overlays.is_empty() {
+                        let layouts = overlays
+                            .iter_mut()
+                            .map(|overlay| overlay.as_overlay_mut().layout(renderer, self.bounds))
+                            .collect();
+                        let interaction = overlays
+                            .iter()
+                            .zip(&layouts)
+                            .map(|(overlay, layout)| {
+                                overlay.as_overlay().mouse_interaction(
+                                    Layout::new(layout),
+                                    cursor,
+                                    renderer,
+                                )
+                            })
+                            .max()
+                            .unwrap_or_default();
 
                         self.overlay = Some(Overlay {
-                            layout,
+                            layouts,
                             interaction,
                         });
                     }
@@ -534,23 +579,24 @@ where
             ..
         } = self;
 
-        let Some(Overlay { layout, .. }) = overlay.as_ref() else {
+        let Some(Overlay { layouts, .. }) = overlay.as_ref() else {
             return;
         };
 
-        let overlay = root
-            .as_widget_mut()
-            .overlay(
-                &mut self.state,
-                Layout::new(base),
-                renderer,
-                &viewport,
-                Vector::ZERO,
-            )
-            .map(overlay::Nested::new);
+        let mut overlays = root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(base),
+            renderer,
+            &viewport,
+            Vector::ZERO,
+        );
 
-        if let Some(mut overlay) = overlay {
-            overlay.draw(renderer, theme, style, Layout::new(layout), cursor);
+        sort_overlays(&mut overlays);
+
+        for (overlay, layout) in overlays.iter_mut().zip(layouts) {
+            overlay
+                .as_overlay()
+                .draw(renderer, theme, style, Layout::new(layout), cursor);
         }
     }
 
@@ -565,30 +611,36 @@ where
             operation,
         );
 
-        if let Some(mut overlay) = self
-            .root
-            .as_widget_mut()
-            .overlay(
-                &mut self.state,
-                Layout::new(&self.base),
-                renderer,
-                &viewport,
-                Vector::ZERO,
-            )
-            .map(overlay::Nested::new)
-        {
+        let mut overlays = self.root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+            &viewport,
+            Vector::ZERO,
+        );
+
+        sort_overlays(&mut overlays);
+
+        if !overlays.is_empty() {
             if self.overlay.is_none() {
+                let layouts = overlays
+                    .iter_mut()
+                    .map(|overlay| overlay.as_overlay_mut().layout(renderer, self.bounds))
+                    .collect();
+
                 self.overlay = Some(Overlay {
-                    layout: overlay.layout(renderer, self.bounds),
+                    layouts,
                     interaction: mouse::Interaction::None,
                 });
             }
 
-            overlay.operate(
-                Layout::new(&self.overlay.as_ref().unwrap().layout),
-                renderer,
-                operation,
-            );
+            let layouts = self.overlay.as_ref().unwrap().layouts.clone();
+
+            for (overlay, layout) in overlays.iter_mut().zip(&layouts) {
+                overlay
+                    .as_overlay_mut()
+                    .operate(Layout::new(layout), renderer, operation);
+            }
         }
     }
 
@@ -660,5 +712,56 @@ impl State {
                 has_layout_changed, ..
             } => *has_layout_changed,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    type Theme = crate::core::Theme;
+    type Renderer = ();
+
+    struct ByIndex(f32);
+
+    impl overlay::Overlay<(), Theme, Renderer> for ByIndex {
+        fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+            layout::Node::new(Size::ZERO)
+        }
+
+        fn draw(
+            &self,
+            _renderer: &mut Renderer,
+            _theme: &Theme,
+            _style: &renderer::Style,
+            _layout: Layout<'_>,
+            _cursor: mouse::Cursor,
+        ) {
+        }
+
+        fn index(&self) -> f32 {
+            self.0
+        }
+    }
+
+    #[test]
+    fn sort_overlays_orders_by_index_and_keeps_document_order_on_ties() {
+        let mut overlays = vec![
+            overlay::Element::new(Box::new(ByIndex(1.0))),
+            overlay::Element::new(Box::new(ByIndex(f32::MAX))),
+            overlay::Element::new(Box::new(ByIndex(1.0))),
+            overlay::Element::new(Box::new(ByIndex(2.0))),
+        ];
+
+        sort_overlays(&mut overlays);
+
+        let indices: Vec<f32> = overlays
+            .iter()
+            .map(|overlay| overlay.as_overlay().index())
+            .collect();
+
+        // The two `1.0` overlays keep their relative document order (stable
+        // sort), and the `MAX` overlay is placed last so it is drawn on top.
+        assert_eq!(indices, vec![1.0, 1.0, 2.0, f32::MAX]);
     }
 }

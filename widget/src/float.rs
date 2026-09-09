@@ -200,7 +200,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         offset: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
 
         let translation = self
@@ -221,13 +221,13 @@ where
                     -bounds.y - bounds.height / 2.0,
                 );
 
-            Some(overlay::Element::new(Box::new(Overlay {
+            vec![overlay::Element::new(Box::new(Overlay {
                 float: self,
                 state,
                 layout,
                 viewport: *viewport,
                 transformation,
-            })))
+            }))]
         } else {
             self.content
                 .as_widget_mut()
@@ -269,6 +269,12 @@ where
         let bounds = self.layout.bounds() * self.transformation;
 
         layout::Node::new(bounds.size()).move_to(bounds.position())
+    }
+
+    fn index(&self) -> f32 {
+        // A floating (scaled/translated) element sits above regular overlays,
+        // and a more-scaled one sits above a less-scaled one.
+        1.0 + self.float.scale
     }
 
     fn update(
@@ -352,24 +358,6 @@ where
             cursor * inverse,
             &(self.viewport * inverse),
             renderer,
-        )
-    }
-
-    fn index(&self) -> f32 {
-        self.float.scale * 0.5
-    }
-
-    fn overlay<'a>(
-        &'a mut self,
-        _layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.float.content.as_widget_mut().overlay(
-            self.state,
-            self.layout,
-            renderer,
-            &(self.viewport * self.transformation.inverse()),
-            self.transformation.translation(),
         )
     }
 }

@@ -370,12 +370,14 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, B, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, B, Theme, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
             .overlay(tree, layout, renderer, viewport, translation)
+            .into_iter()
             .map(move |overlay| overlay.map(mapper))
+            .collect()
     }
 }
 
@@ -512,7 +514,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.element
             .widget
             .overlay(tree, layout, renderer, viewport, translation)
