@@ -48,26 +48,26 @@ impl Popover {
         )))
         .on_press(Message::Toggle);
 
-        let content: Element<'_, Message> = popover(
-            trigger,
-            self.is_open.then(|| {
-                container(
-                    column![
-                        text("This is the popover contents!"),
-                        text("Click outside to dismiss me."),
-                        button("Change position").on_press(Message::ChangePosition),
-                    ]
-                    .spacing(10),
-                )
-                .padding(10)
-                .style(container::rounded_box)
-            }),
-            self.position,
+        center(
+            popover(
+                trigger,
+                self.is_open.then(|| {
+                    container(
+                        column![
+                            text("This is the popover contents!"),
+                            text("Click outside to dismiss me."),
+                            button("Change position").on_press(Message::ChangePosition),
+                        ]
+                        .spacing(10),
+                    )
+                    .padding(10)
+                    .style(container::rounded_box)
+                }),
+                self.position,
+            )
+            .gap(10)
+            .on_close(Message::Close)
         )
-        .gap(10)
-        .on_close(Message::Close)
-        .into();
-
-        center(content).into()
+        .into()
     }
 }
