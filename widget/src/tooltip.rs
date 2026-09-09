@@ -25,7 +25,6 @@
 //!     .into()
 //! }
 //! ```
-use crate::container;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -34,7 +33,7 @@ use crate::core::text;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 
 /// An element to display a widget over another.
 ///
@@ -62,27 +61,20 @@ use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, She
 /// ```
 pub struct Tooltip<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
-    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
     tooltip: Element<'a, Message, Theme, Renderer>,
     position: Position,
     gap: f32,
-    padding: f32,
     snap_within_viewport: bool,
     delay: Duration,
-    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
-    /// The default padding of a [`Tooltip`] drawn by this renderer.
-    const DEFAULT_PADDING: f32 = 5.0;
-
     /// Creates a new [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
@@ -95,10 +87,8 @@ where
             tooltip: tooltip.into(),
             position: Position::default(),
             gap: 0.0,
-            padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
             delay: Duration::ZERO,
-            class: Theme::default(),
         }
     }
 
@@ -118,12 +108,6 @@ where
         self
     }
 
-    /// Sets the padding of the [`Tooltip`].
-    pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
-        self.padding = padding.into().0;
-        self
-    }
-
     /// Sets the delay before the [`Tooltip`] is shown.
     ///
     /// Set to [`Duration::ZERO`] to be shown immediately.
@@ -137,30 +121,11 @@ where
         self.snap_within_viewport = snap;
         self
     }
-
-    /// Sets the style of the [`Tooltip`].
-    #[must_use]
-    pub fn style(mut self, style: impl Fn(&Theme) -> container::Style + 'a) -> Self
-    where
-        Theme::Class<'a>: From<container::StyleFn<'a, Theme>>,
-    {
-        self.class = (Box::new(style) as container::StyleFn<'a, Theme>).into();
-        self
-    }
-
-    /// Sets the style class of the [`Tooltip`].
-    #[cfg(feature = "advanced")]
-    #[must_use]
-    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
-        self.class = class.into();
-        self
-    }
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Tooltip<'_, Message, Theme, Renderer>
 where
-    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     fn diff(&mut self, tree: &mut widget::Tree) {
@@ -328,8 +293,6 @@ where
                 snap_within_viewport: self.snap_within_viewport,
                 positioning: self.position,
                 gap: self.gap,
-                padding: self.padding,
-                class: &self.class,
             })))
         } else {
             None
@@ -368,7 +331,7 @@ impl<'a, Message, Theme, Renderer> From<Tooltip<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: container::Catalog + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -395,7 +358,6 @@ enum State {
 
 struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     position: Point,
@@ -406,14 +368,11 @@ where
     snap_within_viewport: bool,
     positioning: Position,
     gap: f32,
-    padding: f32,
-    class: &'b Theme::Class<'a>,
 }
 
 impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'_, '_, Message, Theme, Renderer>
 where
-    Theme: container::Catalog,
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
@@ -429,8 +388,7 @@ where
                 } else {
                     Size::INFINITE
                 },
-            )
-            .shrink(Padding::new(self.padding)),
+            ),
         );
 
         let text_bounds = tooltip_layout.bounds();
@@ -440,7 +398,7 @@ where
             self.content_bounds,
             text_bounds.size(),
             self.gap,
-            self.padding,
+            0.0,
             self.cursor_position,
             viewport,
         );
@@ -459,11 +417,7 @@ where
             }
         }
 
-        layout::Node::with_children(
-            tooltip_bounds.size(),
-            vec![tooltip_layout.translate(Vector::new(self.padding, self.padding))],
-        )
-        .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
+        tooltip_layout.translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
     }
 
     fn draw(
@@ -474,20 +428,14 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        let style = theme.style(self.class);
-
-        container::draw_background(renderer, &style, layout.bounds());
-
-        let defaults = renderer::Style {
-            text_color: style.text_color.unwrap_or(inherited_style.text_color),
-        };
-
+        // The tooltip content is drawn directly; users are responsible for
+        // styling it.
         self.tooltip.as_widget().draw(
             self.tree,
             renderer,
             theme,
-            &defaults,
-            layout.children().next().unwrap(),
+            inherited_style,
+            layout,
             cursor_position,
             &Rectangle::with_size(Size::INFINITE),
         );

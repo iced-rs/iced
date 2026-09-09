@@ -44,12 +44,13 @@ impl Tooltip {
     fn view(&self) -> Element<'_, Message> {
         let tooltip = tooltip(
             button("Press to change position").on_press(Message::ChangePosition),
-            position_to_text(self.position),
+            container(position_to_text(self.position))
+                .padding(10)
+                .style(container::rounded_box),
         )
         .position(self.position)
         .gap(10)
-        .delay(seconds(if self.delay { 1 } else { 0 }))
-        .style(container::rounded_box);
+        .delay(seconds(if self.delay { 1 } else { 0 }));
 
         let checkbox = checkbox(self.delay)
             .label("Delay")
