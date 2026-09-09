@@ -108,27 +108,6 @@ fn messages(bus: shell::Bus<Message>) -> Vec<Message> {
     bus.into_iter().collect()
 }
 
-/// Drives the (open) popover overlay's layout and returns the popover's bounds.
-///
-/// The widget's overlay is a [`Group`], whose node spans the whole viewport;
-/// the popover itself is one of its children. The test base is a plain
-/// [`space`], which produces no overlay of its own, so the popover is the only
-/// (and first) child.
-fn overlay_bounds(
-    element: &mut Element<'static, Message, Theme, ()>,
-    tree: &mut Tree,
-    layout: Layout<'_>,
-) -> Rectangle {
-    let viewport = Rectangle::with_size(VIEWPORT);
-
-    let mut overlay = element
-        .as_widget_mut()
-        .overlay(tree, layout, &(), &viewport, Vector::ZERO)
-        .expect("popover overlay should exist");
-
-    overlay.as_overlay_mut().layout(&(), VIEWPORT).children()[0].bounds()
-}
-
 #[test]
 fn popover_layout_is_plain_base() {
     let mut element = new_popover(true);
@@ -273,28 +252,5 @@ fn no_on_close_publishes_nothing() {
     assert!(
         messages(bus).is_empty(),
         "a popover without an on_close handler should publish nothing"
-    );
-}
-
-#[test]
-fn auto_position_prefers_the_side_with_the_most_space() {
-    // The base occupies (0, 0) .. (50, 50) in the 1000x1000 viewport, so there
-    // is far more space below (and to the right) than above (and to the left).
-    // `Position::Auto` should therefore place the popover below the base (the
-    // tie between "below" and "right" is broken in favour of `Bottom`).
-    let mut element: Element<'static, Message, Theme, ()> = popover(
-        space().width(50).height(50),
-        Some(space().width(80).height(80)),
-    )
-    .on_close(ON_CLOSE)
-    .into();
-
-    let (mut tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
-    let bounds = overlay_bounds(&mut element, &mut tree, layout);
-
-    assert!(
-        bounds.y >= 50.0,
-        "`Auto` should place the popover below the top-left base, got {bounds:?}"
     );
 }

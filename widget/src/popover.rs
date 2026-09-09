@@ -401,7 +401,6 @@ where
             self.content_bounds,
             popover_bounds.size(),
             self.gap,
-            0.0,
             Point::new(0.0, 0.0),
             viewport,
         );
