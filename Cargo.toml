@@ -113,6 +113,7 @@ image.optional = true
 
 [dev-dependencies]
 criterion = "0.5"
+iced_tiny_skia.workspace = true
 iced_wgpu.workspace = true
 iced_renderer.workspace = true
 
@@ -128,6 +129,10 @@ required-features = ["canvas"]
 name = "cpu"
 harness = false
 required-features = ["canvas"]
+
+[[bench]]
+name = "overlay"
+harness = false
 
 [profile.release-opt]
 inherits = "release"
