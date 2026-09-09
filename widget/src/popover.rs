@@ -10,9 +10,10 @@
 //! application decides to set the `popover` argument to `None` (i.e. to close
 //! it).
 //!
-//! By default, the base is opaque: mouse button presses inside its bounds are
-//! captured, and mouse events do not pass through it to the layers below. Use
-//! [`Popover::passthrough`] to make the base transparent.
+//! By default, the popover overlay is opaque: mouse button presses inside its
+//! bounds are captured, and mouse events do not pass through it to the layers
+//! below. Use [`Popover::passthrough`] to make the popover overlay
+//! transparent.
 //!
 //! [`tooltip`]: crate::tooltip::Tooltip
 //!
@@ -64,9 +65,10 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 /// When the user clicks outside of the popover's bounds, the popover notifies
 /// the application through its `on_close` handler.
 ///
-/// By default, the base is opaque: mouse button presses inside its bounds are
-/// captured, and mouse events do not pass through it to the layers below. Use
-/// [`Popover::passthrough`] to make the base transparent.
+/// By default, the popover overlay is opaque: mouse button presses inside its
+/// bounds are captured, and mouse events do not pass through it to the layers
+/// below. Use [`Popover::passthrough`] to make the popover overlay
+/// transparent.
 ///
 /// # Example
 /// ```no_run
@@ -101,34 +103,34 @@ pub struct Popover<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer
 where
     Renderer: text::Renderer,
 {
-    content: Content<'a, Message, Theme, Renderer>,
-    popover: Option<Element<'a, Message, Theme, Renderer>>,
+    content: Element<'a, Message, Theme, Renderer>,
+    popup: Option<Popup<'a, Message, Theme, Renderer>>,
     position: Position,
     gap: f32,
     snap_within_viewport: bool,
     on_close: Option<Message>,
 }
 
-enum Content<'a, Message, Theme, Renderer> {
+enum Popup<'a, Message, Theme, Renderer> {
     Opaque(Opaque<'a, Message, Theme, Renderer>),
     Transparent(Element<'a, Message, Theme, Renderer>),
 }
 
-impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Popup<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
     fn as_widget(&self) -> &dyn Widget<Message, Theme, Renderer> {
         match self {
-            Content::Opaque(opaque) => opaque,
-            Content::Transparent(element) => element.as_widget(),
+            Popup::Opaque(opaque) => opaque,
+            Popup::Transparent(element) => element.as_widget(),
         }
     }
 
     fn as_widget_mut(&mut self) -> &mut dyn Widget<Message, Theme, Renderer> {
         match self {
-            Content::Opaque(opaque) => opaque,
-            Content::Transparent(element) => element.as_widget_mut(),
+            Popup::Opaque(opaque) => opaque,
+            Popup::Transparent(element) => element.as_widget_mut(),
         }
     }
 }
@@ -153,8 +155,8 @@ where
         popover: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
     ) -> Self {
         Popover {
-            content: Content::Opaque(Opaque::new(content)),
-            popover: popover.map(Into::into),
+            content: content.into(),
+            popup: popover.map(|popup| Popup::Opaque(Opaque::new(popup))),
             position: Position::default(),
             gap: 0.0,
             snap_within_viewport: true,
@@ -195,15 +197,15 @@ where
 
     /// Sets whether mouse events pass through the popover overlay.
     ///
-    /// By default, the base is opaque: mouse button presses inside its bounds
-    /// are captured, and mouse events do not pass through it to the layers
-    /// below.
+    /// By default, the popover overlay is opaque: mouse button presses inside
+    /// its bounds are captured, and mouse events do not pass through it to the
+    /// layers below.
     pub fn passthrough(mut self, passthrough: bool) -> Self {
-        self.content = match self.content {
-            Content::Opaque(opaque) if passthrough => Content::Transparent(opaque.into_inner()),
-            Content::Transparent(element) if !passthrough => Content::Opaque(Opaque::new(element)),
+        self.popup = self.popup.map(|popover| match popover {
+            Popup::Opaque(opaque) if passthrough => Popup::Transparent(opaque.into_inner()),
+            Popup::Transparent(element) if !passthrough => Popup::Opaque(Opaque::new(element)),
             content => content,
-        };
+        });
 
         self
     }
@@ -216,7 +218,7 @@ where
     Renderer: text::Renderer,
 {
     fn diff(&mut self, tree: &mut widget::Tree) {
-        match self.popover.as_mut() {
+        match self.popup.as_mut() {
             Some(popover) => {
                 tree.diff_children(&mut [self.content.as_widget_mut(), popover.as_widget_mut()]);
             }
@@ -328,7 +330,7 @@ where
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         // The popover only has an overlay when it is open (i.e. when the
         // `popover` argument is `Some`).
-        let popover = self.popover.as_mut()?;
+        let popup = self.popup.as_mut()?;
 
         let (base, rest) = tree.children.split_at_mut(1);
         let tree = rest.first_mut()?;
@@ -342,7 +344,7 @@ where
         );
 
         let overlay = overlay::Element::new(Box::new(Overlay {
-            popover,
+            popup,
             tree,
             content_bounds: layout.bounds() + translation,
             snap_within_viewport: self.snap_within_viewport,
@@ -411,7 +413,7 @@ struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
 {
-    popover: &'b mut Element<'a, Message, Theme, Renderer>,
+    popup: &'b mut Popup<'a, Message, Theme, Renderer>,
     tree: &'b mut widget::Tree,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
@@ -429,7 +431,7 @@ where
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let layout = self.popover.as_widget_mut().layout(
+        let layout = self.popup.as_widget_mut().layout(
             self.tree,
             renderer,
             &layout::Limits::new(
@@ -490,7 +492,7 @@ where
             return;
         }
 
-        self.popover.as_widget_mut().update(
+        self.popup.as_widget_mut().update(
             self.tree,
             event,
             layout,
@@ -509,7 +511,7 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        self.popover.as_widget().draw(
+        self.popup.as_widget().draw(
             self.tree,
             renderer,
             theme,
@@ -530,7 +532,7 @@ where
             return mouse::Interaction::None;
         }
 
-        self.popover.as_widget().mouse_interaction(
+        self.popup.as_widget().mouse_interaction(
             self.tree,
             layout,
             cursor,
@@ -545,7 +547,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.popover
+        self.popup
             .as_widget_mut()
             .operate(self.tree, layout, renderer, operation);
     }
@@ -555,7 +557,7 @@ where
         layout: Layout<'a>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.popover.as_widget_mut().overlay(
+        self.popup.as_widget_mut().overlay(
             self.tree,
             layout,
             renderer,
