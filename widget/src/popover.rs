@@ -506,6 +506,20 @@ where
             .operate(self.tree, layout, renderer, operation);
     }
 
+    fn overlay<'a>(
+        &'a mut self,
+        layout: Layout<'a>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+        self.popover.as_widget_mut().overlay(
+            self.tree,
+            layout,
+            renderer,
+            &self.viewport,
+            Vector::ZERO,
+        )
+    }
+
     /// Draws the popover on top of other overlays.
     fn index(&self) -> f32 {
         2.0
