@@ -283,7 +283,7 @@ where
         let popover = self.popover.as_mut()?;
 
         let (base, rest) = tree.children.split_at_mut(1);
-        let popover_tree = rest.first_mut()?;
+        let tree = rest.first_mut()?;
 
         let content = self.content.as_widget_mut().overlay(
             &mut base[0],
@@ -296,7 +296,7 @@ where
         let overlay = overlay::Element::new(Box::new(Overlay {
             position: layout.position() + translation,
             popover,
-            popover_tree,
+            tree,
             content_bounds: layout.bounds(),
             snap_within_viewport: self.snap_within_viewport,
             positioning: self.position,
@@ -305,11 +305,11 @@ where
             viewport: *viewport,
         }));
 
-        let mut children = Vec::new();
-        if let Some(content) = content {
-            children.push(content);
-        }
-        children.push(overlay);
+        let children = if let Some(content) = content {
+            vec![content, overlay]
+        } else {
+            vec![overlay]
+        };
 
         Some(overlay::Group::with_children(children).overlay())
     }
@@ -364,7 +364,7 @@ where
 {
     position: Point,
     popover: &'b mut Element<'a, Message, Theme, Renderer>,
-    popover_tree: &'b mut widget::Tree,
+    tree: &'b mut widget::Tree,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
     positioning: Position,
@@ -381,8 +381,8 @@ where
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let popover_layout = self.popover.as_widget_mut().layout(
-            self.popover_tree,
+        let layout = self.popover.as_widget_mut().layout(
+            self.tree,
             renderer,
             &layout::Limits::new(
                 Size::ZERO,
@@ -394,32 +394,30 @@ where
             ),
         );
 
-        let popover_bounds = popover_layout.bounds();
-
-        let mut popover_rect = crate::overlay::Position::from(self.positioning).resolve(
+        let mut bounds = crate::overlay::Position::from(self.positioning).resolve(
             self.position,
             self.content_bounds,
-            popover_bounds.size(),
+            layout.size(),
             self.gap,
-            Point::new(0.0, 0.0),
+            Point::ORIGIN,
             viewport,
         );
 
         if self.snap_within_viewport {
-            if popover_rect.x < viewport.x {
-                popover_rect.x = viewport.x;
-            } else if viewport.x + viewport.width < popover_rect.x + popover_rect.width {
-                popover_rect.x = viewport.x + viewport.width - popover_rect.width;
+            if bounds.x < viewport.x {
+                bounds.x = viewport.x;
+            } else if viewport.x + viewport.width < bounds.x + bounds.width {
+                bounds.x = viewport.x + viewport.width - bounds.width;
             }
 
-            if popover_rect.y < viewport.y {
-                popover_rect.y = viewport.y;
-            } else if viewport.y + viewport.height < popover_rect.y + popover_rect.height {
-                popover_rect.y = viewport.y + viewport.height - popover_rect.height;
+            if bounds.y < viewport.y {
+                bounds.y = viewport.y;
+            } else if viewport.y + viewport.height < bounds.y + bounds.height {
+                bounds.y = viewport.y + viewport.height - bounds.height;
             }
         }
 
-        popover_layout.translate(Vector::new(popover_rect.x, popover_rect.y))
+        layout.translate(Vector::new(bounds.x, bounds.y))
     }
 
     fn update(
@@ -454,6 +452,7 @@ where
             if let Some(on_close) = self.on_close.take() {
                 shell.publish(on_close);
             }
+
             return;
         }
 
@@ -461,7 +460,7 @@ where
         // inside the popover keep working.
         if is_inside || !matches!(event, Event::Mouse(_) | Event::Touch(_)) {
             self.popover.as_widget_mut().update(
-                self.popover_tree,
+                self.tree,
                 event,
                 layout,
                 cursor,
@@ -483,7 +482,7 @@ where
         // The popover content is drawn directly; users are responsible for
         // styling it.
         self.popover.as_widget().draw(
-            self.popover_tree,
+            self.tree,
             renderer,
             theme,
             inherited_style,
@@ -504,7 +503,7 @@ where
         }
 
         self.popover.as_widget().mouse_interaction(
-            self.popover_tree,
+            self.tree,
             layout,
             cursor,
             &Rectangle::with_size(Size::INFINITE),
@@ -520,7 +519,7 @@ where
     ) {
         self.popover
             .as_widget_mut()
-            .operate(self.popover_tree, layout, renderer, operation);
+            .operate(self.tree, layout, renderer, operation);
     }
 
     /// Draws the popover on top of other overlays.
