@@ -1,7 +1,8 @@
+use iced::widget::popover::Position;
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, image, radio, rich_text, row, scrollable, slider,
-    space, span, text, text_input, toggler,
+    button, center_x, center_y, checkbox, column, container, image, popover, radio, rich_text, row,
+    scrollable, slider, space, span, text, text_input, toggler, tooltip,
 };
 use iced::{Center, Color, Element, Fill, Fit, Font, color};
 
@@ -35,6 +36,8 @@ pub struct Tour {
     input_value: String,
     input_is_secure: bool,
     debug: bool,
+    popover_open: bool,
+    popover_opened: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +56,8 @@ pub enum Message {
     ToggleSecureInput(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
+    TogglePopover,
+    ClosePopover,
     OpenTrunk,
 }
 
@@ -68,6 +73,7 @@ impl Tour {
             Screen::RowsAndColumns => "Rows and columns",
             Screen::Scrollable => "Scrollable",
             Screen::TextInput => "Text input",
+            Screen::Overlays => "Tooltips and popovers",
             Screen::Debugger => "Debugger",
             Screen::End => "End",
         };
@@ -127,6 +133,15 @@ impl Tour {
             Message::TogglerChanged(toggler) => {
                 self.toggler = toggler;
             }
+            Message::TogglePopover => {
+                self.popover_open = !self.popover_open;
+                if self.popover_open {
+                    self.popover_opened = true;
+                }
+            }
+            Message::ClosePopover => {
+                self.popover_open = false;
+            }
             Message::OpenTrunk => {
                 #[cfg(not(target_arch = "wasm32"))]
                 let _ = open::that_in_background("https://trunk-rs.github.io/trunk/");
@@ -156,6 +171,7 @@ impl Tour {
             Screen::RowsAndColumns => self.rows_and_columns(),
             Screen::Scrollable => self.scrollable(),
             Screen::TextInput => self.text_input(),
+            Screen::Overlays => self.overlays(),
             Screen::Debugger => self.debugger(),
             Screen::End => self.end(),
         };
@@ -187,6 +203,7 @@ impl Tour {
             Screen::RowsAndColumns => true,
             Screen::Scrollable => true,
             Screen::TextInput => !self.input_value.is_empty(),
+            Screen::Overlays => self.popover_opened,
             Screen::Debugger => true,
             Screen::End => false,
         }
@@ -434,6 +451,47 @@ impl Tour {
             )
     }
 
+    fn overlays(&self) -> Column<'_, Message> {
+        Self::container("Tooltips and popovers")
+            .push(
+                "A tooltip is a small hint that appears when you hover over \
+                 an element. Try hovering the first button:",
+            )
+            .push(
+                tooltip(
+                    padded_button("Hover me!"),
+                    "Tooltips appear on hover and disappear when you move away.",
+                )
+                .gap(10),
+            )
+            .push(
+                "A popover is a floating panel anchored to its base element. \
+                 It stays open until you click outside of it. Try the second \
+                 button:",
+            )
+            .push(
+                popover(
+                    padded_button(if self.popover_open {
+                        "Close the popover"
+                    } else {
+                        "Open the popover"
+                    })
+                    .on_press(Message::TogglePopover),
+                    self.popover_open.then(|| {
+                        container(text(
+                            "This popover stays open until you click outside of it.",
+                        ))
+                        .padding(10)
+                        .style(container::rounded_box)
+                    }),
+                )
+                .position(Position::Bottom)
+                .gap(10)
+                .on_close(Message::ClosePopover),
+            )
+            .align_x(Center)
+    }
+
     fn debugger(&self) -> Column<'_, Message> {
         Self::container("Debugger")
             .push(
@@ -474,6 +532,7 @@ enum Screen {
     Image,
     Scrollable,
     TextInput,
+    Overlays,
     Debugger,
     End,
 }
@@ -489,6 +548,7 @@ impl Screen {
         Self::Image,
         Self::Scrollable,
         Self::TextInput,
+        Self::Overlays,
         Self::Debugger,
         Self::End,
     ];
@@ -607,6 +667,8 @@ impl Default for Tour {
             input_value: String::new(),
             input_is_secure: false,
             debug: false,
+            popover_open: false,
+            popover_opened: false,
         }
     }
 }
