@@ -66,7 +66,7 @@ impl Popover {
                 self.position,
             )
             .gap(10)
-            .on_close(Message::Close)
+            .on_close(Message::Close),
         )
         .into()
     }

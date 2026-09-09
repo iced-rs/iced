@@ -48,9 +48,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::touch;
 use crate::core::widget::{self, Widget};
-use crate::core::{
-    Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector};
 
 /// A floating piece of content that appears over another element.
 ///
@@ -174,10 +172,7 @@ where
     fn diff(&mut self, tree: &mut widget::Tree) {
         match self.popover.as_mut() {
             Some(popover) => {
-                tree.diff_children(&mut [
-                    self.content.as_widget_mut(),
-                    popover.as_widget_mut(),
-                ]);
+                tree.diff_children(&mut [self.content.as_widget_mut(), popover.as_widget_mut()]);
             }
             None => {
                 tree.diff_children(&mut [self.content.as_widget_mut()]);
@@ -452,11 +447,10 @@ where
     ) {
         let cursor_position = cursor.position();
 
-        let is_inside = cursor_position
-            .is_some_and(|position| layout.bounds().contains(position));
+        let is_inside = cursor_position.is_some_and(|position| layout.bounds().contains(position));
 
-        let is_over_base = cursor_position
-            .is_some_and(|position| self.content_bounds.contains(position));
+        let is_over_base =
+            cursor_position.is_some_and(|position| self.content_bounds.contains(position));
 
         if matches!(
             event,
