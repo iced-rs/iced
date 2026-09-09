@@ -39,18 +39,48 @@ pub enum Kind {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Data {
     /// The force applied to the tool against the surface.
+    ///
+    /// When the force information is not available, [`None`] is returned.
+    ///
+    /// ## Platform-specific
+    ///
+    /// **Web:** Has no mechanism to detect support, so this will always be [`Some`].
     pub force: Option<Force>,
 
-    /// The normalized tangential, or barrel, pressure in the range `-1.0..=1.0`.
+    /// Represents normalized tangential pressure, also known as barrel pressure. In the range of
+    /// -1 to 1. 0 means no tangential pressure is applied. [`None`] means backend or device has no
+    /// support.
+    ///
+    /// ## Platform-specific
+    ///
+    /// **Web:** Has no mechanism to detect support, so this will always be [`Some`] with a value
+    /// of 0.
     pub tangential_force: Option<f32>,
 
-    /// The clockwise rotation of the tool in degrees, in the range `0..=359`.
+    /// The clockwise rotation in degrees of a tool around its own major axis. E.g. twisting a pen
+    /// around its length. In the range of 0 to 359. [`None`] means backend or device has no
+    /// support.
+    ///
+    /// ## Platform-specific
+    ///
+    /// **Web:** Has no mechanism to detect support, so this will always be [`Some`] with a value
+    /// of 0.
     pub twist: Option<u16>,
 
-    /// The plane angle of the tool in degrees.
+    /// The plane angle in degrees. [`None`] means backend or device has no support.
+    ///
+    /// ## Platform-specific
+    ///
+    /// **Web:** Has no mechanism to detect support, so this will always be [`Some`] with default
+    /// values.
     pub tilt: Option<Tilt>,
 
-    /// The angular position of the tool in radians.
+    /// The angular position in radians. [`None`] means backend or device has no support.
+    ///
+    /// ## Platform-specific
+    ///
+    /// **Web:** Has no mechanism to detect device support, so this will always be [`Some`] with
+    /// default values unless browser support is lacking.
     pub angle: Option<Angle>,
 }
 
@@ -77,10 +107,34 @@ impl Data {
 /// The plane angle of a tablet tool in degrees.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Tilt {
-    /// The angle between the surface Y-Z plane and the tool's surface Y plane.
+    /// The plane angle in degrees between the surface Y-Z plane and the plane containing the tool
+    /// and the surface Y axis. Positive values are to the right. In the range of -90 to 90. 0
+    /// means the tool is perpendicular to the surface and is the default.
+    ///
+    /// ![Tilt X](https://raw.githubusercontent.com/rust-windowing/winit/master/winit/docs/res/tool_tilt_x.webp)
+    ///
+    /// <sub>
+    ///   For image attribution, see the
+    ///   <a href="https://github.com/rust-windowing/winit/blob/master/winit/docs/ATTRIBUTION.md">
+    ///     ATTRIBUTION.md
+    ///   </a>
+    ///   file.
+    /// </sub>
     pub x: i8,
 
-    /// The angle between the surface X-Z plane and the tool's surface X plane.
+    /// The plane angle in degrees between the surface X-Z plane and the plane containing the tool
+    /// and the surface X axis. Positive values are towards the user. In the range of -90 to
+    /// 90. 0 means the tool is perpendicular to the surface and is the default.
+    ///
+    /// ![Tilt Y](https://raw.githubusercontent.com/rust-windowing/winit/master/winit/docs/res/tool_tilt_y.webp)
+    ///
+    /// <sub>
+    ///   For image attribution, see the
+    ///   <a href="https://github.com/rust-windowing/winit/blob/master/winit/docs/ATTRIBUTION.md">
+    ///     ATTRIBUTION.md
+    ///   </a>
+    ///   file.
+    /// </sub>
     pub y: i8,
 }
 
@@ -140,10 +194,35 @@ impl Tilt {
 /// The angular position of a tablet tool in radians.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Angle {
-    /// The angle between the tool and the surface X-Y plane.
+    /// The altitude angle in radians between the tools perpendicular position to the surface and
+    /// the surface X-Y plane. In the range of 0, parallel to the surface, to π/2, perpendicular to
+    /// the surface. π/2 means the tool is perpendicular to the surface and is the default.
+    ///
+    /// ![Altitude angle](https://raw.githubusercontent.com/rust-windowing/winit/master/docs/res/tool_altitude.webp)
+    ///
+    /// <sub>
+    ///   For image attribution, see the
+    ///   <a href="https://github.com/rust-windowing/winit/blob/master/docs/res/ATTRIBUTION.md">
+    ///     ATTRIBUTION.md
+    ///   </a>
+    ///   file.
+    /// </sub>
     pub altitude: f64,
 
-    /// The clockwise rotation between the tool's major axis and the surface X-Y plane.
+    /// The azimuth angle in radiants representing the rotation between the major axis of the tool
+    /// and the surface X-Y plane. In the range of 0, 3 o'clock, progressively increasing clockwise
+    /// to 2π. 0 means the tool is at 3 o'clock or is perpendicular to the surface (`altitude` of
+    /// π/2) and is the default.
+    ///
+    /// ![Azimuth angle](https://raw.githubusercontent.com/rust-windowing/winit/master/docs/res/tool_azimuth.webp)
+    ///
+    /// <sub>
+    ///   For image attribution, see the
+    ///   <a href="https://github.com/rust-windowing/winit/blob/master/docs/res/ATTRIBUTION.md">
+    ///     ATTRIBUTION.md
+    ///   </a>
+    ///   file.
+    /// </sub>
     pub azimuth: f64,
 }
 
