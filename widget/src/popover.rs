@@ -193,7 +193,7 @@ where
         self
     }
 
-    /// Sets whether mouse events pass through the base.
+    /// Sets whether mouse events pass through the popover overlay.
     ///
     /// By default, the base is opaque: mouse button presses inside its bounds
     /// are captured, and mouse events do not pass through it to the layers
