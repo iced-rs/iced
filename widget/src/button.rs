@@ -282,7 +282,7 @@ where
         }
 
         match event {
-            Event::Pointer(event) if event.is_primary_click() && self.on_press.is_some() => {
+            Event::Pointer(event) if event.is_primary_press() && self.on_press.is_some() => {
                 let bounds = layout.bounds();
 
                 if cursor.is_over(bounds) {

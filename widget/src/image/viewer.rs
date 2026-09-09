@@ -214,7 +214,7 @@ where
                 shell.request_redraw();
                 shell.capture_event();
             }
-            Event::Pointer(event) if event.is_primary_click() => {
+            Event::Pointer(event) if event.is_primary_press() => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
                     return;
                 };

@@ -409,7 +409,7 @@ where
             .min(self.options.len().saturating_sub(1));
 
         match event {
-            Event::Pointer(event) if event.is_primary_click() => {
+            Event::Pointer(event) if event.is_primary_press() => {
                 if cursor.is_over(layout.bounds())
                     && let Some(option) = self.options.get(hovered_option)
                 {

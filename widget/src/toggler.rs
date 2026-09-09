@@ -324,7 +324,7 @@ where
         };
 
         match event {
-            Event::Pointer(event) if event.is_primary_click() => {
+            Event::Pointer(event) if event.is_primary_press() => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {

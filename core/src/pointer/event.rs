@@ -55,8 +55,8 @@ pub enum Event {
 }
 
 impl Event {
-    /// Returns whether the event is a mouse left click, finger press, or tablet contact.
-    pub fn is_primary_click(&self) -> bool {
+    /// Returns whether the event is a mouse left press, finger press, or tablet contact.
+    pub fn is_primary_press(&self) -> bool {
         matches!(
             self,
             Self::PointerPressed {
@@ -87,8 +87,8 @@ impl Event {
         )
     }
 
-    /// Returns whether the event is a mouse right click or tablet barrel press.
-    pub fn is_secondary_click(&self) -> bool {
+    /// Returns whether the event is a mouse right press or tablet barrel press.
+    pub fn is_secondary_press(&self) -> bool {
         matches!(
             self,
             Self::PointerPressed {
