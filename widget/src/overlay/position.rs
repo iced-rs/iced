@@ -106,7 +106,7 @@ impl Side {
                 a.available_space(base, viewport, popup, gap)
                     .total_cmp(&b.available_space(base, viewport, popup, gap))
             })
-            .unwrap()
+            .unwrap_or(Side::Bottom)
     }
 
     fn available_space(self, base: Rectangle, viewport: Rectangle, popup: Size, gap: f32) -> f32 {
