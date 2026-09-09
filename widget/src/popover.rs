@@ -144,6 +144,15 @@ where
         self
     }
 
+    /// Sets the [`Position`] of the [`Popover`].
+    ///
+    /// By default, the [`Popover`] is positioned [`Position::Auto`], which
+    /// places it on the side of the base with the most available space.
+    pub fn position(mut self, position: Position) -> Self {
+        self.position = position;
+        self
+    }
+
     /// Sets the gap between the content and its [`Popover`].
     pub fn gap(mut self, gap: impl Into<Pixels>) -> Self {
         self.gap = gap.into().0;
@@ -335,10 +344,13 @@ where
 /// The position of the popover.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Position {
+    /// The popover will appear on the side of the widget with the most
+    /// available space.
+    #[default]
+    Auto,
     /// The popover will appear on the top of the widget.
     Top,
     /// The popover will appear on the bottom of the widget.
-    #[default]
     Bottom,
     /// The popover will appear on the left of the widget.
     Left,
@@ -389,7 +401,35 @@ where
         let y_center = self.position.y + (self.content_bounds.height - popover_bounds.height) / 2.0;
 
         let mut popover_rect = {
-            let offset = match self.positioning {
+            // Resolve the positioning, choosing the side with the most
+            // available space when `Position::Auto` is used.
+            let positioning = match self.positioning {
+                position
+                @ (Position::Top | Position::Bottom | Position::Left | Position::Right) => position,
+                Position::Auto => {
+                    let base = self.content_bounds;
+                    let available = |position: Position| match position {
+                        Position::Top => base.y - viewport.y,
+                        Position::Bottom => (viewport.y + viewport.height) - (base.y + base.height),
+                        Position::Left => base.x - viewport.x,
+                        Position::Right => (viewport.x + viewport.width) - (base.x + base.width),
+                        Position::Auto => unreachable!(),
+                    };
+
+                    // `Bottom` is listed last so it is preferred on a tie.
+                    [
+                        Position::Top,
+                        Position::Left,
+                        Position::Right,
+                        Position::Bottom,
+                    ]
+                    .into_iter()
+                    .max_by(|a, b| available(*a).total_cmp(&available(*b)))
+                    .unwrap()
+                }
+            };
+
+            let offset = match positioning {
                 Position::Top => Vector::new(
                     x_center,
                     self.position.y - popover_bounds.height - self.gap - self.padding,
@@ -406,6 +446,7 @@ where
                     self.position.x + self.content_bounds.width + self.gap + self.padding,
                     y_center,
                 ),
+                Position::Auto => unreachable!("`positioning` is resolved above"),
             };
 
             Rectangle {
