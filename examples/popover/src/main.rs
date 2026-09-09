@@ -1,6 +1,6 @@
 use iced::Element;
 use iced::widget::popover::Position;
-use iced::widget::{button, column, container, popover, text};
+use iced::widget::{button, center, column, container, popover, text};
 
 pub fn main() -> iced::Result {
     iced::run(Popover::update, Popover::view)
@@ -14,9 +14,9 @@ struct Popover {
 
 #[derive(Debug, Clone)]
 enum Message {
-    /// Open the popover.
-    Open,
-    /// Close the popover (emitted by the base button or `on_close`).
+    /// Toggle the popover, emitted by the trigger button.
+    Toggle,
+    /// Close the popover, emitted by `on_close` when clicking outside.
     Close,
     /// Cycle the popover position.
     ChangePosition,
@@ -25,7 +25,7 @@ enum Message {
 impl Popover {
     fn update(&mut self, message: Message) {
         match message {
-            Message::Open => self.is_open = true,
+            Message::Toggle => self.is_open = !self.is_open,
             Message::Close => self.is_open = false,
             Message::ChangePosition => {
                 self.position = match self.position {
@@ -39,16 +39,20 @@ impl Popover {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        // The popover always displays its overlay. The application decides when
-        // it is "open" by including it in the view, and "closes" it by removing
-        // it (i.e. not including it).
-        if self.is_open {
+        // The popover always displays its overlay, so the application decides
+        // when it is "open" by including it in the view, and "closes" it by
+        // removing it. The same trigger button is used in both cases: when
+        // closed it stands alone, and when open it anchors the popover.
+        let trigger = button(text(format!(
+            "{} the popover ({position:?}!)",
+            if self.is_open { "Close" } else { "Open" },
+            position = self.position
+        )))
+        .on_press(Message::Toggle);
+
+        let content: Element<'_, Message> = if self.is_open {
             popover(
-                button(text(format!(
-                    "Click to close ({position:?}!)",
-                    position = self.position
-                )))
-                .on_press(Message::Close),
+                trigger,
                 container(
                     column![
                         text("This is the popover contents!"),
@@ -65,12 +69,9 @@ impl Popover {
             .on_close(Message::Close)
             .into()
         } else {
-            button(text(format!(
-                "Open the popover ({position:?}!)",
-                position = self.position
-            )))
-            .on_press(Message::Open)
-            .into()
-        }
+            trigger.into()
+        };
+
+        center(content).into()
     }
 }
