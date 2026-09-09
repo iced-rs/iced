@@ -48,7 +48,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::touch;
 use crate::core::widget::{self, Widget};
-use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 
 /// A floating piece of content that appears over another element.
 ///
@@ -96,7 +96,6 @@ where
     popover: Option<Element<'a, Message, Theme, Renderer>>,
     position: Position,
     gap: f32,
-    padding: f32,
     snap_within_viewport: bool,
     on_close: Option<Message>,
 }
@@ -105,9 +104,6 @@ impl<'a, Message, Theme, Renderer> Popover<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
 {
-    /// The default padding of a [`Popover`].
-    const DEFAULT_PADDING: f32 = 5.0;
-
     /// Creates a new [`Popover`].
     ///
     /// It expects:
@@ -128,7 +124,6 @@ where
             popover: popover.map(Into::into),
             position: Position::default(),
             gap: 0.0,
-            padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
             on_close: None,
         }
@@ -156,12 +151,6 @@ where
     /// Sets the gap between the content and its [`Popover`].
     pub fn gap(mut self, gap: impl Into<Pixels>) -> Self {
         self.gap = gap.into().0;
-        self
-    }
-
-    /// Sets the padding of the [`Popover`].
-    pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
-        self.padding = padding.into().0;
         self
     }
 
@@ -312,7 +301,6 @@ where
             snap_within_viewport: self.snap_within_viewport,
             positioning: self.position,
             gap: self.gap,
-            padding: self.padding,
             on_close: self.on_close.clone(),
             viewport: *viewport,
         }));
@@ -369,7 +357,6 @@ where
     snap_within_viewport: bool,
     positioning: Position,
     gap: f32,
-    padding: f32,
     on_close: Option<Message>,
     viewport: Rectangle,
 }
@@ -392,8 +379,7 @@ where
                 } else {
                     Size::INFINITE
                 },
-            )
-            .shrink(Padding::new(self.padding)),
+            ),
         );
 
         let popover_bounds = popover_layout.bounds();
@@ -430,30 +416,28 @@ where
             };
 
             let offset = match positioning {
-                Position::Top => Vector::new(
-                    x_center,
-                    self.position.y - popover_bounds.height - self.gap - self.padding,
-                ),
+                Position::Top => {
+                    Vector::new(x_center, self.position.y - popover_bounds.height - self.gap)
+                }
                 Position::Bottom => Vector::new(
                     x_center,
-                    self.position.y + self.content_bounds.height + self.gap + self.padding,
+                    self.position.y + self.content_bounds.height + self.gap,
                 ),
-                Position::Left => Vector::new(
-                    self.position.x - popover_bounds.width - self.gap - self.padding,
-                    y_center,
-                ),
+                Position::Left => {
+                    Vector::new(self.position.x - popover_bounds.width - self.gap, y_center)
+                }
                 Position::Right => Vector::new(
-                    self.position.x + self.content_bounds.width + self.gap + self.padding,
+                    self.position.x + self.content_bounds.width + self.gap,
                     y_center,
                 ),
                 Position::Auto => unreachable!("`positioning` is resolved above"),
             };
 
             Rectangle {
-                x: offset.x - self.padding,
-                y: offset.y - self.padding,
-                width: popover_bounds.width + self.padding * 2.0,
-                height: popover_bounds.height + self.padding * 2.0,
+                x: offset.x,
+                y: offset.y,
+                width: popover_bounds.width,
+                height: popover_bounds.height,
             }
         };
 
@@ -471,11 +455,7 @@ where
             }
         }
 
-        layout::Node::with_children(
-            popover_rect.size(),
-            vec![popover_layout.translate(Vector::new(self.padding, self.padding))],
-        )
-        .translate(Vector::new(popover_rect.x, popover_rect.y))
+        popover_layout.translate(Vector::new(popover_rect.x, popover_rect.y))
     }
 
     fn update(
