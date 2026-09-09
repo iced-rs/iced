@@ -12,6 +12,11 @@
 //! deferred (layers + quad recording) renderer with no GPU involved, so the
 //! measured cost is the true per-frame overlay cost, without driver/GPU
 //! noise.
+//!
+//! The `none` scenarios run the same trees with no overlays at all — the
+//! most common case for a UI — and measure the bare `update` + `draw`
+//! traversal cost, so any overhead the overlay machinery adds to the
+//! common path stays visible.
 #![allow(missing_docs)]
 
 use criterion::{Criterion, criterion_group, criterion_main};
@@ -342,6 +347,201 @@ impl Widget<Message, Theme, Renderer> for Row {
     }
 }
 
+/// A fill-sized wrapper that delegates everything to its child and
+/// produces no overlay of its own.
+struct Frame {
+    child: Element<'static, Message, Theme, Renderer>,
+}
+
+impl Widget<Message, Theme, Renderer> for Frame {
+    fn size(&self) -> Size<Length> {
+        Size::new(Length::Fill, Length::Fill)
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.child));
+    }
+
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let child = self
+            .child
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, limits);
+
+        layout::Node::with_children(child.size(), vec![child])
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        if let Some(child_layout) = layout.children().next() {
+            self.child.as_widget().draw(
+                &tree.children[0],
+                renderer,
+                theme,
+                style,
+                child_layout,
+                cursor,
+                viewport,
+            );
+        }
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        if let Some(child_layout) = layout.children().next() {
+            self.child.as_widget_mut().update(
+                &mut tree.children[0],
+                event,
+                child_layout,
+                cursor,
+                renderer,
+                shell,
+                viewport,
+            );
+        }
+    }
+}
+
+/// A fixed-size leaf that draws nothing and produces no overlay.
+struct Leaf;
+
+impl Widget<Message, Theme, Renderer> for Leaf {
+    fn size(&self) -> Size<Length> {
+        Size::new(Length::Fixed(OVERLAY_SIZE), Length::Fixed(OVERLAY_SIZE))
+    }
+
+    fn layout(
+        &mut self,
+        _tree: &mut Tree,
+        _renderer: &Renderer,
+        _limits: &layout::Limits,
+    ) -> layout::Node {
+        layout::Node::new(Size::new(OVERLAY_SIZE, OVERLAY_SIZE))
+    }
+
+    fn draw(
+        &self,
+        _tree: &Tree,
+        _renderer: &mut Renderer,
+        _theme: &Theme,
+        _style: &renderer::Style,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
+        _viewport: &Rectangle,
+    ) {
+    }
+}
+
+/// A minimal horizontal row of children, used for the wide `none` scenario.
+struct PlainRow {
+    children: Vec<Element<'static, Message, Theme, Renderer>>,
+}
+
+impl Widget<Message, Theme, Renderer> for PlainRow {
+    fn size(&self) -> Size<Length> {
+        Size::new(Length::Fill, Length::Shrink)
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(&mut self.children);
+    }
+
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        let mut height: f32 = 0.0;
+        let mut children = Vec::with_capacity(self.children.len());
+
+        for (child, child_tree) in self.children.iter_mut().zip(&mut tree.children) {
+            let node = child.as_widget_mut().layout(child_tree, renderer, limits);
+            height = height.max(node.size().height);
+            children.push(node);
+        }
+
+        layout::Node::with_children(Size::new(OVERLAY_SIZE, height), children)
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        for ((child, child_tree), child_layout) in self
+            .children
+            .iter()
+            .zip(&tree.children)
+            .zip(layout.children())
+        {
+            child.as_widget().draw(
+                child_tree,
+                renderer,
+                theme,
+                style,
+                child_layout,
+                cursor,
+                viewport,
+            );
+        }
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        for ((child, child_tree), child_layout) in self
+            .children
+            .iter_mut()
+            .zip(&mut tree.children)
+            .zip(layout.children())
+        {
+            child.as_widget_mut().update(
+                child_tree,
+                event,
+                child_layout,
+                cursor,
+                renderer,
+                shell,
+                viewport,
+            );
+        }
+    }
+}
+
 /// Builds a view `levels` deep where every level contributes its own
 /// overlay (one overlay per level, plus the leaf's).
 ///
@@ -367,6 +567,25 @@ fn wide_view(count: usize) -> Element<'static, Message, Theme, Renderer> {
         .collect();
 
     Element::new(Row { children })
+}
+
+/// Builds a view `levels` deep with no overlays at all: the no-overlay
+/// baseline (pure traversal).
+fn none_view(levels: usize) -> Element<'static, Message, Theme, Renderer> {
+    let mut element = Element::new(Leaf);
+
+    for _ in 0..levels {
+        element = Element::new(Frame { child: element });
+    }
+
+    element
+}
+
+/// Builds a shallow view with `count` children and no overlays at all.
+fn none_wide_view(count: usize) -> Element<'static, Message, Theme, Renderer> {
+    let children = (0..count).map(|_| Element::new(Leaf)).collect();
+
+    Element::new(PlainRow { children })
 }
 
 fn bench(c: &mut Criterion, name: &str, view: Element<'static, Message, Theme, Renderer>) {
@@ -425,6 +644,11 @@ fn criterion_benchmark(c: &mut Criterion) {
     bench(c, "overlay — deep 128", deep_view(128));
     bench(c, "overlay — deep 512", deep_view(512));
     bench(c, "overlay — wide 256", wide_view(256));
+
+    bench(c, "overlay — none deep 32", none_view(32));
+    bench(c, "overlay — none deep 128", none_view(128));
+    bench(c, "overlay — none deep 512", none_view(512));
+    bench(c, "overlay — none wide 256", none_wide_view(256));
 }
 
 criterion_group!(benches, criterion_benchmark);
