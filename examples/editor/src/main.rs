@@ -282,10 +282,12 @@ fn action<'a, Message: Clone + 'a>(
     let action = button(center_x(content).width(30));
 
     if let Some(on_press) = on_press {
-        tooltip(action.on_press(on_press), label)
-            .position(tooltip::Position::FollowCursor)
-            .style(container::rounded_box)
-            .into()
+        tooltip(
+            action.on_press(on_press),
+            container(label).padding(10).style(container::rounded_box),
+        )
+        .position(tooltip::Position::FollowCursor)
+        .into()
     } else {
         action.style(button::secondary).into()
     }
