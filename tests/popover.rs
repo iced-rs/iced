@@ -11,7 +11,7 @@ use iced::advanced::mouse::{self, Button, Cursor};
 use iced::advanced::shell;
 use iced::advanced::widget::Tree;
 use iced::advanced::Layout;
-use iced::widget::{popover, space};
+use iced::widget::{button, popover, space};
 use iced::window::Headless;
 use iced::{Element, Event, Point, Rectangle, Size, Theme, Vector};
 
@@ -113,6 +113,41 @@ fn popover_layout_is_plain_base() {
         bounds.size(),
         Size::new(50.0, 50.0),
         "popover layout {bounds:?} should be the plain base, with no padding"
+    );
+}
+
+#[test]
+fn base_mouse_interaction_is_delegated() {
+    // A `button` base reports a `Pointer` interaction when hovered, and the
+    // popover delegates it to the base (which is a plain element).
+    let mut element: Element<'static, Message, Theme, ()> = popover(
+        button("Open").width(50).height(50).on_press(0x01),
+        space().width(80).height(80),
+        popover::Position::Bottom,
+    )
+    .on_close(ON_CLOSE)
+    .into();
+
+    let (tree, node) = setup(&mut element);
+    let layout = Layout::new(&node);
+    let viewport = Rectangle::with_size(VIEWPORT);
+
+    // Hovering the base reports the base's interaction (a `Pointer`, as a
+    // [`button`] would).
+    //
+    // [`button`]: iced::widget::Button
+    let hovered = element.as_widget().mouse_interaction(
+        &tree,
+        layout,
+        Cursor::Available(Point::new(25.0, 25.0)),
+        &viewport,
+        &(),
+    );
+
+    assert_eq!(
+        hovered,
+        mouse::Interaction::Pointer,
+        "hovering the base should report the base's interaction"
     );
 }
 
