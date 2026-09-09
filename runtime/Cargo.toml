@@ -29,3 +29,6 @@ sipper.optional = true
 
 iced_selector.workspace = true
 iced_selector.optional = true
+
+[dev-dependencies]
+iced_test.workspace = true

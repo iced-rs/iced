@@ -475,57 +475,10 @@ fn highlight(theme: &impl theme::Base) -> Color {
 mod tests {
     use super::*;
 
-    /// A widget that produces two overlays.
-    struct TwoOverlays;
-
-    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TwoOverlays
-    where
-        Renderer: core::Renderer,
-    {
-        fn size(&self) -> Size<Length> {
-            Size::new(Length::Fill, Length::Fill)
-        }
-
-        fn layout(
-            &mut self,
-            _tree: &mut widget::Tree,
-            _renderer: &Renderer,
-            _limits: &layout::Limits,
-        ) -> layout::Node {
-            layout::Node::new(Size::new(100.0, 100.0))
-        }
-
-        fn draw(
-            &self,
-            _tree: &widget::Tree,
-            _renderer: &mut Renderer,
-            _theme: &Theme,
-            _style: &renderer::Style,
-            _layout: Layout<'_>,
-            _cursor: mouse::Cursor,
-            _viewport: &Rectangle,
-        ) {
-        }
-
-        fn overlay<'a>(
-            &'a mut self,
-            _tree: &'a mut widget::Tree,
-            _layout: Layout<'a>,
-            _renderer: &Renderer,
-            _viewport: &Rectangle,
-            _translation: Vector,
-        ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-            vec![
-                overlay::Element::new(Box::new(overlay::ByIndex(1.0))),
-                overlay::Element::new(Box::new(overlay::ByIndex(2.0))),
-            ]
-        }
-    }
-
     #[test]
     fn recorder_wraps_all_overlays() {
         let mut recorder: Recorder<'_, (), iced_widget::Theme, ()> =
-            Recorder::new(Element::new(TwoOverlays));
+            Recorder::new(iced_test::widget::two_overlays());
 
         let mut tree = widget::Tree::new(&recorder as &dyn Widget<(), iced_widget::Theme, ()>);
         recorder.diff(&mut tree);

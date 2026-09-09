@@ -589,53 +589,6 @@ where
 mod tests {
     use super::*;
 
-    /// A widget that produces two overlays.
-    struct TwoOverlays;
-
-    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TwoOverlays
-    where
-        Renderer: core::Renderer,
-    {
-        fn size(&self) -> Size<Length> {
-            Size::new(Length::Fill, Length::Fill)
-        }
-
-        fn layout(
-            &mut self,
-            _tree: &mut widget::Tree,
-            _renderer: &Renderer,
-            _limits: &layout::Limits,
-        ) -> layout::Node {
-            layout::Node::new(Size::new(100.0, 100.0))
-        }
-
-        fn draw(
-            &self,
-            _tree: &widget::Tree,
-            _renderer: &mut Renderer,
-            _theme: &Theme,
-            _style: &renderer::Style,
-            _layout: Layout<'_>,
-            _cursor: mouse::Cursor,
-            _viewport: &Rectangle,
-        ) {
-        }
-
-        fn overlay<'a>(
-            &'a mut self,
-            _tree: &'a mut widget::Tree,
-            _layout: Layout<'a>,
-            _renderer: &Renderer,
-            _viewport: &Rectangle,
-            _translation: Vector,
-        ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-            vec![
-                overlay::Element::new(Box::new(overlay::ByIndex(1.0))),
-                overlay::Element::new(Box::new(overlay::ByIndex(2.0))),
-            ]
-        }
-    }
-
     /// A component whose view produces two overlays.
     struct TwoOverlayComponent;
 
@@ -653,7 +606,7 @@ mod tests {
         }
 
         fn view(&self, _state: &Self::State) -> Element<'a, Self::Event, crate::Theme, ()> {
-            Element::new(TwoOverlays)
+            iced_test::widget::two_overlays()
         }
     }
 

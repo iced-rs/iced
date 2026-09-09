@@ -94,7 +94,9 @@ pub use iced_selector as selector;
 pub mod emulator;
 pub mod ice;
 pub mod instruction;
+pub mod overlay;
 pub mod simulator;
+pub mod widget;
 
 mod error;
 

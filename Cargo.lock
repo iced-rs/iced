@@ -2396,6 +2396,7 @@ dependencies = [
  "iced_core",
  "iced_futures",
  "iced_selector",
+ "iced_test",
  "sipper",
  "thiserror 2.0.20",
 ]
@@ -2474,6 +2475,7 @@ dependencies = [
  "iced_highlighter",
  "iced_renderer",
  "iced_runtime",
+ "iced_test",
  "log",
  "num-traits",
  "pulldown-cmark",

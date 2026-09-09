@@ -720,6 +720,7 @@ impl State {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use iced_test::overlay::with_index;
 
     type Theme = crate::core::Theme;
     type Renderer = ();
@@ -727,10 +728,10 @@ mod tests {
     #[test]
     fn sort_overlays_orders_by_index_and_keeps_document_order_on_ties() {
         let mut overlays: Vec<overlay::Element<'static, (), Theme, Renderer>> = vec![
-            overlay::Element::new(Box::new(overlay::ByIndex(1.0))),
-            overlay::Element::new(Box::new(overlay::ByIndex(f32::MAX))),
-            overlay::Element::new(Box::new(overlay::ByIndex(1.0))),
-            overlay::Element::new(Box::new(overlay::ByIndex(2.0))),
+            with_index(1.0),
+            with_index(f32::MAX),
+            with_index(1.0),
+            with_index(2.0),
         ];
 
         sort_overlays(&mut overlays);
