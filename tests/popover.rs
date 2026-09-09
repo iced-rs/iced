@@ -7,11 +7,11 @@
 //! that the base is a plain element, and that the popover notifies the
 //! application through its `on_close` handler when the user clicks outside of
 //! its bounds.
+use iced::advanced::Layout;
 use iced::advanced::layout::{self, Limits};
 use iced::advanced::mouse::{self, Button, Cursor};
 use iced::advanced::shell;
 use iced::advanced::widget::Tree;
-use iced::advanced::Layout;
 use iced::widget::{button, popover, space};
 use iced::window::Headless;
 use iced::{Element, Event, Point, Rectangle, Size, Theme, Vector};
@@ -45,9 +45,7 @@ fn new_popover(open: bool) -> Element<'static, Message, Theme, ()> {
 }
 
 /// Builds the state tree and computes the (initial) layout for the element.
-fn setup(
-    element: &mut Element<'static, Message, Theme, ()>,
-) -> (Tree, layout::Node) {
+fn setup(element: &mut Element<'static, Message, Theme, ()>) -> (Tree, layout::Node) {
     let mut tree = Tree::new(&mut *element);
     element.as_widget_mut().diff(&mut tree);
 
@@ -66,7 +64,13 @@ fn has_overlay(
 ) -> bool {
     element
         .as_widget_mut()
-        .overlay(tree, layout, &(), &Rectangle::with_size(VIEWPORT), Vector::ZERO)
+        .overlay(
+            tree,
+            layout,
+            &(),
+            &Rectangle::with_size(VIEWPORT),
+            Vector::ZERO,
+        )
         .is_some()
 }
 
@@ -92,7 +96,9 @@ fn drive_overlay(
     let mut bus = shell::Bus::new();
     let mut shell = shell::Shell::new(&Headless, shell::Waker::noop(), &mut bus);
 
-    overlay.as_overlay_mut().update(event, overlay_layout, cursor, &(), &mut shell);
+    overlay
+        .as_overlay_mut()
+        .update(event, overlay_layout, cursor, &(), &mut shell);
 
     bus
 }
