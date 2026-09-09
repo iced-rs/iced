@@ -479,10 +479,11 @@ where
     }
 
     fn index(&self) -> f32 {
+        // The overlays are sorted by index when the wrapper is created, so
+        // the last one is the one drawn on top.
         self.raw
-            .iter()
+            .last()
             .map(|raw| raw.as_overlay().index())
-            .max_by(|a, b| a.total_cmp(b))
             .unwrap_or(1.0)
     }
 
