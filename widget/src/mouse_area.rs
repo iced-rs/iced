@@ -344,7 +344,7 @@ fn update<Message: Clone, Theme, Renderer>(
     }
 
     match event {
-        Event::Pointer(event) if event.is_primary_click() => {
+        Event::Pointer(event) if event.is_primary_press() => {
             if let Some(message) = widget.on_press.as_ref() {
                 shell.publish(message.clone());
                 shell.capture_event();
@@ -372,7 +372,7 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.publish(message.clone());
             }
         }
-        Event::Pointer(event) if event.is_secondary_click() => {
+        Event::Pointer(event) if event.is_secondary_press() => {
             if let Some(message) = widget.on_right_press.as_ref() {
                 shell.publish(message.clone());
                 shell.capture_event();

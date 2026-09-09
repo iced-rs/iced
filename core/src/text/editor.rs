@@ -384,7 +384,7 @@ impl State {
                     text.clone(),
                 )))))
             }
-            Event::Pointer(event) if event.is_primary_click() => {
+            Event::Pointer(event) if event.is_primary_press() => {
                 if let Some(cursor_position) = cursor.position_in(bounds) {
                     let cursor_position = cursor_position - Vector::new(padding.left, padding.top);
 

@@ -328,7 +328,7 @@ where
     ) {
         match event {
             Event::Pointer(event)
-                if event.is_primary_click() && cursor.is_over(layout.bounds()) =>
+                if event.is_primary_press() && cursor.is_over(layout.bounds()) =>
             {
                 shell.publish(self.on_click.clone());
                 shell.capture_event();

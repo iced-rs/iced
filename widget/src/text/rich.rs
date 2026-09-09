@@ -412,7 +412,7 @@ where
         }
 
         match event {
-            Event::Pointer(event) if event.is_primary_click() => {
+            Event::Pointer(event) if event.is_primary_press() => {
                 let state = tree
                     .state
                     .downcast_mut::<State<Link, Renderer::Paragraph>>();

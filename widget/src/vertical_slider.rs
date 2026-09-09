@@ -327,7 +327,7 @@ where
         };
 
         match event {
-            Event::Pointer(event) if event.is_primary_click() => {
+            Event::Pointer(event) if event.is_primary_press() => {
                 if let Some(cursor_position) = cursor.position_over(layout.bounds()) {
                     if state.keyboard_modifiers.control() || state.keyboard_modifiers.command() {
                         let _ = self.default.map(change);

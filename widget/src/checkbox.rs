@@ -319,7 +319,7 @@ where
         _viewport: &Rectangle,
     ) {
         match event {
-            Event::Pointer(event) if event.is_primary_click() => {
+            Event::Pointer(event) if event.is_primary_press() => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over && let Some(on_toggle) = &self.on_toggle {

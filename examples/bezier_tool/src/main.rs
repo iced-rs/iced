@@ -97,7 +97,7 @@ mod bezier {
             let cursor_position = cursor.position_in(bounds)?;
 
             match event {
-                Event::Pointer(event) if event.is_primary_click() => Some(
+                Event::Pointer(event) if event.is_primary_press() => Some(
                     match *state {
                         None => {
                             *state = Some(Pending::One {

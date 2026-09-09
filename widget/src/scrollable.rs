@@ -609,7 +609,7 @@ where
                 }
             } else if mouse_over_y_scrollbar {
                 match event {
-                    Event::Pointer(event) if event.is_primary_click() => {
+                    Event::Pointer(event) if event.is_primary_press() => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
                         };
@@ -669,7 +669,7 @@ where
                 }
             } else if mouse_over_x_scrollbar {
                 match event {
-                    Event::Pointer(event) if event.is_primary_click() => {
+                    Event::Pointer(event) if event.is_primary_press() => {
                         let Some(cursor_position) = cursor.position() else {
                             return;
                         };
