@@ -420,31 +420,37 @@ impl Span {
             } => {
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
+                let weight = if *strong {
+                    font::Weight::Bold
+                } else {
+                    font::Weight::Normal
+                };
+
+                let style = if *emphasis {
+                    font::Style::Italic
+                } else {
+                    font::Style::Normal
+                };
+
                 let span = if *inline_code {
                     let code = theme.code();
 
-                    span.font(settings.inline_code_font)
-                        .size(settings.inline_code_size)
-                        .color(code.color)
-                        .background(code.highlight.background)
-                        .border(code.highlight.border)
-                        .padding(code.padding)
-                } else if *strong || *emphasis {
                     span.font(Font {
-                        weight: if *strong {
-                            font::Weight::Bold
-                        } else {
-                            font::Weight::Normal
-                        },
-                        style: if *emphasis {
-                            font::Style::Italic
-                        } else {
-                            font::Style::Normal
-                        },
+                        weight,
+                        style,
+                        ..settings.inline_code_font
+                    })
+                    .size(settings.inline_code_size)
+                    .color(code.color)
+                    .background(code.highlight.background)
+                    .border(code.highlight.border)
+                    .padding(code.padding)
+                } else {
+                    span.font(Font {
+                        weight,
+                        style,
                         ..settings.font
                     })
-                } else {
-                    span.font(settings.font)
                 };
 
                 if let Some(link) = link.as_ref() {
