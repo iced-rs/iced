@@ -193,15 +193,17 @@ where
         self
     }
 
-    /// Makes the base transparent, so mouse events pass through it.
+    /// Sets whether mouse events pass through the base.
     ///
     /// By default, the base is opaque: mouse button presses inside its bounds
     /// are captured, and mouse events do not pass through it to the layers
     /// below.
-    pub fn passthrough(mut self) -> Self {
-        if let Content::Opaque(opaque) = self.content {
-            self.content = Content::Transparent(opaque.into_inner());
-        }
+    pub fn passthrough(mut self, passthrough: bool) -> Self {
+        self.content = match self.content {
+            Content::Opaque(opaque) if passthrough => Content::Transparent(opaque.into_inner()),
+            Content::Transparent(element) if !passthrough => Content::Opaque(Opaque::new(element)),
+            content => content,
+        };
 
         self
     }
