@@ -294,10 +294,9 @@ where
         );
 
         let overlay = overlay::Element::new(Box::new(Overlay {
-            position: layout.position() + translation,
             popover,
             tree,
-            content_bounds: layout.bounds(),
+            content_bounds: layout.bounds() + translation,
             snap_within_viewport: self.snap_within_viewport,
             positioning: self.position,
             gap: self.gap,
@@ -362,7 +361,6 @@ struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
 {
-    position: Point,
     popover: &'b mut Element<'a, Message, Theme, Renderer>,
     tree: &'b mut widget::Tree,
     content_bounds: Rectangle,
@@ -395,7 +393,6 @@ where
         );
 
         let bounds = crate::overlay::Position::from(self.positioning).resolve(
-            self.position,
             self.content_bounds,
             layout.size(),
             self.gap,

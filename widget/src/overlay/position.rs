@@ -23,9 +23,10 @@ pub enum Position {
 impl Position {
     /// Computes the [`Rectangle`] that a popup occupies for a [`Position`].
     ///
-    /// The `position` and `content_bounds` describe the element the popup is
-    /// anchored to, `popup` is the size of the popup itself, and `gap` is the
-    /// amount of space to leave around it.
+    /// All the arguments are expressed in the same coordinate space: the
+    /// space in which the popup is laid out. The `content_bounds` describe
+    /// the element the popup is anchored to, `popup` is the size of the
+    /// popup itself, and `gap` is the amount of space to leave around it.
     ///
     /// The `cursor_position` is only used when the [`Position`] is
     /// [`Position::FollowCursor`], and the `viewport` is only used when it is
@@ -33,7 +34,6 @@ impl Position {
     /// clamps the resolved rectangle into the `viewport`.
     pub fn resolve(
         &self,
-        position: Point,
         content_bounds: Rectangle,
         popup: Size,
         gap: f32,
@@ -44,20 +44,16 @@ impl Position {
         let offset = match self {
             // The popup follows the cursor.
             Position::FollowCursor => {
-                let translation = position - content_bounds.position();
-                Point::new(
-                    cursor_position.x + translation.x,
-                    cursor_position.y - popup.height + translation.y,
-                )
+                Point::new(cursor_position.x, cursor_position.y - popup.height)
             }
             // The popup is placed on a side of the base; `Auto` resolves to
             // the side with the most available space.
             Position::Auto => Side::with_most_available_space(content_bounds, viewport, popup, gap)
-                .offset(position, content_bounds, popup, gap),
-            Position::Top => Side::Top.offset(position, content_bounds, popup, gap),
-            Position::Bottom => Side::Bottom.offset(position, content_bounds, popup, gap),
-            Position::Left => Side::Left.offset(position, content_bounds, popup, gap),
-            Position::Right => Side::Right.offset(position, content_bounds, popup, gap),
+                .offset(content_bounds, popup, gap),
+            Position::Top => Side::Top.offset(content_bounds, popup, gap),
+            Position::Bottom => Side::Bottom.offset(content_bounds, popup, gap),
+            Position::Left => Side::Left.offset(content_bounds, popup, gap),
+            Position::Right => Side::Right.offset(content_bounds, popup, gap),
         };
 
         let mut rectangle = Rectangle {
@@ -95,7 +91,7 @@ enum Side {
 
 impl Side {
     fn with_most_available_space(
-        base: Rectangle,
+        content_bounds: Rectangle,
         viewport: Rectangle,
         popup: Size,
         gap: f32,
@@ -103,34 +99,46 @@ impl Side {
         [Side::Top, Side::Left, Side::Right, Side::Bottom]
             .into_iter()
             .max_by(|a, b| {
-                a.available_space(base, viewport, popup, gap)
-                    .total_cmp(&b.available_space(base, viewport, popup, gap))
+                a.available_space(content_bounds, viewport, popup, gap)
+                    .total_cmp(&b.available_space(content_bounds, viewport, popup, gap))
             })
             .unwrap_or(Side::Bottom)
     }
 
-    fn available_space(self, base: Rectangle, viewport: Rectangle, popup: Size, gap: f32) -> f32 {
+    fn available_space(
+        self,
+        content_bounds: Rectangle,
+        viewport: Rectangle,
+        popup: Size,
+        gap: f32,
+    ) -> f32 {
         match self {
-            Side::Top => base.y - viewport.y - popup.height - gap,
+            Side::Top => content_bounds.y - viewport.y - popup.height - gap,
             Side::Bottom => {
-                (viewport.y + viewport.height) - (base.y + base.height) - popup.height - gap
+                (viewport.y + viewport.height)
+                    - (content_bounds.y + content_bounds.height)
+                    - popup.height
+                    - gap
             }
-            Side::Left => base.x - viewport.x - popup.width - gap,
+            Side::Left => content_bounds.x - viewport.x - popup.width - gap,
             Side::Right => {
-                (viewport.x + viewport.width) - (base.x + base.width) - popup.width - gap
+                (viewport.x + viewport.width)
+                    - (content_bounds.x + content_bounds.width)
+                    - popup.width
+                    - gap
             }
         }
     }
 
-    fn offset(self, position: Point, content_bounds: Rectangle, popup: Size, gap: f32) -> Point {
-        let x_center = position.x + (content_bounds.width - popup.width) / 2.0;
-        let y_center = position.y + (content_bounds.height - popup.height) / 2.0;
+    fn offset(self, content_bounds: Rectangle, popup: Size, gap: f32) -> Point {
+        let x_center = content_bounds.x + (content_bounds.width - popup.width) / 2.0;
+        let y_center = content_bounds.y + (content_bounds.height - popup.height) / 2.0;
 
         match self {
-            Side::Top => Point::new(x_center, position.y - popup.height - gap),
-            Side::Bottom => Point::new(x_center, position.y + content_bounds.height + gap),
-            Side::Left => Point::new(position.x - popup.width - gap, y_center),
-            Side::Right => Point::new(position.x + content_bounds.width + gap, y_center),
+            Side::Top => Point::new(x_center, content_bounds.y - popup.height - gap),
+            Side::Bottom => Point::new(x_center, content_bounds.y + content_bounds.height + gap),
+            Side::Left => Point::new(content_bounds.x - popup.width - gap, y_center),
+            Side::Right => Point::new(content_bounds.x + content_bounds.width + gap, y_center),
         }
     }
 }
@@ -142,9 +150,8 @@ mod tests {
 
     /// Common inputs: a 50x50 base at the origin, an 80x80 popup, no gap, and a
     /// 1000x1000 viewport.
-    fn inputs() -> (Point, Rectangle, Size, f32, Point, Rectangle) {
+    fn inputs() -> (Rectangle, Size, f32, Point, Rectangle) {
         (
-            Point::new(0.0, 0.0),
             Rectangle::new(Point::new(0.0, 0.0), Size::new(50.0, 50.0)),
             Size::new(80.0, 80.0),
             0.0,
@@ -155,11 +162,11 @@ mod tests {
 
     #[test]
     fn auto_prefers_the_side_with_the_most_space() {
-        let (position, base, popup, gap, cursor, viewport) = inputs();
+        let (base, popup, gap, cursor, viewport) = inputs();
 
         // There is far more space below (950) than above (0); the tie between
         // "below" and "right" is broken in favour of `Bottom`.
-        let rect = Position::Auto.resolve(position, base, popup, gap, cursor, viewport, false);
+        let rect = Position::Auto.resolve(base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -170,12 +177,12 @@ mod tests {
 
     #[test]
     fn auto_avoids_a_side_where_the_popup_does_not_fit() {
-        let (position, base, _, gap, cursor, viewport) = inputs();
+        let (base, _, gap, cursor, viewport) = inputs();
         // A popup taller than the space below the base (950), but one that
         // fits on the right.
         let popup = Size::new(80.0, 960.0);
 
-        let rect = Position::Auto.resolve(position, base, popup, gap, cursor, viewport, false);
+        let rect = Position::Auto.resolve(base, popup, gap, cursor, viewport, false);
 
         // `Bottom` is avoided because the popup (960) does not fit below the
         // base (950); the popup is placed to the right instead, so it is not
@@ -189,9 +196,9 @@ mod tests {
 
     #[test]
     fn top_places_the_popup_above_the_base() {
-        let (position, base, popup, gap, cursor, viewport) = inputs();
+        let (base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Top.resolve(position, base, popup, gap, cursor, viewport, false);
+        let rect = Position::Top.resolve(base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -202,9 +209,9 @@ mod tests {
 
     #[test]
     fn bottom_places_the_popup_below_the_base() {
-        let (position, base, popup, gap, cursor, viewport) = inputs();
+        let (base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Bottom.resolve(position, base, popup, gap, cursor, viewport, false);
+        let rect = Position::Bottom.resolve(base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -215,9 +222,9 @@ mod tests {
 
     #[test]
     fn left_places_the_popup_left_of_the_base() {
-        let (position, base, popup, gap, cursor, viewport) = inputs();
+        let (base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Left.resolve(position, base, popup, gap, cursor, viewport, false);
+        let rect = Position::Left.resolve(base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -228,9 +235,9 @@ mod tests {
 
     #[test]
     fn right_places_the_popup_right_of_the_base() {
-        let (position, base, popup, gap, cursor, viewport) = inputs();
+        let (base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Right.resolve(position, base, popup, gap, cursor, viewport, false);
+        let rect = Position::Right.resolve(base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -241,12 +248,11 @@ mod tests {
 
     #[test]
     fn follow_cursor_places_the_popup_at_the_cursor() {
-        let (position, base, popup, gap, _, viewport) = inputs();
+        let (base, popup, gap, _, viewport) = inputs();
         let cursor = Point::new(200.0, 300.0);
 
         // The popup's bottom edge is placed at the cursor.
-        let rect =
-            Position::FollowCursor.resolve(position, base, popup, gap, cursor, viewport, false);
+        let rect = Position::FollowCursor.resolve(base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -257,12 +263,12 @@ mod tests {
 
     #[test]
     fn snap_clamps_the_popup_into_the_viewport() {
-        let (position, base, popup, gap, cursor, viewport) = inputs();
+        let (base, popup, gap, cursor, viewport) = inputs();
 
         // Without snapping, `Top` places the popup at (-15, -80), outside of
         // the viewport; with snapping, it is clamped to the viewport's
         // origin.
-        let rect = Position::Top.resolve(position, base, popup, gap, cursor, viewport, true);
+        let rect = Position::Top.resolve(base, popup, gap, cursor, viewport, true);
 
         assert_eq!(
             rect,
@@ -273,15 +279,14 @@ mod tests {
 
     #[test]
     fn snap_shifts_a_popup_that_overflows_the_viewport() {
-        let (_, _, popup, gap, cursor, viewport) = inputs();
+        let (_, popup, gap, cursor, viewport) = inputs();
         // A base flush with the right edge of the viewport (1000).
-        let position = Point::new(950.0, 0.0);
-        let base = Rectangle::new(position, Size::new(50.0, 50.0));
+        let base = Rectangle::new(Point::new(950.0, 0.0), Size::new(50.0, 50.0));
 
         // Without snapping, `Right` places the popup at (1000, -15), beyond
         // the right edge of the viewport; with snapping, it is shifted back
         // so it fits.
-        let rect = Position::Right.resolve(position, base, popup, gap, cursor, viewport, true);
+        let rect = Position::Right.resolve(base, popup, gap, cursor, viewport, true);
 
         assert_eq!(
             rect,

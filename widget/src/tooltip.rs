@@ -285,11 +285,10 @@ where
 
         let tooltip = if let State::Open { cursor_position } = *state {
             Some(overlay::Element::new(Box::new(Overlay {
-                position: layout.position() + translation,
                 tooltip: &mut self.tooltip,
                 tree: children.next().unwrap(),
-                cursor_position,
-                content_bounds: layout.bounds(),
+                cursor_position: cursor_position + translation,
+                content_bounds: layout.bounds() + translation,
                 snap_within_viewport: self.snap_within_viewport,
                 positioning: self.position,
                 gap: self.gap,
@@ -360,7 +359,6 @@ struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
 {
-    position: Point,
     tooltip: &'b mut Element<'a, Message, Theme, Renderer>,
     tree: &'b mut widget::Tree,
     cursor_position: Point,
@@ -394,7 +392,6 @@ where
         let text_bounds = layout.bounds();
 
         let bounds = self.positioning.resolve(
-            self.position,
             self.content_bounds,
             text_bounds.size(),
             self.gap,
