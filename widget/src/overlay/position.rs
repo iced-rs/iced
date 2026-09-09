@@ -41,50 +41,8 @@ impl Position {
         viewport: Rectangle,
         snap_within_viewport: bool,
     ) -> Rectangle {
-        let x_center = position.x + (content_bounds.width - popup.width) / 2.0;
-        let y_center = position.y + (content_bounds.height - popup.height) / 2.0;
-
-        // Resolve the positioning, choosing the side with the most available
-        // space when `Position::Auto` is used.
-        let positioning = match self {
-            Position::Auto => {
-                let base = content_bounds;
-
-                // The space left on each side of the base once the popup
-                // (and the gap) is placed there. Accounting for the popup's
-                // own size makes `Auto` prefer a side where the popup
-                // actually fits, so it is not snapped back over the base.
-                let available = |position: Position| match position {
-                    Position::Top => base.y - viewport.y - popup.height - gap,
-                    Position::Bottom => {
-                        (viewport.y + viewport.height) - (base.y + base.height) - popup.height - gap
-                    }
-                    Position::Left => base.x - viewport.x - popup.width - gap,
-                    Position::Right => {
-                        (viewport.x + viewport.width) - (base.x + base.width) - popup.width - gap
-                    }
-                    Position::Auto | Position::FollowCursor => unreachable!(),
-                };
-
-                // `Bottom` is listed last so it is preferred on a tie.
-                [
-                    Position::Top,
-                    Position::Left,
-                    Position::Right,
-                    Position::Bottom,
-                ]
-                .into_iter()
-                .max_by(|a, b| available(*a).total_cmp(&available(*b)))
-                .unwrap()
-            }
-            other => *other,
-        };
-
-        let offset = match positioning {
-            Position::Top => Point::new(x_center, position.y - popup.height - gap),
-            Position::Bottom => Point::new(x_center, position.y + content_bounds.height + gap),
-            Position::Left => Point::new(position.x - popup.width - gap, y_center),
-            Position::Right => Point::new(position.x + content_bounds.width + gap, y_center),
+        let offset = match self {
+            // The popup follows the cursor.
             Position::FollowCursor => {
                 let translation = position - content_bounds.position();
                 Point::new(
@@ -92,7 +50,14 @@ impl Position {
                     cursor_position.y - popup.height + translation.y,
                 )
             }
-            Position::Auto => unreachable!("`positioning` is resolved above"),
+            // The popup is placed on a side of the base; `Auto` resolves to
+            // the side with the most available space.
+            Position::Auto => Side::with_most_available_space(content_bounds, viewport, popup, gap)
+                .offset(position, content_bounds, popup, gap),
+            Position::Top => Side::Top.offset(position, content_bounds, popup, gap),
+            Position::Bottom => Side::Bottom.offset(position, content_bounds, popup, gap),
+            Position::Left => Side::Left.offset(position, content_bounds, popup, gap),
+            Position::Right => Side::Right.offset(position, content_bounds, popup, gap),
         };
 
         let mut rectangle = Rectangle {
@@ -117,6 +82,56 @@ impl Position {
         }
 
         rectangle
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Side {
+    Top,
+    Left,
+    Right,
+    Bottom,
+}
+
+impl Side {
+    fn with_most_available_space(
+        base: Rectangle,
+        viewport: Rectangle,
+        popup: Size,
+        gap: f32,
+    ) -> Side {
+        [Side::Top, Side::Left, Side::Right, Side::Bottom]
+            .into_iter()
+            .max_by(|a, b| {
+                a.available_space(base, viewport, popup, gap)
+                    .total_cmp(&b.available_space(base, viewport, popup, gap))
+            })
+            .unwrap()
+    }
+
+    fn available_space(self, base: Rectangle, viewport: Rectangle, popup: Size, gap: f32) -> f32 {
+        match self {
+            Side::Top => base.y - viewport.y - popup.height - gap,
+            Side::Bottom => {
+                (viewport.y + viewport.height) - (base.y + base.height) - popup.height - gap
+            }
+            Side::Left => base.x - viewport.x - popup.width - gap,
+            Side::Right => {
+                (viewport.x + viewport.width) - (base.x + base.width) - popup.width - gap
+            }
+        }
+    }
+
+    fn offset(self, position: Point, content_bounds: Rectangle, popup: Size, gap: f32) -> Point {
+        let x_center = position.x + (content_bounds.width - popup.width) / 2.0;
+        let y_center = position.y + (content_bounds.height - popup.height) / 2.0;
+
+        match self {
+            Side::Top => Point::new(x_center, position.y - popup.height - gap),
+            Side::Bottom => Point::new(x_center, position.y + content_bounds.height + gap),
+            Side::Left => Point::new(position.x - popup.width - gap, y_center),
+            Side::Right => Point::new(position.x + content_bounds.width + gap, y_center),
+        }
     }
 }
 
