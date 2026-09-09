@@ -2,12 +2,14 @@ use crate::core::{Point, Rectangle, Size};
 
 /// The position of a popup (a popover or a tooltip) relative to the element
 /// it is anchored to.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Position {
-    /// The popup will appear on the side of the widget with the most
-    /// available space.
-    #[default]
-    Auto,
+    /// The popup will appear on the preferred [`Side`] if it fits there, and
+    /// on the side of the widget with the most available space otherwise.
+    Auto {
+        /// The [`Side`] to prefer when the popup fits there.
+        preference: Side,
+    },
     /// The popup will appear on the top of the widget.
     Top,
     /// The popup will appear on the bottom of the widget.
@@ -18,6 +20,14 @@ pub enum Position {
     Right,
     /// The popup will follow the cursor.
     FollowCursor,
+}
+
+impl Default for Position {
+    fn default() -> Self {
+        Position::Auto {
+            preference: Side::default(),
+        }
+    }
 }
 
 impl Position {
@@ -47,9 +57,12 @@ impl Position {
                 Point::new(cursor_position.x, cursor_position.y - popup.height)
             }
             // The popup is placed on a side of the base; `Auto` resolves to
-            // the side with the most available space.
-            Position::Auto => Side::with_most_available_space(content_bounds, viewport, popup, gap)
-                .offset(content_bounds, popup, gap),
+            // the preferred side if the popup fits there, and to the side
+            // with the most available space otherwise.
+            Position::Auto { preference } => {
+                Side::with_most_available_space(content_bounds, viewport, popup, gap, *preference)
+                    .offset(content_bounds, popup, gap)
+            }
             Position::Top => Side::Top.offset(content_bounds, popup, gap),
             Position::Bottom => Side::Bottom.offset(content_bounds, popup, gap),
             Position::Left => Side::Left.offset(content_bounds, popup, gap),
@@ -81,11 +94,17 @@ impl Position {
     }
 }
 
-#[derive(Clone, Copy)]
-enum Side {
+/// A side that a popup can appear on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Side {
+    /// The top side.
     Top,
+    /// The left side.
     Left,
+    /// The right side.
     Right,
+    /// The bottom side.
+    #[default]
     Bottom,
 }
 
@@ -95,14 +114,21 @@ impl Side {
         viewport: Rectangle,
         popup: Size,
         gap: f32,
+        preference: Side,
     ) -> Side {
+        // The popup is placed on the preferred side if it fits there.
+        if preference.available_space(content_bounds, viewport, popup, gap) >= 0.0 {
+            return preference;
+        }
+
+        // Otherwise, it is placed on the side with the most available space.
         [Side::Top, Side::Left, Side::Right, Side::Bottom]
             .into_iter()
             .max_by(|a, b| {
                 a.available_space(content_bounds, viewport, popup, gap)
                     .total_cmp(&b.available_space(content_bounds, viewport, popup, gap))
             })
-            .unwrap_or(Side::Bottom)
+            .unwrap_or_default()
     }
 
     fn available_space(
@@ -145,7 +171,7 @@ impl Side {
 
 #[cfg(test)]
 mod tests {
-    use super::Position;
+    use super::{Position, Side};
     use crate::core::{Point, Rectangle, Size};
 
     /// Common inputs: a 50x50 base at the origin, an 80x80 popup, no gap, a
@@ -157,33 +183,39 @@ mod tests {
     const VIEWPORT: Rectangle = Rectangle::new(Point::new(0.0, 0.0), Size::new(1000.0, 1000.0));
 
     #[test]
-    fn auto_prefers_the_side_with_the_most_space() {
-        // There is far more space below (950) than above (0); the tie between
-        // "below" and "right" is broken in favour of `Bottom`.
-        let rect = Position::Auto.resolve(BASE, POPUP, GAP, CURSOR, VIEWPORT, false);
+    fn auto_uses_the_preferred_side_when_it_fits() {
+        // There is more space above (520) than below (270); the preference
+        // still wins because the popup fits below.
+        let base = Rectangle::new(Point::new(0.0, 600.0), Size::new(50.0, 50.0));
+        let position = Position::Auto {
+            preference: Side::Bottom,
+        };
+
+        let rect = position.resolve(base, POPUP, GAP, CURSOR, VIEWPORT, false);
 
         assert_eq!(
             rect,
-            Rectangle::new(Point::new(-15.0, 50.0), Size::new(80.0, 80.0)),
-            "Auto should resolve to the side with the most space"
+            Rectangle::new(Point::new(-15.0, 650.0), Size::new(80.0, 80.0)),
+            "Auto should use the preferred side when the popup fits there"
         );
     }
 
     #[test]
-    fn auto_avoids_a_side_where_the_popup_does_not_fit() {
-        // A popup taller than the space below the base (950), but one that
-        // fits on the right.
+    fn auto_falls_back_to_the_side_with_the_most_space() {
+        // The preferred side (`Bottom`) does not fit: the popup (960) is
+        // taller than the space below the base (950), so the popup is placed
+        // on the side with the most available space (right) instead.
         let popup = Size::new(80.0, 960.0);
+        let position = Position::Auto {
+            preference: Side::Bottom,
+        };
 
-        let rect = Position::Auto.resolve(BASE, popup, GAP, CURSOR, VIEWPORT, false);
+        let rect = position.resolve(BASE, popup, GAP, CURSOR, VIEWPORT, false);
 
-        // `Bottom` is avoided because the popup (960) does not fit below the
-        // base (950); the popup is placed to the right instead, so it is not
-        // snapped back over the base.
         assert_eq!(
             rect,
             Rectangle::new(Point::new(50.0, -455.0), Size::new(80.0, 960.0)),
-            "Auto should avoid a side where the popup does not fit"
+            "Auto should fall back to the side with the most available space"
         );
     }
 

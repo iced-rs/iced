@@ -348,7 +348,9 @@ pub enum Position {
 impl From<Position> for crate::overlay::Position {
     fn from(position: Position) -> Self {
         match position {
-            Position::Auto => Self::Auto,
+            Position::Auto => Self::Auto {
+                preference: crate::overlay::Side::default(),
+            },
             Position::Top => Self::Top,
             Position::Bottom => Self::Bottom,
             Position::Left => Self::Left,
