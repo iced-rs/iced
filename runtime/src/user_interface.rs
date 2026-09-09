@@ -594,9 +594,11 @@ where
         sort_overlays(&mut overlays);
 
         for (overlay, layout) in overlays.iter_mut().zip(layouts) {
-            overlay
-                .as_overlay()
-                .draw(renderer, theme, style, Layout::new(layout), cursor);
+            renderer.with_layer(layout.bounds(), |renderer| {
+                overlay
+                    .as_overlay()
+                    .draw(renderer, theme, style, Layout::new(layout), cursor);
+            });
         }
     }
 
