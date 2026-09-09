@@ -47,11 +47,20 @@ impl Position {
         let positioning = match self {
             Position::Auto => {
                 let base = content_bounds;
+
+                // The space left on each side of the base once the popup
+                // (and the gap) is placed there. Accounting for the popup's
+                // own size makes `Auto` prefer a side where the popup
+                // actually fits, so it is not snapped back over the base.
                 let available = |position: Position| match position {
-                    Position::Top => base.y - viewport.y,
-                    Position::Bottom => (viewport.y + viewport.height) - (base.y + base.height),
-                    Position::Left => base.x - viewport.x,
-                    Position::Right => (viewport.x + viewport.width) - (base.x + base.width),
+                    Position::Top => base.y - viewport.y - popup.height - gap,
+                    Position::Bottom => {
+                        (viewport.y + viewport.height) - (base.y + base.height) - popup.height - gap
+                    }
+                    Position::Left => base.x - viewport.x - popup.width - gap,
+                    Position::Right => {
+                        (viewport.x + viewport.width) - (base.x + base.width) - popup.width - gap
+                    }
                     Position::Auto | Position::FollowCursor => unreachable!(),
                 };
 
@@ -123,6 +132,25 @@ mod tests {
             rect,
             Rectangle::new(Point::new(-15.0, 50.0), Size::new(80.0, 80.0)),
             "Auto should resolve to the side with the most space"
+        );
+    }
+
+    #[test]
+    fn auto_avoids_a_side_where_the_popup_does_not_fit() {
+        let (position, base, _, gap, cursor, viewport) = inputs();
+        // A popup taller than the space below the base (950), but one that
+        // fits on the right.
+        let popup = Size::new(80.0, 960.0);
+
+        let rect = Position::Auto.resolve(position, base, popup, gap, cursor, viewport);
+
+        // `Bottom` is avoided because the popup (960) does not fit below the
+        // base (950); the popup is placed to the right instead, so it is not
+        // snapped back over the base.
+        assert_eq!(
+            rect,
+            Rectangle::new(Point::new(50.0, -455.0), Size::new(80.0, 960.0)),
+            "Auto should avoid a side where the popup does not fit"
         );
     }
 
