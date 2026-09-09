@@ -29,7 +29,8 @@ impl Position {
     ///
     /// The `cursor_position` is only used when the [`Position`] is
     /// [`Position::FollowCursor`], and the `viewport` is only used when it is
-    /// [`Position::Auto`].
+    /// [`Position::Auto`] or when `snap_within_viewport` is `true`, which
+    /// clamps the resolved rectangle into the `viewport`.
     pub fn resolve(
         &self,
         position: Point,
@@ -38,6 +39,7 @@ impl Position {
         gap: f32,
         cursor_position: Point,
         viewport: Rectangle,
+        snap_within_viewport: bool,
     ) -> Rectangle {
         let x_center = position.x + (content_bounds.width - popup.width) / 2.0;
         let y_center = position.y + (content_bounds.height - popup.height) / 2.0;
@@ -93,12 +95,28 @@ impl Position {
             Position::Auto => unreachable!("`positioning` is resolved above"),
         };
 
-        Rectangle {
+        let mut rectangle = Rectangle {
             x: offset.x,
             y: offset.y,
             width: popup.width,
             height: popup.height,
+        };
+
+        if snap_within_viewport {
+            if rectangle.x < viewport.x {
+                rectangle.x = viewport.x;
+            } else if viewport.x + viewport.width < rectangle.x + rectangle.width {
+                rectangle.x = viewport.x + viewport.width - rectangle.width;
+            }
+
+            if rectangle.y < viewport.y {
+                rectangle.y = viewport.y;
+            } else if viewport.y + viewport.height < rectangle.y + rectangle.height {
+                rectangle.y = viewport.y + viewport.height - rectangle.height;
+            }
         }
+
+        rectangle
     }
 }
 
@@ -126,7 +144,7 @@ mod tests {
 
         // There is far more space below (950) than above (0); the tie between
         // "below" and "right" is broken in favour of `Bottom`.
-        let rect = Position::Auto.resolve(position, base, popup, gap, cursor, viewport);
+        let rect = Position::Auto.resolve(position, base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -142,7 +160,7 @@ mod tests {
         // fits on the right.
         let popup = Size::new(80.0, 960.0);
 
-        let rect = Position::Auto.resolve(position, base, popup, gap, cursor, viewport);
+        let rect = Position::Auto.resolve(position, base, popup, gap, cursor, viewport, false);
 
         // `Bottom` is avoided because the popup (960) does not fit below the
         // base (950); the popup is placed to the right instead, so it is not
@@ -158,7 +176,7 @@ mod tests {
     fn top_places_the_popup_above_the_base() {
         let (position, base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Top.resolve(position, base, popup, gap, cursor, viewport);
+        let rect = Position::Top.resolve(position, base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -171,7 +189,7 @@ mod tests {
     fn bottom_places_the_popup_below_the_base() {
         let (position, base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Bottom.resolve(position, base, popup, gap, cursor, viewport);
+        let rect = Position::Bottom.resolve(position, base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -184,7 +202,7 @@ mod tests {
     fn left_places_the_popup_left_of_the_base() {
         let (position, base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Left.resolve(position, base, popup, gap, cursor, viewport);
+        let rect = Position::Left.resolve(position, base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -197,7 +215,7 @@ mod tests {
     fn right_places_the_popup_right_of_the_base() {
         let (position, base, popup, gap, cursor, viewport) = inputs();
 
-        let rect = Position::Right.resolve(position, base, popup, gap, cursor, viewport);
+        let rect = Position::Right.resolve(position, base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
@@ -212,12 +230,48 @@ mod tests {
         let cursor = Point::new(200.0, 300.0);
 
         // The popup's bottom edge is placed at the cursor.
-        let rect = Position::FollowCursor.resolve(position, base, popup, gap, cursor, viewport);
+        let rect =
+            Position::FollowCursor.resolve(position, base, popup, gap, cursor, viewport, false);
 
         assert_eq!(
             rect,
             Rectangle::new(Point::new(200.0, 220.0), Size::new(80.0, 80.0)),
             "FollowCursor should place the popup at the cursor"
+        );
+    }
+
+    #[test]
+    fn snap_clamps_the_popup_into_the_viewport() {
+        let (position, base, popup, gap, cursor, viewport) = inputs();
+
+        // Without snapping, `Top` places the popup at (-15, -80), outside of
+        // the viewport; with snapping, it is clamped to the viewport's
+        // origin.
+        let rect = Position::Top.resolve(position, base, popup, gap, cursor, viewport, true);
+
+        assert_eq!(
+            rect,
+            Rectangle::new(Point::new(0.0, 0.0), Size::new(80.0, 80.0)),
+            "Snap should clamp the popup into the viewport"
+        );
+    }
+
+    #[test]
+    fn snap_shifts_a_popup_that_overflows_the_viewport() {
+        let (_, _, popup, gap, cursor, viewport) = inputs();
+        // A base flush with the right edge of the viewport (1000).
+        let position = Point::new(950.0, 0.0);
+        let base = Rectangle::new(position, Size::new(50.0, 50.0));
+
+        // Without snapping, `Right` places the popup at (1000, -15), beyond
+        // the right edge of the viewport; with snapping, it is shifted back
+        // so it fits.
+        let rect = Position::Right.resolve(position, base, popup, gap, cursor, viewport, true);
+
+        assert_eq!(
+            rect,
+            Rectangle::new(Point::new(920.0, 0.0), Size::new(80.0, 80.0)),
+            "Snap should shift a popup that overflows the viewport"
         );
     }
 }
