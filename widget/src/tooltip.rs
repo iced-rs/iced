@@ -393,28 +393,15 @@ where
 
         let text_bounds = layout.bounds();
 
-        let mut bounds = self.positioning.resolve(
+        let bounds = self.positioning.resolve(
             self.position,
             self.content_bounds,
             text_bounds.size(),
             self.gap,
             self.cursor_position,
             viewport,
+            self.snap_within_viewport,
         );
-
-        if self.snap_within_viewport {
-            if bounds.x < viewport.x {
-                bounds.x = viewport.x;
-            } else if viewport.x + viewport.width < bounds.x + bounds.width {
-                bounds.x = viewport.x + viewport.width - bounds.width;
-            }
-
-            if bounds.y < viewport.y {
-                bounds.y = viewport.y;
-            } else if viewport.y + viewport.height < bounds.y + bounds.height {
-                bounds.y = viewport.y + viewport.height - bounds.height;
-            }
-        }
 
         layout.translate(Vector::new(bounds.x, bounds.y))
     }

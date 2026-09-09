@@ -394,28 +394,15 @@ where
             ),
         );
 
-        let mut bounds = crate::overlay::Position::from(self.positioning).resolve(
+        let bounds = crate::overlay::Position::from(self.positioning).resolve(
             self.position,
             self.content_bounds,
             layout.size(),
             self.gap,
             Point::ORIGIN,
             viewport,
+            self.snap_within_viewport,
         );
-
-        if self.snap_within_viewport {
-            if bounds.x < viewport.x {
-                bounds.x = viewport.x;
-            } else if viewport.x + viewport.width < bounds.x + bounds.width {
-                bounds.x = viewport.x + viewport.width - bounds.width;
-            }
-
-            if bounds.y < viewport.y {
-                bounds.y = viewport.y;
-            } else if viewport.y + viewport.height < bounds.y + bounds.height {
-                bounds.y = viewport.y + viewport.height - bounds.height;
-            }
-        }
 
         layout.translate(Vector::new(bounds.x, bounds.y))
     }
