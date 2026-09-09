@@ -1,14 +1,13 @@
-//! A popover is a floating piece of content that appears over some element
-//! when it is **open**.
+//! A popover is a floating piece of content that appears over some element.
 //!
 //! Unlike a [`tooltip`], a popover is not shown on hover, and it does not
-//! control its own state. Instead, the application tracks whether the popover
-//! is open and provides that state on creation. The base can be any element.
+//! control its own visibility: it always displays its overlay. It is up to the
+//! application to remove the popover from the view when it is "closed". The
+//! base can be any element.
 //!
 //! When the user clicks outside of the popover's bounds, the popover notifies
-//! the application of a close request through its `on_close` handler. It is up
-//! to the application to actually close the popover by providing `is_open =
-//! false` on the next update.
+//! the application through its `on_close` handler, which is typically how the
+//! application decides to remove it from the view.
 //!
 //! [`tooltip`]: crate::tooltip::Tooltip
 //!
@@ -20,18 +19,14 @@
 //!
 //! #[derive(Clone)]
 //! enum Message {
-//!     Open,
 //!     Close,
 //! }
 //!
-//! struct State {
-//!     is_open: bool,
-//! }
-//!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view() -> Element<'static, Message> {
+//!     // The popover always displays its overlay. The application removes it
+//!     // from the view when it is "closed".
 //!     popover(
-//!         state.is_open,
-//!         button(text("Click me!")).on_press(Message::Open),
+//!         button(text("Click me!")).on_press(Message::Close),
 //!         container(text("This is the popover contents!")).padding(10),
 //!         popover::Position::Bottom,
 //!     )
@@ -50,14 +45,14 @@ use crate::core::{
     Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector,
 };
 
-/// A floating piece of content that appears over another element when it is
-/// open.
+/// A floating piece of content that appears over another element.
 ///
-/// The popover does not control its own state: the application tracks whether
-/// it is open and provides that state on creation. The base can be any element.
+/// The popover does not control its own visibility: it always displays its
+/// overlay. It is up to the application to remove the popover from the view
+/// when it is "closed". The base can be any element.
 ///
 /// When the user clicks outside of the popover's bounds, the popover notifies
-/// the application of a close request through its `on_close` handler.
+/// the application through its `on_close` handler.
 ///
 /// # Example
 /// ```no_run
@@ -67,18 +62,14 @@ use crate::core::{
 ///
 /// #[derive(Clone)]
 /// enum Message {
-///     Open,
 ///     Close,
 /// }
 ///
-/// struct State {
-///     is_open: bool,
-/// }
-///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view() -> Element<'static, Message> {
+///     // The popover always displays its overlay. The application removes it
+///     // from the view when it is "closed".
 ///     popover(
-///         state.is_open,
-///         button(text("Click me!")).on_press(Message::Open),
+///         button(text("Click me!")).on_press(Message::Close),
 ///         container(text("This is the popover contents!")).padding(10),
 ///         popover::Position::Bottom,
 ///     )
@@ -90,7 +81,6 @@ pub struct Popover<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer
 where
     Renderer: text::Renderer,
 {
-    is_open: bool,
     content: Element<'a, Message, Theme, Renderer>,
     popover: Element<'a, Message, Theme, Renderer>,
     position: Position,
@@ -110,18 +100,18 @@ where
     /// Creates a new [`Popover`].
     ///
     /// It expects:
-    ///   * a boolean describing whether the [`Popover`] is open or not,
     ///   * the `content` element that the popover is anchored to (the base),
-    ///   * the `popover` element to display when open, and
+    ///   * the `popover` element to display, and
     ///   * the `position` of the popover relative to the base.
+    ///
+    /// The popover always displays its overlay; it is up to the application to
+    /// remove it from the view when it is "closed".
     pub fn new(
-        is_open: bool,
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         popover: impl Into<Element<'a, Message, Theme, Renderer>>,
         position: Position,
     ) -> Self {
         Popover {
-            is_open,
             content: content.into(),
             popover: popover.into(),
             position,
@@ -132,11 +122,11 @@ where
         }
     }
 
-    /// Sets the message that will be produced when the user requests to close
-    /// the [`Popover`] by clicking outside of its bounds.
+    /// Sets the message that will be produced when the user clicks outside of
+    /// the [`Popover`]'s bounds.
     ///
-    /// It is up to the application to actually close the popover, by providing
-    /// `is_open = false` on the next update.
+    /// This is typically how the application decides to remove the popover
+    /// from the view (i.e. to "close" it).
     pub fn on_close(mut self, message: Message) -> Self {
         self.on_close = Some(message);
         self
@@ -257,10 +247,6 @@ where
         viewport: &Rectangle,
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        if !self.is_open {
-            return None;
-        }
-
         let (base, rest) = tree.children.split_at_mut(1);
 
         let content = self.content.as_widget_mut().overlay(

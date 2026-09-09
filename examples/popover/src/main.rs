@@ -1,6 +1,6 @@
 use iced::Element;
 use iced::widget::popover::Position;
-use iced::widget::{button, center, column, container, popover, text};
+use iced::widget::{button, column, container, popover, text};
 
 pub fn main() -> iced::Result {
     iced::run(Popover::update, Popover::view)
@@ -14,9 +14,9 @@ struct Popover {
 
 #[derive(Debug, Clone)]
 enum Message {
-    /// Toggle the popover, emitted by the base button.
-    Toggle,
-    /// Close the popover, emitted when the user clicks outside of its bounds.
+    /// Open the popover.
+    Open,
+    /// Close the popover (emitted by the base button or `on_close`).
     Close,
     /// Cycle the popover position.
     ChangePosition,
@@ -25,7 +25,7 @@ enum Message {
 impl Popover {
     fn update(&mut self, message: Message) {
         match message {
-            Message::Toggle => self.is_open = !self.is_open,
+            Message::Open => self.is_open = true,
             Message::Close => self.is_open = false,
             Message::ChangePosition => {
                 self.position = match self.position {
@@ -39,33 +39,38 @@ impl Popover {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        // The popover is a *controlled* widget: the application tracks whether
-        // it is open and provides that state on creation. The base is a plain
-        // button the application uses to open (and close) the popover, and the
-        // popover notifies the application of a close request through its
-        // `on_close` handler when the user clicks outside of its bounds.
-        let popover = popover(
-            self.is_open,
+        // The popover always displays its overlay. The application decides when
+        // it is "open" by including it in the view, and "closes" it by removing
+        // it (i.e. not including it).
+        if self.is_open {
+            popover(
+                button(text(format!(
+                    "Click to close ({position:?}!)",
+                    position = self.position
+                )))
+                .on_press(Message::Close),
+                container(
+                    column![
+                        text("This is the popover contents!"),
+                        text("Click outside to dismiss me."),
+                        button("Change position").on_press(Message::ChangePosition),
+                    ]
+                    .spacing(10),
+                )
+                .padding(10)
+                .style(container::rounded_box),
+                self.position,
+            )
+            .gap(10)
+            .on_close(Message::Close)
+            .into()
+        } else {
             button(text(format!(
-                "Click me ({position:?}!)",
+                "Open the popover ({position:?}!)",
                 position = self.position
             )))
-            .on_press(Message::Toggle),
-            container(
-                column![
-                    text("This is the popover contents!"),
-                    text("Click outside to dismiss me."),
-                    button("Change position").on_press(Message::ChangePosition),
-                ]
-                .spacing(10),
-            )
-            .padding(10)
-            .style(container::rounded_box),
-            self.position,
-        )
-        .gap(10)
-        .on_close(Message::Close);
-
-        center(column![popover].spacing(10)).into()
+            .on_press(Message::Open)
+            .into()
+        }
     }
 }

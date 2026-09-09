@@ -1045,11 +1045,10 @@ where
 /// Creates a new [`Popover`] for the provided content with the given
 /// [`Element`] and [`popover::Position`].
 ///
-/// Popovers display a floating piece of content over some element when it is
-/// open. The popover does not control its own state: the application tracks
-/// whether it is open and provides that state on creation. When the user
-/// clicks outside of its bounds, the popover notifies the application of a
-/// close request through its `on_close` handler.
+/// Popovers display a floating piece of content over some element. The popover
+/// always displays its overlay; it is up to the application to remove it from
+/// the view when it is "closed". When the user clicks outside of its bounds,
+/// the popover notifies the application through its `on_close` handler.
 ///
 /// # Example
 /// ```no_run
@@ -1059,18 +1058,14 @@ where
 ///
 /// #[derive(Clone)]
 /// enum Message {
-///     Open,
 ///     Close,
 /// }
 ///
-/// struct State {
-///     is_open: bool,
-/// }
-///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view() -> Element<'static, Message> {
+///     // The popover always displays its overlay. The application removes it
+///     // from the view when it is "closed".
 ///     popover(
-///         state.is_open,
-///         button(text("Click me!")).on_press(Message::Open),
+///         button(text("Click me!")).on_press(Message::Close),
 ///         container(text("This is the popover contents!")).padding(10),
 ///         popover::Position::Bottom,
 ///     )
@@ -1079,7 +1074,6 @@ where
 /// }
 /// ```
 pub fn popover<'a, Message, Theme, Renderer>(
-    is_open: bool,
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
     popover: impl Into<Element<'a, Message, Theme, Renderer>>,
     position: popover::Position,
@@ -1089,7 +1083,7 @@ where
     Theme: 'a,
     Renderer: core::text::Renderer,
 {
-    Popover::new(is_open, content, popover, position)
+    Popover::new(content, popover, position)
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given
