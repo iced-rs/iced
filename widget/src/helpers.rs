@@ -15,6 +15,7 @@ use crate::lazy::Lazy;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
+use crate::popover::{self, Popover};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::scrollable::{self, Scrollable};
@@ -1039,6 +1040,46 @@ where
     Renderer: core::Renderer,
 {
     Button::new(content)
+}
+
+/// Creates a new [`Popover`] for the provided content with the given
+/// [`Element`] and [`popover::Position`].
+///
+/// Popovers display a floating piece of content over some element when the
+/// element is clicked. The popover disappears when the user clicks outside of
+/// its bounds.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{container, popover};
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(_state: &State) -> Element<'_, Message> {
+///     popover(
+///         "Click me to display the popover!",
+///         container("This is the popover contents!")
+///             .padding(10)
+///             .style(container::rounded_box),
+///         popover::Position::Bottom,
+///     ).into()
+/// }
+/// ```
+pub fn popover<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    popover: impl Into<Element<'a, Message, Theme, Renderer>>,
+    position: popover::Position,
+) -> crate::Popover<'a, Message, Theme, Renderer>
+where
+    Theme: popover::Catalog + 'a,
+    Renderer: core::text::Renderer,
+{
+    Popover::new(content, popover, position)
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given
