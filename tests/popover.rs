@@ -243,9 +243,8 @@ fn click_inside_does_not_request_close() {
     let (mut tree, node) = setup(&mut element);
     let layout = Layout::new(&node);
 
-    // The popover appears below the base (Position::Bottom) with its default
-    // padding, so it occupies roughly (0, 50) .. (90, 140). Click a point that
-    // lies inside the popover.
+    // The popover appears below the base (Position::Bottom), so it occupies
+    // roughly (0, 50) .. (80, 130). Click a point that lies inside the popover.
     let (event, cursor) = press(Point::new(40.0, 95.0));
     let bus = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
 
