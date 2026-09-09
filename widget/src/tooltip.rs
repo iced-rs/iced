@@ -378,7 +378,7 @@ where
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let tooltip_layout = self.tooltip.as_widget_mut().layout(
+        let layout = self.tooltip.as_widget_mut().layout(
             self.tree,
             renderer,
             &layout::Limits::new(
@@ -391,9 +391,9 @@ where
             ),
         );
 
-        let text_bounds = tooltip_layout.bounds();
+        let text_bounds = layout.bounds();
 
-        let mut tooltip_bounds = self.positioning.resolve(
+        let mut bounds = self.positioning.resolve(
             self.position,
             self.content_bounds,
             text_bounds.size(),
@@ -403,20 +403,20 @@ where
         );
 
         if self.snap_within_viewport {
-            if tooltip_bounds.x < viewport.x {
-                tooltip_bounds.x = viewport.x;
-            } else if viewport.x + viewport.width < tooltip_bounds.x + tooltip_bounds.width {
-                tooltip_bounds.x = viewport.x + viewport.width - tooltip_bounds.width;
+            if bounds.x < viewport.x {
+                bounds.x = viewport.x;
+            } else if viewport.x + viewport.width < bounds.x + bounds.width {
+                bounds.x = viewport.x + viewport.width - bounds.width;
             }
 
-            if tooltip_bounds.y < viewport.y {
-                tooltip_bounds.y = viewport.y;
-            } else if viewport.y + viewport.height < tooltip_bounds.y + tooltip_bounds.height {
-                tooltip_bounds.y = viewport.y + viewport.height - tooltip_bounds.height;
+            if bounds.y < viewport.y {
+                bounds.y = viewport.y;
+            } else if viewport.y + viewport.height < bounds.y + bounds.height {
+                bounds.y = viewport.y + viewport.height - bounds.height;
             }
         }
 
-        tooltip_layout.translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
+        layout.translate(Vector::new(bounds.x, bounds.y))
     }
 
     fn draw(
