@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- `popover` widget, a floating piece of content anchored to a base element. Unlike a `tooltip`, the popover's visibility is controlled by its `popover` argument, an `Option` where `Some` displays the overlay (open) and `None` hides it (closed); the base is always present. It notifies the application through its `on_close` handler when the user clicks outside of its bounds.
+- `popover` widget, a floating piece of content anchored to a base element. Unlike a `tooltip`, the popover's visibility is controlled by its `popover` argument, an `Option` where `Some` displays the overlay (open) and `None` hides it (closed); the base is always present. Its `position` can be set via the `position` method; by default it is `Position::Auto`, which places the popover on the side of the base with the most available space. It notifies the application through its `on_close` handler when the user clicks outside of its bounds.
 
 ## [0.14.0] - 2025-12-07
 ### Added

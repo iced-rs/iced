@@ -29,10 +29,11 @@ impl Popover {
             Message::Close => self.is_open = false,
             Message::ChangePosition => {
                 self.position = match self.position {
+                    Position::Auto => Position::Top,
                     Position::Top => Position::Bottom,
                     Position::Bottom => Position::Left,
                     Position::Left => Position::Right,
-                    Position::Right => Position::Top,
+                    Position::Right => Position::Auto,
                 };
             }
         }
