@@ -1,5 +1,8 @@
 //! Handle tablet tool input.
 
+use std::cell::LazyCell;
+use std::cmp::Ordering;
+
 use crate::pointer::mouse;
 use crate::pointer::touch::Force;
 
@@ -51,6 +54,26 @@ pub struct Data {
     pub angle: Option<Angle>,
 }
 
+impl Data {
+    /// Returns [`Tilt`] if present or calculates it from [`Angle`].
+    pub fn tilt(self) -> Option<Tilt> {
+        if let Some(tilt) = self.tilt {
+            Some(tilt)
+        } else {
+            self.angle.map(Angle::tilt)
+        }
+    }
+
+    /// Returns [`Angle`] if present or calculates it from [`Tilt`].
+    pub fn angle(self) -> Option<Angle> {
+        if let Some(angle) = self.angle {
+            Some(angle)
+        } else {
+            self.tilt.map(Tilt::angle)
+        }
+    }
+}
+
 /// The plane angle of a tablet tool in degrees.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Tilt {
@@ -59,6 +82,59 @@ pub struct Tilt {
 
     /// The angle between the surface X-Z plane and the tool's surface X plane.
     pub y: i8,
+}
+
+impl Tilt {
+    /// Converts this tilt to [`Angle`].
+    pub fn angle(self) -> Angle {
+        // See <https://www.w3.org/TR/2024/WD-pointerevents3-20240326/#converting-between-tiltx-tilty-and-altitudeangle-azimuthangle>.
+
+        use std::f64::consts::*;
+
+        const PI_0_5: f64 = FRAC_PI_2;
+        const PI_1_5: f64 = 3. * FRAC_PI_2;
+        const PI_2: f64 = 2. * PI;
+
+        let x = LazyCell::new(|| f64::from(self.x).to_radians());
+        let y = LazyCell::new(|| f64::from(self.y).to_radians());
+
+        let mut azimuth = 0.;
+
+        if self.x == 0 {
+            match self.y.cmp(&0) {
+                Ordering::Greater => azimuth = PI_0_5,
+                Ordering::Less => azimuth = PI_1_5,
+                Ordering::Equal => (),
+            }
+        } else if self.y == 0 {
+            if self.x < 0 {
+                azimuth = PI;
+            }
+        } else if self.x.abs() == 90 || self.y.abs() == 90 {
+            // not enough information to calculate azimuth
+            azimuth = 0.;
+        } else {
+            // Non-boundary case: neither tiltX nor tiltY is equal to 0 or +-90
+            azimuth = f64::atan2(y.tan(), x.tan());
+
+            if azimuth < 0. {
+                azimuth += PI_2;
+            }
+        }
+
+        let altitude = if self.x.abs() == 90 || self.y.abs() == 90 {
+            0.
+        } else if self.x == 0 {
+            PI_0_5 - y.abs()
+        } else if self.y == 0 {
+            PI_0_5 - x.abs()
+        } else {
+            // Non-boundary case: neither tiltX nor tiltY is equal to 0 or +-90
+            f64::atan(1. / f64::sqrt(x.tan().powi(2) + y.tan().powi(2)))
+        };
+
+        Angle { altitude, azimuth }
+    }
 }
 
 /// The angular position of a tablet tool in radians.
@@ -76,6 +152,58 @@ impl Default for Angle {
         Self {
             altitude: std::f64::consts::FRAC_2_PI,
             azimuth: 0.0,
+        }
+    }
+}
+
+impl Angle {
+    /// Converts this angle to [`Tilt`].
+    pub fn tilt(self) -> Tilt {
+        // See <https://www.w3.org/TR/2024/WD-pointerevents3-20240326/#converting-between-tiltx-tilty-and-altitudeangle-azimuthangle>.
+
+        use std::f64::consts::*;
+
+        const PI_0_5: f64 = FRAC_PI_2;
+        const PI_1_5: f64 = 3. * FRAC_PI_2;
+        const PI_2: f64 = 2. * PI;
+
+        let mut x = 0.;
+        let mut y = 0.;
+
+        if self.altitude == 0. {
+            if self.azimuth == 0. || self.azimuth == PI_2 {
+                x = FRAC_PI_2;
+            } else if self.azimuth == PI_0_5 {
+                y = FRAC_PI_2;
+            } else if self.azimuth == PI {
+                x = -FRAC_PI_2;
+            } else if self.azimuth == PI_1_5 {
+                y = -FRAC_PI_2;
+            } else if self.azimuth > 0. && self.azimuth < PI_0_5 {
+                x = FRAC_PI_2;
+                y = FRAC_PI_2;
+            } else if self.azimuth > PI_0_5 && self.azimuth < PI {
+                x = -FRAC_PI_2;
+                y = FRAC_PI_2;
+            } else if self.azimuth > PI && self.azimuth < PI_1_5 {
+                x = -FRAC_PI_2;
+                y = -FRAC_PI_2;
+            } else if self.azimuth > PI_1_5 && self.azimuth < PI_2 {
+                x = FRAC_PI_2;
+                y = -FRAC_PI_2;
+            }
+        }
+
+        if self.altitude != 0. {
+            let altitude = self.altitude.tan();
+
+            x = f64::atan(f64::cos(self.azimuth) / altitude);
+            y = f64::atan(f64::sin(self.azimuth) / altitude);
+        }
+
+        Tilt {
+            x: x.to_degrees().round() as i8,
+            y: y.to_degrees().round() as i8,
         }
     }
 }
