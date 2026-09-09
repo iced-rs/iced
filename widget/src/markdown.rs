@@ -1252,6 +1252,15 @@ where
         ..
     } = settings;
 
+    let size = match level {
+        pulldown_cmark::HeadingLevel::H1 => h1_size,
+        pulldown_cmark::HeadingLevel::H2 => h2_size,
+        pulldown_cmark::HeadingLevel::H3 => h3_size,
+        pulldown_cmark::HeadingLevel::H4 => h4_size,
+        pulldown_cmark::HeadingLevel::H5 => h5_size,
+        pulldown_cmark::HeadingLevel::H6 => h6_size,
+    };
+
     container(
         rich_text(text.spans(
             Settings {
@@ -1259,20 +1268,18 @@ where
                     weight: font::Weight::Bold,
                     ..settings.font
                 },
+                inline_code_font: Font {
+                    weight: font::Weight::Bold,
+                    ..settings.inline_code_font
+                },
+                inline_code_size: size * (settings.inline_code_size / settings.text_size),
                 ..settings
             },
             viewer.theme(),
             viewer.highlighter(),
         ))
         .on_link_click(on_link_click)
-        .size(match level {
-            pulldown_cmark::HeadingLevel::H1 => h1_size,
-            pulldown_cmark::HeadingLevel::H2 => h2_size,
-            pulldown_cmark::HeadingLevel::H3 => h3_size,
-            pulldown_cmark::HeadingLevel::H4 => h4_size,
-            pulldown_cmark::HeadingLevel::H5 => h5_size,
-            pulldown_cmark::HeadingLevel::H6 => h6_size,
-        })
+        .size(size)
         .line_height(settings.line_height),
     )
     .into()
