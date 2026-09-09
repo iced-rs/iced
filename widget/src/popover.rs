@@ -337,16 +337,6 @@ where
     }
 }
 
-/// Returns whether the given [`Event`] is a press that should dismiss the
-/// popover.
-fn is_press(event: &Event) -> bool {
-    matches!(
-        event,
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. })
-    )
-}
-
 /// The position of the popover.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Position {
@@ -468,7 +458,12 @@ where
         let is_over_base = cursor_position
             .is_some_and(|position| self.content_bounds.contains(position));
 
-        if is_press(event) && !is_inside {
+        if matches!(
+            event,
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+                | Event::Touch(touch::Event::FingerPressed { .. })
+        ) && !is_inside
+        {
             if is_over_base {
                 // The base is responsible for its own behavior, so let the
                 // event reach it.
