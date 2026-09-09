@@ -496,14 +496,10 @@ where
         // Forward the event to the popover contents so interactive elements
         // inside the popover keep working.
         if is_inside || !matches!(event, Event::Mouse(_) | Event::Touch(_)) {
-            let Some(popover_layout) = layout.children().next() else {
-                return;
-            };
-
             self.popover.as_widget_mut().update(
                 self.popover_tree,
                 event,
-                popover_layout,
+                layout,
                 cursor,
                 renderer,
                 shell,
@@ -527,7 +523,7 @@ where
             renderer,
             theme,
             inherited_style,
-            layout.children().next().unwrap(),
+            layout,
             cursor_position,
             &Rectangle::with_size(Size::INFINITE),
         );
@@ -545,7 +541,7 @@ where
 
         self.popover.as_widget().mouse_interaction(
             self.popover_tree,
-            layout.children().next().unwrap(),
+            layout,
             cursor,
             &Rectangle::with_size(Size::INFINITE),
             renderer,
@@ -558,12 +554,9 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.popover.as_widget_mut().operate(
-            self.popover_tree,
-            layout.children().next().unwrap(),
-            renderer,
-            operation,
-        );
+        self.popover
+            .as_widget_mut()
+            .operate(self.popover_tree, layout, renderer, operation);
     }
 
     /// Draws the popover on top of other overlays.
