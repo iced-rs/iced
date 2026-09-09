@@ -17,6 +17,8 @@ mod responsive;
 mod stack;
 mod themer;
 
+pub mod popover;
+
 pub mod button;
 pub mod checkbox;
 pub mod combo_box;
@@ -76,6 +78,8 @@ pub use pane_grid::PaneGrid;
 pub use pick_list::PickList;
 #[doc(no_inline)]
 pub use pin::Pin;
+#[doc(no_inline)]
+pub use popover::Popover;
 #[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
