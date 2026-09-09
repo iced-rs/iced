@@ -442,19 +442,15 @@ where
             return;
         }
 
-        // Forward the event to the popover contents so interactive elements
-        // inside the popover keep working.
-        if is_inside || !matches!(event, Event::Mouse(_) | Event::Touch(_)) {
-            self.popover.as_widget_mut().update(
-                self.tree,
-                event,
-                layout,
-                cursor,
-                renderer,
-                shell,
-                &self.viewport,
-            );
-        }
+        self.popover.as_widget_mut().update(
+            self.tree,
+            event,
+            layout,
+            cursor,
+            renderer,
+            shell,
+            &self.viewport,
+        );
     }
 
     fn draw(

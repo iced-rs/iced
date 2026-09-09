@@ -1,8 +1,8 @@
 use iced::widget::popover::Position;
 use iced::widget::{Button, Column, Container, Slider};
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, container, image, popover, radio, rich_text, row,
-    scrollable, slider, space, span, text, text_input, toggler, tooltip,
+    button, center_x, center_y, checkbox, column, container, image, opaque, popover, radio,
+    rich_text, row, scrollable, slider, space, span, text, text_input, toggler, tooltip,
 };
 use iced::{Center, Color, Element, Fill, Fit, Font, color};
 
@@ -483,11 +483,13 @@ impl Tour {
                     })
                     .on_press(Message::TogglePopover),
                     self.popover_open.then(|| {
-                        container(text(
-                            "This popover stays open until you click outside of it.",
-                        ))
-                        .padding(10)
-                        .style(container::rounded_box)
+                        opaque(
+                            container(text(
+                                "This popover stays open until you click outside of it.",
+                            ))
+                            .padding(10)
+                            .style(container::rounded_box),
+                        )
                     }),
                 )
                 .position(Position::Bottom)
