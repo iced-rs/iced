@@ -45,8 +45,8 @@ impl Tooltip {
         let tooltip = tooltip(
             button("Press to change position").on_press(Message::ChangePosition),
             position_to_text(self.position),
-            self.position,
         )
+        .position(self.position)
         .gap(10)
         .delay(seconds(if self.delay { 1 } else { 0 }))
         .style(container::rounded_box);
