@@ -28,6 +28,7 @@ pub mod float;
 pub mod grid;
 pub mod keyed;
 pub mod lazy;
+pub mod opaque;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
@@ -72,6 +73,8 @@ pub use grid::Grid;
 pub use lazy::Lazy;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
+#[doc(no_inline)]
+pub use opaque::Opaque;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]

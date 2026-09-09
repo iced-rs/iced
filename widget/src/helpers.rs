@@ -12,6 +12,7 @@ use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::lazy::Lazy;
+use crate::opaque::Opaque;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
@@ -585,132 +586,7 @@ where
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    use crate::core::layout::{self, Layout};
-    use crate::core::mouse;
-    use crate::core::renderer;
-    use crate::core::widget::tree::{self, Tree};
-    use crate::core::{Event, Rectangle, Shell, Size};
-
-    struct Opaque<'a, Message, Theme, Renderer> {
-        content: Element<'a, Message, Theme, Renderer>,
-    }
-
-    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-        for Opaque<'_, Message, Theme, Renderer>
-    where
-        Renderer: core::Renderer,
-    {
-        fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
-        }
-
-        fn state(&self) -> tree::State {
-            self.content.as_widget().state()
-        }
-
-        fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
-        }
-
-        fn size(&self) -> Size<Length> {
-            self.content.as_widget().size()
-        }
-
-        fn layout(
-            &mut self,
-            tree: &mut Tree,
-            renderer: &Renderer,
-            limits: &layout::Limits,
-        ) -> layout::Node {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
-        }
-
-        fn draw(
-            &self,
-            tree: &Tree,
-            renderer: &mut Renderer,
-            theme: &Theme,
-            style: &renderer::Style,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-            viewport: &Rectangle,
-        ) {
-            self.content
-                .as_widget()
-                .draw(tree, renderer, theme, style, layout, cursor, viewport);
-        }
-
-        fn operate(
-            &mut self,
-            tree: &mut Tree,
-            layout: Layout<'_>,
-            renderer: &Renderer,
-            operation: &mut dyn operation::Operation,
-        ) {
-            self.content
-                .as_widget_mut()
-                .operate(tree, layout, renderer, operation);
-        }
-
-        fn update(
-            &mut self,
-            tree: &mut Tree,
-            event: &Event,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-            renderer: &Renderer,
-            shell: &mut Shell<'_, Message>,
-            viewport: &Rectangle,
-        ) {
-            let is_mouse_press =
-                matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
-
-            self.content
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
-
-            if is_mouse_press && cursor.is_over(layout.bounds()) {
-                shell.capture_event();
-            }
-        }
-
-        fn mouse_interaction(
-            &self,
-            state: &core::widget::Tree,
-            layout: core::Layout<'_>,
-            cursor: core::mouse::Cursor,
-            viewport: &core::Rectangle,
-            renderer: &Renderer,
-        ) -> core::mouse::Interaction {
-            let interaction = self
-                .content
-                .as_widget()
-                .mouse_interaction(state, layout, cursor, viewport, renderer);
-
-            if interaction == mouse::Interaction::None && cursor.is_over(layout.bounds()) {
-                mouse::Interaction::Idle
-            } else {
-                interaction
-            }
-        }
-
-        fn overlay<'b>(
-            &'b mut self,
-            state: &'b mut core::widget::Tree,
-            layout: core::Layout<'b>,
-            renderer: &Renderer,
-            viewport: &Rectangle,
-            translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            self.content
-                .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, translation)
-        }
-    }
-
-    Element::new(Opaque {
-        content: content.into(),
-    })
+    Element::new(Opaque::new(content))
 }
 
 /// Displays a widget on top of another one, only when the base widget is hovered.

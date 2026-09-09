@@ -10,6 +10,10 @@
 //! application decides to set the `popover` argument to `None` (i.e. to close
 //! it).
 //!
+//! By default, the base is opaque: mouse button presses inside its bounds are
+//! captured, and mouse events do not pass through it to the layers below. Use
+//! [`Popover::passthrough`] to make the base transparent.
+//!
 //! [`tooltip`]: crate::tooltip::Tooltip
 //!
 //! # Example
@@ -41,6 +45,7 @@
 //!     .into()
 //! }
 //! ```
+use crate::Opaque;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -58,6 +63,10 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///
 /// When the user clicks outside of the popover's bounds, the popover notifies
 /// the application through its `on_close` handler.
+///
+/// By default, the base is opaque: mouse button presses inside its bounds are
+/// captured, and mouse events do not pass through it to the layers below. Use
+/// [`Popover::passthrough`] to make the base transparent.
 ///
 /// # Example
 /// ```no_run
@@ -92,12 +101,36 @@ pub struct Popover<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer
 where
     Renderer: text::Renderer,
 {
-    content: Element<'a, Message, Theme, Renderer>,
+    content: Content<'a, Message, Theme, Renderer>,
     popover: Option<Element<'a, Message, Theme, Renderer>>,
     position: Position,
     gap: f32,
     snap_within_viewport: bool,
     on_close: Option<Message>,
+}
+
+enum Content<'a, Message, Theme, Renderer> {
+    Opaque(Opaque<'a, Message, Theme, Renderer>),
+    Transparent(Element<'a, Message, Theme, Renderer>),
+}
+
+impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
+    fn as_widget(&self) -> &dyn Widget<Message, Theme, Renderer> {
+        match self {
+            Content::Opaque(opaque) => opaque,
+            Content::Transparent(element) => element.as_widget(),
+        }
+    }
+
+    fn as_widget_mut(&mut self) -> &mut dyn Widget<Message, Theme, Renderer> {
+        match self {
+            Content::Opaque(opaque) => opaque,
+            Content::Transparent(element) => element.as_widget_mut(),
+        }
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Popover<'a, Message, Theme, Renderer>
@@ -120,7 +153,7 @@ where
         popover: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
     ) -> Self {
         Popover {
-            content: content.into(),
+            content: Content::Opaque(Opaque::new(content)),
             popover: popover.map(Into::into),
             position: Position::default(),
             gap: 0.0,
@@ -157,6 +190,19 @@ where
     /// Sets whether the [`Popover`] is snapped within the viewport.
     pub fn snap_within_viewport(mut self, snap: bool) -> Self {
         self.snap_within_viewport = snap;
+        self
+    }
+
+    /// Makes the base transparent, so mouse events pass through it.
+    ///
+    /// By default, the base is opaque: mouse button presses inside its bounds
+    /// are captured, and mouse events do not pass through it to the layers
+    /// below.
+    pub fn passthrough(mut self) -> Self {
+        if let Content::Opaque(opaque) = self.content {
+            self.content = Content::Transparent(opaque.into_inner());
+        }
+
         self
     }
 }
@@ -461,8 +507,6 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        // The popover content is drawn directly; users are responsible for
-        // styling it.
         self.popover.as_widget().draw(
             self.tree,
             renderer,
