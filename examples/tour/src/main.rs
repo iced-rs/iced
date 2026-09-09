@@ -460,7 +460,12 @@ impl Tour {
             .push(
                 tooltip(
                     padded_button("Hover me!"),
-                    "Tooltips appear on hover and disappear when you move away.",
+                    container(text(
+                        "Tooltips appear on hover and disappear when you move \
+                        away.",
+                    ))
+                    .padding(10)
+                    .style(container::rounded_box),
                 )
                 .gap(10),
             )
