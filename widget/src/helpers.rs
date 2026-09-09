@@ -1045,41 +1045,51 @@ where
 /// Creates a new [`Popover`] for the provided content with the given
 /// [`Element`] and [`popover::Position`].
 ///
-/// Popovers display a floating piece of content over some element when the
-/// element is clicked. The popover disappears when the user clicks outside of
-/// its bounds.
+/// Popovers display a floating piece of content over some element when it is
+/// open. The popover does not control its own state: the application tracks
+/// whether it is open and provides that state on creation. When the user
+/// clicks outside of its bounds, the popover notifies the application of a
+/// close request through its `on_close` handler.
 ///
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{container, popover};
+/// use iced::widget::{button, container, popover, text};
 ///
+/// #[derive(Clone)]
 /// enum Message {
-///     // ...
+///     Open,
+///     Close,
 /// }
 ///
-/// fn view(_state: &State) -> Element<'_, Message> {
+/// struct State {
+///     is_open: bool,
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
 ///     popover(
-///         "Click me to display the popover!",
-///         container("This is the popover contents!")
-///             .padding(10)
-///             .style(container::rounded_box),
+///         state.is_open,
+///         button(text("Click me!")).on_press(Message::Open),
+///         container(text("This is the popover contents!")).padding(10),
 ///         popover::Position::Bottom,
-///     ).into()
+///     )
+///     .on_close(Message::Close)
+///     .into()
 /// }
 /// ```
 pub fn popover<'a, Message, Theme, Renderer>(
+    is_open: bool,
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
     popover: impl Into<Element<'a, Message, Theme, Renderer>>,
     position: popover::Position,
 ) -> crate::Popover<'a, Message, Theme, Renderer>
 where
-    Theme: popover::Catalog + 'a,
+    Message: 'a + Clone,
+    Theme: 'a,
     Renderer: core::text::Renderer,
 {
-    Popover::new(content, popover, position)
+    Popover::new(is_open, content, popover, position)
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given
