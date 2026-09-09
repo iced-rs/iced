@@ -391,7 +391,6 @@ where
             self.content_bounds,
             text_bounds.size(),
             self.gap,
-            0.0,
             self.cursor_position,
             viewport,
         );
