@@ -39,10 +39,8 @@ impl Popover {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        // The popover always displays its overlay, so the application decides
-        // when it is "open" by including it in the view, and "closes" it by
-        // removing it. The same trigger button is used in both cases: when
-        // closed it stands alone, and when open it anchors the popover.
+        // The base is always present. The `popover` argument is `Some` when the
+        // popover is open and `None` when it is closed.
         let trigger = button(text(format!(
             "{} the popover ({position:?}!)",
             if self.is_open { "Close" } else { "Open" },
@@ -50,9 +48,9 @@ impl Popover {
         )))
         .on_press(Message::Toggle);
 
-        let content: Element<'_, Message> = if self.is_open {
-            popover(
-                trigger,
+        let content: Element<'_, Message> = popover(
+            trigger,
+            self.is_open.then(|| {
                 container(
                     column![
                         text("This is the popover contents!"),
@@ -62,15 +60,13 @@ impl Popover {
                     .spacing(10),
                 )
                 .padding(10)
-                .style(container::rounded_box),
-                self.position,
-            )
-            .gap(10)
-            .on_close(Message::Close)
-            .into()
-        } else {
-            trigger.into()
-        };
+                .style(container::rounded_box)
+            }),
+            self.position,
+        )
+        .gap(10)
+        .on_close(Message::Close)
+        .into();
 
         center(content).into()
     }
