@@ -724,35 +724,13 @@ mod tests {
     type Theme = crate::core::Theme;
     type Renderer = ();
 
-    struct ByIndex(f32);
-
-    impl overlay::Overlay<(), Theme, Renderer> for ByIndex {
-        fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-            layout::Node::new(Size::ZERO)
-        }
-
-        fn draw(
-            &self,
-            _renderer: &mut Renderer,
-            _theme: &Theme,
-            _style: &renderer::Style,
-            _layout: Layout<'_>,
-            _cursor: mouse::Cursor,
-        ) {
-        }
-
-        fn index(&self) -> f32 {
-            self.0
-        }
-    }
-
     #[test]
     fn sort_overlays_orders_by_index_and_keeps_document_order_on_ties() {
-        let mut overlays = vec![
-            overlay::Element::new(Box::new(ByIndex(1.0))),
-            overlay::Element::new(Box::new(ByIndex(f32::MAX))),
-            overlay::Element::new(Box::new(ByIndex(1.0))),
-            overlay::Element::new(Box::new(ByIndex(2.0))),
+        let mut overlays: Vec<overlay::Element<'static, (), Theme, Renderer>> = vec![
+            overlay::Element::new(Box::new(overlay::ByIndex(1.0))),
+            overlay::Element::new(Box::new(overlay::ByIndex(f32::MAX))),
+            overlay::Element::new(Box::new(overlay::ByIndex(1.0))),
+            overlay::Element::new(Box::new(overlay::ByIndex(2.0))),
         ];
 
         sort_overlays(&mut overlays);

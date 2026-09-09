@@ -105,3 +105,31 @@ where
         })
         .collect()
 }
+
+/// A minimal overlay that returns a fixed [`index`](Overlay::index).
+///
+/// This is mostly useful for testing.
+pub struct ByIndex(pub f32);
+
+impl<Message, Theme, Renderer> Overlay<Message, Theme, Renderer> for ByIndex
+where
+    Renderer: crate::Renderer,
+{
+    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+        layout::Node::new(Size::ZERO)
+    }
+
+    fn draw(
+        &self,
+        _renderer: &mut Renderer,
+        _theme: &Theme,
+        _style: &renderer::Style,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
+    ) {
+    }
+
+    fn index(&self) -> f32 {
+        self.0
+    }
+}

@@ -588,34 +588,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::image;
-    use crate::core::{Background, Transformation};
-
-    /// An overlay with a fixed index.
-    struct ByIndex(f32);
-
-    impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer> for ByIndex
-    where
-        Renderer: core::Renderer,
-    {
-        fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-            layout::Node::new(Size::ZERO)
-        }
-
-        fn draw(
-            &self,
-            _renderer: &mut Renderer,
-            _theme: &Theme,
-            _style: &renderer::Style,
-            _layout: Layout<'_>,
-            _cursor: mouse::Cursor,
-        ) {
-        }
-
-        fn index(&self) -> f32 {
-            self.0
-        }
-    }
 
     /// A widget that produces two overlays.
     struct TwoOverlays;
@@ -658,50 +630,16 @@ mod tests {
             _translation: Vector,
         ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
             vec![
-                overlay::Element::new(Box::new(ByIndex(1.0))),
-                overlay::Element::new(Box::new(ByIndex(2.0))),
+                overlay::Element::new(Box::new(overlay::ByIndex(1.0))),
+                overlay::Element::new(Box::new(overlay::ByIndex(2.0))),
             ]
-        }
-    }
-
-    /// A minimal renderer that does nothing.
-    struct Dummy;
-
-    impl core::Renderer for Dummy {
-        fn start_layer(&mut self, _bounds: Rectangle) {}
-
-        fn end_layer(&mut self) {}
-
-        fn start_transformation(&mut self, _transformation: Transformation) {}
-
-        fn end_transformation(&mut self) {}
-
-        fn fill_quad(&mut self, _quad: renderer::Quad, _background: impl Into<Background>) {}
-
-        fn allocate_image(
-            &self,
-            _handle: &image::Handle,
-            _callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
-        ) {
-        }
-
-        fn hint(&mut self, _scale: renderer::Scale) {}
-
-        fn scale(&self) -> Option<renderer::Scale> {
-            None
-        }
-
-        fn reset(&mut self, _new_bounds: Rectangle) {}
-
-        fn settings(&self) -> renderer::Settings {
-            renderer::Settings::default()
         }
     }
 
     /// A component whose view produces two overlays.
     struct TwoOverlayComponent;
 
-    impl<'a> Component<'a, (), crate::Theme, Dummy> for TwoOverlayComponent {
+    impl<'a> Component<'a, (), crate::Theme, ()> for TwoOverlayComponent {
         type State = ();
         type Event = ();
 
@@ -709,12 +647,12 @@ mod tests {
             &mut self,
             _state: &mut Self::State,
             _event: Self::Event,
-            _renderer: &Dummy,
+            _renderer: &(),
         ) -> Option<()> {
             None
         }
 
-        fn view(&self, _state: &Self::State) -> Element<'a, Self::Event, crate::Theme, Dummy> {
+        fn view(&self, _state: &Self::State) -> Element<'a, Self::Event, crate::Theme, ()> {
             Element::new(TwoOverlays)
         }
     }
@@ -729,7 +667,7 @@ mod tests {
         let node = layout::Node::new(Size::new(100.0, 100.0));
         let layout = Layout::with_offset(Vector::ZERO, &node);
         let viewport = Rectangle::new(Point::ORIGIN, Size::new(100.0, 100.0));
-        let renderer = Dummy;
+        let renderer = ();
 
         let mut overlays =
             element
