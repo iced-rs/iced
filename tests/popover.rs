@@ -2,10 +2,11 @@
 //!
 //! These drive the [`Widget`](iced::advanced::widget::Widget) and
 //! [`Overlay`](iced::advanced::Overlay) traits directly (using the null
-//! renderer `()`) to verify that the popover always displays its overlay (the
-//! application removes it from the view when it is "closed"), that the base is
-//! a plain element, and that the popover notifies the application through its
-//! `on_close` handler when the user clicks outside of its bounds.
+//! renderer `()`) to verify that the popover displays its overlay only when
+//! its `popover` argument is `Some` (open) and not when it is `None` (closed),
+//! that the base is a plain element, and that the popover notifies the
+//! application through its `on_close` handler when the user clicks outside of
+//! its bounds.
 use iced::advanced::layout::{self, Limits};
 use iced::advanced::mouse::{self, Button, Cursor};
 use iced::advanced::shell;
@@ -31,11 +32,12 @@ fn press(position: Point) -> (Event, Cursor) {
     )
 }
 
-/// A popover with a 50x50 base and an 80x80 popup, with an `on_close` handler.
-fn new_popover() -> Element<'static, Message, Theme, ()> {
+/// A popover with a 50x50 base and an 80x80 popup (when `open`), with an
+/// `on_close` handler.
+fn new_popover(open: bool) -> Element<'static, Message, Theme, ()> {
     popover(
         space().width(50).height(50),
-        space().width(80).height(80),
+        open.then(|| space().width(80).height(80)),
         popover::Position::Bottom,
     )
     .on_close(ON_CLOSE)
@@ -102,7 +104,7 @@ fn messages(bus: shell::Bus<Message>) -> Vec<Message> {
 
 #[test]
 fn popover_layout_is_plain_base() {
-    let mut element = new_popover();
+    let mut element = new_popover(true);
     let (_, node) = setup(&mut element);
 
     let bounds = node.bounds();
@@ -122,7 +124,7 @@ fn base_mouse_interaction_is_delegated() {
     // popover delegates it to the base (which is a plain element).
     let mut element: Element<'static, Message, Theme, ()> = popover(
         button("Open").width(50).height(50).on_press(0x01),
-        space().width(80).height(80),
+        Some(space().width(80).height(80)),
         popover::Position::Bottom,
     )
     .on_close(ON_CLOSE)
@@ -152,20 +154,32 @@ fn base_mouse_interaction_is_delegated() {
 }
 
 #[test]
-fn overlay_is_always_present() {
-    let mut element = new_popover();
+fn overlay_present_when_open() {
+    let mut element = new_popover(true);
     let (mut tree, node) = setup(&mut element);
     let layout = Layout::new(&node);
 
     assert!(
         has_overlay(&mut element, &mut tree, layout),
-        "popover should always show its overlay"
+        "popover should show its overlay when the popover argument is `Some`"
+    );
+}
+
+#[test]
+fn overlay_absent_when_closed() {
+    let mut element = new_popover(false);
+    let (mut tree, node) = setup(&mut element);
+    let layout = Layout::new(&node);
+
+    assert!(
+        !has_overlay(&mut element, &mut tree, layout),
+        "popover should not show its overlay when the popover argument is `None`"
     );
 }
 
 #[test]
 fn click_outside_requests_close() {
-    let mut element = new_popover();
+    let mut element = new_popover(true);
     let (mut tree, node) = setup(&mut element);
     let layout = Layout::new(&node);
 
@@ -182,7 +196,7 @@ fn click_outside_requests_close() {
 
 #[test]
 fn click_on_base_does_not_request_close() {
-    let mut element = new_popover();
+    let mut element = new_popover(true);
     let (mut tree, node) = setup(&mut element);
     let layout = Layout::new(&node);
 
@@ -199,7 +213,7 @@ fn click_on_base_does_not_request_close() {
 
 #[test]
 fn click_inside_does_not_request_close() {
-    let mut element = new_popover();
+    let mut element = new_popover(true);
     let (mut tree, node) = setup(&mut element);
     let layout = Layout::new(&node);
 
@@ -221,7 +235,7 @@ fn no_on_close_publishes_nothing() {
     // when clicked outside.
     let mut element: Element<'static, Message, Theme, ()> = popover(
         space().width(50).height(50),
-        space().width(80).height(80),
+        Some(space().width(80).height(80)),
         popover::Position::Bottom,
     )
     .into();
