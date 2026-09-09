@@ -545,8 +545,10 @@ where
         cursor: mouse::Cursor,
     ) {
         for (raw, child_layout) in self.raw.iter().zip(layout.children()) {
-            raw.as_overlay()
-                .draw(renderer, theme, style, child_layout, cursor);
+            renderer.with_layer(child_layout.bounds(), |renderer| {
+                raw.as_overlay()
+                    .draw(renderer, theme, style, child_layout, cursor);
+            });
         }
     }
 
