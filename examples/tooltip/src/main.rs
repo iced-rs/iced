@@ -25,11 +25,12 @@ impl Tooltip {
         match message {
             Message::ChangePosition => {
                 let position = match &self.position {
+                    Position::Auto => Position::Top,
                     Position::Top => Position::Bottom,
                     Position::Bottom => Position::Left,
                     Position::Left => Position::Right,
                     Position::Right => Position::FollowCursor,
-                    Position::FollowCursor => Position::Top,
+                    Position::FollowCursor => Position::Auto,
                 };
 
                 self.position = position;
@@ -65,6 +66,7 @@ impl Tooltip {
 
 fn position_to_text<'a>(position: Position) -> &'a str {
     match position {
+        Position::Auto => "Auto",
         Position::FollowCursor => "Follow Cursor",
         Position::Top => "Top",
         Position::Bottom => "Bottom",

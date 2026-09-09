@@ -367,21 +367,8 @@ where
     }
 }
 
-/// The position of the tooltip. Defaults to following the cursor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Position {
-    /// The tooltip will appear on the top of the widget.
-    #[default]
-    Top,
-    /// The tooltip will appear on the bottom of the widget.
-    Bottom,
-    /// The tooltip will appear on the left of the widget.
-    Left,
-    /// The tooltip will appear on the right of the widget.
-    Right,
-    /// The tooltip will follow the cursor.
-    FollowCursor,
-}
+/// The position of the tooltip.
+pub use crate::overlay::Position;
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 enum State {
@@ -436,44 +423,16 @@ where
         );
 
         let text_bounds = tooltip_layout.bounds();
-        let x_center = self.position.x + (self.content_bounds.width - text_bounds.width) / 2.0;
-        let y_center = self.position.y + (self.content_bounds.height - text_bounds.height) / 2.0;
 
-        let mut tooltip_bounds = {
-            let offset = match self.positioning {
-                Position::Top => Vector::new(
-                    x_center,
-                    self.position.y - text_bounds.height - self.gap - self.padding,
-                ),
-                Position::Bottom => Vector::new(
-                    x_center,
-                    self.position.y + self.content_bounds.height + self.gap + self.padding,
-                ),
-                Position::Left => Vector::new(
-                    self.position.x - text_bounds.width - self.gap - self.padding,
-                    y_center,
-                ),
-                Position::Right => Vector::new(
-                    self.position.x + self.content_bounds.width + self.gap + self.padding,
-                    y_center,
-                ),
-                Position::FollowCursor => {
-                    let translation = self.position - self.content_bounds.position();
-
-                    Vector::new(
-                        self.cursor_position.x,
-                        self.cursor_position.y - text_bounds.height,
-                    ) + translation
-                }
-            };
-
-            Rectangle {
-                x: offset.x - self.padding,
-                y: offset.y - self.padding,
-                width: text_bounds.width + self.padding * 2.0,
-                height: text_bounds.height + self.padding * 2.0,
-            }
-        };
+        let mut tooltip_bounds = self.positioning.resolve(
+            self.position,
+            self.content_bounds,
+            text_bounds.size(),
+            self.gap,
+            self.padding,
+            self.cursor_position,
+            viewport,
+        );
 
         if self.snap_within_viewport {
             if tooltip_bounds.x < viewport.x {

@@ -346,6 +346,18 @@ pub enum Position {
     Right,
 }
 
+impl From<Position> for crate::overlay::Position {
+    fn from(position: Position) -> Self {
+        match position {
+            Position::Auto => Self::Auto,
+            Position::Top => Self::Top,
+            Position::Bottom => Self::Bottom,
+            Position::Left => Self::Left,
+            Position::Right => Self::Right,
+        }
+    }
+}
+
 struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
@@ -383,63 +395,16 @@ where
         );
 
         let popover_bounds = popover_layout.bounds();
-        let x_center = self.position.x + (self.content_bounds.width - popover_bounds.width) / 2.0;
-        let y_center = self.position.y + (self.content_bounds.height - popover_bounds.height) / 2.0;
 
-        let mut popover_rect = {
-            // Resolve the positioning, choosing the side with the most
-            // available space when `Position::Auto` is used.
-            let positioning = match self.positioning {
-                position
-                @ (Position::Top | Position::Bottom | Position::Left | Position::Right) => position,
-                Position::Auto => {
-                    let base = self.content_bounds;
-                    let available = |position: Position| match position {
-                        Position::Top => base.y - viewport.y,
-                        Position::Bottom => (viewport.y + viewport.height) - (base.y + base.height),
-                        Position::Left => base.x - viewport.x,
-                        Position::Right => (viewport.x + viewport.width) - (base.x + base.width),
-                        Position::Auto => unreachable!(),
-                    };
-
-                    // `Bottom` is listed last so it is preferred on a tie.
-                    [
-                        Position::Top,
-                        Position::Left,
-                        Position::Right,
-                        Position::Bottom,
-                    ]
-                    .into_iter()
-                    .max_by(|a, b| available(*a).total_cmp(&available(*b)))
-                    .unwrap()
-                }
-            };
-
-            let offset = match positioning {
-                Position::Top => {
-                    Vector::new(x_center, self.position.y - popover_bounds.height - self.gap)
-                }
-                Position::Bottom => Vector::new(
-                    x_center,
-                    self.position.y + self.content_bounds.height + self.gap,
-                ),
-                Position::Left => {
-                    Vector::new(self.position.x - popover_bounds.width - self.gap, y_center)
-                }
-                Position::Right => Vector::new(
-                    self.position.x + self.content_bounds.width + self.gap,
-                    y_center,
-                ),
-                Position::Auto => unreachable!("`positioning` is resolved above"),
-            };
-
-            Rectangle {
-                x: offset.x,
-                y: offset.y,
-                width: popover_bounds.width,
-                height: popover_bounds.height,
-            }
-        };
+        let mut popover_rect = crate::overlay::Position::from(self.positioning).resolve(
+            self.position,
+            self.content_bounds,
+            popover_bounds.size(),
+            self.gap,
+            0.0,
+            Point::new(0.0, 0.0),
+            viewport,
+        );
 
         if self.snap_within_viewport {
             if popover_rect.x < viewport.x {
