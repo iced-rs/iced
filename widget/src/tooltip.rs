@@ -20,8 +20,9 @@
 //!         container("This is the tooltip contents!")
 //!             .padding(10)
 //!             .style(container::rounded_box),
-//!         tooltip::Position::Bottom,
-//!     ).into()
+//!     )
+//!     .position(tooltip::Position::Bottom)
+//!     .into()
 //! }
 //! ```
 use crate::container;
@@ -54,8 +55,9 @@ use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, She
 ///         container("This is the tooltip contents!")
 ///             .padding(10)
 ///             .style(container::rounded_box),
-///         tooltip::Position::Bottom,
-///     ).into()
+///     )
+///     .position(tooltip::Position::Bottom)
+///     .into()
 /// }
 /// ```
 pub struct Tooltip<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -87,18 +89,27 @@ where
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
-        position: Position,
     ) -> Self {
         Tooltip {
             content: content.into(),
             tooltip: tooltip.into(),
-            position,
+            position: Position::default(),
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
             delay: Duration::ZERO,
             class: Theme::default(),
         }
+    }
+
+    /// Sets the [`Position`] of the [`Tooltip`].
+    ///
+    /// By default, the [`Tooltip`] is positioned [`Position::Auto`], which
+    /// places it on the side of the hovered element with the most available
+    /// space.
+    pub fn position(mut self, position: Position) -> Self {
+        self.position = position;
+        self
     }
 
     /// Sets the gap between the content and its [`Tooltip`].

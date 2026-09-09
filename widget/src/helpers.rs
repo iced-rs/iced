@@ -24,7 +24,7 @@ use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
-use crate::tooltip::{self, Tooltip};
+use crate::tooltip::Tooltip;
 use crate::transition::{self, Transition};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
@@ -1093,9 +1093,12 @@ where
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given
-/// [`Element`] and [`tooltip::Position`].
+/// [`Element`].
 ///
 /// Tooltips display a hint of information over some element when hovered.
+///
+/// By default, the tooltip is positioned [`crate::tooltip::Position::Auto`];
+/// use the [`Tooltip::position`] method to set a specific position.
 ///
 /// # Example
 /// ```no_run
@@ -1114,20 +1117,20 @@ where
 ///         container("This is the tooltip contents!")
 ///             .padding(10)
 ///             .style(container::rounded_box),
-///         tooltip::Position::Bottom,
-///     ).into()
+///     )
+///     .position(tooltip::Position::Bottom)
+///     .into()
 /// }
 /// ```
 pub fn tooltip<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
     tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
-    position: tooltip::Position,
 ) -> crate::Tooltip<'a, Message, Theme, Renderer>
 where
     Theme: container::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
-    Tooltip::new(content, tooltip, position)
+    Tooltip::new(content, tooltip)
 }
 
 /// Creates a new [`Text`] widget with the provided content.
