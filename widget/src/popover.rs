@@ -146,8 +146,8 @@ where
 
     /// Sets the [`Position`] of the [`Popover`].
     ///
-    /// By default, the [`Popover`] is positioned [`Position::Auto`], which
-    /// places it on the side of the base with the most available space.
+    /// The default [`Position`] is [`Position::Auto`], which places the
+    /// popover on the side of the base with the most available space.
     pub fn position(mut self, position: Position) -> Self {
         self.position = position;
         self
