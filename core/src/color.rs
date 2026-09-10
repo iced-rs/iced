@@ -380,6 +380,7 @@ impl Interpolable for Color {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 /// A color in the [Oklab color space](https://en.wikipedia.org/wiki/Oklab_color_space),
 /// represented as Oklch.
 pub struct Oklch {
