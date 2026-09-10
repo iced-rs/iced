@@ -40,11 +40,14 @@ where
                 .as_mut()
                 .map(|nested| recurse(nested, renderer, bounds));
 
-            if let Some(nested_node) = nested_node {
-                layout::Node::with_children(node.size(), vec![node, nested_node])
-            } else {
-                layout::Node::with_children(node.size(), vec![node])
-            }
+            layout::Node::with_children(
+                node.size(),
+                if let Some(nested_node) = nested_node {
+                    vec![node, nested_node]
+                } else {
+                    vec![node]
+                },
+            )
         }
 
         recurse(&mut self.overlay, renderer, bounds)
@@ -70,44 +73,42 @@ where
             Renderer: renderer::Renderer,
         {
             let mut layouts = layout.children();
+            let Some(layout) = layouts.next() else {
+                return;
+            };
+            let nested_layout = layouts.next();
+            let overlay = element.as_overlay_mut();
 
-            if let Some(layout) = layouts.next() {
-                let nested_layout = layouts.next();
-                let overlay = element.as_overlay_mut();
-
-                let is_over = cursor
-                    .position()
-                    .zip(nested_layout)
-                    .and_then(|(cursor_position, nested_layout)| {
-                        overlay.overlay(layout, renderer).map(|nested| {
-                            nested.as_overlay().mouse_interaction(
-                                nested_layout.children().next().unwrap(),
-                                mouse::Cursor::Available(cursor_position),
-                                renderer,
-                            ) != mouse::Interaction::None
-                        })
+            let is_over = cursor.position().zip(nested_layout).is_some_and(
+                |(cursor_position, nested_layout)| {
+                    overlay.overlay(layout, renderer).is_some_and(|nested| {
+                        nested.as_overlay().mouse_interaction(
+                            nested_layout.children().next().unwrap(),
+                            mouse::Cursor::Available(cursor_position),
+                            renderer,
+                        ) != mouse::Interaction::None
                     })
-                    .unwrap_or_default();
+                },
+            );
 
-                renderer.with_layer(layout.bounds(), |renderer| {
-                    overlay.draw(
-                        renderer,
-                        theme,
-                        style,
-                        layout,
-                        if is_over {
-                            mouse::Cursor::Unavailable
-                        } else {
-                            cursor
-                        },
-                    );
-                });
+            renderer.with_layer(layout.bounds(), |renderer| {
+                overlay.draw(
+                    renderer,
+                    theme,
+                    style,
+                    layout,
+                    if is_over {
+                        mouse::Cursor::Unavailable
+                    } else {
+                        cursor
+                    },
+                );
+            });
 
-                if let Some((mut nested, nested_layout)) =
-                    overlay.overlay(layout, renderer).zip(nested_layout)
-                {
-                    recurse(&mut nested, nested_layout, renderer, theme, style, cursor);
-                }
+            if let Some((mut nested, nested_layout)) =
+                overlay.overlay(layout, renderer).zip(nested_layout)
+            {
+                recurse(&mut nested, nested_layout, renderer, theme, style, cursor);
             }
         }
 
@@ -131,16 +132,18 @@ where
         {
             let mut layouts = layout.children();
 
-            if let Some(layout) = layouts.next() {
-                let overlay = element.as_overlay_mut();
+            let Some(layout) = layouts.next() else {
+                return;
+            };
 
-                overlay.operate(layout, renderer, operation);
+            let overlay = element.as_overlay_mut();
 
-                if let Some((mut nested, nested_layout)) =
-                    overlay.overlay(layout, renderer).zip(layouts.next())
-                {
-                    recurse(&mut nested, nested_layout, renderer, operation);
-                }
+            overlay.operate(layout, renderer, operation);
+
+            if let Some((mut nested, nested_layout)) =
+                overlay.overlay(layout, renderer).zip(layouts.next())
+            {
+                recurse(&mut nested, nested_layout, renderer, operation);
             }
         }
 
@@ -169,49 +172,46 @@ where
         {
             let mut layouts = layout.children();
 
-            if let Some(layout) = layouts.next() {
-                let overlay = element.as_overlay_mut();
+            let Some(layout) = layouts.next() else {
+                return false;
+            };
 
-                let nested_is_over = if let Some((mut nested, nested_layout)) =
-                    overlay.overlay(layout, renderer).zip(layouts.next())
-                {
+            let overlay = element.as_overlay_mut();
+
+            let nested_is_over = overlay
+                .overlay(layout, renderer)
+                .zip(layouts.next())
+                .map(|(mut nested, nested_layout)| {
                     recurse(&mut nested, nested_layout, event, cursor, renderer, shell)
-                } else {
-                    false
-                };
+                })
+                .unwrap_or_default();
 
-                if shell.event_status() == event::Status::Ignored {
-                    let is_over = nested_is_over
-                        || cursor
-                            .position()
-                            .map(|cursor_position| {
-                                overlay.mouse_interaction(
-                                    layout,
-                                    mouse::Cursor::Available(cursor_position),
-                                    renderer,
-                                ) != mouse::Interaction::None
-                            })
-                            .unwrap_or_default();
-
-                    overlay.update(
-                        event,
-                        layout,
-                        if nested_is_over {
-                            mouse::Cursor::Unavailable
-                        } else {
-                            cursor
-                        },
-                        renderer,
-                        shell,
-                    );
-
-                    is_over
-                } else {
-                    nested_is_over
-                }
-            } else {
-                false
+            if shell.event_status() != event::Status::Ignored {
+                return nested_is_over;
             }
+
+            let is_over = nested_is_over
+                || cursor.position().is_some_and(|cursor_position| {
+                    overlay.mouse_interaction(
+                        layout,
+                        mouse::Cursor::Available(cursor_position),
+                        renderer,
+                    ) != mouse::Interaction::None
+                });
+
+            overlay.update(
+                event,
+                layout,
+                if nested_is_over {
+                    mouse::Cursor::Unavailable
+                } else {
+                    cursor
+                },
+                renderer,
+                shell,
+            );
+
+            is_over
         }
 
         let _ = recurse(&mut self.overlay, layout, event, cursor, renderer, shell);
@@ -229,28 +229,30 @@ where
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-        ) -> Option<mouse::Interaction>
+        ) -> mouse::Interaction
         where
             Renderer: renderer::Renderer,
         {
             let mut layouts = layout.children();
 
-            let layout = layouts.next()?;
+            let Some(layout) = layouts.next() else {
+                return mouse::Interaction::None;
+            };
+
             let overlay = element.as_overlay_mut();
             let interaction = overlay.mouse_interaction(layout, cursor, renderer);
 
-            Some(
-                overlay
-                    .overlay(layout, renderer)
-                    .zip(layouts.next())
-                    .and_then(|(mut overlay, layout)| {
-                        recurse(&mut overlay, layout, cursor, renderer)
-                    })
-                    .unwrap_or_default()
-                    .max(interaction),
-            )
+            let nested_interaction = overlay
+                .overlay(layout, renderer)
+                .zip(layouts.next())
+                .map(|(mut nested, nested_layout)| {
+                    recurse(&mut nested, nested_layout, cursor, renderer)
+                })
+                .unwrap_or_default();
+
+            nested_interaction.max(interaction)
         }
 
-        recurse(&mut self.overlay, layout, cursor, renderer).unwrap_or_default()
+        recurse(&mut self.overlay, layout, cursor, renderer)
     }
 }
