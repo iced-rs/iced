@@ -1,20 +1,18 @@
-//! Behavioral tests for the [`popover`] widget.
+//! Behavioral tests for the `popover` widget.
 //!
-//! These drive the [`Widget`](iced::advanced::widget::Widget) and
-//! [`Overlay`](iced::advanced::Overlay) traits directly (using the null
+//! These drive the `Widget` and `Overlay` traits directly (using the null
 //! renderer `()`) to verify that the popover displays its overlay only when
-//! its `popover` argument is `Some` (open) and not when it is `None` (closed),
-//! that the base is a plain element, and that the popover notifies the
-//! application through its `on_close` handler when the user clicks outside of
-//! its bounds.
-use iced::advanced::Layout;
-use iced::advanced::layout::{self, Limits};
-use iced::advanced::mouse::{self, Button, Cursor};
-use iced::advanced::shell;
-use iced::advanced::widget::Tree;
-use iced::widget::{button, popover, space};
-use iced::window::Headless;
-use iced::{Element, Event, Point, Rectangle, Size, Theme, Vector};
+//! its `popover` argument is `Some` (open) and not when it is `None`
+//! (closed), that the base is a plain element, and that the popover notifies
+//! the application through its `on_close` handler when the user clicks
+//! outside of its bounds.
+use iced_widget::core::layout::{self, Layout, Limits};
+use iced_widget::core::mouse::{self, Button, Cursor};
+use iced_widget::core::shell;
+use iced_widget::core::widget::Tree;
+use iced_widget::core::window::Headless;
+use iced_widget::core::{Element, Event, Point, Rectangle, Size, Theme, Vector};
+use iced_widget::{button, popover, space};
 
 type Message = u8;
 
@@ -140,9 +138,7 @@ fn base_mouse_interaction_is_delegated() {
     let viewport = Rectangle::with_size(VIEWPORT);
 
     // Hovering the base reports the base's interaction (a `Pointer`, as a
-    // [`button`] would).
-    //
-    // [`button`]: iced::widget::Button
+    // `button` would).
     let hovered = element.as_widget().mouse_interaction(
         &tree,
         layout,
