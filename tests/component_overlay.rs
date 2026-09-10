@@ -22,7 +22,7 @@ impl<'a> Component<'a, Message> for WithTooltip {
     type Event = InnerEvent;
 
     fn update(
-        &mut self,
+        &self,
         _state: &mut Self::State,
         event: Self::Event,
         _renderer: &iced::Renderer,

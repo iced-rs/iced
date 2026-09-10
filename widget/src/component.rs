@@ -10,6 +10,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+
 use std::cell::RefCell;
 
 /// A reusable, custom widget that uses The Elm Architecture.
@@ -49,7 +50,7 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
     ///
     /// It can produce a `Message` for the parent application.
     fn update(
-        &mut self,
+        &self,
         state: &mut Self::State,
         event: Self::Event,
         renderer: &Renderer,
@@ -119,7 +120,7 @@ where
     Renderer: core::Renderer + 'a,
 {
     Element::new(Instance {
-        component: RefCell::new(component),
+        component,
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         layout: layout::Node::new(Size::ZERO),
@@ -132,7 +133,7 @@ struct Instance<'a, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
 {
-    component: RefCell<C>,
+    component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
     layout: layout::Node,
@@ -166,13 +167,12 @@ where
         let internal = tree
             .state
             .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
-        let mut internal = internal.borrow_mut();
 
-        self.component.borrow_mut().diff(&mut internal.state);
+        let mut internal = internal.borrow_mut();
+        self.component.diff(&mut internal.state);
 
         if *self.is_outdated.borrow() {
-            self.view = self.component.borrow().view(&internal.state);
-
+            self.view = self.component.view(&internal.state);
             drop(internal);
 
             tree.diff_children(std::slice::from_mut(&mut self.view));
@@ -215,12 +215,12 @@ where
         let internal = tree
             .state
             .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
+
         let mut internal = internal.borrow_mut();
 
-        let action =
-            self.component
-                .borrow()
-                .listen(&internal.state, event, layout.bounds(), cursor);
+        let action = self
+            .component
+            .listen(&internal.state, event, layout.bounds(), cursor);
 
         let (publish, redraw_request, event_status) = action.into_inner();
 
@@ -234,13 +234,7 @@ where
             let _ = internal.events.push(event);
         }
 
-        drop(internal);
-
         if !shell.is_event_captured() {
-            let internal = tree
-                .state
-                .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
-            let mut internal = internal.borrow_mut();
             let mut local_shell = shell.local(&mut internal.events);
 
             self.view.as_widget_mut().update(
@@ -270,11 +264,6 @@ where
             shell.clipboard_mut().merge(local_shell.clipboard_mut());
         }
 
-        let internal = tree
-            .state
-            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
-        let mut internal = internal.borrow_mut();
-
         if internal.events.is_empty() {
             return;
         }
@@ -282,15 +271,14 @@ where
         let Internal { state, events } = &mut *internal;
 
         for (event, receipt) in events.drain() {
-            if let Some(message) = self.component.borrow_mut().update(state, event, renderer) {
+            if let Some(message) = self.component.update(state, event, renderer) {
                 shell.forward(message, receipt);
             }
         }
 
         let previous_sizing = self.view.as_widget().size();
 
-        self.view = self.component.borrow().view(state);
-
+        self.view = self.component.view(state);
         drop(internal);
 
         tree.diff_children(std::slice::from_mut(&mut self.view));
@@ -401,7 +389,7 @@ where
             .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
             .borrow();
 
-        let interaction = self.component.borrow().mouse_interaction(&internal.state);
+        let interaction = self.component.mouse_interaction(&internal.state);
 
         if interaction != mouse::Interaction::None {
             return interaction;
@@ -429,7 +417,6 @@ where
             .borrow();
 
         self.component
-            .borrow()
             .operate(&internal.state, layout.bounds(), operation);
 
         self.view.as_widget_mut().operate(
@@ -484,7 +471,7 @@ struct Overlay<'a, 'b, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer>,
 {
-    component: &'b RefCell<C>,
+    component: &'b C,
     internal: &'b RefCell<Internal<C::State, C::Event>>,
     is_outdated: &'b RefCell<bool>,
     raw: overlay::Element<'b, C::Event, Theme, Renderer>,
@@ -538,7 +525,7 @@ where
         let Internal { state, events } = &mut *internal;
 
         for (event, receipt) in events.drain() {
-            if let Some(message) = self.component.borrow_mut().update(state, event, renderer) {
+            if let Some(message) = self.component.update(state, event, renderer) {
                 shell.forward(message, receipt);
             }
         }
