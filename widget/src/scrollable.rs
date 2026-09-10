@@ -731,7 +731,9 @@ where
 
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
-                        if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
+                        if !(mouse_over_x_scrollbar
+                            || mouse_over_y_scrollbar
+                            || state.scrollers_grabbed()) =>
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
