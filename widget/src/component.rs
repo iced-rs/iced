@@ -10,6 +10,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use std::cell::RefCell;
 
 /// A reusable, custom widget that uses The Elm Architecture.
 ///
@@ -118,11 +119,11 @@ where
     Renderer: core::Renderer + 'a,
 {
     Element::new(Instance {
-        component,
+        component: RefCell::new(component),
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         layout: layout::Node::new(Size::ZERO),
-        is_outdated: true,
+        is_outdated: RefCell::new(true),
         has_overlay: false,
     })
 }
@@ -131,11 +132,11 @@ struct Instance<'a, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
 {
-    component: C,
+    component: RefCell<C>,
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
     layout: layout::Node,
-    is_outdated: bool,
+    is_outdated: RefCell<bool>,
     has_overlay: bool,
 }
 
@@ -151,26 +152,32 @@ where
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<Internal<C::State, C::Event>>()
+        tree::Tag::of::<RefCell<Internal<C::State, C::Event>>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(Internal {
+        tree::State::new(RefCell::new(Internal {
             state: C::State::default(),
             events: shell::Bus::<C::Event>::new(),
-        })
+        }))
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
+        let internal = tree
+            .state
+            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
+        let mut internal = internal.borrow_mut();
 
-        self.component.diff(&mut internal.state);
+        self.component.borrow_mut().diff(&mut internal.state);
 
-        if self.is_outdated {
-            self.view = self.component.view(&internal.state);
+        if *self.is_outdated.borrow() {
+            self.view = self.component.borrow().view(&internal.state);
+
+            drop(internal);
+
             tree.diff_children(std::slice::from_mut(&mut self.view));
 
-            self.is_outdated = false;
+            *self.is_outdated.borrow_mut() = false;
         }
     }
 
@@ -205,11 +212,15 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
+        let internal = tree
+            .state
+            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
+        let mut internal = internal.borrow_mut();
 
-        let action = self
-            .component
-            .listen(&internal.state, event, layout.bounds(), cursor);
+        let action =
+            self.component
+                .borrow()
+                .listen(&internal.state, event, layout.bounds(), cursor);
 
         let (publish, redraw_request, event_status) = action.into_inner();
 
@@ -223,7 +234,13 @@ where
             let _ = internal.events.push(event);
         }
 
+        drop(internal);
+
         if !shell.is_event_captured() {
+            let internal = tree
+                .state
+                .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
+            let mut internal = internal.borrow_mut();
             let mut local_shell = shell.local(&mut internal.events);
 
             self.view.as_widget_mut().update(
@@ -253,19 +270,29 @@ where
             shell.clipboard_mut().merge(local_shell.clipboard_mut());
         }
 
+        let internal = tree
+            .state
+            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
+        let mut internal = internal.borrow_mut();
+
         if internal.events.is_empty() {
             return;
         }
 
-        for (event, receipt) in internal.events.drain() {
-            if let Some(message) = self.component.update(&mut internal.state, event, renderer) {
+        let Internal { state, events } = &mut *internal;
+
+        for (event, receipt) in events.drain() {
+            if let Some(message) = self.component.borrow_mut().update(state, event, renderer) {
                 shell.forward(message, receipt);
             }
         }
 
         let previous_sizing = self.view.as_widget().size();
 
-        self.view = self.component.view(&internal.state);
+        self.view = self.component.borrow().view(state);
+
+        drop(internal);
+
         tree.diff_children(std::slice::from_mut(&mut self.view));
 
         let previous_size = self.layout.size();
@@ -313,11 +340,13 @@ where
             }
         }
 
-        self.is_outdated = false;
+        *self.is_outdated.borrow_mut() = false;
 
         if let Event::Window(window::Event::RedrawRequested(_)) = event {
-            let internal = tree.state.downcast_mut::<Internal<C::State, C::Event>>();
-
+            let internal = tree
+                .state
+                .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
+            let mut internal = internal.borrow_mut();
             let mut local_shell = shell.local(&mut internal.events);
 
             self.view.as_widget_mut().update(
@@ -367,9 +396,12 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let internal = tree.state.downcast_ref::<Internal<C::State, C::Event>>();
+        let internal = tree
+            .state
+            .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
+            .borrow();
 
-        let interaction = self.component.mouse_interaction(&internal.state);
+        let interaction = self.component.borrow().mouse_interaction(&internal.state);
 
         if interaction != mouse::Interaction::None {
             return interaction;
@@ -391,9 +423,13 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let internal = tree.state.downcast_ref::<Internal<C::State, C::Event>>();
+        let internal = tree
+            .state
+            .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
+            .borrow();
 
         self.component
+            .borrow()
             .operate(&internal.state, layout.bounds(), operation);
 
         self.view.as_widget_mut().operate(
@@ -406,13 +442,173 @@ where
 
     fn overlay<'b>(
         &'b mut self,
-        _tree: &'b mut Tree,
-        _layout: Layout<'b>,
-        _renderer: &Renderer,
-        _viewport: &Rectangle,
-        _translation: Vector,
+        tree: &'b mut Tree,
+        layout: Layout<'b>,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: Vector,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        // TODO: `Component` needs to be adapted to the new overlay API
-        todo!()
+        let overlays = self.view.as_widget_mut().overlay(
+            &mut tree.children[0],
+            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            renderer,
+            viewport,
+            translation,
+        );
+
+        if !overlays.is_empty() {
+            self.has_overlay = true;
+        }
+
+        let component = &self.component;
+        let internal = tree
+            .state
+            .downcast_ref::<RefCell<Internal<C::State, C::Event>>>();
+        let is_outdated = &self.is_outdated;
+
+        overlays
+            .into_iter()
+            .map(|raw| {
+                overlay::Element::new(Box::new(Overlay {
+                    component,
+                    internal,
+                    is_outdated,
+                    raw,
+                }))
+            })
+            .collect()
+    }
+}
+
+struct Overlay<'a, 'b, C, Message, Theme, Renderer>
+where
+    C: Component<'a, Message, Theme, Renderer>,
+{
+    component: &'b RefCell<C>,
+    internal: &'b RefCell<Internal<C::State, C::Event>>,
+    is_outdated: &'b RefCell<bool>,
+    raw: overlay::Element<'b, C::Event, Theme, Renderer>,
+}
+
+impl<'a, 'b, C, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'a, 'b, C, Message, Theme, Renderer>
+where
+    C: Component<'a, Message, Theme, Renderer>,
+    Renderer: core::Renderer,
+{
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.raw.as_overlay_mut().layout(renderer, bounds)
+    }
+
+    fn update(
+        &mut self,
+        event: &Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+    ) {
+        let mut internal = self.internal.borrow_mut();
+        let mut local_shell = shell.local(&mut internal.events);
+
+        self.raw
+            .as_overlay_mut()
+            .update(event, layout, cursor, renderer, &mut local_shell);
+
+        if local_shell.is_event_captured() {
+            shell.capture_event();
+        }
+
+        if let Some(diff) = local_shell.is_layout_invalid() {
+            shell.invalidate_layout_with(diff);
+        }
+
+        if local_shell.are_widgets_invalid() {
+            shell.invalidate_widgets();
+        }
+
+        shell.request_redraw_at(local_shell.redraw_request());
+        shell.request_input_method(local_shell.input_method());
+        shell.clipboard_mut().merge(local_shell.clipboard_mut());
+
+        if internal.events.is_empty() {
+            return;
+        }
+
+        let Internal { state, events } = &mut *internal;
+
+        for (event, receipt) in events.drain() {
+            if let Some(message) = self.component.borrow_mut().update(state, event, renderer) {
+                shell.forward(message, receipt);
+            }
+        }
+
+        *self.is_outdated.borrow_mut() = true;
+
+        shell.invalidate_layout();
+        shell.request_redraw();
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+    ) {
+        self.raw
+            .as_overlay()
+            .draw(renderer, theme, style, layout, cursor);
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.raw
+            .as_overlay()
+            .mouse_interaction(layout, cursor, renderer)
+    }
+
+    fn index(&self) -> f32 {
+        self.raw.as_overlay().index()
+    }
+
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        self.raw
+            .as_overlay_mut()
+            .operate(layout, renderer, operation);
+    }
+
+    fn overlay<'c>(
+        &'c mut self,
+        layout: Layout<'c>,
+        renderer: &Renderer,
+    ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
+        let overlays = self.raw.as_overlay_mut().overlay(layout, renderer);
+
+        if overlays.is_empty() {
+            return Vec::new();
+        }
+
+        overlays
+            .into_iter()
+            .map(|raw| {
+                overlay::Element::new(Box::new(Overlay {
+                    component: self.component,
+                    internal: self.internal,
+                    is_outdated: self.is_outdated,
+                    raw,
+                }))
+            })
+            .collect()
     }
 }

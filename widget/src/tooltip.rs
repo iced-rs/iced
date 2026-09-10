@@ -489,6 +489,24 @@ where
         .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
     }
 
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.container(None, layout.bounds());
+
+        operation.traverse(&mut |operation| {
+            self.tooltip.as_widget_mut().operate(
+                self.tree,
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
+    }
+
     fn draw(
         &self,
         renderer: &mut Renderer,

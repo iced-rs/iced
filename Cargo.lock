@@ -2265,6 +2265,7 @@ dependencies = [
  "iced_highlighter",
  "iced_renderer",
  "iced_runtime",
+ "iced_test",
  "iced_tester",
  "iced_wgpu",
  "iced_widget",
