@@ -11,7 +11,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 /// A reusable, custom widget that uses The Elm Architecture.
 ///
@@ -124,7 +124,7 @@ where
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         layout: layout::Node::new(Size::ZERO),
-        is_outdated: RefCell::new(true),
+        is_outdated: Cell::new(true),
         has_overlay: false,
     })
 }
@@ -137,7 +137,7 @@ where
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
     layout: layout::Node,
-    is_outdated: RefCell<bool>,
+    is_outdated: Cell<bool>,
     has_overlay: bool,
 }
 
@@ -164,20 +164,20 @@ where
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        let internal = tree
+        let mut internal = tree
             .state
-            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
+            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>()
+            .borrow_mut();
 
-        let mut internal = internal.borrow_mut();
         self.component.diff(&mut internal.state);
 
-        if *self.is_outdated.borrow() {
+        if self.is_outdated.get() {
             self.view = self.component.view(&internal.state);
             drop(internal);
 
             tree.diff_children(std::slice::from_mut(&mut self.view));
 
-            *self.is_outdated.borrow_mut() = false;
+            self.is_outdated.set(false);
         }
     }
 
@@ -212,11 +212,10 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let internal = tree
+        let mut internal = tree
             .state
-            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
-
-        let mut internal = internal.borrow_mut();
+            .downcast_mut::<RefCell<Internal<C::State, C::Event>>>()
+            .borrow_mut();
 
         let action = self
             .component
@@ -328,13 +327,14 @@ where
             }
         }
 
-        *self.is_outdated.borrow_mut() = false;
+        self.is_outdated.set(false);
 
         if let Event::Window(window::Event::RedrawRequested(_)) = event {
-            let internal = tree
+            let mut internal = tree
                 .state
-                .downcast_mut::<RefCell<Internal<C::State, C::Event>>>();
-            let mut internal = internal.borrow_mut();
+                .downcast_mut::<RefCell<Internal<C::State, C::Event>>>()
+                .borrow_mut();
+
             let mut local_shell = shell.local(&mut internal.events);
 
             self.view.as_widget_mut().update(
@@ -473,7 +473,7 @@ where
 {
     component: &'b C,
     internal: &'b RefCell<Internal<C::State, C::Event>>,
-    is_outdated: &'b RefCell<bool>,
+    is_outdated: &'b Cell<bool>,
     raw: overlay::Element<'b, C::Event, Theme, Renderer>,
 }
 
@@ -530,7 +530,7 @@ where
             }
         }
 
-        *self.is_outdated.borrow_mut() = true;
+        self.is_outdated.set(true);
 
         shell.invalidate_layout();
         shell.request_redraw();
