@@ -113,11 +113,9 @@ image.optional = true
 
 [dev-dependencies]
 criterion = "0.5"
+iced.workspace = true
 iced_wgpu.workspace = true
 iced_renderer.workspace = true
-
-iced.workspace = true
-iced.features = ["advanced"]
 
 [[bench]]
 name = "wgpu"
