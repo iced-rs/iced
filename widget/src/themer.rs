@@ -174,7 +174,7 @@ where
     ) -> Vec<overlay::Element<'b, Message, AnyTheme, Renderer>> {
         struct Overlay<'a, Message, Theme, Renderer> {
             theme: &'a Option<Theme>,
-            content: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
+            content: overlay::Element<'a, Message, Theme, Renderer>,
         }
 
         impl<Message, Theme, Renderer, AnyTheme> overlay::Overlay<Message, AnyTheme, Renderer>
@@ -185,13 +185,7 @@ where
             Renderer: crate::core::Renderer,
         {
             fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-                layout::Node::with_children(
-                    bounds,
-                    self.content
-                        .iter_mut()
-                        .map(|child| child.as_overlay_mut().layout(renderer, bounds))
-                        .collect(),
-                )
+                self.content.as_overlay_mut().layout(renderer, bounds)
             }
 
             fn draw(
@@ -205,11 +199,9 @@ where
                 let default_theme = theme::Base::default(theme.mode());
                 let theme = self.theme.as_ref().unwrap_or(&default_theme);
 
-                for (child, layout) in self.content.iter().zip(layout.children()) {
-                    child
-                        .as_overlay()
-                        .draw(renderer, theme, style, layout, cursor);
-                }
+                self.content
+                    .as_overlay()
+                    .draw(renderer, theme, style, layout, cursor);
             }
 
             fn update(
@@ -220,11 +212,9 @@ where
                 renderer: &Renderer,
                 shell: &mut Shell<'_, Message>,
             ) {
-                for (child, layout) in self.content.iter_mut().zip(layout.children()) {
-                    child
-                        .as_overlay_mut()
-                        .update(event, layout, cursor, renderer, shell);
-                }
+                self.content
+                    .as_overlay_mut()
+                    .update(event, layout, cursor, renderer, shell);
             }
 
             fn operate(
@@ -233,14 +223,9 @@ where
                 renderer: &Renderer,
                 operation: &mut dyn Operation,
             ) {
-                operation.traverse(&mut |operation| {
-                    self.content
-                        .iter_mut()
-                        .zip(layout.children())
-                        .for_each(|(child, layout)| {
-                            child.as_overlay_mut().operate(layout, renderer, operation);
-                        });
-                });
+                self.content
+                    .as_overlay_mut()
+                    .operate(layout, renderer, operation);
             }
 
             fn mouse_interaction(
@@ -250,22 +235,12 @@ where
                 renderer: &Renderer,
             ) -> mouse::Interaction {
                 self.content
-                    .iter()
-                    .zip(layout.children())
-                    .map(|(child, layout)| {
-                        child
-                            .as_overlay()
-                            .mouse_interaction(layout, cursor, renderer)
-                    })
-                    .max()
-                    .unwrap_or_default()
+                    .as_overlay()
+                    .mouse_interaction(layout, cursor, renderer)
             }
 
             fn index(&self) -> f32 {
-                self.content
-                    .first()
-                    .map(|child| child.as_overlay().index())
-                    .unwrap_or(1.0)
+                self.content.as_overlay().index()
             }
 
             fn overlay<'c>(
@@ -275,38 +250,26 @@ where
             ) -> Vec<overlay::Element<'c, Message, AnyTheme, Renderer>> {
                 let theme = self.theme;
 
-                layout
-                    .children()
-                    .zip(self.content.iter_mut())
-                    .flat_map(|(layout, content)| {
-                        content
-                            .as_overlay_mut()
-                            .overlay(layout, renderer)
-                            .into_iter()
-                            .map(|content| {
-                                overlay::Element::new(Box::new(Overlay {
-                                    theme,
-                                    content: vec![content],
-                                }))
-                            })
-                    })
+                self.content
+                    .as_overlay_mut()
+                    .overlay(layout, renderer)
+                    .into_iter()
+                    .map(|content| overlay::Element::new(Box::new(Overlay { theme, content })))
                     .collect()
             }
         }
 
-        let content =
-            self.content
-                .as_widget_mut()
-                .overlay(tree, layout, renderer, viewport, translation);
-
-        if content.is_empty() {
-            Vec::new()
-        } else {
-            vec![overlay::Element::new(Box::new(Overlay {
-                theme: &self.theme,
-                content,
-            }))]
-        }
+        self.content
+            .as_widget_mut()
+            .overlay(tree, layout, renderer, viewport, translation)
+            .into_iter()
+            .map(|content| {
+                overlay::Element::new(Box::new(Overlay {
+                    theme: &self.theme,
+                    content,
+                }))
+            })
+            .collect()
     }
 }
 
