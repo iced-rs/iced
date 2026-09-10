@@ -1,8 +1,9 @@
 //! Layout tests with the built-in widgets.
-use iced::advanced::layout;
-use iced::advanced::widget;
-use iced::widget::{column, row, space};
-use iced::{Element, Fill, FillPortion, Never, Pixels, Size, Theme};
+use iced_widget::core::Length::{Fill, FillPortion};
+use iced_widget::core::layout;
+use iced_widget::core::widget;
+use iced_widget::core::{Element, Never, Pixels, Size, Theme};
+use iced_widget::{column, row, space};
 
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
     Size::ZERO,
@@ -348,7 +349,7 @@ fn layout_fill_min_max_sidebar() {
             row![sidebar, content].width(screen_width)
         };
 
-        let sidebar_width = (screen_width as f32 / 4.0).max(150.0).min(200.0);
+        let sidebar_width = (screen_width as f32 / 4.0).clamp(150.0, 200.0);
 
         let layout = {
             let sidebar = node((0, 0), (sidebar_width, 768), []);
