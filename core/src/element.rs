@@ -1,11 +1,10 @@
 use crate::layout;
 use crate::mouse;
-use crate::overlay;
 use crate::renderer;
 use crate::shell;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Widget};
 
 use std::borrow::{Borrow, BorrowMut};
 
@@ -362,21 +361,6 @@ where
         self.widget
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, B, Theme, Renderer>> {
-        let mapper = &self.mapper;
-
-        self.widget
-            .overlay(tree, layout, renderer, viewport, translation)
-            .map(move |overlay| overlay.map(mapper))
-    }
 }
 
 struct Explain<'a, Message, Theme, Renderer: crate::Renderer> {
@@ -503,19 +487,6 @@ where
         self.element
             .widget
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.element
-            .widget
-            .overlay(tree, layout, renderer, viewport, translation)
     }
 }
 

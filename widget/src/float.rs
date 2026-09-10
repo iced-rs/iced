@@ -3,13 +3,10 @@ use crate::core;
 use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
-use crate::core::{
-    Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
-};
+use crate::core::{Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Vector, Widget};
 
 /// A widget that can make its contents float over other widgets.
 pub struct Float<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -192,48 +189,6 @@ where
             .as_widget_mut()
             .operate(tree, layout, renderer, operation);
     }
-
-    fn overlay<'a>(
-        &'a mut self,
-        state: &'a mut widget::Tree,
-        layout: Layout<'a>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        offset: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        let bounds = layout.bounds();
-
-        let translation = self
-            .translate
-            .as_ref()
-            .map(|translate| translate(bounds + offset, *viewport))
-            .unwrap_or(Vector::ZERO);
-
-        if self.scale > 1.0 || translation != Vector::ZERO {
-            let translation = translation + offset;
-
-            let transformation = Transformation::translate(
-                bounds.x + bounds.width / 2.0 + translation.x,
-                bounds.y + bounds.height / 2.0 + translation.y,
-            ) * Transformation::scale(self.scale)
-                * Transformation::translate(
-                    -bounds.x - bounds.width / 2.0,
-                    -bounds.y - bounds.height / 2.0,
-                );
-
-            Some(overlay::Element::new(Box::new(Overlay {
-                float: self,
-                state,
-                layout,
-                viewport: *viewport,
-                transformation,
-            })))
-        } else {
-            self.content
-                .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, offset)
-        }
-    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Float<'a, Message, Theme, Renderer>>
@@ -245,132 +200,6 @@ where
 {
     fn from(float: Float<'a, Message, Theme, Renderer>) -> Self {
         Element::new(float)
-    }
-}
-
-struct Overlay<'a, 'b, Message, Theme, Renderer>
-where
-    Theme: Catalog,
-{
-    float: &'a mut Float<'b, Message, Theme, Renderer>,
-    state: &'a mut widget::Tree,
-    layout: Layout<'a>,
-    viewport: Rectangle,
-    transformation: Transformation,
-}
-
-impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
-where
-    Theme: Catalog,
-    Renderer: core::Renderer,
-{
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        let bounds = self.layout.bounds() * self.transformation;
-
-        layout::Node::new(bounds.size()).move_to(bounds.position())
-    }
-
-    fn update(
-        &mut self,
-        event: &Event,
-        _layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-        shell: &mut Shell<'_, Message>,
-    ) {
-        let inverse = self.transformation.inverse();
-
-        self.float.content.as_widget_mut().update(
-            self.state,
-            event,
-            self.layout,
-            cursor * inverse,
-            renderer,
-            shell,
-            &(self.viewport * inverse),
-        );
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        style: &renderer::Style,
-        _layout: Layout<'_>,
-        cursor: mouse::Cursor,
-    ) {
-        let bounds = self.layout.bounds();
-        let inverse = self.transformation.inverse();
-
-        renderer.with_layer(self.viewport, |renderer| {
-            renderer.with_transformation(self.transformation, |renderer| {
-                {
-                    let style = theme.style(&self.float.class);
-
-                    if style.shadow.color.a > 0.0 {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: bounds.shrink(1.0),
-                                shadow: style.shadow,
-                                border: border::rounded(style.shadow_border_radius),
-                                snap: false,
-                            },
-                            style.shadow.color,
-                        );
-                    }
-                }
-
-                self.float.content.as_widget().draw(
-                    self.state,
-                    renderer,
-                    theme,
-                    style,
-                    self.layout,
-                    cursor * inverse,
-                    &(self.viewport * inverse),
-                );
-            });
-        });
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        if !cursor.is_over(layout.bounds()) {
-            return mouse::Interaction::None;
-        }
-
-        let inverse = self.transformation.inverse();
-
-        self.float.content.as_widget().mouse_interaction(
-            self.state,
-            self.layout,
-            cursor * inverse,
-            &(self.viewport * inverse),
-            renderer,
-        )
-    }
-
-    fn index(&self) -> f32 {
-        self.float.scale * 0.5
-    }
-
-    fn overlay<'a>(
-        &'a mut self,
-        _layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.float.content.as_widget_mut().overlay(
-            self.state,
-            self.layout,
-            renderer,
-            &(self.viewport * self.transformation.inverse()),
-            self.transformation.translation(),
-        )
     }
 }
 

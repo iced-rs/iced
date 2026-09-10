@@ -26,7 +26,6 @@ pub mod float;
 pub mod grid;
 pub mod keyed;
 pub mod lazy;
-pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;

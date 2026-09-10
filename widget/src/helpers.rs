@@ -12,7 +12,6 @@ use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::lazy::Lazy;
-use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
@@ -692,19 +691,6 @@ where
                 interaction
             }
         }
-
-        fn overlay<'b>(
-            &'b mut self,
-            state: &'b mut core::widget::Tree,
-            layout: core::Layout<'b>,
-            renderer: &Renderer,
-            viewport: &Rectangle,
-            translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            self.content
-                .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, translation)
-        }
     }
 
     Element::new(Opaque {
@@ -926,33 +912,6 @@ where
                 })
                 .find(|&interaction| interaction != mouse::Interaction::None)
                 .unwrap_or_default()
-        }
-
-        fn overlay<'b>(
-            &'b mut self,
-            tree: &'b mut core::widget::Tree,
-            layout: core::Layout<'b>,
-            renderer: &Renderer,
-            viewport: &Rectangle,
-            translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            let mut overlays = [&mut self.base, &mut self.top]
-                .into_iter()
-                .zip(layout.children().zip(tree.children.iter_mut()))
-                .map(|(child, (layout, tree))| {
-                    child
-                        .as_widget_mut()
-                        .overlay(tree, layout, renderer, viewport, translation)
-                });
-
-            if let Some(base_overlay) = overlays.next()? {
-                return Some(base_overlay);
-            }
-
-            let top_overlay = overlays.next()?;
-            self.is_top_overlay_active = top_overlay.is_some();
-
-            top_overlay
         }
     }
 
@@ -1609,7 +1568,7 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
-    Theme: pick_list::Catalog + overlay::menu::Catalog,
+    Theme: pick_list::Catalog,
 {
     PickList::new(selected, options, to_string)
 }

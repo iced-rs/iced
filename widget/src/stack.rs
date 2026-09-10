@@ -1,10 +1,9 @@
 //! Display content on top of other content.
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Widget};
 
 /// A container that displays children on top of each other.
 ///
@@ -336,24 +335,6 @@ where
                 draw_layer(i, layer, tree, layout, cursor);
             }
         }
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        overlay::from_children(
-            &mut self.children,
-            tree,
-            layout,
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 

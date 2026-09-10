@@ -65,7 +65,6 @@ use crate::core::alignment;
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text::paragraph;
 use crate::core::text::{self, Text};
@@ -74,10 +73,8 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, Theme, Vector, Widget,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-use crate::overlay::menu::{self, Menu};
-
 use std::borrow::Borrow;
 use std::f32;
 
@@ -167,9 +164,7 @@ where
     font: Option<Font>,
     handle: Handle,
     class: <Theme as Catalog>::Class<'a>,
-    menu_class: <Theme as menu::Catalog>::Class<'a>,
     last_status: Option<Status>,
-    menu_height: Length,
 }
 
 impl<'a, T, L, V, Message, Theme> PickList<'a, T, L, V, Message, Theme>
@@ -200,9 +195,7 @@ where
             font: None,
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
-            menu_class: <Theme as Catalog>::default_menu(),
             last_status: None,
-            menu_height: Length::Shrink,
         }
     }
 
@@ -215,12 +208,6 @@ where
     /// Sets the width of the [`PickList`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
-        self
-    }
-
-    /// Sets the height of the [`Menu`].
-    pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
-        self.menu_height = menu_height.into();
         self
     }
 
@@ -294,29 +281,11 @@ where
         self
     }
 
-    /// Sets the style of the [`Menu`].
-    #[must_use]
-    pub fn menu_style(mut self, style: impl Fn(&Theme) -> menu::Style + 'a) -> Self
-    where
-        <Theme as menu::Catalog>::Class<'a>: From<menu::StyleFn<'a, Theme>>,
-    {
-        self.menu_class = (Box::new(style) as menu::StyleFn<'a, Theme>).into();
-        self
-    }
-
     /// Sets the style class of the [`PickList`].
     #[cfg(feature = "advanced")]
     #[must_use]
     pub fn class(mut self, class: impl Into<<Theme as Catalog>::Class<'a>>) -> Self {
         self.class = class.into();
-        self
-    }
-
-    /// Sets the style class of the [`Menu`].
-    #[cfg(feature = "advanced")]
-    #[must_use]
-    pub fn menu_class(mut self, class: impl Into<<Theme as menu::Catalog>::Class<'a>>) -> Self {
-        self.menu_class = class.into();
         self
     }
 }
@@ -442,8 +411,7 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if state.is_open {
-                    // Event wasn't processed by overlay, so cursor was clicked either outside its
-                    // bounds or on the drop-down, either way we close the overlay.
+                    // The pick list is open, so clicking it again closes it.
                     state.is_open = false;
 
                     if let Some(on_close) = &self.on_close {
@@ -694,58 +662,6 @@ where
             );
         }
     }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let Some(on_select) = &self.on_select else {
-            return None;
-        };
-
-        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
-        let font = self.font.unwrap_or_else(|| renderer.font());
-
-        if state.is_open {
-            let bounds = layout.bounds();
-
-            let mut menu = Menu::new(
-                &mut state.menu,
-                self.options.borrow(),
-                &mut state.hovered_option,
-                &self.to_string,
-                |option| {
-                    state.is_open = false;
-
-                    (on_select)(option)
-                },
-                None,
-                &self.menu_class,
-            )
-            .width(bounds.width)
-            .padding(self.padding)
-            .font(font)
-            .ellipsis(self.ellipsis)
-            .shaping(self.shaping);
-
-            if let Some(text_size) = self.text_size {
-                menu = menu.text_size(text_size);
-            }
-
-            Some(menu.overlay(
-                layout.position() + translation,
-                *viewport,
-                bounds.height,
-                self.menu_height,
-            ))
-        } else {
-            None
-        }
-    }
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer> From<PickList<'a, T, L, V, Message, Theme>>
@@ -765,7 +681,6 @@ where
 
 #[derive(Debug)]
 struct State<P: text::Paragraph> {
-    menu: menu::State,
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
@@ -777,7 +692,6 @@ impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`] for a [`PickList`].
     fn new() -> Self {
         Self {
-            menu: menu::State::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
@@ -869,17 +783,12 @@ pub struct Style {
 }
 
 /// The theme catalog of a [`PickList`].
-pub trait Catalog: menu::Catalog {
+pub trait Catalog {
     /// The item class of the [`Catalog`].
     type Class<'a>;
 
     /// The default class produced by the [`Catalog`].
     fn default<'a>() -> <Self as Catalog>::Class<'a>;
-
-    /// The default class for the menu of the [`PickList`].
-    fn default_menu<'a>() -> <Self as menu::Catalog>::Class<'a> {
-        <Self as menu::Catalog>::default()
-    }
 
     /// The [`Style`] of a class with the given status.
     fn style(&self, class: &<Self as Catalog>::Class<'_>, status: Status) -> Style;

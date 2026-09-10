@@ -2,11 +2,10 @@
 use crate::core::Element;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Event, Length, Rectangle, Shell, Size};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
@@ -190,27 +189,6 @@ where
             cursor,
             viewport,
         );
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let current = tree
-            .state
-            .downcast_mut::<Internal<Message, Theme, Renderer>>();
-
-        current.element.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout,
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 

@@ -58,7 +58,6 @@ use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::text::editor;
@@ -66,10 +65,7 @@ use crate::core::text::input;
 use crate::core::widget::operation::Focusable as _;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{
-    Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector,
-};
-use crate::overlay::menu;
+use crate::core::{Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme};
 use crate::text::LineHeight;
 use crate::text_input;
 
@@ -153,8 +149,6 @@ where
     shaping: text::Shaping,
     ellipsis: text::Ellipsis,
     input_class: <Theme as text_input::Catalog>::Class<'a>,
-    menu_class: <Theme as menu::Catalog>::Class<'a>,
-    menu_height: Length,
     last_status: Option<text_input::Status>,
 }
 
@@ -190,8 +184,6 @@ where
             shaping: text::Shaping::default(),
             ellipsis: text::Ellipsis::End,
             input_class: <Theme as Catalog>::default_input(),
-            menu_class: <Theme as Catalog>::default_menu(),
-            menu_height: Length::Shrink,
             last_status: None,
         }
     }
@@ -262,12 +254,6 @@ where
         self
     }
 
-    /// Sets the height of the menu of the [`ComboBox`].
-    pub fn menu_height(mut self, menu_height: impl Into<Length>) -> Self {
-        self.menu_height = menu_height.into();
-        self
-    }
-
     /// Sets the [`text::Shaping`] strategy of the [`ComboBox`].
     pub fn shaping(mut self, shaping: text::Shaping) -> Self {
         self.shaping = shaping;
@@ -293,16 +279,6 @@ where
         self
     }
 
-    /// Sets the style of the menu of the [`ComboBox`].
-    #[must_use]
-    pub fn menu_style(mut self, style: impl Fn(&Theme) -> menu::Style + 'a) -> Self
-    where
-        <Theme as menu::Catalog>::Class<'a>: From<menu::StyleFn<'a, Theme>>,
-    {
-        self.menu_class = (Box::new(style) as menu::StyleFn<'a, Theme>).into();
-        self
-    }
-
     /// Sets the style class of the input of the [`ComboBox`].
     #[cfg(feature = "advanced")]
     #[must_use]
@@ -311,14 +287,6 @@ where
         class: impl Into<<Theme as text_input::Catalog>::Class<'a>>,
     ) -> Self {
         self.input_class = class.into();
-        self
-    }
-
-    /// Sets the style class of the menu of the [`ComboBox`].
-    #[cfg(feature = "advanced")]
-    #[must_use]
-    pub fn menu_class(mut self, class: impl Into<<Theme as menu::Catalog>::Class<'a>>) -> Self {
-        self.menu_class = class.into();
         self
     }
 }
@@ -375,7 +343,6 @@ where
 
 struct Internal<T, R: text::Renderer> {
     editor: Editor<R>,
-    menu: menu::State,
     hovered_option: Option<usize>,
     option_matchers: Vec<String>,
     filtered_options: Vec<T>,
@@ -453,7 +420,6 @@ where
                 input: text::Input::new(),
                 selection: None,
             },
-            menu: menu::State::new(),
             filtered_options: Vec::new(),
             option_matchers: Vec::new(),
             hovered_option: Some(0),
@@ -536,7 +502,6 @@ where
                             .get(internal.hovered_option())
                             .cloned()
                         {
-                            internal.menu = menu::State::default();
                             internal.editor.selection = None;
                             internal.editor.input.overwrite("");
                             internal.editor.input.unfocus();
@@ -689,71 +654,6 @@ where
         );
     }
 
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut widget::Tree,
-        layout: Layout<'_>,
-        _renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let internal = tree.state.downcast_mut::<Internal<T, Renderer>>();
-        let is_focused = internal.editor.input.is_focused();
-
-        if is_focused {
-            let Internal {
-                menu,
-                filtered_options,
-                hovered_option,
-                editor,
-                ..
-            } = tree.state.downcast_mut::<Internal<T, Renderer>>();
-
-            if filtered_options.is_empty() {
-                None
-            } else {
-                let bounds = layout.bounds();
-
-                let mut menu = menu::Menu::new(
-                    menu,
-                    filtered_options,
-                    hovered_option,
-                    &T::to_string,
-                    |selection| {
-                        editor.selection = None;
-                        editor.input.overwrite("");
-                        editor.input.unfocus();
-
-                        (self.on_selected)(selection)
-                    },
-                    self.on_option_hovered.as_deref(),
-                    &self.menu_class,
-                )
-                .width(bounds.width)
-                .padding(self.padding)
-                .shaping(self.shaping)
-                .ellipsis(self.ellipsis);
-
-                if let Some(font) = self.font {
-                    menu = menu.font(font);
-                }
-
-                if let Some(size) = self.size {
-                    menu = menu.text_size(size);
-                }
-
-                Some(menu.overlay(
-                    layout.position() + translation,
-                    *viewport,
-                    bounds.height,
-                    self.menu_height,
-                ))
-            }
-        } else {
-            None
-        }
-    }
-
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
@@ -783,15 +683,10 @@ where
 }
 
 /// The theme catalog of a [`ComboBox`].
-pub trait Catalog: text_input::Catalog + menu::Catalog {
+pub trait Catalog: text_input::Catalog {
     /// The default class for the text input of the [`ComboBox`].
     fn default_input<'a>() -> <Self as text_input::Catalog>::Class<'a> {
         <Self as text_input::Catalog>::default()
-    }
-
-    /// The default class for the menu of the [`ComboBox`].
-    fn default_menu<'a>() -> <Self as menu::Catalog>::Class<'a> {
-        <Self as menu::Catalog>::default()
     }
 }
 

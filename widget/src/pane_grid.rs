@@ -81,7 +81,6 @@ pub use title_bar::TitleBar;
 use crate::container;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay::{self, Group};
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget;
@@ -870,103 +869,6 @@ where
                 highlight.color,
             );
         }
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let state = tree.state.downcast_ref::<Memory>();
-        let picked_pane = state.action.picked_pane();
-
-        let children = self
-            .panes
-            .iter()
-            .copied()
-            .zip(&mut self.contents)
-            .zip(&mut tree.children)
-            .zip(layout.children())
-            .filter_map(|(((pane, content), tree), layout)| {
-                if self
-                    .internal
-                    .maximized()
-                    .is_some_and(|maximized| maximized != pane)
-                {
-                    return None;
-                }
-
-                if let Some((picked_pane, origin)) = picked_pane
-                    && picked_pane == pane
-                {
-                    return Some(overlay::Element::new(Box::new(PickedPane {
-                        origin,
-                        content,
-                        tree,
-                        layout,
-                    })));
-                }
-
-                content.overlay(tree, layout, renderer, viewport, translation)
-            })
-            .collect::<Vec<_>>();
-
-        (!children.is_empty()).then(|| Group::with_children(children).overlay())
-    }
-}
-
-struct PickedPane<'a, 'b, Message, Theme, Renderer>
-where
-    Theme: container::Catalog,
-    Renderer: core::Renderer,
-{
-    content: &'a Content<'b, Message, Theme, Renderer>,
-    origin: Point,
-    tree: &'a mut Tree,
-    layout: Layout<'a>,
-}
-
-impl<'a, 'b, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for PickedPane<'a, 'b, Message, Theme, Renderer>
-where
-    Theme: container::Catalog,
-    Renderer: core::Renderer,
-{
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        // TODO: Mouse translation
-        layout::Node::new(self.layout.bounds().size()).move_to(self.origin)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        style: &renderer::Style,
-        _layout: Layout<'_>,
-        cursor: mouse::Cursor,
-    ) {
-        let cursor_position = cursor.position().unwrap_or_default();
-
-        let translation = if is_dragging(self.origin, cursor_position) {
-            cursor_position - self.origin
-        } else {
-            Vector::ZERO
-        };
-
-        renderer.with_translation(translation, |renderer| {
-            self.content.draw(
-                self.tree,
-                renderer,
-                theme,
-                style,
-                self.layout,
-                mouse::Cursor::Unavailable,
-                &Rectangle::INFINITE,
-            );
-        });
     }
 }
 

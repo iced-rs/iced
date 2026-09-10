@@ -2,7 +2,6 @@
 use crate::core::alignment::{self, Alignment};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
@@ -311,24 +310,6 @@ where
             }
         }
     }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        overlay::from_children(
-            &mut self.children,
-            tree,
-            layout,
-            renderer,
-            viewport,
-            translation,
-        )
-    }
 }
 
 impl<'a, Message, Theme, Renderer> From<Row<'a, Message, Theme, Renderer>>
@@ -540,18 +521,6 @@ where
     ) {
         self.row
             .draw(tree, renderer, theme, style, layout, cursor, viewport);
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.row
-            .overlay(tree, layout, renderer, viewport, translation)
     }
 }
 

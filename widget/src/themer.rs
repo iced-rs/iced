@@ -1,13 +1,12 @@
 use crate::container;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Widget,
 };
 
 /// A widget that applies any `Theme` to its contents.
@@ -162,107 +161,6 @@ where
         self.content
             .as_widget()
             .draw(tree, renderer, theme, &style, layout, cursor, viewport);
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
-        struct Overlay<'a, Message, Theme, Renderer> {
-            theme: &'a Option<Theme>,
-            content: overlay::Element<'a, Message, Theme, Renderer>,
-        }
-
-        impl<Message, Theme, Renderer, AnyTheme> overlay::Overlay<Message, AnyTheme, Renderer>
-            for Overlay<'_, Message, Theme, Renderer>
-        where
-            Theme: theme::Base,
-            AnyTheme: theme::Base,
-            Renderer: crate::core::Renderer,
-        {
-            fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-                self.content.as_overlay_mut().layout(renderer, bounds)
-            }
-
-            fn draw(
-                &self,
-                renderer: &mut Renderer,
-                theme: &AnyTheme,
-                style: &renderer::Style,
-                layout: Layout<'_>,
-                cursor: mouse::Cursor,
-            ) {
-                let default_theme = theme::Base::default(theme.mode());
-                let theme = self.theme.as_ref().unwrap_or(&default_theme);
-
-                self.content
-                    .as_overlay()
-                    .draw(renderer, theme, style, layout, cursor);
-            }
-
-            fn update(
-                &mut self,
-                event: &Event,
-                layout: Layout<'_>,
-                cursor: mouse::Cursor,
-                renderer: &Renderer,
-                shell: &mut Shell<'_, Message>,
-            ) {
-                self.content
-                    .as_overlay_mut()
-                    .update(event, layout, cursor, renderer, shell);
-            }
-
-            fn operate(
-                &mut self,
-                layout: Layout<'_>,
-                renderer: &Renderer,
-                operation: &mut dyn Operation,
-            ) {
-                self.content
-                    .as_overlay_mut()
-                    .operate(layout, renderer, operation);
-            }
-
-            fn mouse_interaction(
-                &self,
-                layout: Layout<'_>,
-                cursor: mouse::Cursor,
-                renderer: &Renderer,
-            ) -> mouse::Interaction {
-                self.content
-                    .as_overlay()
-                    .mouse_interaction(layout, cursor, renderer)
-            }
-
-            fn overlay<'b>(
-                &'b mut self,
-                layout: Layout<'b>,
-                renderer: &Renderer,
-            ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
-                self.content
-                    .as_overlay_mut()
-                    .overlay(layout, renderer)
-                    .map(|content| Overlay {
-                        theme: self.theme,
-                        content,
-                    })
-                    .map(|overlay| overlay::Element::new(Box::new(overlay)))
-            }
-        }
-
-        self.content
-            .as_widget_mut()
-            .overlay(tree, layout, renderer, viewport, translation)
-            .map(|content| Overlay {
-                theme: &self.theme,
-                content,
-            })
-            .map(|overlay| overlay::Element::new(Box::new(overlay)))
     }
 }
 

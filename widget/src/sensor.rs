@@ -1,7 +1,6 @@
 //! Generate messages when content pops in and out of view.
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget;
@@ -318,23 +317,6 @@ where
             cursor,
             viewport,
             renderer,
-        )
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: core::Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: core::Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout,
-            renderer,
-            viewport,
-            translation,
         )
     }
 }

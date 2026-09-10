@@ -19,7 +19,6 @@
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
@@ -28,7 +27,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size,
-    Theme, Vector, Widget,
+    Theme, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
@@ -406,23 +405,6 @@ where
         } else {
             mouse::Interaction::default()
         }
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 

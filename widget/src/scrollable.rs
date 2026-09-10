@@ -20,12 +20,10 @@
 //! }
 //! ```
 use crate::container;
-use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::{Duration, Instant};
@@ -35,7 +33,7 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
+    Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
@@ -1222,194 +1220,6 @@ where
             },
             renderer,
         )
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let state = tree.state.downcast_ref::<State>();
-        let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
-        let visible_bounds = bounds.intersection(viewport).unwrap_or(*viewport);
-        let offset = state.translation(self.direction, bounds, content_bounds);
-
-        let overlay = self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            renderer,
-            &visible_bounds,
-            translation - offset,
-        );
-
-        let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
-            let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
-
-            Some(overlay::Element::new(Box::new(AutoScrollIcon {
-                origin,
-                vertical: scrollbars.y.is_some(),
-                horizontal: scrollbars.x.is_some(),
-                class: &self.class,
-            })))
-        } else {
-            None
-        };
-
-        match (overlay, icon) {
-            (None, None) => None,
-            (None, Some(icon)) => Some(icon),
-            (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
-                overlay::Group::with_children(vec![overlay, icon]),
-            ))),
-        }
-    }
-}
-
-struct AutoScrollIcon<'a, Class> {
-    origin: Point,
-    vertical: bool,
-    horizontal: bool,
-    class: &'a Class,
-}
-
-impl<Class> AutoScrollIcon<'_, Class> {
-    const SIZE: f32 = 40.0;
-    const DOT: f32 = Self::SIZE / 10.0;
-    const PADDING: f32 = Self::SIZE / 10.0;
-}
-
-impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for AutoScrollIcon<'_, Theme::Class<'_>>
-where
-    Renderer: text::Renderer,
-    Theme: Catalog,
-{
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(Size::new(Self::SIZE, Self::SIZE))
-            .move_to(self.origin - Vector::new(Self::SIZE, Self::SIZE) / 2.0)
-    }
-
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        _style: &renderer::Style,
-        layout: Layout<'_>,
-        _cursor: mouse::Cursor,
-    ) {
-        let bounds = layout.bounds();
-        let style = theme
-            .style(
-                self.class,
-                Status::Active {
-                    is_horizontal_scrollbar_disabled: false,
-                    is_vertical_scrollbar_disabled: false,
-                },
-            )
-            .auto_scroll;
-
-        renderer.with_layer(Rectangle::INFINITE, |renderer| {
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds,
-                    border: style.border,
-                    shadow: style.shadow,
-                    snap: false,
-                },
-                style.background,
-            );
-
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds: Rectangle::new(
-                        bounds.center() - Vector::new(Self::DOT, Self::DOT) / 2.0,
-                        Size::new(Self::DOT, Self::DOT),
-                    ),
-                    border: border::rounded(bounds.width),
-                    snap: false,
-                    ..renderer::Quad::default()
-                },
-                style.icon,
-            );
-
-            let arrow = core::Text {
-                content: String::new(),
-                bounds: bounds.size(),
-                size: Pixels::from(12),
-                line_height: text::LineHeight::Relative(1.0),
-                font: Renderer::ICON_FONT,
-                align_x: text::Alignment::Center,
-                align_y: alignment::Vertical::Center,
-                shaping: text::Shaping::Basic,
-                wrapping: text::Wrapping::None,
-                ellipsis: text::Ellipsis::None,
-                hint_factor: None,
-            };
-
-            if self.vertical {
-                renderer.fill_text(
-                    core::Text {
-                        content: Renderer::SCROLL_UP_ICON.to_string(),
-                        align_y: alignment::Vertical::Top,
-                        ..arrow
-                    },
-                    Point::new(bounds.center_x(), bounds.y + Self::PADDING),
-                    style.icon,
-                    bounds,
-                );
-
-                renderer.fill_text(
-                    core::Text {
-                        content: Renderer::SCROLL_DOWN_ICON.to_string(),
-                        align_y: alignment::Vertical::Bottom,
-                        ..arrow
-                    },
-                    Point::new(
-                        bounds.center_x(),
-                        bounds.y + bounds.height - Self::PADDING - 0.5,
-                    ),
-                    style.icon,
-                    bounds,
-                );
-            }
-
-            if self.horizontal {
-                renderer.fill_text(
-                    core::Text {
-                        content: Renderer::SCROLL_LEFT_ICON.to_string(),
-                        align_x: text::Alignment::Left,
-                        ..arrow
-                    },
-                    Point::new(bounds.x + Self::PADDING + 1.0, bounds.center_y() + 1.0),
-                    style.icon,
-                    bounds,
-                );
-
-                renderer.fill_text(
-                    core::Text {
-                        content: Renderer::SCROLL_RIGHT_ICON.to_string(),
-                        align_x: text::Alignment::Right,
-                        ..arrow
-                    },
-                    Point::new(
-                        bounds.x + bounds.width - Self::PADDING - 1.0,
-                        bounds.center_y() + 1.0,
-                    ),
-                    style.icon,
-                    bounds,
-                );
-            }
-        });
-    }
-
-    fn index(&self) -> f32 {
-        f32::MAX
     }
 }
 

@@ -1,10 +1,9 @@
 use crate::container;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{self, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size};
 use crate::pane_grid::controls::Controls;
 
 /// The title bar of a [`Pane`].
@@ -520,70 +519,5 @@ where
         } else {
             title_interaction
         }
-    }
-
-    pub(crate) fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        let mut children = layout.children();
-        let padded = children.next()?;
-
-        let mut children = padded.children();
-        let title_layout = children.next()?;
-
-        let Self {
-            content, controls, ..
-        } = self;
-
-        let mut states = tree.children.iter_mut();
-        let title_state = states.next().unwrap();
-        let controls_state = states.next().unwrap();
-
-        content
-            .as_widget_mut()
-            .overlay(title_state, title_layout, renderer, viewport, translation)
-            .or_else(move || {
-                controls.as_mut().and_then(|controls| {
-                    let controls_layout = children.next()?;
-
-                    if title_layout.bounds().width + controls_layout.bounds().width
-                        > padded.bounds().width
-                    {
-                        if let Some(compact) = controls.compact.as_mut() {
-                            let compact_state = states.next().unwrap();
-                            let compact_layout = children.next()?;
-
-                            compact.as_widget_mut().overlay(
-                                compact_state,
-                                compact_layout,
-                                renderer,
-                                viewport,
-                                translation,
-                            )
-                        } else {
-                            controls.full.as_widget_mut().overlay(
-                                controls_state,
-                                controls_layout,
-                                renderer,
-                                viewport,
-                                translation,
-                            )
-                        }
-                    } else {
-                        controls.full.as_widget_mut().overlay(
-                            controls_state,
-                            controls_layout,
-                            renderer,
-                            viewport,
-                            translation,
-                        )
-                    }
-                })
-            })
     }
 }

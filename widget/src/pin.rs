@@ -21,11 +21,10 @@
 //! ```
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    self, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
+    self, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Widget,
 };
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
@@ -226,23 +225,6 @@ where
                 &clipped_viewport,
             );
         }
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            tree,
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 

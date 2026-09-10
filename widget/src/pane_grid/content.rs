@@ -1,10 +1,9 @@
 use crate::container;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{self, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Element, Event, Layout, Point, Rectangle, Shell, Size};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
@@ -323,49 +322,6 @@ where
             .as_widget()
             .mouse_interaction(&tree.children[0], body_layout, cursor, viewport, renderer)
             .max(title_bar_interaction)
-    }
-
-    pub(crate) fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        if let Some(title_bar) = self.title_bar.as_mut() {
-            let mut children = layout.children();
-            let title_bar_layout = children.next()?;
-
-            let mut states = tree.children.iter_mut();
-            let body_state = states.next().unwrap();
-            let title_bar_state = states.next().unwrap();
-
-            match title_bar.overlay(
-                title_bar_state,
-                title_bar_layout,
-                renderer,
-                viewport,
-                translation,
-            ) {
-                Some(overlay) => Some(overlay),
-                None => self.body.as_widget_mut().overlay(
-                    body_state,
-                    children.next()?,
-                    renderer,
-                    viewport,
-                    translation,
-                ),
-            }
-        } else {
-            self.body.as_widget_mut().overlay(
-                &mut tree.children[0],
-                layout,
-                renderer,
-                viewport,
-                translation,
-            )
-        }
     }
 }
 

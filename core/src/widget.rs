@@ -12,9 +12,8 @@ pub use tree::Tree;
 
 use crate::layout::{self, Layout};
 use crate::mouse;
-use crate::overlay;
 use crate::renderer;
-use crate::{Event, Length, Rectangle, Shell, Size, Vector};
+use crate::{Event, Length, Rectangle, Shell, Size};
 
 /// A component that displays information and allows interaction.
 ///
@@ -120,18 +119,6 @@ where
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         mouse::Interaction::None
-    }
-
-    /// Returns the overlay of the [`Widget`], if there is any.
-    fn overlay<'a>(
-        &'a mut self,
-        _tree: &'a mut Tree,
-        _layout: Layout<'a>,
-        _renderer: &Renderer,
-        _viewport: &Rectangle,
-        _translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        None
     }
 
     /// Returns whether the [`Widget`] is [`Void`].

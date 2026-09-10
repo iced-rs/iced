@@ -609,20 +609,6 @@ pub mod system {
     pub use crate::runtime::system::{Information, information};
 }
 
-pub mod overlay {
-    //! Display interactive elements on top of other widgets.
-
-    /// A generic overlay.
-    ///
-    /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
-    ///
-    /// [`overlay::Element`]: crate::core::overlay::Element
-    pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
-        crate::core::overlay::Element<'a, Message, Theme, Renderer>;
-
-    pub use iced_widget::overlay::*;
-}
-
 pub mod touch {
     //! Listen and react to touch events.
     pub use crate::core::touch::{Event, Finger};

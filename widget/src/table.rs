@@ -3,7 +3,6 @@ use crate::core;
 use crate::core::alignment;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
@@ -568,24 +567,6 @@ where
             cell.as_widget_mut()
                 .operate(state, layout, renderer, operation);
         }
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: core::Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        overlay::from_children(
-            &mut self.cells,
-            tree,
-            layout,
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 

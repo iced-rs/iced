@@ -4,12 +4,11 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use crate::core::animation::{Animation, Float};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Operation, Tree, tree};
-use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Widget};
 use crate::space;
 
 /// The logic of a [`Transition`].
@@ -343,23 +342,6 @@ where
         self.element
             .as_widget_mut()
             .operate(&mut tree.children[0], layout, renderer, operation);
-    }
-
-    fn overlay<'a>(
-        &'a mut self,
-        tree: &'a mut Tree,
-        layout: Layout<'a>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.element.as_widget_mut().overlay(
-            &mut tree.children[0],
-            self::layout(layout, &self.new_layout),
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 

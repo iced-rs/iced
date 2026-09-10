@@ -24,14 +24,13 @@ use crate::core::border::{self, Border};
 use crate::core::gradient::{self, Gradient};
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
     self, Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell,
-    Size, Theme, Vector, Widget, color,
+    Size, Theme, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.
@@ -331,23 +330,6 @@ where
                 },
             );
         }
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            tree,
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 

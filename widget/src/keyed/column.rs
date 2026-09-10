@@ -1,13 +1,11 @@
 //! Keyed columns distribute content vertically while keeping continuity.
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
-    Widget,
+    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Widget,
 };
 
 /// A container that distributes its contents vertically while keeping continuity.
@@ -335,24 +333,6 @@ where
                 .as_widget()
                 .draw(state, renderer, theme, style, layout, cursor, viewport);
         }
-    }
-
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
-        layout: Layout<'b>,
-        renderer: &Renderer,
-        viewport: &Rectangle,
-        translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        overlay::from_children(
-            &mut self.children,
-            tree,
-            layout,
-            renderer,
-            viewport,
-            translation,
-        )
     }
 }
 
