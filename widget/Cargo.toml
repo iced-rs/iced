@@ -45,3 +45,7 @@ pulldown-cmark.optional = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
+
+[dev-dependencies]
+iced_renderer = { workspace = true, features = ["tiny-skia", "x11", "wayland"] }
+iced_test.workspace = true

@@ -115,7 +115,6 @@ image.optional = true
 criterion = "0.5"
 iced_wgpu.workspace = true
 iced_renderer.workspace = true
-iced_test.workspace = true
 
 iced.workspace = true
 iced.features = ["advanced"]

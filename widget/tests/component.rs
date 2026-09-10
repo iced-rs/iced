@@ -1,7 +1,9 @@
 //! Tests for [`Component`]s with overlays.
-use iced::widget::{Component, button, component, tooltip};
-use iced::{Element, Event, Point};
 use iced_test::Simulator;
+use iced_test::simulator;
+use iced_widget::core::{self, Element, Point, Size, mouse};
+use iced_widget::{Component, Renderer, Theme, button, component, tooltip};
+
 use std::time::Duration;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -10,7 +12,7 @@ enum Message {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-enum InnerEvent {
+enum Event {
     Pressed,
 }
 
@@ -19,20 +21,15 @@ struct WithTooltip;
 
 impl<'a> Component<'a, Message> for WithTooltip {
     type State = ();
-    type Event = InnerEvent;
+    type Event = Event;
 
-    fn update(
-        &self,
-        _state: &mut Self::State,
-        event: Self::Event,
-        _renderer: &iced::Renderer,
-    ) -> Option<Message> {
+    fn update(&self, _state: &mut (), event: Event, _renderer: &Renderer) -> Option<Message> {
         (event == Self::Event::Pressed).then_some(Message::Pressed)
     }
 
-    fn view(&self, _state: &Self::State) -> Element<'a, Self::Event> {
+    fn view(&self, _state: &()) -> Element<'a, Self::Event, Theme, Renderer> {
         tooltip(
-            button("Press").on_press(Self::Event::Pressed),
+            button("Press").on_press(Event::Pressed),
             "Hover me",
             tooltip::Position::Top,
         )
@@ -44,13 +41,12 @@ impl<'a> Component<'a, Message> for WithTooltip {
 #[test]
 fn component_with_overlay() {
     let component = component(WithTooltip);
-
     let mut simulator = Simulator::new(component);
 
     // Move the cursor over the button: the tooltip opens
     simulator.point_at(Point::new(10.0, 10.0));
 
-    let _ = simulator.simulate([Event::Mouse(iced::mouse::Event::CursorMoved {
+    let _ = simulator.simulate([core::Event::Mouse(mouse::Event::CursorMoved {
         position: Point::new(10.0, 10.0),
     })]);
 
@@ -58,16 +54,11 @@ fn component_with_overlay() {
     let found = simulator
         .find("Hover me")
         .expect("tooltip overlay should be present");
-    assert_ne!(found.bounds().size(), iced::Size::ZERO);
+    assert_ne!(found.bounds().size(), Size::ZERO);
 
     // The tooltip does not block the button: clicking it still forwards the
     // component's message
-    let _ = simulator.simulate([
-        Event::Mouse(iced::mouse::Event::ButtonPressed(iced::mouse::Button::Left)),
-        Event::Mouse(iced::mouse::Event::ButtonReleased(
-            iced::mouse::Button::Left,
-        )),
-    ]);
+    let _ = simulator.simulate(simulator::click());
 
     assert_eq!(
         simulator.into_messages().collect::<Vec<_>>(),
