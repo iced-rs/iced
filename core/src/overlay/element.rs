@@ -124,4 +124,8 @@ where
             .map(|overlay| overlay.map(self.mapper))
             .collect()
     }
+
+    fn index(&self) -> f32 {
+        self.content.index()
+    }
 }
