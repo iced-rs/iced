@@ -696,7 +696,7 @@ where
         _renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let internal = tree.state.downcast_mut::<Internal<T, Renderer>>();
         let is_focused = internal.editor.input.is_focused();
 
@@ -710,7 +710,7 @@ where
             } = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
             if filtered_options.is_empty() {
-                None
+                Vec::new()
             } else {
                 let bounds = layout.bounds();
 
@@ -742,15 +742,15 @@ where
                     menu = menu.text_size(size);
                 }
 
-                Some(menu.overlay(
+                vec![menu.overlay(
                     layout.position() + translation,
                     *viewport,
                     bounds.height,
                     self.menu_height,
-                ))
+                )]
             }
         } else {
-            None
+            Vec::new()
         }
     }
 

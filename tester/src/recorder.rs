@@ -12,6 +12,7 @@ use crate::core::{
 use crate::test::Selector;
 use crate::test::instruction::{Interaction, Mouse, Target};
 use crate::test::selector;
+use std::cell::Cell;
 
 pub fn recorder<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -41,8 +42,8 @@ impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
 }
 
 struct State {
-    last_hovered: Option<Rectangle>,
-    last_hovered_overlay: Option<Rectangle>,
+    last_hovered: Cell<Option<Rectangle>>,
+    last_hovered_overlay: Cell<Option<Rectangle>>,
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -57,8 +58,8 @@ where
 
     fn state(&self) -> tree::State {
         tree::State::new(State {
-            last_hovered: None,
-            last_hovered_overlay: None,
+            last_hovered: Cell::new(None),
+            last_hovered_overlay: Cell::new(None),
         })
     }
 
@@ -87,14 +88,14 @@ where
         if !self.has_overlay
             && let Some(on_record) = &self.on_record
         {
-            let state = tree.state.downcast_mut::<State>();
+            let state = tree.state.downcast_ref::<State>();
 
             record(
                 event,
                 cursor,
                 shell,
                 layout.bounds(),
-                &mut state.last_hovered,
+                &state.last_hovered,
                 on_record,
                 |operation| {
                     self.content.as_widget_mut().operate(
@@ -151,14 +152,14 @@ where
 
         let state = tree.state.downcast_ref::<State>();
 
-        let Some(last_hovered) = &state.last_hovered else {
+        let Some(last_hovered) = state.last_hovered.get() else {
             return;
         };
 
         renderer.with_layer(*viewport, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
-                    bounds: *last_hovered,
+                    bounds: last_hovered,
                     ..renderer::Quad::default()
                 },
                 highlight(theme).scale_alpha(0.7),
@@ -202,30 +203,34 @@ where
         renderer: &Renderer,
         _viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.has_overlay = false;
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
+        let raw = self.content.as_widget_mut().overlay(
+            &mut tree.children[0],
+            layout,
+            renderer,
+            &layout.bounds(),
+            translation,
+        );
 
-        self.content
-            .as_widget_mut()
-            .overlay(
-                &mut tree.children[0],
-                layout,
-                renderer,
-                &layout.bounds(),
-                translation,
-            )
+        if raw.is_empty() {
+            self.has_overlay = false;
+            return Vec::new();
+        }
+
+        self.has_overlay = true;
+
+        raw.into_iter()
             .map(|raw| {
-                self.has_overlay = true;
-
-                let state = tree.state.downcast_mut::<State>();
+                let state = tree.state.downcast_ref::<State>();
 
                 overlay::Element::new(Box::new(Overlay {
                     raw,
                     bounds: layout.bounds(),
-                    last_hovered: &mut state.last_hovered_overlay,
+                    last_hovered: &state.last_hovered_overlay,
                     on_record: self.on_record.as_deref(),
                 }))
             })
+            .collect()
     }
 }
 
@@ -244,7 +249,7 @@ where
 struct Overlay<'a, Message, Theme, Renderer> {
     raw: overlay::Element<'a, Message, Theme, Renderer>,
     bounds: Rectangle,
-    last_hovered: &'a mut Option<Rectangle>,
+    last_hovered: &'a Cell<Option<Rectangle>>,
     on_record: Option<&'a dyn Fn(Interaction) -> Message>,
 }
 
@@ -270,14 +275,14 @@ where
             .as_overlay()
             .draw(renderer, theme, style, layout, cursor);
 
-        let Some(last_hovered) = &self.last_hovered else {
+        let Some(last_hovered) = self.last_hovered.get() else {
             return;
         };
 
         renderer.with_layer(self.bounds, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
-                    bounds: *last_hovered,
+                    bounds: last_hovered,
                     ..renderer::Quad::default()
                 },
                 highlight(theme).scale_alpha(0.7),
@@ -344,18 +349,26 @@ where
         &'b mut self,
         layout: Layout<'b>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.raw
-            .as_overlay_mut()
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
+        let Self {
+            raw,
+            bounds,
+            last_hovered,
+            on_record,
+        } = self;
+
+        raw.as_overlay_mut()
             .overlay(layout, renderer)
+            .into_iter()
             .map(|raw| {
                 overlay::Element::new(Box::new(Overlay {
                     raw,
-                    bounds: self.bounds,
-                    last_hovered: self.last_hovered,
-                    on_record: self.on_record,
+                    bounds: *bounds,
+                    last_hovered,
+                    on_record: *on_record,
                 }))
             })
+            .collect()
     }
 
     fn index(&self) -> f32 {
@@ -368,7 +381,7 @@ fn record<Message>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     bounds: Rectangle,
-    last_hovered: &mut Option<Rectangle>,
+    last_hovered: &Cell<Option<Rectangle>>,
     on_record: impl Fn(Interaction) -> Message,
     operate: impl FnMut(&mut dyn widget::Operation),
 ) {
@@ -419,9 +432,9 @@ fn record<Message>(
         find_text(position + (bounds.position() - Point::ORIGIN), operate)
     {
         *target = Target::Text(content);
-        *last_hovered = visible_bounds;
+        last_hovered.set(visible_bounds);
     } else {
-        *last_hovered = None;
+        last_hovered.set(None);
     }
 
     shell.publish(on_record(interaction));

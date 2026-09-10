@@ -294,7 +294,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
 
         let mut children = tree.children.iter_mut();
@@ -324,14 +324,7 @@ where
             None
         };
 
-        if content.is_some() || tooltip.is_some() {
-            Some(
-                overlay::Group::with_children(content.into_iter().chain(tooltip).collect())
-                    .overlay(),
-            )
-        } else {
-            None
-        }
+        content.into_iter().chain(tooltip).collect()
     }
 
     fn operate(

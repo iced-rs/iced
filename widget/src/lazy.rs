@@ -199,7 +199,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let current = tree
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
