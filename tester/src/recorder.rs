@@ -12,6 +12,7 @@ use crate::core::{
 use crate::test::Selector;
 use crate::test::instruction::{Interaction, Mouse, Target};
 use crate::test::selector;
+
 use std::cell::Cell;
 
 pub fn recorder<'a, Message, Theme, Renderer>(
@@ -204,24 +205,21 @@ where
         _viewport: &Rectangle,
         translation: Vector,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        let raw = self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout,
-            renderer,
-            &layout.bounds(),
-            translation,
-        );
+        self.has_overlay = false;
 
-        if raw.is_empty() {
-            self.has_overlay = false;
-            return Vec::new();
-        }
-
-        self.has_overlay = true;
-
-        raw.into_iter()
+        self.content
+            .as_widget_mut()
+            .overlay(
+                &mut tree.children[0],
+                layout,
+                renderer,
+                &layout.bounds(),
+                translation,
+            )
+            .into_iter()
             .map(|raw| {
                 let state = tree.state.downcast_ref::<State>();
+                self.has_overlay = true;
 
                 overlay::Element::new(Box::new(Overlay {
                     raw,

@@ -443,23 +443,19 @@ where
             translation,
         );
 
-        if !overlays.is_empty() {
-            self.has_overlay = true;
-        }
+        self.has_overlay = !overlays.is_empty();
 
-        let component = &self.component;
         let internal = tree
             .state
             .downcast_ref::<RefCell<Internal<C::State, C::Event>>>();
-        let is_outdated = &self.is_outdated;
 
         overlays
             .into_iter()
             .map(|raw| {
                 overlay::Element::new(Box::new(Overlay {
-                    component,
+                    component: &self.component,
                     internal,
-                    is_outdated,
+                    is_outdated: &self.is_outdated,
                     raw,
                 }))
             })

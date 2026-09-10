@@ -248,15 +248,17 @@ where
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    let overlays = self.root.as_widget_mut().overlay(
-                        &mut self.state,
-                        Layout::new(&self.base),
-                        renderer,
-                        &viewport,
-                        Vector::ZERO,
-                    );
+                    maybe_overlay = {
+                        let overlay = self.root.as_widget_mut().overlay(
+                            &mut self.state,
+                            Layout::new(&self.base),
+                            renderer,
+                            &viewport,
+                            Vector::ZERO,
+                        );
 
-                    maybe_overlay = (!overlays.is_empty()).then(|| overlay::Nested::new(overlays));
+                        (!overlay.is_empty()).then(|| overlay::Nested::new(overlay))
+                    };
 
                     if maybe_overlay.is_none() {
                         event_statuses.resize(events.len(), event::Status::Ignored);
