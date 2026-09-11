@@ -99,10 +99,153 @@ impl Text {
             Text::Cached {
                 bounds,
                 clip_bounds,
+                align_y,
+                line_height,
                 ..
-            } => bounds.intersection(clip_bounds),
+            } => {
+                let height = bounds.height.max(f32::from(*line_height));
+                let y = match align_y {
+                    alignment::Vertical::Top => bounds.y,
+                    alignment::Vertical::Center => bounds.y - height / 2.0,
+                    alignment::Vertical::Bottom => bounds.y - height,
+                };
+
+                Rectangle::new(Point::new(bounds.x, y), Size::new(bounds.width, height))
+                    .expand(1.0)
+                    .intersection(clip_bounds)
+            }
             Text::Raw { raw, .. } => Some(raw.clip_bounds),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::text::{LineHeight, Paragraph as _, Wrapping};
+    use crate::core::{Color, Pixels};
+
+    fn viewport() -> Rectangle {
+        Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 1000.0,
+            height: 1000.0,
+        }
+    }
+
+    #[test]
+    fn cached_vertically_centered_visible_bounds_cover_glyphs_around_anchor() {
+        // Direct `fill_text` calls store cached text at the anchor point.
+        // The tiny-skia text pipeline then applies vertical cached text
+        // alignment while drawing, so damage bounds must include that area.
+        let anchor_y = 100.0;
+        let line_height = 20.0;
+
+        let text = Text::Cached {
+            content: "Red (red)".to_string(),
+            bounds: Rectangle {
+                x: 10.0,
+                y: anchor_y,
+                width: 200.0,
+                height: line_height,
+            },
+            color: Color::BLACK,
+            size: Pixels(16.0),
+            line_height: Pixels(line_height),
+            font: Font::DEFAULT,
+            align_x: Alignment::Default,
+            align_y: alignment::Vertical::Center,
+            shaping: Shaping::Basic,
+            wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
+            clip_bounds: viewport(),
+        };
+
+        let bounds = text.visible_bounds().expect("visible bounds");
+
+        assert!(
+            bounds.y < anchor_y,
+            "top edge {} should sit above the anchor {anchor_y}",
+            bounds.y
+        );
+        assert!(
+            bounds.y + bounds.height > anchor_y,
+            "bottom edge {} should sit below the anchor {anchor_y}",
+            bounds.y + bounds.height
+        );
+        assert!(bounds.y <= anchor_y - line_height / 2.0);
+        assert!(bounds.y + bounds.height >= anchor_y + line_height / 2.0);
+    }
+
+    #[test]
+    fn cached_top_aligned_visible_bounds_are_essentially_unchanged() {
+        let text = Text::Cached {
+            content: "x".to_string(),
+            bounds: Rectangle {
+                x: 10.0,
+                y: 50.0,
+                width: 100.0,
+                height: 20.0,
+            },
+            color: Color::BLACK,
+            size: Pixels(16.0),
+            line_height: Pixels(20.0),
+            font: Font::DEFAULT,
+            align_x: Alignment::Left,
+            align_y: alignment::Vertical::Top,
+            shaping: Shaping::Basic,
+            wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
+            clip_bounds: viewport(),
+        };
+
+        let bounds = text.visible_bounds().expect("visible bounds");
+        assert!((bounds.x - 9.0).abs() < 0.001, "x was {}", bounds.x);
+        assert!((bounds.y - 49.0).abs() < 0.001, "y was {}", bounds.y);
+    }
+
+    #[test]
+    fn paragraph_visible_bounds_do_not_apply_alignment_twice() {
+        let layout_bounds = Rectangle {
+            x: 10.0,
+            y: 50.0,
+            width: 400.0,
+            height: 80.0,
+        };
+
+        let paragraph = paragraph::Paragraph::with_text(crate::core::text::Text {
+            content: "Centered",
+            bounds: layout_bounds.size(),
+            size: Pixels(16.0),
+            line_height: LineHeight::Absolute(Pixels(20.0)),
+            font: Font::DEFAULT,
+            align_x: Alignment::Center,
+            align_y: alignment::Vertical::Center,
+            shaping: Shaping::Basic,
+            wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
+            hint_factor: None,
+        });
+
+        let anchor = layout_bounds.anchor(
+            paragraph.min_bounds(),
+            paragraph.align_x(),
+            paragraph.align_y(),
+        );
+
+        let text = Text::Paragraph {
+            paragraph: paragraph.downgrade(),
+            position: anchor,
+            color: Color::BLACK,
+            clip_bounds: viewport(),
+            transformation: Transformation::IDENTITY,
+        };
+
+        let bounds = text.visible_bounds().expect("visible bounds");
+
+        assert!((bounds.x - anchor.x).abs() < 0.001, "x was {}", bounds.x);
+        assert!((bounds.y - anchor.y).abs() < 0.001, "y was {}", bounds.y);
     }
 }
 
