@@ -155,13 +155,12 @@ impl Content {
         // last item (or its last bullet, when it is a list) to the
         // end.
         let input_start = self.window;
-        let input = {
-            let tail = &self.source[input_start..];
-            if tail.trim_end().ends_with('|') {
-                tail.trim_end().trim_end_matches('|')
-            } else {
-                tail
-            }
+        let tail = &self.source[input_start..];
+        let trimmed = tail.trim_end();
+        let input = if trimmed.ends_with('|') {
+            trimmed.trim_end_matches('|')
+        } else {
+            tail
         };
 
         // Pop the last item and the items whose source falls within
@@ -185,25 +184,23 @@ impl Content {
         }
 
         // Re-parse the last item and the new text
-        let mut items: Vec<(Item, &str, HashSet<String>)> =
+        let mut items: Vec<(Item, usize, HashSet<String>)> =
             parse_with(&mut self.state, input).collect();
 
         // We only re-parse the last bullet of a list, so merge the
         // re-parsed list into the old one, keeping the bullets that
         // were already parsed.
-        let merged = matches!(last, Some(Item::List { .. }))
-            && matches!(items.first(), Some((Item::List { .. }, _, _)));
-
+        let mut merged = false;
         if let Some(Item::List { start, bullets, .. }) = last
             && let Some((first_item, _, _)) = items.first_mut()
             && let Item::List { bullets: new, .. } = first_item
         {
-            let mut bullets = bullets;
-
             // The last bullet of the old list was re-parsed
+            let mut bullets = bullets;
             let _ = bullets.pop();
-            bullets.extend(std::mem::take(new));
+            bullets.extend(mem::take(new));
             *first_item = Item::List { start, bullets };
+            merged = true;
         }
 
         if items.is_empty() {
@@ -216,41 +213,39 @@ impl Content {
         } else {
             // Remember the start of the source of each re-parsed
             // item.
-            let base = input.as_ptr() as usize;
-            let rel_starts: Vec<usize> = items
+            let starts: Vec<usize> = items
                 .iter()
-                .map(|(_, source, _)| source.as_ptr() as usize - base)
+                .map(|(_, start, _)| input_start + *start)
                 .collect();
 
-            let k = items.len();
-            let starts_abs: Vec<usize> = (0..k).map(|i| input_start + rel_starts[i]).collect();
-
-            for (i, (item, _source, broken_links)) in items.into_iter().enumerate() {
-                let start = starts_abs[i];
+            for (i, (item, _start, broken_links)) in items.into_iter().enumerate() {
+                let start = starts[i];
+                // The merged list is anchored at the start of the
+                // whole list, unlike `start`, which is the start of
+                // its last bullet.
                 let base = if i == 0 && merged {
                     old_last_base.expect("a merged list has a base")
                 } else {
-                    starts_abs[i]
+                    start
                 };
-                let index = self.items.len();
 
                 if !broken_links.is_empty() {
+                    // The index of the item once it is pushed
+                    let index = self.items.len();
+
                     // The next item can cover this one (a paragraph
                     // and the image it contains, for instance); in
                     // that case, the source to re-parse spans both.
-                    let covers = i + 1 < k && starts_abs[i + 1] <= start;
+                    let covers = starts.get(i + 1).is_some_and(|next| *next <= start);
 
                     // The source to re-parse starts at the start of
-                    // the covered group, if any...
-                    let section_start = if covers { starts_abs[i + 1] } else { base };
-
-                    // ...and ends where the item after the group
-                    // starts, or grows with the source, if the item
-                    // is the last one.
-                    let end = if covers {
-                        (i + 2 < k).then(|| starts_abs[i + 2])
+                    // the covered group, if any, and ends where the
+                    // item after the group starts; it grows with the
+                    // source while the group is the last one.
+                    let (section_start, end) = if covers {
+                        (starts[i + 1], starts.get(i + 2).copied())
                     } else {
-                        (i + 1 < k).then(|| starts_abs[i + 1])
+                        (base, starts.get(i + 1).copied())
                     };
 
                     // A bullet that was not re-parsed can have broken
@@ -273,8 +268,11 @@ impl Content {
                             // paragraph it belongs to, for instance);
                             // remember the index of the one this
                             // section refers to.
-                            let item_index = (0..i)
-                                .filter(|&j| input_start + rel_starts[j] >= section_start)
+                            let item_index = starts
+                                .iter()
+                                .take(i)
+                                .copied()
+                                .filter(|start| *start >= section_start)
                                 .count();
                             let _ = entry.insert(Section {
                                 start: section_start,
@@ -295,100 +293,117 @@ impl Content {
             self.window = input_start + self.state.window.unwrap_or(input.len());
         }
 
-        // A section whose item is not the last one anymore has a
-        // fixed source range: it ends where the next item starts
-        if !self.incomplete.is_empty() {
-            for (index, section) in self.incomplete.iter_mut() {
-                if section.end.is_none() && *index + 1 < self.items.len() {
-                    // The next item can cover the section's item
-                    // (a paragraph and the image it contains), so the
-                    // end is the first start that is strictly after
-                    // the section's start
-                    section.end = self.starts[*index + 1..]
-                        .iter()
-                        .copied()
-                        .find(|end| *end > section.start);
-                }
+        // The sections whose item is not the last one anymore have
+        // a fixed source range
+        self.fix_section_ends();
+
+        // The sections whose broken links became resolvable, or
+        // whose references changed, are re-parsed
+        self.resolve_sections();
+    }
+
+    /// Ends the sections whose item is not the last one anymore:
+    /// their source range is now fixed, and it ends where the next
+    /// item starts.
+    fn fix_section_ends(&mut self) {
+        if self.incomplete.is_empty() {
+            return;
+        }
+
+        for (index, section) in self.incomplete.iter_mut() {
+            if section.end.is_none() && *index + 1 < self.items.len() {
+                // The next item can cover the section's item (a
+                // paragraph and the image it contains), so the end
+                // is the first start that is strictly after the
+                // section's start
+                section.end = self.starts[*index + 1..]
+                    .iter()
+                    .copied()
+                    .find(|end| *end > section.start);
             }
         }
+    }
 
-        // Re-parse incomplete sections if a reference becomes
-        // available or changes
-        if !self.incomplete.is_empty() {
-            self.incomplete.retain(|index, section| {
-                if self.items.len() <= *index {
-                    return false;
+    /// Re-parses the sections whose broken links became resolvable,
+    /// or whose references changed destination; the sections that
+    /// are left with nothing to watch are dropped.
+    fn resolve_sections(&mut self) {
+        if self.incomplete.is_empty() {
+            return;
+        }
+
+        self.incomplete.retain(|index, section| {
+            if self.items.len() <= *index {
+                // The section's item is gone
+                return false;
+            }
+
+            // A link becomes resolvable...
+            let mut newly_resolved = Vec::new();
+            section.broken_links.retain(|link| {
+                if self.state.references.contains_key(link) {
+                    newly_resolved.push(link.clone());
+                    false
+                } else {
+                    true
                 }
+            });
 
-                // A link becomes resolvable...
-                let mut newly_resolved = Vec::new();
-                section.broken_links.retain(|link| {
-                    if self.state.references.contains_key(link) {
-                        newly_resolved.push(link.clone());
-                        false
-                    } else {
-                        true
-                    }
+            // ...or the destination of a resolved reference changes
+            let needs_reparse = !newly_resolved.is_empty()
+                || section.references.iter().any(|(link, dest)| {
+                    self.state
+                        .references
+                        .get(link)
+                        .is_some_and(|new_dest| new_dest != dest)
                 });
 
-                // ...or the destination of a resolved reference
-                // changes
-                let mut needs_reparse = !newly_resolved.is_empty();
-                for (link, dest) in &section.references {
-                    if let Some(new_dest) = self.state.references.get(link)
-                        && new_dest != dest
-                    {
-                        needs_reparse = true;
-                    }
-                }
+            if needs_reparse {
+                let mut state = State {
+                    window: None,
+                    references: self.state.references.clone(),
+                    growing_refs: HashSet::new(),
+                    images: HashSet::new(),
+                    #[cfg(feature = "highlighter")]
+                    parser: None,
+                };
 
-                if needs_reparse {
-                    let mut state = State {
-                        window: None,
-                        references: self.state.references.clone(),
-                        growing_refs: HashSet::new(),
-                        images: HashSet::new(),
-                        #[cfg(feature = "highlighter")]
-                        parser: None,
-                    };
+                let end = section.end.unwrap_or(self.source.len());
+                let source = &self.source[section.start..end];
 
-                    let end = section.end.unwrap_or(self.source.len());
-                    let source = &self.source[section.start..end];
+                if let Some((item, _start, broken_links)) =
+                    parse_with(&mut state, source).nth(section.item_index)
+                {
+                    self.items[*index] = item;
 
-                    if let Some((item, _source, broken_links)) =
-                        parse_with(&mut state, source).nth(section.item_index)
-                    {
-                        self.items[*index] = item;
-
-                        // Track the references that were resolved by
-                        // the re-parse, so that a later change of
-                        // their destination triggers a new re-parse
-                        for link in &newly_resolved {
-                            if let Some(dest) = self.state.references.get(link)
-                                && !broken_links.contains(link)
-                            {
-                                let _ = section.references.insert(link.clone(), dest.clone());
-                            }
-                        }
-
-                        section.broken_links = broken_links;
-                        section
-                            .references
-                            .retain(|link, _| !section.broken_links.contains(link));
-                        for (link, dest) in &mut section.references {
-                            if let Some(new_dest) = self.state.references.get(link) {
-                                *dest = new_dest.clone();
-                            }
+                    // Track the references that were resolved by the
+                    // re-parse, so that a later change of their
+                    // destination triggers a new re-parse
+                    for link in newly_resolved {
+                        if let Some(dest) = self.state.references.get(&link)
+                            && !broken_links.contains(&link)
+                        {
+                            let _ = section.references.insert(link, dest.to_owned());
                         }
                     }
 
-                    self.state.images.extend(state.images.drain());
-                    drop(state);
+                    section.broken_links = broken_links;
+                    section
+                        .references
+                        .retain(|link, _| !section.broken_links.contains(link));
+                    for (link, dest) in &mut section.references {
+                        if let Some(new_dest) = self.state.references.get(link) {
+                            *dest = new_dest.clone();
+                        }
+                    }
                 }
 
-                !section.broken_links.is_empty() || !section.references.is_empty()
-            });
-        }
+                self.state.images.extend(state.images);
+            }
+
+            // The section is kept while something is left to watch
+            !section.broken_links.is_empty() || !section.references.is_empty()
+        });
     }
 
     /// Returns the Markdown items, ready to be rendered.
@@ -764,7 +779,7 @@ impl Bullet {
 /// }
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
-    parse_with(State::default(), markdown).map(|(item, _source, _broken_links)| item)
+    parse_with(State::default(), markdown).map(|(item, _start, _broken_links)| item)
 }
 
 #[derive(Debug, Default)]
@@ -789,7 +804,7 @@ struct State {
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
-) -> impl Iterator<Item = (Item, &'a str, HashSet<String>)> + 'a {
+) -> impl Iterator<Item = (Item, usize, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
         Quote(Vec<Item>),
@@ -916,7 +931,7 @@ fn parse_with<'a>(
                 }
             }
 
-            Some((item, &markdown[source.start..source.end], links))
+            Some((item, source.start, links))
         }
     };
 
