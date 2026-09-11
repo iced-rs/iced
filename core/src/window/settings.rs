@@ -98,6 +98,13 @@ pub struct Settings {
     ///
     /// By default this is enabled.
     pub exit_on_close_request: bool,
+
+    /// Whether this window should be blank, i.e. not show a user interface. If set, `view` will
+    /// never get called for this window. Window events will, however, still be emitted.
+    ///
+    /// This can be useful if you're embedding external content into this window and you don't want
+    /// `iced` to draw over it.
+    pub blank: bool,
 }
 
 impl Default for Settings {
@@ -120,6 +127,7 @@ impl Default for Settings {
             icon: None,
             exit_on_close_request: true,
             platform_specific: PlatformSpecific::default(),
+            blank: false,
         }
     }
 }
