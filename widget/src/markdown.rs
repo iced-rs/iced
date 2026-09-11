@@ -218,6 +218,34 @@ impl Content {
             };
             input_start = base;
             items = parse_with(&mut self.state, input).collect();
+        } else if let Some((Item::List { .. }, 0, _)) = items.first()
+            && let Some(Item::List { .. }) = self.items.last()
+            && let Some(base) = self.base.last().copied()
+        {
+            // The re-parse produced a list that starts where the old
+            // last item (a lone paragraph, for instance) used to be,
+            // right after a previous list: the paragraph grew into a
+            // list item that continues the previous list. Re-parse
+            // from the start of the previous list, so that the list
+            // is not split in two; the parser decides whether the
+            // two regions are one list.
+            let tail = &self.source[base..];
+            let trimmed = tail.trim_end();
+            input = if trimmed.ends_with('|') {
+                trimmed.trim_end_matches('|')
+            } else {
+                tail
+            };
+            let reparsed: Vec<(Item, usize, HashSet<String>)> =
+                parse_with(&mut self.state, input).collect();
+            if let Some((Item::List { .. }, _, _)) = reparsed.first() {
+                input_start = base;
+                items = reparsed;
+                // The previous list is covered by the re-parse
+                let _ = self.items.pop();
+                let _ = self.starts.pop();
+                let _ = self.base.pop();
+            }
         }
 
         if items.is_empty() {
