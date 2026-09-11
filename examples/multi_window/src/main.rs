@@ -1,7 +1,7 @@
 use iced::widget::{
     button, center, center_x, column, container, operation, scrollable, space, text, text_input,
 };
-use iced::window;
+use iced::window::{self, MonitorIndex, MonitorList};
 use iced::{Center, Element, Fill, Function, Subscription, Task, Theme, Vector};
 
 use std::collections::BTreeMap;
@@ -25,16 +25,21 @@ struct Window {
     scale_input: String,
     current_scale: f32,
     theme: Theme,
+    monitors: Option<MonitorList>,
+    selected_monitor: Option<MonitorIndex>,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    OpenWindow,
+    OpenWindow(Option<MonitorIndex>),
     WindowOpened(window::Id),
     WindowClosed(window::Id),
     ScaleInputChanged(window::Id, String),
     ScaleChanged(window::Id, String),
     TitleChanged(window::Id, String),
+    ListMonitors(window::Id),
+    MonitorsListed(window::Id, MonitorList),
+    MonitorSelected(window::Id, MonitorIndex),
 }
 
 impl Example {
@@ -58,20 +63,19 @@ impl Example {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::OpenWindow => {
+            Message::OpenWindow(monitor) => {
                 let Some(last_window) = self.windows.keys().last() else {
                     return Task::none();
                 };
 
                 window::position(*last_window)
-                    .then(|last_position| {
-                        let position =
-                            last_position.map_or(window::Position::Default, |last_position| {
-                                window::Position::Specific(last_position + Vector::new(20.0, 20.0))
-                            });
+                    .then(move |last_position| {
+                        let mut position = last_position.unwrap_or_default();
+                        position.position = position.position + Vector::new(20.0, 20.0);
+                        position.monitor_index = monitor.or(position.monitor_index);
 
                         let (_, open) = window::open(window::Settings {
-                            position,
+                            position: position.into(),
                             ..window::Settings::default()
                         });
 
@@ -120,6 +124,28 @@ impl Example {
 
                 Task::none()
             }
+            Message::ListMonitors(id) => {
+                if let Some(window) = self.windows.get_mut(&id) {
+                    window.monitors = None;
+                    window::list_monitors().map(Message::MonitorsListed.with(id))
+                } else {
+                    Task::none()
+                }
+            }
+            Message::MonitorsListed(id, monitors) => {
+                if let Some(window) = self.windows.get_mut(&id) {
+                    window.monitors = Some(monitors);
+                }
+
+                Task::none()
+            }
+            Message::MonitorSelected(id, index) => {
+                if let Some(window) = self.windows.get_mut(&id) {
+                    window.selected_monitor = Some(index);
+                }
+
+                Task::none()
+            }
         }
     }
 
@@ -154,6 +180,8 @@ impl Window {
             scale_input: "1.0".to_string(),
             current_scale: 1.0,
             theme: Theme::ALL[count % Theme::ALL.len()].clone(),
+            monitors: None,
+            selected_monitor: None,
         }
     }
 
@@ -172,9 +200,32 @@ impl Window {
                 .id(format!("input-{id}"))
         ];
 
-        let new_window_button = button(text("New Window")).on_press(Message::OpenWindow);
+        let monitor_select = if let Some(list) = &self.monitors {
+            let column = column(list.iter().map(|monitor| {
+                button(text(
+                    monitor.name().unwrap_or("Unknown Monitor").to_string(),
+                ))
+                .on_press_maybe(if self.selected_monitor != Some(monitor.index()) {
+                    Some(Message::MonitorSelected(id, monitor.index()))
+                } else {
+                    None
+                })
+                .into()
+            }))
+            .push(button("Refresh").on_press(Message::ListMonitors(id)))
+            .spacing(10);
 
-        let content = column![scale_input, title_input, new_window_button]
+            Element::new(column)
+        } else {
+            button("List monitors")
+                .on_press(Message::ListMonitors(id))
+                .into()
+        };
+
+        let new_window_button =
+            button(text("New Window")).on_press(Message::OpenWindow(self.selected_monitor));
+
+        let content = column![scale_input, title_input, monitor_select, new_window_button]
             .spacing(50)
             .width(Fill)
             .align_x(Center)
