@@ -154,10 +154,10 @@ impl Content {
         // The text to re-parse: from the start of the source of the
         // last item (or its last bullet, when it is a list) to the
         // end.
-        let input_start = self.window;
+        let mut input_start = self.window;
         let tail = &self.source[input_start..];
         let trimmed = tail.trim_end();
-        let input = if trimmed.ends_with('|') {
+        let mut input = if trimmed.ends_with('|') {
             trimmed.trim_end_matches('|')
         } else {
             tail
@@ -190,6 +190,7 @@ impl Content {
         // We only re-parse the last bullet of a list, so merge the
         // re-parsed list into the old one, keeping the bullets that
         // were already parsed.
+        let last_is_list = matches!(last.as_ref(), Some(Item::List { .. }));
         let mut merged = false;
         if let Some(Item::List { start, bullets, .. }) = last
             && let Some((first_item, _, _)) = items.first_mut()
@@ -201,6 +202,22 @@ impl Content {
             bullets.extend(mem::take(new));
             *first_item = Item::List { start, bullets };
             merged = true;
+        } else if last_is_list {
+            // The re-parse of the last bullet no longer produces a
+            // list (the bullet grew into a rule or a heading, for
+            // instance), so it cannot be merged into the old list:
+            // re-parse from the start of the whole list, so its
+            // source is re-parsed in full.
+            let base = old_last_base.expect("a list has a base");
+            let tail = &self.source[base..];
+            let trimmed = tail.trim_end();
+            input = if trimmed.ends_with('|') {
+                trimmed.trim_end_matches('|')
+            } else {
+                tail
+            };
+            input_start = base;
+            items = parse_with(&mut self.state, input).collect();
         }
 
         if items.is_empty() {
@@ -848,6 +865,46 @@ fn parse_with<'a>(
     #[cfg(feature = "highlighter")]
     let mut code_parser = None;
 
+    // The reference definitions that were seen before the start of
+    // the input, except the ones that are still growing (their
+    // definition is the last line of the input, and the parser must
+    // see it first, so that its destination keeps growing); they are
+    // re-injected in the input, so that the links are resolved with
+    // the global first-definition-wins semantics (like in the
+    // one-shot parse), and not with a definition that only falls
+    // within the input. The injected definitions produce no items,
+    // so only the offsets shift, by `offset`.
+    let mut offset = 0;
+    let prefixed: Option<String> = {
+        let state = state.borrow();
+        let mut references: Vec<(&String, &String)> = state
+            .references
+            .iter()
+            .filter(|(name, _)| !state.growing_refs.contains(name.as_str()))
+            .collect();
+        if references.is_empty() {
+            None
+        } else {
+            references.sort();
+            let mut prefix = String::new();
+            for (name, dest) in references {
+                prefix.push('[');
+                prefix.push_str(name);
+                prefix.push_str("]: ");
+                prefix.push_str(dest);
+                prefix.push('\n');
+            }
+            // The blank line separates the injected definitions from
+            // the input, so that the first line of the input starts a
+            // new block, and is not a lazy continuation of a
+            // definition
+            prefix.push('\n');
+            offset = prefix.len();
+            Some(format!("{prefix}{markdown}"))
+        }
+    };
+    let markdown = prefixed.as_deref().unwrap_or(markdown);
+
     let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
         markdown,
         pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
@@ -881,6 +938,12 @@ fn parse_with<'a>(
         let growing_refs = &mut state.growing_refs;
 
         for reference in parser.reference_definitions().iter() {
+            if reference.1.span.start < offset {
+                // A definition injected above; it is already in the
+                // map
+                continue;
+            }
+
             let name = reference.0.to_string();
             let dest = reference.1.dest.to_string();
 
@@ -920,7 +983,7 @@ fn parse_with<'a>(
 
             None
         } else {
-            state.window = Some(source.start);
+            state.window = Some(source.start - offset);
 
             // Attribute the broken links whose span falls within the
             // source of the item
@@ -931,417 +994,428 @@ fn parse_with<'a>(
                 }
             }
 
-            Some((item, source.start, links))
+            Some((item, source.start - offset, links))
         }
     };
 
     let parser = parser.into_offset_iter();
 
-    // We want to keep the `spans` capacity
+    // The items are collected eagerly, so that the input (with the
+    // injected reference definitions, when any) can be dropped; we
+    // want to keep the `spans` capacity
     #[allow(clippy::drain_collect)]
-    parser.filter_map(move |(event, source)| match event {
-        pulldown_cmark::Event::Start(tag) => match tag {
-            pulldown_cmark::Tag::Strong if !metadata => {
-                strong = true;
-                None
-            }
-            pulldown_cmark::Tag::Emphasis if !metadata => {
-                emphasis = true;
-                None
-            }
-            pulldown_cmark::Tag::Strikethrough if !metadata => {
-                strikethrough = true;
-                None
-            }
-            pulldown_cmark::Tag::Link { dest_url, .. } if !metadata => {
-                link = Some(dest_url.into_string());
-                None
-            }
-            pulldown_cmark::Tag::Paragraph if !metadata => {
-                paragraph_start = Some(source.start);
-                None
-            }
-            pulldown_cmark::Tag::Image {
-                dest_url, title, ..
-            } if !metadata => {
-                image = Some((dest_url.into_string(), title.into_string(), spans.len()));
-                None
-            }
-            pulldown_cmark::Tag::List(first_item) if !metadata => {
-                let prev = if spans.is_empty() {
+    let items = parser
+        .filter_map(move |(event, source)| match event {
+            pulldown_cmark::Event::Start(tag) => match tag {
+                pulldown_cmark::Tag::Strong if !metadata => {
+                    strong = true;
                     None
-                } else {
-                    produce(
-                        state.borrow_mut(),
-                        &mut stack,
-                        Item::Paragraph(Text::new(spans.drain(..).collect())),
-                        source,
-                    )
-                };
-
-                stack.push(Scope::List(List {
-                    start: first_item,
-                    bullets: Vec::new(),
-                    last_item_start: None,
-                }));
-
-                prev
-            }
-            pulldown_cmark::Tag::Item => {
-                if let Some(Scope::List(list)) = stack.last_mut() {
-                    list.last_item_start = Some(source.start);
-                    list.bullets.push(Bullet::Point { items: Vec::new() });
                 }
-
-                None
-            }
-            pulldown_cmark::Tag::BlockQuote(_kind) if !metadata => {
-                let prev = if spans.is_empty() {
+                pulldown_cmark::Tag::Emphasis if !metadata => {
+                    emphasis = true;
                     None
-                } else {
-                    produce(
-                        state.borrow_mut(),
-                        &mut stack,
-                        Item::Paragraph(Text::new(spans.drain(..).collect())),
-                        source,
-                    )
-                };
+                }
+                pulldown_cmark::Tag::Strikethrough if !metadata => {
+                    strikethrough = true;
+                    None
+                }
+                pulldown_cmark::Tag::Link { dest_url, .. } if !metadata => {
+                    link = Some(dest_url.into_string());
+                    None
+                }
+                pulldown_cmark::Tag::Paragraph if !metadata => {
+                    paragraph_start = Some(source.start - offset);
+                    None
+                }
+                pulldown_cmark::Tag::Image {
+                    dest_url, title, ..
+                } if !metadata => {
+                    image = Some((dest_url.into_string(), title.into_string(), spans.len()));
+                    None
+                }
+                pulldown_cmark::Tag::List(first_item) if !metadata => {
+                    let prev = if spans.is_empty() {
+                        None
+                    } else {
+                        produce(
+                            state.borrow_mut(),
+                            &mut stack,
+                            Item::Paragraph(Text::new(spans.drain(..).collect())),
+                            source,
+                        )
+                    };
 
-                stack.push(Scope::Quote(Vec::new()));
+                    stack.push(Scope::List(List {
+                        start: first_item,
+                        bullets: Vec::new(),
+                        last_item_start: None,
+                    }));
 
-                prev
-            }
-            pulldown_cmark::Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Fenced(language))
-                if !metadata =>
-            {
-                #[cfg(feature = "highlighter")]
+                    prev
+                }
+                pulldown_cmark::Tag::Item => {
+                    if let Some(Scope::List(list)) = stack.last_mut() {
+                        list.last_item_start = Some(source.start - offset);
+                        list.bullets.push(Bullet::Point { items: Vec::new() });
+                    }
+
+                    None
+                }
+                pulldown_cmark::Tag::BlockQuote(_kind) if !metadata => {
+                    let prev = if spans.is_empty() {
+                        None
+                    } else {
+                        produce(
+                            state.borrow_mut(),
+                            &mut stack,
+                            Item::Paragraph(Text::new(spans.drain(..).collect())),
+                            source,
+                        )
+                    };
+
+                    stack.push(Scope::Quote(Vec::new()));
+
+                    prev
+                }
+                pulldown_cmark::Tag::CodeBlock(pulldown_cmark::CodeBlockKind::Fenced(language))
+                    if !metadata =>
                 {
-                    code_parser = Some({
-                        let mut code_parser = state
-                            .borrow_mut()
-                            .parser
-                            .take()
-                            .filter(|parser| parser.language() == language.as_ref())
-                            .unwrap_or_else(|| {
-                                code::Parser::new(language.split(',').next().unwrap_or_default())
-                            });
+                    #[cfg(feature = "highlighter")]
+                    {
+                        code_parser = Some({
+                            let mut code_parser = state
+                                .borrow_mut()
+                                .parser
+                                .take()
+                                .filter(|parser| parser.language() == language.as_ref())
+                                .unwrap_or_else(|| {
+                                    code::Parser::new(
+                                        language.split(',').next().unwrap_or_default(),
+                                    )
+                                });
 
-                        code_parser.prepare();
+                            code_parser.prepare();
 
-                        code_parser
-                    });
-                }
+                            code_parser
+                        });
+                    }
 
-                code_block = true;
-                code_language = (!language.is_empty()).then(|| language.into_string());
+                    code_block = true;
+                    code_language = (!language.is_empty()).then(|| language.into_string());
 
-                if spans.is_empty() {
-                    None
-                } else {
-                    produce(
-                        state.borrow_mut(),
-                        &mut stack,
-                        Item::Paragraph(Text::new(spans.drain(..).collect())),
-                        source,
-                    )
-                }
-            }
-            pulldown_cmark::Tag::MetadataBlock(_) => {
-                metadata = true;
-                None
-            }
-            pulldown_cmark::Tag::Table(alignment) => {
-                stack.push(Scope::Table {
-                    columns: Vec::with_capacity(alignment.len()),
-                    alignment,
-                    current: Vec::new(),
-                    rows: Vec::new(),
-                });
-
-                None
-            }
-            pulldown_cmark::Tag::TableHead => {
-                strong = true;
-                None
-            }
-            pulldown_cmark::Tag::TableRow => {
-                let Scope::Table { rows, .. } = stack.last_mut()? else {
-                    return None;
-                };
-
-                rows.push(Row { cells: Vec::new() });
-                None
-            }
-            _ => None,
-        },
-        pulldown_cmark::Event::End(tag) => match tag {
-            pulldown_cmark::TagEnd::Heading(level) if !metadata => produce(
-                state.borrow_mut(),
-                &mut stack,
-                Item::Heading(level, Text::new(spans.drain(..).collect())),
-                source,
-            ),
-            pulldown_cmark::TagEnd::Strong if !metadata => {
-                strong = false;
-                None
-            }
-            pulldown_cmark::TagEnd::Emphasis if !metadata => {
-                emphasis = false;
-                None
-            }
-            pulldown_cmark::TagEnd::Strikethrough if !metadata => {
-                strikethrough = false;
-                None
-            }
-            pulldown_cmark::TagEnd::Link if !metadata => {
-                link = None;
-                None
-            }
-            pulldown_cmark::TagEnd::Paragraph if !metadata => {
-                paragraph_start = None;
-
-                if spans.is_empty() {
-                    None
-                } else {
-                    produce(
-                        state.borrow_mut(),
-                        &mut stack,
-                        Item::Paragraph(Text::new(spans.drain(..).collect())),
-                        source,
-                    )
-                }
-            }
-            pulldown_cmark::TagEnd::Item if !metadata => {
-                if spans.is_empty() {
-                    None
-                } else {
-                    produce(
-                        state.borrow_mut(),
-                        &mut stack,
-                        Item::Paragraph(Text::new(spans.drain(..).collect())),
-                        source,
-                    )
-                }
-            }
-            pulldown_cmark::TagEnd::List(_) if !metadata => {
-                let scope = stack.pop()?;
-
-                let Scope::List(list) = scope else {
-                    return None;
-                };
-
-                let last_item_start = list.last_item_start;
-                let produced = produce(
-                    state.borrow_mut(),
-                    &mut stack,
-                    Item::List {
-                        start: list.start,
-                        bullets: list.bullets,
-                    },
-                    source,
-                );
-
-                // A list is re-parsed only from the start of its last
-                // item, so that adding new items to a long list does not
-                // require re-parsing the whole list.
-                if produced.is_some()
-                    && let Some(start) = last_item_start
-                {
-                    state.borrow_mut().window = Some(start);
-                }
-
-                produced
-            }
-            pulldown_cmark::TagEnd::BlockQuote(_kind) if !metadata => {
-                let scope = stack.pop()?;
-
-                let Scope::Quote(quote) = scope else {
-                    return None;
-                };
-
-                produce(state.borrow_mut(), &mut stack, Item::Quote(quote), source)
-            }
-            pulldown_cmark::TagEnd::Image if !metadata => {
-                let (url, title, start) = image.take()?;
-                let alt = Text::new(spans.drain(start..).collect());
-
-                let state = state.borrow_mut();
-                let _ = state.images.insert(url.clone());
-
-                let produced = produce(state, &mut stack, Item::Image { url, title, alt }, source);
-
-                // A top-level image is re-parsed from the start of the
-                // line that contains it, as the rest of the line can
-                // change how the image is parsed.
-                if let Some(start) = paragraph_start.filter(|_| produced.is_some()) {
-                    state.borrow_mut().window = Some(start);
-                }
-
-                produced
-            }
-            pulldown_cmark::TagEnd::CodeBlock if !metadata => {
-                code_block = false;
-
-                #[cfg(feature = "highlighter")]
-                {
-                    state.borrow_mut().parser = code_parser.take();
-                }
-
-                produce(
-                    state.borrow_mut(),
-                    &mut stack,
-                    Item::CodeBlock {
-                        language: code_language.take(),
-                        code: mem::take(&mut code),
-                        lines: code_lines.drain(..).collect(),
-                    },
-                    source,
-                )
-            }
-            pulldown_cmark::TagEnd::MetadataBlock(_) => {
-                metadata = false;
-                None
-            }
-            pulldown_cmark::TagEnd::Table => {
-                let scope = stack.pop()?;
-
-                let Scope::Table { columns, rows, .. } = scope else {
-                    return None;
-                };
-
-                produce(
-                    state.borrow_mut(),
-                    &mut stack,
-                    Item::Table { columns, rows },
-                    source,
-                )
-            }
-            pulldown_cmark::TagEnd::TableHead => {
-                strong = false;
-                None
-            }
-            pulldown_cmark::TagEnd::TableCell => {
-                if !spans.is_empty() {
-                    let _ = produce(
-                        state.borrow_mut(),
-                        &mut stack,
-                        Item::Paragraph(Text::new(spans.drain(..).collect())),
-                        source,
-                    );
-                }
-
-                let Scope::Table {
-                    alignment,
-                    columns,
-                    rows,
-                    current,
-                } = stack.last_mut()?
-                else {
-                    return None;
-                };
-
-                if columns.len() < alignment.len() {
-                    columns.push(Column {
-                        header: std::mem::take(current),
-                        alignment: alignment[columns.len()],
-                    });
-                } else {
-                    rows.last_mut()
-                        .expect("table row")
-                        .cells
-                        .push(std::mem::take(current));
-                }
-
-                None
-            }
-            _ => None,
-        },
-        pulldown_cmark::Event::Text(text) if !metadata => {
-            if code_block {
-                code.push_str(&text);
-
-                #[cfg(feature = "highlighter")]
-                if let Some(highlighter) = &mut code_parser {
-                    for line in text.lines() {
-                        code_lines.push(Text::new(highlighter.parse_line(line).to_vec()));
+                    if spans.is_empty() {
+                        None
+                    } else {
+                        produce(
+                            state.borrow_mut(),
+                            &mut stack,
+                            Item::Paragraph(Text::new(spans.drain(..).collect())),
+                            source,
+                        )
                     }
                 }
+                pulldown_cmark::Tag::MetadataBlock(_) => {
+                    metadata = true;
+                    None
+                }
+                pulldown_cmark::Tag::Table(alignment) => {
+                    stack.push(Scope::Table {
+                        columns: Vec::with_capacity(alignment.len()),
+                        alignment,
+                        current: Vec::new(),
+                        rows: Vec::new(),
+                    });
 
-                #[cfg(not(feature = "highlighter"))]
-                for line in text.lines() {
-                    code_lines.push(Text::new(vec![Span::Code {
-                        text: line.to_owned(),
-                        code: Code::Other,
-                    }]));
+                    None
+                }
+                pulldown_cmark::Tag::TableHead => {
+                    strong = true;
+                    None
+                }
+                pulldown_cmark::Tag::TableRow => {
+                    let Scope::Table { rows, .. } = stack.last_mut()? else {
+                        return None;
+                    };
+
+                    rows.push(Row { cells: Vec::new() });
+                    None
+                }
+                _ => None,
+            },
+            pulldown_cmark::Event::End(tag) => match tag {
+                pulldown_cmark::TagEnd::Heading(level) if !metadata => produce(
+                    state.borrow_mut(),
+                    &mut stack,
+                    Item::Heading(level, Text::new(spans.drain(..).collect())),
+                    source,
+                ),
+                pulldown_cmark::TagEnd::Strong if !metadata => {
+                    strong = false;
+                    None
+                }
+                pulldown_cmark::TagEnd::Emphasis if !metadata => {
+                    emphasis = false;
+                    None
+                }
+                pulldown_cmark::TagEnd::Strikethrough if !metadata => {
+                    strikethrough = false;
+                    None
+                }
+                pulldown_cmark::TagEnd::Link if !metadata => {
+                    link = None;
+                    None
+                }
+                pulldown_cmark::TagEnd::Paragraph if !metadata => {
+                    paragraph_start = None;
+
+                    if spans.is_empty() {
+                        None
+                    } else {
+                        produce(
+                            state.borrow_mut(),
+                            &mut stack,
+                            Item::Paragraph(Text::new(spans.drain(..).collect())),
+                            source,
+                        )
+                    }
+                }
+                pulldown_cmark::TagEnd::Item if !metadata => {
+                    if spans.is_empty() {
+                        None
+                    } else {
+                        produce(
+                            state.borrow_mut(),
+                            &mut stack,
+                            Item::Paragraph(Text::new(spans.drain(..).collect())),
+                            source,
+                        )
+                    }
+                }
+                pulldown_cmark::TagEnd::List(_) if !metadata => {
+                    let scope = stack.pop()?;
+
+                    let Scope::List(list) = scope else {
+                        return None;
+                    };
+
+                    let last_item_start = list.last_item_start;
+                    let produced = produce(
+                        state.borrow_mut(),
+                        &mut stack,
+                        Item::List {
+                            start: list.start,
+                            bullets: list.bullets,
+                        },
+                        source,
+                    );
+
+                    // A list is re-parsed only from the start of its last
+                    // item, so that adding new items to a long list does not
+                    // require re-parsing the whole list.
+                    if produced.is_some()
+                        && let Some(start) = last_item_start
+                    {
+                        state.borrow_mut().window = Some(start);
+                    }
+
+                    produced
+                }
+                pulldown_cmark::TagEnd::BlockQuote(_kind) if !metadata => {
+                    let scope = stack.pop()?;
+
+                    let Scope::Quote(quote) = scope else {
+                        return None;
+                    };
+
+                    produce(state.borrow_mut(), &mut stack, Item::Quote(quote), source)
+                }
+                pulldown_cmark::TagEnd::Image if !metadata => {
+                    let (url, title, start) = image.take()?;
+                    let alt = Text::new(spans.drain(start..).collect());
+
+                    let state = state.borrow_mut();
+                    let _ = state.images.insert(url.clone());
+
+                    let produced =
+                        produce(state, &mut stack, Item::Image { url, title, alt }, source);
+
+                    // A top-level image is re-parsed from the start of the
+                    // line that contains it, as the rest of the line can
+                    // change how the image is parsed.
+                    if let Some(start) = paragraph_start.filter(|_| produced.is_some()) {
+                        state.borrow_mut().window = Some(start);
+                    }
+
+                    produced
+                }
+                pulldown_cmark::TagEnd::CodeBlock if !metadata => {
+                    code_block = false;
+
+                    #[cfg(feature = "highlighter")]
+                    {
+                        state.borrow_mut().parser = code_parser.take();
+                    }
+
+                    produce(
+                        state.borrow_mut(),
+                        &mut stack,
+                        Item::CodeBlock {
+                            language: code_language.take(),
+                            code: mem::take(&mut code),
+                            lines: code_lines.drain(..).collect(),
+                        },
+                        source,
+                    )
+                }
+                pulldown_cmark::TagEnd::MetadataBlock(_) => {
+                    metadata = false;
+                    None
+                }
+                pulldown_cmark::TagEnd::Table => {
+                    let scope = stack.pop()?;
+
+                    let Scope::Table { columns, rows, .. } = scope else {
+                        return None;
+                    };
+
+                    produce(
+                        state.borrow_mut(),
+                        &mut stack,
+                        Item::Table { columns, rows },
+                        source,
+                    )
+                }
+                pulldown_cmark::TagEnd::TableHead => {
+                    strong = false;
+                    None
+                }
+                pulldown_cmark::TagEnd::TableCell => {
+                    if !spans.is_empty() {
+                        let _ = produce(
+                            state.borrow_mut(),
+                            &mut stack,
+                            Item::Paragraph(Text::new(spans.drain(..).collect())),
+                            source,
+                        );
+                    }
+
+                    let Scope::Table {
+                        alignment,
+                        columns,
+                        rows,
+                        current,
+                    } = stack.last_mut()?
+                    else {
+                        return None;
+                    };
+
+                    if columns.len() < alignment.len() {
+                        columns.push(Column {
+                            header: std::mem::take(current),
+                            alignment: alignment[columns.len()],
+                        });
+                    } else {
+                        rows.last_mut()
+                            .expect("table row")
+                            .cells
+                            .push(std::mem::take(current));
+                    }
+
+                    None
+                }
+                _ => None,
+            },
+            pulldown_cmark::Event::Text(text) if !metadata => {
+                if code_block {
+                    code.push_str(&text);
+
+                    #[cfg(feature = "highlighter")]
+                    if let Some(highlighter) = &mut code_parser {
+                        for line in text.lines() {
+                            code_lines.push(Text::new(highlighter.parse_line(line).to_vec()));
+                        }
+                    }
+
+                    #[cfg(not(feature = "highlighter"))]
+                    for line in text.lines() {
+                        code_lines.push(Text::new(vec![Span::Code {
+                            text: line.to_owned(),
+                            code: Code::Other,
+                        }]));
+                    }
+
+                    return None;
                 }
 
-                return None;
-            }
-
-            let span = Span::Standard {
-                text: text.into_string(),
-                strong,
-                emphasis,
-                strikethrough,
-                link: link.clone(),
-                inline_code: false,
-            };
-
-            spans.push(span);
-
-            None
-        }
-        pulldown_cmark::Event::Code(code) if !metadata => {
-            let span = Span::Standard {
-                text: code.into_string(),
-                strong,
-                emphasis,
-                strikethrough,
-                link: link.clone(),
-                inline_code: true,
-            };
-
-            spans.push(span);
-            None
-        }
-        pulldown_cmark::Event::SoftBreak if !metadata => {
-            spans.push(Span::Standard {
-                text: String::from(" "),
-                strikethrough,
-                strong,
-                emphasis,
-                link: link.clone(),
-                inline_code: false,
-            });
-            None
-        }
-        pulldown_cmark::Event::HardBreak if !metadata => {
-            spans.push(Span::Standard {
-                text: String::from("\n"),
-                strikethrough,
-                strong,
-                emphasis,
-                link: link.clone(),
-                inline_code: false,
-            });
-            None
-        }
-        pulldown_cmark::Event::Rule => produce(state.borrow_mut(), &mut stack, Item::Rule, source),
-        pulldown_cmark::Event::TaskListMarker(done) => {
-            if let Some(Scope::List(list)) = stack.last_mut()
-                && let Some(item) = list.bullets.last_mut()
-                && let Bullet::Point { items } = item
-            {
-                *item = Bullet::Task {
-                    items: std::mem::take(items),
-                    done,
+                let span = Span::Standard {
+                    text: text.into_string(),
+                    strong,
+                    emphasis,
+                    strikethrough,
+                    link: link.clone(),
+                    inline_code: false,
                 };
-            }
 
-            None
-        }
-        _ => None,
-    })
+                spans.push(span);
+
+                None
+            }
+            pulldown_cmark::Event::Code(code) if !metadata => {
+                let span = Span::Standard {
+                    text: code.into_string(),
+                    strong,
+                    emphasis,
+                    strikethrough,
+                    link: link.clone(),
+                    inline_code: true,
+                };
+
+                spans.push(span);
+                None
+            }
+            pulldown_cmark::Event::SoftBreak if !metadata => {
+                spans.push(Span::Standard {
+                    text: String::from(" "),
+                    strikethrough,
+                    strong,
+                    emphasis,
+                    link: link.clone(),
+                    inline_code: false,
+                });
+                None
+            }
+            pulldown_cmark::Event::HardBreak if !metadata => {
+                spans.push(Span::Standard {
+                    text: String::from("\n"),
+                    strikethrough,
+                    strong,
+                    emphasis,
+                    link: link.clone(),
+                    inline_code: false,
+                });
+                None
+            }
+            pulldown_cmark::Event::Rule => {
+                produce(state.borrow_mut(), &mut stack, Item::Rule, source)
+            }
+            pulldown_cmark::Event::TaskListMarker(done) => {
+                if let Some(Scope::List(list)) = stack.last_mut()
+                    && let Some(item) = list.bullets.last_mut()
+                    && let Bullet::Point { items } = item
+                {
+                    *item = Bullet::Task {
+                        items: std::mem::take(items),
+                        done,
+                    };
+                }
+
+                None
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+
+    items.into_iter()
 }
 
 /// Configuration controlling Markdown rendering in [`view`].

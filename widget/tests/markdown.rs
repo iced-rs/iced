@@ -372,3 +372,34 @@ fn broken_link_in_image_alt_with_trailing_text() {
         "![alt [x][ref]](https://img.com/i.png) trailing\n\n[ref]: https://example.com\n\nafter\n";
     assert_converges(full, "broken link in an image alt, with trailing text");
 }
+
+/// A rule directly after a list item, with no blank line in between:
+/// the rule ends the list, and the incremental parse must keep both
+/// the list and the rule.
+#[test]
+fn list_then_rule_without_blank_line() {
+    let full = "[other]: https://other.com\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n\
+         [ref]: https://example.com\n\n- a\n---\n\n";
+    assert_converges(full, "list then rule without blank line");
+}
+
+/// A reference definition directly after a list line, with no blank
+/// line in between, is absorbed into the bullet (lazy continuation);
+/// the list that follows must not be lost.
+#[test]
+fn reference_then_list_without_blank_line() {
+    let full =
+        "2. two\n[ref]: https://changed.com\n\n\n- a\n| a | b |\n| - | - |\n| 1 | 2 |\n\n---\n\n";
+    assert_converges(full, "reference then list without blank line");
+}
+
+/// A reference definition absorbed into a quoted bullet (lazy
+/// continuation) embeds a link to the label it defines; that link
+/// must resolve with the one-shot semantics: the first definition of
+/// the label wins, like in CommonMark.
+#[test]
+fn absorbed_reference_resolves_to_first_definition() {
+    let full = "[ref]: https://example.com\n\n> - in quote\n[ref]: https://changed.com\n\n\
+         [ref]: https://changed.com\n\n> - in quote\n> - in quote\n- b [y][ref]\n\n";
+    assert_converges(full, "absorbed reference resolves to the first definition");
+}
