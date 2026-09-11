@@ -1,39 +1,33 @@
-struct SolidVertexInput {
+struct UniformSolidVertexInput {
     @builtin(vertex_index) vertex_index: u32,
     @location(0) color: vec4<f32>,
     @location(1) pos: vec2<f32>,
     @location(2) scale: vec2<f32>,
-    @location(3) border_top: vec4<f32>,
-    @location(4) border_right: vec4<f32>,
-    @location(5) border_bottom: vec4<f32>,
-    @location(6) border_left: vec4<f32>,
-    @location(7) border_radius: vec4<f32>,
-    @location(8) border_widths: vec4<f32>,
-    @location(9) shadow_color: vec4<f32>,
-    @location(10) shadow_offset: vec2<f32>,
-    @location(11) shadow_blur_radius: f32,
-    @location(12) snap: u32,
+    @location(3) border_color: vec4<f32>,
+    @location(4) border_radius: vec4<f32>,
+    @location(5) border_width: f32,
+    @location(6) shadow_color: vec4<f32>,
+    @location(7) shadow_offset: vec2<f32>,
+    @location(8) shadow_blur_radius: f32,
+    @location(9) snap: u32,
 }
 
-struct SolidVertexOutput {
+struct UniformSolidVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
-    @location(1) border_top: vec4<f32>,
-    @location(2) border_right: vec4<f32>,
-    @location(3) border_bottom: vec4<f32>,
-    @location(4) border_left: vec4<f32>,
-    @location(5) pos: vec2<f32>,
-    @location(6) scale: vec2<f32>,
-    @location(7) border_radius: vec4<f32>,
-    @location(8) border_widths: vec4<f32>,
-    @location(9) shadow_color: vec4<f32>,
-    @location(10) shadow_offset: vec2<f32>,
-    @location(11) shadow_blur_radius: f32,
+    @location(1) border_color: vec4<f32>,
+    @location(2) pos: vec2<f32>,
+    @location(3) scale: vec2<f32>,
+    @location(4) border_radius: vec4<f32>,
+    @location(5) border_width: f32,
+    @location(6) shadow_color: vec4<f32>,
+    @location(7) shadow_offset: vec2<f32>,
+    @location(8) shadow_blur_radius: f32,
 }
 
 @vertex
-fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
-    var out: SolidVertexOutput;
+fn uniform_solid_vs_main(input: UniformSolidVertexInput) -> UniformSolidVertexOutput {
+    var out: UniformSolidVertexOutput;
 
     var pos: vec2<f32> = (input.pos + min(input.shadow_offset, vec2<f32>(0.0, 0.0)) - input.shadow_blur_radius) * globals.scale;
     var scale: vec2<f32> = (input.scale + vec2<f32>(abs(input.shadow_offset.x), abs(input.shadow_offset.y)) + input.shadow_blur_radius * 2.0) * globals.scale;
@@ -57,14 +51,11 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
 
     out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
     out.color = premultiply(input.color);
-    out.border_top = premultiply(input.border_top);
-    out.border_right = premultiply(input.border_right);
-    out.border_bottom = premultiply(input.border_bottom);
-    out.border_left = premultiply(input.border_left);
+    out.border_color = premultiply(input.border_color);
     out.pos = input.pos * globals.scale + pos_snap;
     out.scale = input.scale * globals.scale + scale_snap;
     out.border_radius = border_radius * globals.scale;
-    out.border_widths = input.border_widths * globals.scale;
+    out.border_width = input.border_width * globals.scale;
     out.shadow_color = premultiply(input.shadow_color);
     out.shadow_offset = input.shadow_offset * globals.scale;
     out.shadow_blur_radius = input.shadow_blur_radius * globals.scale;
@@ -73,9 +64,7 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
 }
 
 @fragment
-fn solid_fs_main(
-    input: SolidVertexOutput
-) -> @location(0) vec4<f32> {
+fn uniform_solid_fs_main(input: UniformSolidVertexOutput) -> @location(0) vec4<f32> {
     var mixed_color: vec4<f32> = input.color;
 
     var dist = rounded_box_sdf(
@@ -84,24 +73,11 @@ fn solid_fs_main(
         input.border_radius * 2.0
     ) / 2.0;
 
-    if (any(input.border_widths > vec4<f32>(0.0))) {
+    if (input.border_width > 0.0) {
         mixed_color = mix(
             input.color,
-            border_color_at(
-                input.position.xy - input.pos,
-                input.scale,
-                input.border_widths,
-                input.border_top,
-                input.border_right,
-                input.border_bottom,
-                input.border_left
-            ),
-            border_coverage(
-                input.position.xy - input.pos,
-                input.scale,
-                input.border_radius,
-                input.border_widths
-            )
+            input.border_color,
+            clamp(0.5 + dist + input.border_width, 0.0, 1.0)
         );
     }
 

@@ -131,7 +131,7 @@ mod quad {
     use iced::advanced::widget::{self, Widget};
     use iced::border;
     use iced::mouse;
-    use iced::{Border, Color, Element, Length, Rectangle, Shadow, Size};
+    use iced::{Color, Element, Length, Rectangle, Shadow, Size};
 
     pub struct CustomQuad {
         size: f32,
@@ -192,11 +192,27 @@ mod quad {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border: Border {
-                        radius: self.radius,
-                        width: self.border_width,
-                        color: Color::from_rgb(1.0, 0.0, 0.0),
-                    },
+                    // Side overrides demonstrate a collapsible-header-like
+                    // divider: zeroing a side width cleanly removes it.
+                    border: border::color(Color::from_rgb(1.0, 0.0, 0.0))
+                        .rounded(self.radius)
+                        .width(self.border_width)
+                        .top(border::Side::default().color(Color::from_rgb(1.0, 0.2, 0.2)))
+                        .right(
+                            border::Side::default()
+                                .color(Color::from_rgb(0.2, 1.0, 0.2))
+                                .width(self.border_width * 0.5),
+                        )
+                        .bottom(
+                            border::Side::default()
+                                .color(Color::from_rgb(0.2, 0.4, 1.0))
+                                .width(0),
+                        )
+                        .left(
+                            border::Side::default()
+                                .color(Color::from_rgb(1.0, 0.8, 0.2))
+                                .width(self.border_width * 1.5),
+                        ),
                     shadow: self.shadow,
                     snap: self.snap,
                 },

@@ -44,15 +44,121 @@ impl Layer {
     ) {
         let bounds = quad.bounds * transformation;
 
+        let border_color = color::pack(quad.border.color);
+        let border_colors = if quad.border.top.color.is_none()
+            && quad.border.right.color.is_none()
+            && quad.border.bottom.color.is_none()
+            && quad.border.left.color.is_none()
+        {
+            [border_color; 4]
+        } else {
+            let top = quad.border.top.color.unwrap_or(quad.border.color);
+            let right = quad.border.right.color.unwrap_or(quad.border.color);
+            let bottom = quad.border.bottom.color.unwrap_or(quad.border.color);
+            let left = quad.border.left.color.unwrap_or(quad.border.color);
+
+            if top == right && top == bottom && top == left {
+                let color = if top == quad.border.color {
+                    border_color
+                } else {
+                    color::pack(top)
+                };
+
+                [color; 4]
+            } else {
+                [
+                    quad.border
+                        .top
+                        .color
+                        .map(color::pack)
+                        .unwrap_or(border_color),
+                    quad.border
+                        .right
+                        .color
+                        .map(color::pack)
+                        .unwrap_or(border_color),
+                    quad.border
+                        .bottom
+                        .color
+                        .map(color::pack)
+                        .unwrap_or(border_color),
+                    quad.border
+                        .left
+                        .color
+                        .map(color::pack)
+                        .unwrap_or(border_color),
+                ]
+            }
+        };
+
+        let border_widths = if quad.border.top.width.is_none()
+            && quad.border.right.width.is_none()
+            && quad.border.bottom.width.is_none()
+            && quad.border.left.width.is_none()
+        {
+            let border_width = quad
+                .border
+                .width
+                .max(0.0)
+                .min(quad.bounds.width / 2.0)
+                .min(quad.bounds.height / 2.0);
+
+            [border_width; 4]
+        } else {
+            let top = quad.border.top.width.unwrap_or(quad.border.width).max(0.0);
+            let right = quad
+                .border
+                .right
+                .width
+                .unwrap_or(quad.border.width)
+                .max(0.0);
+            let bottom = quad
+                .border
+                .bottom
+                .width
+                .unwrap_or(quad.border.width)
+                .max(0.0);
+            let left = quad.border.left.width.unwrap_or(quad.border.width).max(0.0);
+
+            if top == right && top == bottom && top == left {
+                let width = top
+                    .min(quad.bounds.width / 2.0)
+                    .min(quad.bounds.height / 2.0);
+
+                [width; 4]
+            } else {
+                let mut widths = [top, right, bottom, left];
+
+                // Opposing borders meet at the center of the quad rather than spilling
+                // past each other. Adjacent borders intentionally remain independent.
+                let horizontal = widths[1] + widths[3];
+                if horizontal > quad.bounds.width {
+                    let factor = quad.bounds.width / horizontal;
+                    widths[1] *= factor;
+                    widths[3] *= factor;
+                }
+
+                let vertical = widths[0] + widths[2];
+                if vertical > quad.bounds.height {
+                    let factor = quad.bounds.height / vertical;
+                    widths[0] *= factor;
+                    widths[2] *= factor;
+                }
+
+                widths
+            }
+        };
+        let scale = transformation.scale_factor();
+
         let quad = Quad {
             position: [bounds.x, bounds.y],
             size: [bounds.width, bounds.height],
-            border_color: color::pack(quad.border.color),
-            border_radius: (quad.border.radius * transformation.scale_factor()).into(),
-            border_width: quad.border.width * transformation.scale_factor(),
+            border_colors,
+            border_radius: (quad.border.radius * scale).into(),
+            border_widths: border_widths.map(|width| width * scale),
             shadow_color: color::pack(quad.shadow.color),
-            shadow_offset: (quad.shadow.offset * transformation.scale_factor()).into(),
-            shadow_blur_radius: quad.shadow.blur_radius * transformation.scale_factor(),
+            shadow_offset: (quad.shadow.offset * scale).into(),
+            shadow_blur_radius: quad.shadow.blur_radius * scale,
             snap: quad.snap as u32,
         };
 

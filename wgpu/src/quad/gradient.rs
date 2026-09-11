@@ -117,14 +117,17 @@ impl Pipeline {
                             5 => Float32x4,
                             // Position & Scale
                             6 => Float32x4,
-                            // Border color
+                            // Border colors
                             7 => Float32x4,
-                            // Border radius
                             8 => Float32x4,
-                            // Border width
-                            9 => Float32,
+                            9 => Float32x4,
+                            10 => Float32x4,
+                            // Border radius
+                            11 => Float32x4,
+                            // Border widths
+                            12 => Float32x4,
                             // Snap
-                            10 => Uint32,
+                            13 => Uint32,
                         ),
                     }],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
