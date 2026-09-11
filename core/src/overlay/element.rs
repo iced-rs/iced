@@ -117,9 +117,15 @@ where
         &'a mut self,
         layout: Layout<'a>,
         renderer: &Renderer,
-    ) -> Option<Element<'a, B, Theme, Renderer>> {
+    ) -> Vec<Element<'a, B, Theme, Renderer>> {
         self.content
             .overlay(layout, renderer)
+            .into_iter()
             .map(|overlay| overlay.map(self.mapper))
+            .collect()
+    }
+
+    fn index(&self) -> f32 {
+        self.content.index()
     }
 }

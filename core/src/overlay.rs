@@ -1,10 +1,8 @@
 //! Display interactive elements on top of other widgets.
 mod element;
-mod group;
 mod nested;
 
 pub use element::Element;
-pub use group::Group;
 pub use nested::Nested;
 
 use crate::layout;
@@ -71,13 +69,13 @@ where
         mouse::Interaction::None
     }
 
-    /// Returns the nested overlay of the [`Overlay`], if there is any.
+    /// Returns the nested overlays of the [`Overlay`].
     fn overlay<'a>(
         &'a mut self,
         _layout: Layout<'a>,
         _renderer: &Renderer,
-    ) -> Option<Element<'a, Message, Theme, Renderer>> {
-        None
+    ) -> Vec<Element<'a, Message, Theme, Renderer>> {
+        Vec::new()
     }
 
     /// The index of the overlay.
@@ -91,7 +89,7 @@ where
     }
 }
 
-/// Returns a [`Group`] of overlay [`Element`] children.
+/// Returns the overlays of the given [`Element`] children.
 ///
 /// This method will generally only be used by advanced users that are
 /// implementing the [`Widget`](crate::Widget) trait.
@@ -102,20 +100,18 @@ pub fn from_children<'a, Message, Theme, Renderer>(
     renderer: &Renderer,
     viewport: &Rectangle,
     translation: Vector,
-) -> Option<Element<'a, Message, Theme, Renderer>>
+) -> Vec<Element<'a, Message, Theme, Renderer>>
 where
     Renderer: crate::Renderer,
 {
-    let children = children
+    children
         .iter_mut()
         .zip(&mut tree.children)
         .zip(layout.children())
-        .filter_map(|((child, state), layout)| {
+        .flat_map(|((child, state), layout)| {
             child
                 .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, translation)
         })
-        .collect::<Vec<_>>();
-
-    (!children.is_empty()).then(|| Group::with_children(children).overlay())
+        .collect()
 }

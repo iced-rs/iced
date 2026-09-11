@@ -1236,7 +1236,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -1265,14 +1265,7 @@ where
             None
         };
 
-        match (overlay, icon) {
-            (None, None) => None,
-            (None, Some(icon)) => Some(icon),
-            (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
-                overlay::Group::with_children(vec![overlay, icon]),
-            ))),
-        }
+        overlay.into_iter().chain(icon).collect()
     }
 }
 
