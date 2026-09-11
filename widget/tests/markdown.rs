@@ -5,7 +5,7 @@
 //! [`Content::push_str`]: iced_widget::markdown::Content::push_str
 //! [`Content::parse`]: iced_widget::markdown::Content::parse
 
-use iced_widget::markdown::Content;
+use iced_widget::markdown::{Content, Item};
 
 /// Asserts that parsing `full` incrementally, with different chunking
 /// schemes, converges to the one-shot parse.
@@ -402,4 +402,156 @@ fn absorbed_reference_resolves_to_first_definition() {
     let full = "[ref]: https://example.com\n\n> - in quote\n[ref]: https://changed.com\n\n\
          [ref]: https://changed.com\n\n> - in quote\n> - in quote\n- b [y][ref]\n\n";
     assert_converges(full, "absorbed reference resolves to the first definition");
+}
+
+/// The blocks from which the fuzzed documents are generated.
+const BLOCKS: &[&str] = &[
+    "para\n\n",
+    "text [x][ref] more\n\n",
+    "- a\n",
+    "- a\n- b\n",
+    "- a [x][ref]\n",
+    "- [x][ref]\n",
+    "- b [y][ref]\n\n",
+    "2. two\n",
+    "2. two [y][ref]\n",
+    "- [ ] task\n",
+    "> - in quote\n",
+    "> quote\n\n",
+    "| a | b |\n| - | - |\n| 1 | 2 |\n\n",
+    "| a | b |\n| - | - |\n| 1 | 2 | [x][ref] |\n\n",
+    "[ref]: https://example.com\n\n",
+    "[ref]: https://changed.com\n\n",
+    "[other]: https://other.com\n\n",
+    "[x]: https://x.com\n\n",
+    "![alt](https://img.com/i.png)\n\n",
+    "![alt with [x][ref]](https://img.com/i.png)\n\n",
+    "before ![alt [x][ref]](https://img.com/i.png) trailing\n\n",
+    "---\n\n",
+    "# heading\n\n",
+    "## setext\n---\n\n",
+    "```\ncode\n```\n\n",
+    "\n",
+];
+
+/// A deterministic pseudo-random generator.
+struct Rng(u64);
+
+impl Rng {
+    fn next(&mut self) -> usize {
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        (self.0 >> 33) as usize
+    }
+}
+
+/// The documents to fuzz: the three convergence repros, and a
+/// deterministic corpus of documents generated from `BLOCKS`.
+fn generated_documents() -> Vec<String> {
+    let mut rng = Rng(0x5EED);
+    let repros = [
+        "[other]: https://other.com\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n\
+         [ref]: https://example.com\n\n- a\n---\n\n",
+        "2. two\n[ref]: https://changed.com\n\n\n- a\n| a | b |\n| - | - |\n| 1 | 2 |\n\n---\n\n",
+        "[ref]: https://example.com\n\n> - in quote\n[ref]: https://changed.com\n\n\
+         [ref]: https://changed.com\n\n> - in quote\n> - in quote\n- b [y][ref]\n\n",
+    ];
+    let mut docs: Vec<String> = repros.iter().map(ToString::to_string).collect();
+    for _ in 0..600 {
+        let mut doc = String::new();
+        for _ in 0..4 + rng.next() % 7 {
+            doc.push_str(BLOCKS[rng.next() % BLOCKS.len()]);
+        }
+        docs.push(doc);
+    }
+    docs
+}
+
+/// Merges the lists that are adjacent, and have the same start.
+fn merged_lists(items: &[Item]) -> Vec<Item> {
+    let mut merged = Vec::with_capacity(items.len());
+
+    for item in items {
+        if let Item::List { start, bullets } = item
+            && let Some(last) = merged.last_mut()
+            && let Item::List {
+                start: last_start,
+                bullets: last_bullets,
+            } = last
+            && *last_start == *start
+        {
+            last_bullets.extend(bullets.clone());
+        } else {
+            merged.push(item.clone());
+        }
+    }
+
+    merged
+}
+
+/// Fuzzes the convergence of the incremental parse over a corpus of
+/// generated documents, with the three chunking schemes.
+///
+/// Two known non-convergences are handled:
+///
+/// - a metadata block at the start of the document: such documents
+///   are skipped;
+/// - a list that spans the start of the re-parse window: the
+///   incremental parse splits it into two adjacent lists with the
+///   same start, which is pinned by asserting that merging them
+///   yields the one-shot parse.
+#[test]
+fn fuzz() {
+    for doc in generated_documents() {
+        if doc.starts_with("---") || doc.starts_with("+++") {
+            // A metadata block at the start of the document
+            continue;
+        }
+
+        let one = Content::parse(&doc);
+        let one_items = format!("{:?}", one.items());
+
+        for (chunks, name) in [
+            (
+                doc.split_inclusive(' ')
+                    .map(str::to_owned)
+                    .collect::<Vec<_>>(),
+                "word-by-word",
+            ),
+            (
+                doc.chars().map(|c| c.to_string()).collect::<Vec<_>>(),
+                "char-by-char",
+            ),
+            (
+                doc.as_bytes()
+                    .chunks(3)
+                    .map(|c| std::str::from_utf8(c).unwrap().to_owned())
+                    .collect::<Vec<_>>(),
+                "3-char chunks",
+            ),
+        ] {
+            let mut c = Content::new();
+            for chunk in &chunks {
+                c.push_str(chunk);
+            }
+
+            let items = format!("{:?}", c.items());
+            let equal = items == one_items;
+            let split = !equal && format!("{:?}", merged_lists(c.items())) == one_items;
+
+            assert!(
+                equal || split,
+                "{name}: incremental should converge to one-shot: {doc:?}\n\
+                 incremental:\n{items}\none-shot:\n{one_items}"
+            );
+
+            assert_eq!(
+                c.images(),
+                one.images(),
+                "{name}: images should converge: {doc:?}"
+            );
+        }
+    }
 }
