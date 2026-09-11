@@ -92,11 +92,15 @@ pub struct Content {
     /// The start of the source that will be re-parsed on the next
     /// push.
     window: usize,
-    /// Whether the source started with a not-yet-settled metadata
-    /// block on the last push; when it does, the re-parse starts at
-    /// the start of the source, so that the block (or the rule it
-    /// turned out to be) is re-parsed as a whole.
+    /// Whether a not-yet-settled metadata block was live on the last
+    /// push; when it was, the re-parse starts at the start of the
+    /// block, so that the block is swallowed by the parser once it is
+    /// closed (or re-parsed as the rule it turned out to be).
     pending_block: bool,
+    /// The start of the not-yet-settled metadata block, if any; the
+    /// re-parse starts there, so that the block (a tentative rule and
+    /// its content, for instance) is re-parsed as a whole.
+    pending_block_start: Option<usize>,
     incomplete: HashMap<usize, Section>,
     state: State,
 }
@@ -145,12 +149,6 @@ impl Content {
     ///
     /// The result converges to the one obtained by parsing the whole
     /// stream at once, as the stream grows.
-    ///
-    /// There is one caveat: a metadata block that the parser swallows
-    /// is fully converged only when it starts the stream. A metadata
-    /// block in the middle of the stream is committed piece by piece
-    /// (its opening delimiter as a rule, for instance) and may not
-    /// converge to the one-shot parse.
     pub fn push_str(&mut self, markdown: &str) {
         if markdown.is_empty() {
             return;
@@ -160,14 +158,17 @@ impl Content {
 
         // The text to re-parse: from the start of the source of the
         // last item (or its last bullet, when it is a list) to the
-        // end. Unless the source starts with a not-yet-settled
-        // metadata block, in which case the re-parse starts at the
-        // start of the source: the block is swallowed by the parser
-        // once it is closed, and the first line (a tentative rule)
-        // must be re-parsed with it.
-        let block_live = Self::metadata_block_live(&self.source);
+        // end. Unless a not-yet-settled metadata block is live (or
+        // was live on the last push), in which case the re-parse
+        // starts at the start of the block: it is swallowed by the
+        // parser once it is closed, and its first line (a tentative
+        // rule) must be re-parsed with it.
+        let block_live = self
+            .pending_block_start
+            .map(|start| Self::metadata_block_live(&self.source[start..]))
+            .unwrap_or(false);
         let mut input_start = if self.pending_block || block_live {
-            0
+            self.pending_block_start.unwrap_or(self.window)
         } else {
             self.window
         };
@@ -205,12 +206,17 @@ impl Content {
 
         // We only re-parse the last bullet of a list, so merge the
         // re-parsed list into the old one, keeping the bullets that
-        // were already parsed.
+        // were already parsed. This only applies when the re-parse
+        // actually started after the start of the list (at its last
+        // bullet); when it re-parsed the whole list, the re-parsed
+        // list already contains all the bullets, and merging would
+        // duplicate them.
         let last_is_list = matches!(last.as_ref(), Some(Item::List { .. }));
         let mut merged = false;
         if let Some(Item::List { start, bullets, .. }) = last
             && let Some((first_item, _, _)) = items.first_mut()
             && let Item::List { bullets: new, .. } = first_item
+            && old_last_base.is_some_and(|base| input_start > base)
         {
             // The last bullet of the old list was re-parsed
             let mut bullets = bullets;
@@ -224,7 +230,11 @@ impl Content {
             // instance), so it cannot be merged into the old list:
             // re-parse from the start of the whole list, so its
             // source is re-parsed in full.
-            let base = old_last_base.expect("a list has a base");
+            //
+            // The re-parse must not start after a not-yet-settled
+            // metadata block opener (kept in `input_start`), or the
+            // block would be dropped; use the earliest of the two.
+            let base = old_last_base.expect("a list has a base").min(input_start);
             let tail = &self.source[base..];
             let trimmed = tail.trim_end();
             input = if trimmed.ends_with('|') {
@@ -263,6 +273,11 @@ impl Content {
                 let _ = self.base.pop();
             }
         }
+
+        // The start of the most recent `---` or `+++` rule produced
+        // by the re-parse, if any; it is a tentative metadata block
+        // opener.
+        let mut newest_rule_start: Option<usize> = None;
 
         if items.is_empty() {
             // The new text did not produce any item (it completed a
@@ -346,6 +361,14 @@ impl Content {
                     }
                 }
 
+                if matches!(item, Item::Rule) && Self::metadata_delimiter(&self.source, start) {
+                    // A `---` or `+++` rule is a tentative metadata
+                    // block opener; remember where it starts so that
+                    // the block is re-parsed as a whole when it is
+                    // closed.
+                    newest_rule_start = Some(start);
+                }
+
                 self.items.push(item);
                 self.starts.push(start);
                 self.base.push(base);
@@ -354,10 +377,13 @@ impl Content {
             self.window = input_start + self.state.window.unwrap_or(input.len());
         }
 
-        // Remember whether the source still starts with a not-yet-
-        // settled metadata block, so that the next push re-parses it
-        // from the start of the source as well.
-        self.pending_block = block_live;
+        // Remember the tentative metadata block opener, if any, so
+        // that the block is re-parsed as a whole as it grows, and
+        // swallowed by the parser once it is closed.
+        self.pending_block_start = newest_rule_start;
+        self.pending_block = newest_rule_start
+            .map(|start| Self::metadata_block_live(&self.source[start..]))
+            .unwrap_or(false);
 
         // The sections whose item is not the last one anymore have
         // a fixed source range
@@ -366,6 +392,18 @@ impl Content {
         // The sections whose broken links became resolvable, or
         // whose references changed, are re-parsed
         self.resolve_sections();
+
+        // The images are those present in the items; recompute them,
+        // as an image parsed while a metadata block was still open
+        // can be swallowed by it once the block is closed.
+        self.state.images = self
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Image { url, .. } => Some(url.clone()),
+                _ => None,
+            })
+            .collect();
     }
 
     /// Returns `true` if the source starts with a metadata block that
@@ -413,6 +451,15 @@ impl Content {
         });
 
         !closed
+    }
+
+    /// Returns `true` if the line starting at `start` is a complete
+    /// `---` or `+++` metadata block delimiter.
+    fn metadata_delimiter(source: &str, start: usize) -> bool {
+        let line = &source[start..];
+        let end = line.find('\n').unwrap_or(line.len());
+        let line = line[..end].trim_end();
+        line == "---" || line == "+++"
     }
 
     /// Ends the sections whose item is not the last one anymore:

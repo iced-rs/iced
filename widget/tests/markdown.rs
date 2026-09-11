@@ -443,6 +443,37 @@ fn leading_metadata_block_is_swallowed() {
     );
 }
 
+/// A metadata block in the middle of the stream is swallowed by the
+/// parser once it is closed, too: its opening line is a tentative
+/// rule until then, so the whole block must be re-parsed from where
+/// it starts as it grows.
+#[test]
+fn mid_metadata_block_is_swallowed() {
+    // After a blank line, and after a list item (no blank line)
+    assert_converges(
+        "para\n\n---\nkey: value\n---\n\nmore\n",
+        "a metadata block after a blank line",
+    );
+    assert_converges(
+        "- x\n---\nkey: value\n---\n\nmore\n",
+        "a metadata block after a list item",
+    );
+    assert_converges(
+        "- x\n---\nkey: value\n...\n\nmore\n",
+        "a metadata block closed by ellipsis",
+    );
+    assert_converges(
+        "para\n\n+++\nkey: value\n+++\n\nmore\n",
+        "a plus-delimited metadata block",
+    );
+    // A list follows the block: the list must not be merged with the
+    // tentative rule
+    assert_converges(
+        "- a\n- b\n\n---\nkey: value\n---\n\n- c\n",
+        "a metadata block between two lists",
+    );
+}
+
 /// The sections yielded by [`sections`], expecting exactly `N` of them.
 fn groups<const N: usize>(items: &[Item]) -> [(Option<&Item>, &[Item]); N] {
     sections(items)
@@ -588,6 +619,10 @@ const BLOCKS: &[&str] = &[
     "![alt with [x][ref]](https://img.com/i.png)\n\n",
     "before ![alt [x][ref]](https://img.com/i.png) trailing\n\n",
     "---\n\n",
+    "---\nkey: value\n---\n\n",
+    "+++\nkey: value\n+++\n\n",
+    "---\nkey: value\n...\n\n",
+    "---\nkey: value\n",
     "# heading\n\n",
     "## setext\n---\n\n",
     "```\ncode\n```\n\n",
@@ -619,6 +654,12 @@ fn generated_documents() -> Vec<String> {
          [ref]: https://changed.com\n\n> - in quote\n> - in quote\n- b [y][ref]\n\n",
         // A metadata block at the start of the document
         "---\nkey: value\n---\n\npara\n\n- a\n",
+        // A metadata block in the middle of the document, after a
+        // blank line and after a list item (no blank line), closed
+        // and unclosed
+        "para\n\n---\nkey: value\n---\n\nmore\n\n- a\n",
+        "- x\n---\nkey\n---\npara\n",
+        "- x\n---\nkey\n...\nmore\n",
     ];
     let mut docs: Vec<String> = repros.iter().map(ToString::to_string).collect();
     for _ in 0..600 {
