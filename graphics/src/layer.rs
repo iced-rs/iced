@@ -122,6 +122,13 @@ impl<T: Layer> Stack<T> {
         let _ = self.transformations.pop();
     }
 
+    /// Returns an iterator over mutable references to the layers in the [`Stack`].
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.flush();
+
+        self.layers[..self.active_count].iter_mut()
+    }
+
     /// Returns an iterator over immutable references to the layers in the [`Stack`].
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.layers[..self.active_count].iter()
