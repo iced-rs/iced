@@ -197,6 +197,30 @@ fn image_and_link_on_same_line() {
     );
 }
 
+/// Several images and a paragraph on the same line; the images and
+/// the paragraph share the same source region, and the images must
+/// not be duplicated as the line grows.
+#[test]
+fn images_on_same_line() {
+    let full = "a\n\n![i1](https://u1.com/1.png) ![i2](https://u2.com/2.png) t\n\nb\n";
+    assert_converges(full, "images on the same line");
+}
+
+/// A line with only images, followed by more content.
+#[test]
+fn image_only_line() {
+    let full = "a\n\n![i1](https://u1.com/1.png) ![i2](https://u2.com/2.png)\n\nb\n";
+    assert_converges(full, "image-only line");
+}
+
+/// Text followed by an image on the same line; the text must not be
+/// absorbed into the image's alt.
+#[test]
+fn text_then_image() {
+    let full = "hello ![img](https://u1.com/1.png)\n\nmore\n";
+    assert_converges(full, "text then image");
+}
+
 /// A reference defined before it is used.
 #[test]
 fn reference_before_use() {
@@ -317,4 +341,34 @@ fn pushing_to_a_long_list_stays_fast() {
          whole list is re-parsed on every push"
     );
     assert_eq!(c.items().len(), 1);
+}
+
+#[test]
+fn reference_resolved_before_next_item() {
+    let full = "- a [x][ref]\n\n[ref]: https://example.com\n\npara\n";
+    assert_converges(full, "reference resolved before the next item");
+}
+
+#[test]
+fn duplicate_reference_definitions() {
+    // The first definition wins, like in CommonMark; the second
+    // definition is still growing (not terminated) when the push
+    // happens.
+    let full = "- [x][ref]\n\n[ref]: https://one.com\n\npara\n\n[ref]: https://two.com\n";
+    assert_converges(full, "duplicate reference definitions");
+}
+
+#[test]
+fn broken_link_in_image_alt() {
+    let full = "before\n\n![alt with [x][ref]](https://img.com/i.png)\n\n[ref]: https://example.com\n\nafter\n";
+    assert_converges(full, "broken link in an image alt");
+}
+
+#[test]
+fn broken_link_in_image_alt_with_trailing_text() {
+    // The section is created for the image before its paragraph is
+    // complete; the re-parse range must then span the whole line.
+    let full =
+        "![alt [x][ref]](https://img.com/i.png) trailing\n\n[ref]: https://example.com\n\nafter\n";
+    assert_converges(full, "broken link in an image alt, with trailing text");
 }
