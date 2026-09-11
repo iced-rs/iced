@@ -238,10 +238,6 @@ fn reference_before_use() {
 }
 
 /// A metadata block after content should not break the flow.
-///
-/// Note: a metadata block at the very start of the stream cannot
-/// converge, as the opening delimiter (`---` or `+++`) is committed
-/// as a `Rule`/paragraph before the block can be determined.
 #[test]
 fn metadata_after_content() {
     let full = "- a\n\n+++\nmeta: 1\n+++\n\n- b\n";
@@ -420,6 +416,30 @@ fn list_spanning_the_reparse_window_is_not_split() {
     );
 }
 
+/// A metadata block at the start of the stream is swallowed by the
+/// parser once it is closed; the first line is a tentative rule
+/// until then, so the whole block must be re-parsed as it grows.
+#[test]
+fn leading_metadata_block_is_swallowed() {
+    assert_converges("---\nkey: value\n---\n\nmore\n", "a closed metadata block");
+    assert_converges(
+        "---\nkey: value\n...\n\nmore\n",
+        "a metadata block closed by ellipsis",
+    );
+    assert_converges(
+        "+++\nkey: value\n+++\n\nmore\n",
+        "a plus-delimited metadata block",
+    );
+    // Not a metadata block: the second line is blank, so the first
+    // line is a rule
+    assert_converges("---\n\nmore\n", "a leading rule");
+    // Not closed: the `---` is a rule and the block stays open
+    assert_converges(
+        "---\nkey: value\n--- x\n\nmore\n",
+        "an unclosed metadata block",
+    );
+}
+
 /// The blocks from which the fuzzed documents are generated.
 const BLOCKS: &[&str] = &[
     "para\n\n",
@@ -463,7 +483,7 @@ impl Rng {
     }
 }
 
-/// The documents to fuzz: the three convergence repros, and a
+/// The documents to fuzz: the four convergence repros, and a
 /// deterministic corpus of documents generated from `BLOCKS`.
 fn generated_documents() -> Vec<String> {
     let mut rng = Rng(0x5EED);
@@ -473,6 +493,8 @@ fn generated_documents() -> Vec<String> {
         "2. two\n[ref]: https://changed.com\n\n\n- a\n| a | b |\n| - | - |\n| 1 | 2 |\n\n---\n\n",
         "[ref]: https://example.com\n\n> - in quote\n[ref]: https://changed.com\n\n\
          [ref]: https://changed.com\n\n> - in quote\n> - in quote\n- b [y][ref]\n\n",
+        // A metadata block at the start of the document
+        "---\nkey: value\n---\n\npara\n\n- a\n",
     ];
     let mut docs: Vec<String> = repros.iter().map(ToString::to_string).collect();
     for _ in 0..600 {
@@ -487,17 +509,9 @@ fn generated_documents() -> Vec<String> {
 
 /// Fuzzes the convergence of the incremental parse over a corpus of
 /// generated documents, with the three chunking schemes.
-///
-/// A metadata block at the start of the document does not converge,
-/// and such documents are skipped.
 #[test]
 fn fuzz() {
     for doc in generated_documents() {
-        if doc.starts_with("---") || doc.starts_with("+++") {
-            // A metadata block at the start of the document
-            continue;
-        }
-
         let one = Content::parse(&doc);
         let one_items = format!("{:?}", one.items());
 

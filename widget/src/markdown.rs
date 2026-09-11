@@ -92,6 +92,11 @@ pub struct Content {
     /// The start of the source that will be re-parsed on the next
     /// push.
     window: usize,
+    /// Whether the source started with a not-yet-settled metadata
+    /// block on the last push; when it does, the re-parse starts at
+    /// the start of the source, so that the block (or the rule it
+    /// turned out to be) is re-parsed as a whole.
+    pending_block: bool,
     incomplete: HashMap<usize, Section>,
     state: State,
 }
@@ -139,11 +144,13 @@ impl Content {
     /// new items to a long list stays cheap.
     ///
     /// The result converges to the one obtained by parsing the whole
-    /// stream at once, as the stream grows. There is one caveat: an item
-    /// that is committed too early, while the text that could change its
-    /// meaning has not arrived yet, is kept as is. For instance, a lone
-    /// `---` line at the start of the stream is a rule until the next
-    /// lines reveal that it was the start of a YAML metadata block.
+    /// stream at once, as the stream grows.
+    ///
+    /// There is one caveat: a metadata block that the parser swallows
+    /// is fully converged only when it starts the stream. A metadata
+    /// block in the middle of the stream is committed piece by piece
+    /// (its opening delimiter as a rule, for instance) and may not
+    /// converge to the one-shot parse.
     pub fn push_str(&mut self, markdown: &str) {
         if markdown.is_empty() {
             return;
@@ -153,8 +160,17 @@ impl Content {
 
         // The text to re-parse: from the start of the source of the
         // last item (or its last bullet, when it is a list) to the
-        // end.
-        let mut input_start = self.window;
+        // end. Unless the source starts with a not-yet-settled
+        // metadata block, in which case the re-parse starts at the
+        // start of the source: the block is swallowed by the parser
+        // once it is closed, and the first line (a tentative rule)
+        // must be re-parsed with it.
+        let block_live = Self::metadata_block_live(&self.source);
+        let mut input_start = if self.pending_block || block_live {
+            0
+        } else {
+            self.window
+        };
         let tail = &self.source[input_start..];
         let trimmed = tail.trim_end();
         let mut input = if trimmed.ends_with('|') {
@@ -338,6 +354,11 @@ impl Content {
             self.window = input_start + self.state.window.unwrap_or(input.len());
         }
 
+        // Remember whether the source still starts with a not-yet-
+        // settled metadata block, so that the next push re-parses it
+        // from the start of the source as well.
+        self.pending_block = block_live;
+
         // The sections whose item is not the last one anymore have
         // a fixed source range
         self.fix_section_ends();
@@ -345,6 +366,53 @@ impl Content {
         // The sections whose broken links became resolvable, or
         // whose references changed, are re-parsed
         self.resolve_sections();
+    }
+
+    /// Returns `true` if the source starts with a metadata block that
+    /// is not settled yet: the first line is a complete `---` or
+    /// `+++` delimiter, the second line is not a blank one
+    /// (otherwise the first line is a rule), and the block has not
+    /// been closed.
+    ///
+    /// While such a block is live, its first line is a tentative
+    /// rule that the parser swallows once the block is closed, so
+    /// the re-parse has to cover the block as a whole.
+    fn metadata_block_live(source: &str) -> bool {
+        // The first line, which must be complete
+        let (first, rest) = match source.find('\n') {
+            Some(end) => (&source[..end], &source[end + 1..]),
+            None => return false,
+        };
+
+        // The delimiter line
+        let first = first.trim_end();
+        if first != "---" && first != "+++" {
+            return false;
+        }
+
+        // The second line: a blank one makes the first line a rule,
+        // not a metadata block; an incomplete one could still be
+        // the start of a block
+        let Some(second_end) = rest.find('\n') else {
+            return true;
+        };
+        let second = &rest[..second_end];
+        if second.trim().is_empty() {
+            return false;
+        }
+
+        // The block is closed by a `---` or `...` line, or a `+++`
+        // line, when it is delimited by `+++`
+        let closed = rest.lines().any(|line| {
+            let line = line.trim_end();
+            if first == "+++" {
+                line == "+++"
+            } else {
+                line == "---" || line == "..."
+            }
+        });
+
+        !closed
     }
 
     /// Ends the sections whose item is not the last one anymore:
