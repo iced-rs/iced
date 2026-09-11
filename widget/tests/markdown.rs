@@ -1,11 +1,14 @@
-//! Tests for the incremental [`iced_widget::markdown`] parser: the
-//! [`Content::push_str`] method must converge to the one-shot
+//! Tests for the [`iced_widget::markdown`] parser: the one-shot
+//! [`parse`] and [`sections`] functions, and the incremental
+//! [`Content::push_str`] method, which must converge to the one-shot
 //! [`Content::parse`] result, whatever the chunks are.
 //!
+//! [`parse`]: iced_widget::markdown::parse
+//! [`sections`]: iced_widget::markdown::sections
 //! [`Content::push_str`]: iced_widget::markdown::Content::push_str
 //! [`Content::parse`]: iced_widget::markdown::Content::parse
 
-use iced_widget::markdown::Content;
+use iced_widget::markdown::{Content, Item, parse, sections};
 
 /// Asserts that parsing `full` incrementally, with different chunking
 /// schemes, converges to the one-shot parse.
@@ -438,6 +441,127 @@ fn leading_metadata_block_is_swallowed() {
         "---\nkey: value\n--- x\n\nmore\n",
         "an unclosed metadata block",
     );
+}
+
+/// The sections yielded by [`sections`], expecting exactly `N` of them.
+fn groups<const N: usize>(items: &[Item]) -> [(Option<&Item>, &[Item]); N] {
+    sections(items)
+        .collect::<Vec<_>>()
+        .try_into()
+        .expect("Unexpected number of sections")
+}
+
+/// Asserts that two iterators yield the exact same [`Item`]
+/// references, in the same order.
+fn assert_same_items<'a>(
+    left: impl IntoIterator<Item = &'a Item>,
+    right: impl IntoIterator<Item = &'a Item>,
+) {
+    let (mut left, mut right) = (left.into_iter(), right.into_iter());
+
+    loop {
+        match (left.next(), right.next()) {
+            (Some(left), Some(right)) => assert!(std::ptr::eq(left, right)),
+            (None, None) => break,
+            (left, right) => panic!("Length mismatch: {left:?} vs {right:?}"),
+        }
+    }
+}
+
+#[test]
+fn empty_input_has_no_sections() {
+    let items: Vec<_> = parse("").collect();
+    assert_eq!(sections(&items).count(), 0);
+}
+
+#[test]
+fn input_without_headings_is_a_single_section() {
+    let items: Vec<_> = parse("hello\n\nworld").collect();
+    let [(heading, body)] = groups(&items);
+
+    assert!(heading.is_none());
+    assert_eq!(body.len(), items.len());
+}
+
+#[test]
+fn prefix_before_first_heading() {
+    let items: Vec<_> = parse("prefix\n# Heading\n\nbody").collect();
+    let [(preamble_heading, preamble), (heading, body)] = groups(&items);
+
+    assert!(preamble_heading.is_none());
+    assert_eq!(preamble.len(), 1);
+    assert!(std::ptr::eq(&preamble[0], &items[0]));
+
+    assert!(std::ptr::eq(
+        heading.expect("Expected a heading"),
+        &items[1]
+    ));
+    assert_eq!(body.len(), 1);
+    assert!(std::ptr::eq(&body[0], &items[2]));
+}
+
+#[test]
+fn consecutive_headings_yield_empty_bodies() {
+    let items: Vec<_> = parse("# A\n\n# B\n\n# C\n\nbody").collect();
+    let [
+        (heading_a, body_a),
+        (heading_b, body_b),
+        (heading_c, body_c),
+    ] = groups(&items);
+
+    assert!(heading_a.is_some());
+    assert!(body_a.is_empty());
+    assert!(heading_b.is_some());
+    assert!(body_b.is_empty());
+    assert!(heading_c.is_some());
+    assert_eq!(body_c.len(), 1);
+}
+
+#[test]
+fn trailing_heading_yields_an_empty_body() {
+    let items: Vec<_> = parse("body\n# Heading").collect();
+    let [(preamble_heading, preamble), (heading, body)] = groups(&items);
+
+    assert!(preamble_heading.is_none());
+    assert_eq!(preamble.len(), 1);
+    assert!(heading.is_some());
+    assert!(body.is_empty());
+}
+
+#[test]
+fn every_item_is_yielded_exactly_once() {
+    let items: Vec<_> =
+        parse("intro\n# H1\n\np1\n- item\n> quote\n## H2\n\n```\ncode\n```\np2\n# H3").collect();
+    let groups = sections(&items).collect::<Vec<_>>();
+
+    // The headings are yielded as the first element of their groups,
+    // in order
+    assert_same_items(
+        groups.iter().filter_map(|(heading, _)| *heading),
+        items
+            .iter()
+            .filter(|item| matches!(item, Item::Heading(..))),
+    );
+
+    // The bodies partition the non-heading items, in order
+    assert_same_items(
+        groups.iter().flat_map(|(_, body)| body.iter()),
+        items
+            .iter()
+            .filter(|item| !matches!(item, Item::Heading(..))),
+    );
+}
+
+#[test]
+fn content_sections() {
+    let content = Content::parse("prefix\n# Heading\n\nbody");
+    let [(preamble_heading, _), (heading, _)] = groups(content.items());
+
+    assert!(preamble_heading.is_none());
+    assert!(std::ptr::eq(
+        heading.expect("Expected a heading"),
+        &content.items()[1]
+    ));
 }
 
 /// The blocks from which the fuzzed documents are generated.
