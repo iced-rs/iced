@@ -59,6 +59,7 @@ use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span,
 
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::ops::Range;
@@ -77,6 +78,8 @@ pub type Uri = String;
 #[derive(Debug, Default)]
 pub struct Content {
     items: Vec<Item>,
+    /// The source of each item, up to the start of the next one.
+    sources: Vec<String>,
     incomplete: HashMap<usize, Section>,
     state: State,
 }
@@ -85,6 +88,15 @@ pub struct Content {
 struct Section {
     content: String,
     broken_links: HashSet<String>,
+    /// The references that were resolved when the item was last
+    /// re-parsed, along with their destination at that time.
+    references: HashMap<String, String>,
+    /// The index of the item in the re-parse of `content`.
+    ///
+    /// A source region can produce more than one item (an image and
+    /// the paragraph it belongs to, for instance); this is the index
+    /// of the item that this section refers to.
+    item_index: usize,
 }
 
 impl Content {
@@ -104,6 +116,17 @@ impl Content {
     ///
     /// This is specially useful when you have long streams of Markdown; like
     /// big files or potentially long replies.
+    ///
+    /// Only the last item is re-parsed on every call; and, when the last
+    /// item is a list, only its last bullet is re-parsed, so that pushing
+    /// new items to a long list stays cheap.
+    ///
+    /// The result converges to the one obtained by parsing the whole
+    /// stream at once, as the stream grows. There is one caveat: an item
+    /// that is committed too early, while the text that could change its
+    /// meaning has not arrived yet, is kept as is. For instance, a lone
+    /// `---` line at the start of the stream is a rule until the next
+    /// lines reveal that it was the start of a YAML metadata block.
     pub fn push_str(&mut self, markdown: &str) {
         if markdown.is_empty() {
             return;
@@ -111,6 +134,28 @@ impl Content {
 
         // Append to last leftover text
         let mut leftover = std::mem::take(&mut self.state.leftover);
+
+        // Pop the last item; its source is the leftover that was just
+        // taken.
+        //
+        // Items whose stored source is empty are covered by the next
+        // item's source (an image and the paragraph it belongs to, for
+        // instance); they are re-parsed along with it, so pop them too.
+        let last = self.items.pop();
+        let last_source = self.sources.pop();
+        let mut covered = Vec::new();
+        while self.sources.last().is_some_and(String::is_empty) {
+            covered.push((self.items.pop(), self.sources.pop()));
+        }
+
+        // The leftover may not cover the last item; this happens when a
+        // previous push left behind some text that did not produce any
+        // item (a reference definition or a metadata block, for
+        // instance). In that case, the last item is not re-parsed.
+        let orphan = last_source
+            .as_deref()
+            .is_some_and(|source| !leftover.starts_with(source));
+
         leftover.push_str(markdown);
 
         let input = if leftover.trim_end().ends_with('|') {
@@ -119,59 +164,267 @@ impl Content {
             leftover.as_str()
         };
 
-        // Pop the last item
-        let _ = self.items.pop();
+        // The source of the whole list, when the last item is a list
+        let mut last_list_source = self.state.last_list_source.take();
 
         // Re-parse last item and new text
-        for (item, source, broken_links) in parse_with(&mut self.state, input) {
-            if !broken_links.is_empty() {
-                let _ = self.incomplete.insert(
-                    self.items.len(),
-                    Section {
-                        content: source.to_owned(),
-                        broken_links,
-                    },
-                );
-            }
+        let mut items: Vec<(Item, &str, HashSet<String>)> =
+            parse_with(&mut self.state, input).collect();
 
-            self.items.push(item);
+        let mut whole_list_source = None;
+
+        if orphan {
+            // The leftover did not cover the last item; restore it and
+            // the items it covered
+            for (item, source) in covered.into_iter().rev() {
+                if let Some(item) = item {
+                    self.items.push(item);
+                }
+                if let Some(source) = source {
+                    self.sources.push(source);
+                }
+            }
+            if let Some(item) = last {
+                self.items.push(item);
+            }
+            if let Some(source) = last_source {
+                self.sources.push(source);
+            }
+        } else if let Some(Item::List { start, bullets, .. }) = last
+            && let Some((first_item, _, _)) = items.first_mut()
+            && let Item::List { bullets: new, .. } = first_item
+        {
+            // We only re-parse the last bullet of a list, so merge the
+            // re-parsed list into the old one, keeping the bullets that
+            // were already parsed.
+            let mut bullets = bullets;
+
+            // The last bullet of the old list was re-parsed
+            let _ = bullets.pop();
+            bullets.extend(std::mem::take(new));
+            *first_item = Item::List { start, bullets };
+
+            // The bullets that were not re-parsed keep their source, so
+            // that the whole list can be re-parsed once a reference
+            // becomes available.
+            let mut source = last_list_source.take().unwrap_or_default();
+            source.push_str(markdown);
+            whole_list_source = Some(source);
         }
 
-        self.state.leftover.push_str(&leftover[input.len()..]);
+        if items.is_empty() {
+            if orphan {
+                // Nothing was parsed: the leftover text, which does not
+                // produce any item, kept growing.
+                self.state.leftover = leftover;
+                self.state.last_list_source = last_list_source;
+            } else {
+                // The new text did not produce any item (it completed a
+                // reference definition or a metadata block, for
+                // instance), so the last item was replaced by it.
+                // Restore the leftover from the source of the new last
+                // item, followed by the text that produced no item, so
+                // that the next push re-parses from the right place.
+                //
+                // The new last item is kept, so its source is read
+                // without popping it; only the covered items (empty
+                // source) are dropped, as they will be re-parsed again
+                // from the restored leftover.
+                let mut source = self.sources.last().cloned();
+                while source.as_deref().is_some_and(str::is_empty) {
+                    let _ = self.items.pop();
+                    let _ = self.sources.pop();
+                    source = self.sources.last().cloned();
+                }
+                if let Some(mut source) = source {
+                    source.push_str(&leftover);
+                    self.state.leftover = source;
 
-        // Re-parse incomplete sections if new references are available
+                    if self
+                        .items
+                        .last()
+                        .is_some_and(|item| matches!(item, Item::List { .. }))
+                    {
+                        // The new last item is a list; remember the
+                        // source of the whole list, if it is known.
+                        let index = self.items.len() - 1;
+                        self.state.last_list_source = self
+                            .incomplete
+                            .get(&index)
+                            .map(|section| section.content.clone())
+                            .or_else(|| Some(self.state.leftover.clone()));
+                    } else {
+                        self.state.last_list_source = None;
+                    }
+                } else {
+                    self.state.leftover = leftover;
+                    self.state.last_list_source = None;
+                }
+            }
+        } else {
+            // The source of the whole list, when the last item is a list
+            let last_list_source = if items.len() == 1 {
+                whole_list_source.take()
+            } else {
+                None
+            }
+            .or_else(|| match items.last() {
+                Some((Item::List { .. }, source, _)) => Some((*source).to_owned()),
+                _ => None,
+            });
+
+            // Keep the source of each item, up to the start of the next
+            // one; it is needed to restore the leftover if the last
+            // item is later replaced by text that produces no item.
+            let base = input.as_ptr() as usize;
+            let mut sources = Vec::with_capacity(items.len());
+            let mut starts = Vec::with_capacity(items.len());
+            for (i, (_, source, _)) in items.iter().enumerate() {
+                let start = source.as_ptr() as usize - base;
+                starts.push(start);
+                if i + 1 < items.len() {
+                    let end = items[i + 1].1.as_ptr() as usize - base;
+                    // The source can be covered by the next item's
+                    // source (an image and its paragraph, for
+                    // instance); in that case, it is empty and the item
+                    // will be re-parsed along with the next one.
+                    sources.push(input[start.min(end)..end].to_owned());
+                } else {
+                    sources.push(String::new());
+                }
+            }
+
+            // The source of the whole list, when the first item is the
+            // merged one
+            let first_item_whole = if items.len() == 1 {
+                whole_list_source
+                    .clone()
+                    .or_else(|| last_list_source.clone())
+            } else {
+                whole_list_source.clone()
+            };
+
+            for (i, (item, source, broken_links)) in items.into_iter().enumerate() {
+                let index = self.items.len();
+
+                // The merged list is re-parsed only from its last
+                // bullet, so its section needs the source of the whole
+                // list; it also needs to be refreshed as the list grows,
+                // even when no new broken link is reported.
+                let whole = (i == 0).then(|| first_item_whole.clone()).flatten();
+
+                if !broken_links.is_empty() || whole.is_some() {
+                    // A bullet that was not re-parsed can have broken
+                    // links of its own, so they need to be kept
+                    match self.incomplete.entry(index) {
+                        Entry::Occupied(mut entry) => {
+                            let section = entry.get_mut();
+                            section.broken_links.extend(broken_links);
+                            section.content = whole.unwrap_or_else(|| source.to_owned());
+                        }
+                        Entry::Vacant(entry) => {
+                            if !broken_links.is_empty() {
+                                // The re-parse of the item's source can
+                                // produce more items than the item
+                                // itself (an image and its paragraph,
+                                // for instance); remember which one is
+                                // the item this section refers to.
+                                let start = starts[i];
+                                let item_index = i - (0..i).filter(|&j| starts[j] < start).count();
+                                let _ = entry.insert(Section {
+                                    content: whole.unwrap_or_else(|| source.to_owned()),
+                                    broken_links,
+                                    references: HashMap::new(),
+                                    item_index,
+                                });
+                            }
+                        }
+                    }
+                }
+
+                self.items.push(item);
+            }
+
+            self.state.leftover.push_str(&leftover[input.len()..]);
+            if let Some(source) = sources.last_mut() {
+                source.clone_from(&self.state.leftover);
+            }
+
+            self.sources.extend(sources);
+            self.state.last_list_source = last_list_source;
+        }
+
+        // Re-parse incomplete sections if a reference becomes available
+        // or changes
         if !self.incomplete.is_empty() {
             self.incomplete.retain(|index, section| {
                 if self.items.len() <= *index {
                     return false;
                 }
 
-                let broken_links_before = section.broken_links.len();
+                // A link becomes resolvable...
+                let mut newly_resolved = Vec::new();
+                section.broken_links.retain(|link| {
+                    if self.state.references.contains_key(link) {
+                        newly_resolved.push(link.clone());
+                        false
+                    } else {
+                        true
+                    }
+                });
 
-                section
-                    .broken_links
-                    .retain(|link| !self.state.references.contains_key(link));
+                // ...or the destination of a resolved reference changes
+                let mut needs_reparse = !newly_resolved.is_empty();
+                for (link, dest) in &section.references {
+                    if let Some(new_dest) = self.state.references.get(link)
+                        && new_dest != dest
+                    {
+                        needs_reparse = true;
+                    }
+                }
 
-                if broken_links_before != section.broken_links.len() {
+                if needs_reparse {
                     let mut state = State {
                         leftover: String::new(),
                         references: self.state.references.clone(),
                         images: HashSet::new(),
+                        last_list_source: None,
                         #[cfg(feature = "highlighter")]
                         parser: None,
                     };
 
-                    if let Some((item, _source, _broken_links)) =
-                        parse_with(&mut state, &section.content).next()
+                    if let Some((item, _source, broken_links)) =
+                        parse_with(&mut state, &section.content).nth(section.item_index)
                     {
                         self.items[*index] = item;
+
+                        // Track the references that were resolved by the
+                        // re-parse, so that a later change of their
+                        // destination triggers a new re-parse
+                        for link in &newly_resolved {
+                            if let Some(dest) = self.state.references.get(link)
+                                && !broken_links.contains(link)
+                            {
+                                let _ = section.references.insert(link.clone(), dest.clone());
+                            }
+                        }
+
+                        section.broken_links = broken_links;
+                        section
+                            .references
+                            .retain(|link, _| !section.broken_links.contains(link));
+                        for (link, dest) in &mut section.references {
+                            if let Some(new_dest) = self.state.references.get(link) {
+                                *dest = new_dest.clone();
+                            }
+                        }
                     }
 
                     self.state.images.extend(state.images.drain());
                     drop(state);
                 }
 
-                !section.broken_links.is_empty()
+                !section.broken_links.is_empty() || !section.references.is_empty()
             });
         }
     }
@@ -557,6 +810,12 @@ struct State {
     leftover: String,
     references: HashMap<String, String>,
     images: HashSet<Uri>,
+    /// The source of the whole list, when the last item is a list.
+    ///
+    /// A list is re-parsed only from its last bullet; this keeps the
+    /// source of the rest of the list, so that it can be re-parsed as a
+    /// whole when a reference becomes available.
+    last_list_source: Option<String>,
     #[cfg(feature = "highlighter")]
     parser: Option<code::Parser>,
 }
@@ -579,9 +838,17 @@ fn parse_with<'a>(
     struct List {
         start: Option<u64>,
         bullets: Vec<Bullet>,
+        /// The start of the last item of the list, if any.
+        last_item_start: Option<usize>,
     }
 
-    let broken_links = Rc::new(RefCell::new(HashSet::new()));
+    // The broken links reported by the parser, along with their span
+    // in the input.
+    //
+    // The broken links are reported before the items that contain them
+    // are produced, so the links are attributed to an item by their
+    // span.
+    let broken_links = Rc::new(RefCell::new(Vec::new()));
 
     let mut spans = Vec::new();
     let mut code = String::new();
@@ -617,8 +884,8 @@ fn parse_with<'a>(
                         broken_link.reference.into_static(),
                     ))
                 } else {
-                    let _ = RefCell::borrow_mut(&broken_links)
-                        .insert(broken_link.reference.into_string());
+                    RefCell::borrow_mut(&broken_links)
+                        .push((broken_link.span, broken_link.reference.into_string()));
 
                     None
                 }
@@ -650,11 +917,16 @@ fn parse_with<'a>(
         } else {
             state.leftover = markdown[source.start..].to_owned();
 
-            Some((
-                item,
-                &markdown[source.start..source.end],
-                broken_links.take(),
-            ))
+            // Attribute the broken links whose span falls within the
+            // source of the item
+            let mut links = HashSet::new();
+            for (span, reference) in RefCell::borrow(&broken_links).iter() {
+                if source.contains(&span.start) {
+                    let _ = links.insert(reference.clone());
+                }
+            }
+
+            Some((item, &markdown[source.start..source.end], links))
         }
     };
 
@@ -701,12 +973,14 @@ fn parse_with<'a>(
                 stack.push(Scope::List(List {
                     start: first_item,
                     bullets: Vec::new(),
+                    last_item_start: None,
                 }));
 
                 prev
             }
             pulldown_cmark::Tag::Item => {
                 if let Some(Scope::List(list)) = stack.last_mut() {
+                    list.last_item_start = Some(source.start);
                     list.bullets.push(Bullet::Point { items: Vec::new() });
                 }
 
@@ -845,7 +1119,8 @@ fn parse_with<'a>(
                     return None;
                 };
 
-                produce(
+                let last_item_start = list.last_item_start;
+                let produced = produce(
                     state.borrow_mut(),
                     &mut stack,
                     Item::List {
@@ -853,7 +1128,18 @@ fn parse_with<'a>(
                         bullets: list.bullets,
                     },
                     source,
-                )
+                );
+
+                // A list is re-parsed only from the start of its last
+                // item, so that adding new items to a long list does not
+                // require re-parsing the whole list.
+                if produced.is_some()
+                    && let Some(start) = last_item_start
+                {
+                    state.borrow_mut().leftover = markdown[start..].to_owned();
+                }
+
+                produced
             }
             pulldown_cmark::TagEnd::BlockQuote(_kind) if !metadata => {
                 let scope = stack.pop()?;
