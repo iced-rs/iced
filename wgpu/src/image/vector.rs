@@ -56,8 +56,11 @@ impl Cache {
         // TODO: Reuse `cosmic-text` font database
         #[cfg(feature = "svg-text")]
         if self.fontdb.is_none() {
-            let mut fontdb = usvg::fontdb::Database::new();
-            fontdb.load_system_fonts();
+            let fontdb = iced_graphics::text::font_system()
+                .write()
+                .map_or(usvg::fontdb::Database::new(), |mut font_system| {
+                    font_system.raw().db().clone()
+                });
 
             self.fontdb = Some(Arc::new(fontdb));
         }
