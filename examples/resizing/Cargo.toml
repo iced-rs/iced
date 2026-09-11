@@ -1,0 +1,10 @@
+[package]
+name = "resizing"
+version = "0.1.0"
+authors = ["Matthew Pomes <matthew.pomes@pm.me>"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced = { workspace = true, features = ["tokio"] }
+tokio = { workspace = true, features = ["rt", "time"] }
