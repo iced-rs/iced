@@ -77,6 +77,10 @@ pub type Uri = String;
 /// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
 pub struct Content {
+    /// The raw Markdown accumulated so far, shared between all the
+    /// items and sections.
+    raw: String,
+    /// The parsed output.
     items: Vec<Item>,
     /// The start of the source that is re-parsed when the item is the
     /// last one: the start of the item, or the start of its last
@@ -86,9 +90,6 @@ pub struct Content {
     /// the list, unlike `starts`, which is the start of its last
     /// bullet.
     base: Vec<usize>,
-    /// The raw Markdown accumulated so far, shared between all the
-    /// items and sections.
-    raw: String,
     /// The start of the source that will be re-parsed on the next
     /// push.
     window: usize,
@@ -122,7 +123,7 @@ struct Section {
     /// A source region can produce more than one item (an image and
     /// the paragraph it belongs to, for instance); this is the index
     /// of the item that this section refers to.
-    item_index: usize,
+    item: usize,
 }
 
 impl Content {
@@ -367,7 +368,7 @@ impl Content {
                             // paragraph it belongs to, for instance);
                             // remember the index of the one this
                             // section refers to.
-                            let item_index = starts
+                            let item = starts
                                 .iter()
                                 .take(i)
                                 .copied()
@@ -378,7 +379,7 @@ impl Content {
                                 end,
                                 broken_links,
                                 references: HashMap::new(),
-                                item_index,
+                                item,
                             });
                         }
                     }
@@ -503,13 +504,15 @@ impl Content {
     fn recompute_references(&mut self) {
         let parser = pulldown_cmark::Parser::new_ext(&self.raw, options());
         let definitions = parser.reference_definitions();
+
         self.state.references.clear();
-        self.state.growing_refs.clear();
+        self.state.references_staged.clear();
+
         absorb_references(
             &self.raw,
             definitions,
             &mut self.state.references,
-            &mut self.state.growing_refs,
+            &mut self.state.references_staged,
         );
     }
 
@@ -575,7 +578,7 @@ impl Content {
                 let mut state = State {
                     window: None,
                     references: self.state.references.clone(),
-                    growing_refs: HashSet::new(),
+                    references_staged: HashSet::new(),
                     images: HashSet::new(),
                     #[cfg(feature = "highlighter")]
                     parser: None,
@@ -585,7 +588,7 @@ impl Content {
                 let source = &self.raw[section.start..end];
 
                 if let Some((item, _start, broken_links)) =
-                    parse_with(&mut state, source).nth(section.item_index)
+                    parse_with(&mut state, source).nth(section.item)
                 {
                     self.items[*index] = item;
 
@@ -604,6 +607,7 @@ impl Content {
                     section
                         .references
                         .retain(|link, _| !section.broken_links.contains(link));
+
                     for (link, dest) in &mut section.references {
                         if let Some(new_dest) = self.state.references.get(link) {
                             *dest = new_dest.clone();
@@ -1013,7 +1017,7 @@ struct State {
     /// definition of the last line, which is not terminated yet and
     /// can still grow; their destination is updated on each push,
     /// until the line is terminated.
-    growing_refs: HashSet<String>,
+    references_staged: HashSet<String>,
     images: HashSet<Uri>,
     #[cfg(feature = "highlighter")]
     parser: Option<code::Parser>,
@@ -1136,7 +1140,7 @@ fn parse_with<'a>(
             markdown,
             parser.reference_definitions(),
             &mut state.references,
-            &mut state.growing_refs,
+            &mut state.references_staged,
         );
     }
 
