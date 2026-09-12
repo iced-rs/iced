@@ -420,30 +420,37 @@ impl Span {
             } => {
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
+                let weight = if *strong {
+                    font::Weight::Bold
+                } else {
+                    settings.font.weight
+                };
+
+                let style = if *emphasis {
+                    font::Style::Italic
+                } else {
+                    settings.font.style
+                };
+
                 let span = if *inline_code {
                     let code = theme.code();
 
-                    span.font(settings.inline_code_font)
-                        .color(code.color)
-                        .background(code.highlight.background)
-                        .border(code.highlight.border)
-                        .padding(code.padding)
-                } else if *strong || *emphasis {
                     span.font(Font {
-                        weight: if *strong {
-                            font::Weight::Bold
-                        } else {
-                            font::Weight::Normal
-                        },
-                        style: if *emphasis {
-                            font::Style::Italic
-                        } else {
-                            font::Style::Normal
-                        },
+                        weight,
+                        style,
+                        ..settings.inline_code_font
+                    })
+                    .size(settings.inline_code_size)
+                    .color(code.color)
+                    .background(code.highlight.background)
+                    .border(code.highlight.border)
+                    .padding(code.padding)
+                } else {
+                    span.font(Font {
+                        weight,
+                        style,
                         ..settings.font
                     })
-                } else {
-                    span.font(settings.font)
                 };
 
                 if let Some(link) = link.as_ref() {
@@ -1040,10 +1047,14 @@ pub struct Settings {
     pub inline_code_font: Font,
     /// The [`Font`] to be applied to code blocks.
     pub code_block_font: Font,
-    /// The base text size.
-    pub text_size: Pixels,
     /// The base line height.
     pub line_height: LineHeight,
+    /// The base text size.
+    pub text_size: Pixels,
+    /// The text size used in code blocks.
+    pub code_block_size: Pixels,
+    /// The text size used in inline code.
+    pub inline_code_size: Pixels,
     /// The text size of level 1 heading.
     pub h1_size: Pixels,
     /// The text size of level 2 heading.
@@ -1056,8 +1067,6 @@ pub struct Settings {
     pub h5_size: Pixels,
     /// The text size of level 6 heading.
     pub h6_size: Pixels,
-    /// The text size used in code blocks.
-    pub code_size: Pixels,
     /// The spacing to be used between elements.
     pub spacing: Pixels,
 }
@@ -1077,15 +1086,16 @@ impl Settings {
             font: Font::DEFAULT,
             inline_code_font: Font::MONOSPACE,
             code_block_font: Font::MONOSPACE,
-            text_size,
             line_height,
+            text_size,
+            inline_code_size: text_size * 0.85,
+            code_block_size: text_size * 0.85,
             h1_size: text_size * 1.5,
             h2_size: text_size * 1.25,
             h3_size: text_size * 1.125,
             h4_size: text_size,
             h5_size: text_size,
             h6_size: text_size,
-            code_size: text_size * 0.85,
             spacing: line_height.to_absolute(text_size) / 1.5,
         }
     }
@@ -1248,6 +1258,15 @@ where
         ..
     } = settings;
 
+    let size = match level {
+        pulldown_cmark::HeadingLevel::H1 => h1_size,
+        pulldown_cmark::HeadingLevel::H2 => h2_size,
+        pulldown_cmark::HeadingLevel::H3 => h3_size,
+        pulldown_cmark::HeadingLevel::H4 => h4_size,
+        pulldown_cmark::HeadingLevel::H5 => h5_size,
+        pulldown_cmark::HeadingLevel::H6 => h6_size,
+    };
+
     container(
         rich_text(text.spans(
             Settings {
@@ -1255,20 +1274,18 @@ where
                     weight: font::Weight::Bold,
                     ..settings.font
                 },
+                inline_code_font: Font {
+                    weight: font::Weight::Bold,
+                    ..settings.inline_code_font
+                },
+                inline_code_size: size * (settings.inline_code_size / settings.text_size),
                 ..settings
             },
             viewer.theme(),
             viewer.highlighter(),
         ))
         .on_link_click(on_link_click)
-        .size(match level {
-            pulldown_cmark::HeadingLevel::H1 => h1_size,
-            pulldown_cmark::HeadingLevel::H2 => h2_size,
-            pulldown_cmark::HeadingLevel::H3 => h3_size,
-            pulldown_cmark::HeadingLevel::H4 => h4_size,
-            pulldown_cmark::HeadingLevel::H5 => h5_size,
-            pulldown_cmark::HeadingLevel::H6 => h6_size,
-        })
+        .size(size)
         .line_height(settings.line_height),
     )
     .into()
@@ -1384,24 +1401,26 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
+    let padding = settings.code_block_size / 0.85 * 0.75;
+
     container(
         scrollable(column(lines.iter().map(|line| {
             rich_text(line.spans(settings, viewer.theme(), viewer.highlighter()))
                 .on_link_click(on_link_click.clone())
                 .font(settings.code_block_font)
-                .size(settings.code_size)
+                .size(settings.code_block_size)
                 .line_height(settings.line_height)
                 .into()
         })))
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()
-                .width(settings.code_size / 2)
-                .scroller_width(settings.code_size / 2),
+                .width(padding / 2.0)
+                .scroller_width(padding / 2.0),
         ))
-        .spacing(settings.spacing * 0.75),
+        .spacing(padding),
     )
     .width(Length::Fill)
-    .padding(settings.spacing * 0.75)
+    .padding(padding)
     .class(Theme::code_block())
     .into()
 }
@@ -1747,7 +1766,7 @@ impl Catalog for Theme {
         let palette = self.palette();
 
         InlineCode {
-            padding: padding::horizontal(1),
+            padding: padding::horizontal(4).vertical(1),
             highlight: Highlight {
                 background: palette.background.weaker.color.into(),
                 border: border::rounded(4),
