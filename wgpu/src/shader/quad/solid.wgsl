@@ -36,8 +36,8 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     var scale_snap = vec2<f32>(0.0, 0.0);
 
     if bool(input.snap) {
-        pos_snap = round(pos + vec2(0.001, 0.001)) - pos;
-        scale_snap = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
+        pos_snap = round(pos + nudge) - pos;
+        scale_snap = round(pos + scale + nudge) - pos - pos_snap - scale;
     }
 
     let border_radius = min(input.border_radius, vec4(min(input.scale.x, input.scale.y) / 2.0));

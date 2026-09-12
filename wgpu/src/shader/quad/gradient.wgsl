@@ -38,8 +38,8 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     var scale_snap = vec2<f32>(0.0, 0.0);
 
     if bool(input.snap) {
-        pos_snap = round(pos + vec2(0.001, 0.001)) - pos;
-        scale_snap = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
+        pos_snap = round(pos + nudge) - pos;
+        scale_snap = round(pos + scale + nudge) - pos - pos_snap - scale;
     }
 
     var min_border_radius = min(input.position_and_scale.z, input.position_and_scale.w) * 0.5;
