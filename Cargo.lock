@@ -2472,6 +2472,7 @@ dependencies = [
  "iced_highlighter",
  "iced_renderer",
  "iced_runtime",
+ "iced_widget",
  "log",
  "num-traits",
  "pulldown-cmark",

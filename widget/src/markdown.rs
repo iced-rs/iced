@@ -167,11 +167,34 @@ impl Content {
             .pending_block_start
             .map(|start| Self::metadata_block_live(&self.source[start..]))
             .unwrap_or(false);
+        // A not-yet-settled metadata block that was live on the last
+        // push is now settled: the references registered while it was
+        // open are swallowed by it, so they must be dropped.
+        let block_closed = self.pending_block && !block_live;
         let mut input_start = if self.pending_block || block_live {
             self.pending_block_start.unwrap_or(self.window)
         } else {
             self.window
         };
+
+        // When the last item is a list and the previous item is a list
+        // or a quote, the last list may be a lazy continuation of the
+        // previous item's last bullet once more of it is streamed: an
+        // empty `2. two\n-` bullet list, for instance, becomes the
+        // `--` continuation of the numbered item as the second dash
+        // arrives, and a `-` outside a quoted list likewise becomes a
+        // continuation of the quoted bullet. Re-parse from the
+        // previous item's start so that this collapse is re-evaluated
+        // (and the re-parse yields the merged item, not a trailing
+        // paragraph or list).
+        if !self.pending_block
+            && !block_live
+            && let [.., prev, last] = self.items.as_slice()
+            && matches!(last, Item::List { .. })
+            && matches!(prev, Item::List { .. } | Item::Quote(_))
+        {
+            input_start = input_start.min(self.base[self.base.len() - 2]);
+        }
         let tail = &self.source[input_start..];
         let trimmed = tail.trim_end();
         let mut input = if trimmed.ends_with('|') {
@@ -385,6 +408,14 @@ impl Content {
             .map(|start| Self::metadata_block_live(&self.source[start..]))
             .unwrap_or(false);
 
+        // A metadata block that was open on the last push is now
+        // settled: the references registered while it was open are
+        // swallowed by it, so recompute the references from the whole
+        // source, as the one-shot parse does.
+        if block_closed {
+            self.recompute_references();
+        }
+
         // The sections whose item is not the last one anymore have
         // a fixed source range
         self.fix_section_ends();
@@ -462,6 +493,26 @@ impl Content {
         line == "---" || line == "+++"
     }
 
+    /// Re-parses the whole source and replaces the reference
+    /// definitions with those of the one-shot parse.
+    ///
+    /// A reference registered while a metadata block was still open
+    /// is swallowed by it once the block is settled, so it must not
+    /// resolve links any more; re-parsing the whole source drops it,
+    /// like the one-shot parse does.
+    fn recompute_references(&mut self) {
+        let parser = pulldown_cmark::Parser::new_ext(&self.source, options());
+        let definitions = parser.reference_definitions();
+        self.state.references.clear();
+        self.state.growing_refs.clear();
+        absorb_references(
+            &self.source,
+            definitions,
+            &mut self.state.references,
+            &mut self.state.growing_refs,
+        );
+    }
+
     /// Ends the sections whose item is not the last one anymore:
     /// their source range is now fixed, and it ends where the next
     /// item starts.
@@ -509,13 +560,15 @@ impl Content {
                 }
             });
 
-            // ...or the destination of a resolved reference changes
+            // ...or the destination of a resolved reference changes,
+            // or the reference is dropped (its definition swallowed
+            // by a metadata block, for instance)
             let needs_reparse = !newly_resolved.is_empty()
                 || section.references.iter().any(|(link, dest)| {
-                    self.state
-                        .references
-                        .get(link)
-                        .is_some_and(|new_dest| new_dest != dest)
+                    match self.state.references.get(link) {
+                        Some(new_dest) => new_dest != dest,
+                        None => true,
+                    }
                 });
 
             if needs_reparse {
@@ -576,6 +629,11 @@ impl Content {
     /// Returns the URLs of the Markdown images present in the [`Content`].
     pub fn images(&self) -> &HashSet<Uri> {
         &self.state.images
+    }
+
+    /// Returns the raw Markdown.
+    pub fn source(&self) -> &str {
+        &self.source
     }
 }
 
@@ -961,6 +1019,51 @@ struct State {
     parser: Option<code::Parser>,
 }
 
+/// The options used by the parser.
+fn options() -> pulldown_cmark::Options {
+    pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
+        | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
+        | pulldown_cmark::Options::ENABLE_TABLES
+        | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
+        | pulldown_cmark::Options::ENABLE_TASKLISTS
+}
+
+/// Absorbs the reference definitions of a parse into `references`,
+/// keeping the first definition of a label, like in CommonMark.
+///
+/// The definition of the last line, when that line is not terminated
+/// yet, can still grow, so its destination is updated on each push,
+/// until the line is terminated; the growing labels are tracked in
+/// `growing_refs`.
+///
+/// `markdown` is the source of the parse, and `definitions` are its
+/// reference definitions.
+fn absorb_references(
+    markdown: &str,
+    definitions: &pulldown_cmark::RefDefs<'_>,
+    references: &mut HashMap<String, String>,
+    growing_refs: &mut HashSet<String>,
+) {
+    for reference in definitions.iter() {
+        let name = reference.0.to_string();
+        let dest = reference.1.dest.to_string();
+
+        if markdown[reference.1.span.end..].contains('\n') {
+            if !references.contains_key(&name) || growing_refs.remove(&name) {
+                let _ = references.insert(name, dest);
+            }
+        } else if growing_refs.contains(&name) {
+            // The map's value is the growing one: update it
+            let _ = references.insert(name, dest);
+        } else if !references.contains_key(&name) {
+            // No terminated definition wins: the growing value is
+            // provisional
+            let _ = growing_refs.insert(name.clone());
+            let _ = references.insert(name, dest);
+        }
+    }
+}
+
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
@@ -1008,60 +1111,33 @@ fn parse_with<'a>(
     #[cfg(feature = "highlighter")]
     let mut code_parser = None;
 
-    let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
-        markdown,
-        pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
-            | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
-            | pulldown_cmark::Options::ENABLE_TABLES
-            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
-            | pulldown_cmark::Options::ENABLE_TASKLISTS,
-        {
-            let references = state.borrow().references.clone();
-            let broken_links = broken_links.clone();
+    let parser = pulldown_cmark::Parser::new_with_broken_link_callback(markdown, options(), {
+        let references = state.borrow().references.clone();
+        let broken_links = broken_links.clone();
 
-            Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
-                if let Some(reference) = references.get(broken_link.reference.as_ref()) {
-                    Some((
-                        pulldown_cmark::CowStr::from(reference.to_owned()),
-                        broken_link.reference.into_static(),
-                    ))
-                } else {
-                    RefCell::borrow_mut(&broken_links)
-                        .push((broken_link.span, broken_link.reference.into_string()));
+        Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
+            if let Some(reference) = references.get(broken_link.reference.as_ref()) {
+                Some((
+                    pulldown_cmark::CowStr::from(reference.to_owned()),
+                    broken_link.reference.into_static(),
+                ))
+            } else {
+                RefCell::borrow_mut(&broken_links)
+                    .push((broken_link.span, broken_link.reference.into_string()));
 
-                    None
-                }
-            })
-        },
-    );
+                None
+            }
+        })
+    });
 
     {
         let state = state.borrow_mut();
-        let references = &mut state.references;
-        let growing_refs = &mut state.growing_refs;
-
-        for reference in parser.reference_definitions().iter() {
-            let name = reference.0.to_string();
-            let dest = reference.1.dest.to_string();
-
-            // The first definition of a label wins, like in CommonMark.
-            // The definition of the last line, when that line is not
-            // terminated yet, can still grow, so its destination is
-            // updated on each push, until the line is terminated.
-            if markdown[reference.1.span.end..].contains('\n') {
-                if !references.contains_key(&name) || growing_refs.remove(&name) {
-                    let _ = references.insert(name, dest);
-                }
-            } else if growing_refs.contains(&name) {
-                // The map's value is the growing one: update it
-                let _ = references.insert(name, dest);
-            } else if !references.contains_key(&name) {
-                // No terminated definition wins: the growing value is
-                // provisional
-                let _ = growing_refs.insert(name.clone());
-                let _ = references.insert(name, dest);
-            }
-        }
+        absorb_references(
+            markdown,
+            parser.reference_definitions(),
+            &mut state.references,
+            &mut state.growing_refs,
+        );
     }
 
     let produce = move |state: &mut State, stack: &mut Vec<Scope>, item, source: Range<usize>| {

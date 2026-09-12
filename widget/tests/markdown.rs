@@ -39,22 +39,23 @@ fn assert_converges(full: &str, label: &str) {
         (three, "3-char chunks"),
     ] {
         let mut c = Content::new();
+
         for chunk in &chunks {
             c.push_str(chunk);
+
+            let one = Content::parse(c.source());
+
+            assert_eq!(
+                format!("{:?}", c.items()),
+                format!("{:?}", one.items()),
+                "{label}: incremental ({name}) should converge to one-shot"
+            );
+            assert_eq!(
+                c.images(),
+                one.images(),
+                "{label}: images should converge ({name})"
+            );
         }
-
-        let one = Content::parse(full);
-
-        assert_eq!(
-            format!("{:?}", c.items()),
-            format!("{:?}", one.items()),
-            "{label}: incremental ({name}) should converge to one-shot"
-        );
-        assert_eq!(
-            c.images(),
-            one.images(),
-            "{label}: images should converge ({name})"
-        );
     }
 }
 
@@ -114,6 +115,25 @@ fn list_surrounded_by_other_items() {
 fn code_block_and_list() {
     let full = "```\ncode\n```\n\n- a\n- b\n";
     assert_converges(full, "code block and list");
+}
+
+/// A reference whose definition is swallowed by a metadata block must
+/// stop resolving the links that were resolved with it while the block
+/// was still open.
+#[test]
+fn reference_swallowed_by_metadata_block() {
+    let full = "para\n\n- [x][ref]\n---\nkey: value\n| a | b |\n| - | - |\n| 1 | 2 |\n\n2. two [y][ref]\n![alt with [x][ref]](https://img.com/i.png)\n\n+++\nkey: value\n+++\n\n[ref]: https://changed.com\n\n---";
+    assert_converges(full, "reference swallowed by a metadata block");
+}
+
+/// A reference defined both inside a swallowed metadata block and
+/// outside it resolves to the outside definition, like the one-shot
+/// parse does.
+#[test]
+fn reference_first_defined_in_swallowed_block() {
+    let full =
+        "a [x][ref]\n\n---\n[ref]: https://in_block.com\n---\n\n[ref]: https://outside.com\n";
+    assert_converges(full, "reference first defined in a swallowed block");
 }
 
 /// A list inside a quote, followed by another list.
@@ -673,50 +693,11 @@ fn generated_documents() -> Vec<String> {
 }
 
 /// Fuzzes the convergence of the incremental parse over a corpus of
-/// generated documents, with the three chunking schemes.
+/// generated documents, with the three chunking schemes, checking the
+/// one-shot equivalence after every push.
 #[test]
 fn fuzz() {
     for doc in generated_documents() {
-        let one = Content::parse(&doc);
-        let one_items = format!("{:?}", one.items());
-
-        for (chunks, name) in [
-            (
-                doc.split_inclusive(' ')
-                    .map(str::to_owned)
-                    .collect::<Vec<_>>(),
-                "word-by-word",
-            ),
-            (
-                doc.chars().map(|c| c.to_string()).collect::<Vec<_>>(),
-                "char-by-char",
-            ),
-            (
-                doc.as_bytes()
-                    .chunks(3)
-                    .map(|c| std::str::from_utf8(c).unwrap().to_owned())
-                    .collect::<Vec<_>>(),
-                "3-char chunks",
-            ),
-        ] {
-            let mut c = Content::new();
-            for chunk in &chunks {
-                c.push_str(chunk);
-            }
-
-            let items = format!("{:?}", c.items());
-            let equal = items == one_items;
-            assert!(
-                equal,
-                "{name}: incremental should converge to one-shot: {doc:?}\n\
-                 incremental:\n{items}\none-shot:\n{one_items}"
-            );
-
-            assert_eq!(
-                c.images(),
-                one.images(),
-                "{name}: images should converge: {doc:?}"
-            );
-        }
+        assert_converges(&doc, &doc);
     }
 }

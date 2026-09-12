@@ -45,3 +45,7 @@ pulldown-cmark.optional = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
+
+[dev-dependencies]
+iced_widget.workspace = true
+iced_widget.features = ["markdown"]
