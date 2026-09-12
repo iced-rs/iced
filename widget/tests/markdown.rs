@@ -530,9 +530,8 @@ fn fuzz() {
 
     /// The documents to fuzz: the four convergence repros, and a
     /// deterministic corpus of documents generated from `BLOCKS`.
-    fn corpus() -> Vec<String> {
-        let mut rng = Rng(0x5EED);
-        let repros = [
+    fn corpus() -> impl Iterator<Item = String> {
+        const REPROS: &[&str] = &[
             "[other]: https://other.com\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n\
          [ref]: https://example.com\n\n- a\n---\n\n",
             "2. two\n[ref]: https://changed.com\n\n\n- a\n| a | b |\n| - | - |\n| 1 | 2 |\n\n---\n\n",
@@ -547,15 +546,22 @@ fn fuzz() {
             "- x\n---\nkey\n---\npara\n",
             "- x\n---\nkey\n...\nmore\n",
         ];
-        let mut docs: Vec<String> = repros.iter().map(ToString::to_string).collect();
-        for _ in 0..600 {
-            let mut doc = String::new();
-            for _ in 0..4 + rng.next() % 7 {
-                doc.push_str(BLOCKS[rng.next() % BLOCKS.len()]);
-            }
-            docs.push(doc);
-        }
-        docs
+
+        let mut rng = Rng(0x5EED);
+
+        REPROS
+            .iter()
+            .copied()
+            .map(str::to_owned)
+            .chain((0..600).map(move |_| {
+                let mut doc = String::new();
+
+                for _ in 0..4 + rng.next() % 7 {
+                    doc.push_str(BLOCKS[rng.next() % BLOCKS.len()]);
+                }
+
+                doc
+            }))
     }
 
     for doc in corpus() {
