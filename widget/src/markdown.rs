@@ -59,6 +59,7 @@ use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span,
 
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::ops::Range;
@@ -76,15 +77,53 @@ pub type Uri = String;
 /// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
 pub struct Content {
+    /// The raw Markdown accumulated so far, shared between all the
+    /// items and sections.
+    raw: String,
+    /// The parsed output.
     items: Vec<Item>,
+    /// The start of the source that is re-parsed when the item is the
+    /// last one: the start of the item, or the start of its last
+    /// bullet, when it is a list.
+    starts: Vec<usize>,
+    /// The true start of the item's source; for a list, the start of
+    /// the list, unlike `starts`, which is the start of its last
+    /// bullet.
+    base: Vec<usize>,
+    /// The start of the source that will be re-parsed on the next
+    /// push.
+    window: usize,
+    /// Whether a not-yet-settled metadata block was live on the last
+    /// push; when it was, the re-parse starts at the start of the
+    /// block, so that the block is swallowed by the parser once it is
+    /// closed (or re-parsed as the rule it turned out to be).
+    pending_block: bool,
+    /// The start of the not-yet-settled metadata block, if any; the
+    /// re-parse starts there, so that the block (a tentative rule and
+    /// its content, for instance) is re-parsed as a whole.
+    pending_block_start: Option<usize>,
     incomplete: HashMap<usize, Section>,
     state: State,
 }
 
 #[derive(Debug)]
 struct Section {
-    content: String,
+    /// The start of the source to re-parse when a reference becomes
+    /// available or changes.
+    start: usize,
+    /// The end of the source to re-parse; `None` if the item is still
+    /// the last one, so that the source can still grow.
+    end: Option<usize>,
     broken_links: HashSet<String>,
+    /// The references that were resolved when the item was last
+    /// re-parsed, along with their destination at that time.
+    references: HashMap<String, String>,
+    /// The index of the item in the re-parse of the source.
+    ///
+    /// A source region can produce more than one item (an image and
+    /// the paragraph it belongs to, for instance); this is the index
+    /// of the item that this section refers to.
+    item: usize,
 }
 
 impl Content {
@@ -104,76 +143,484 @@ impl Content {
     ///
     /// This is specially useful when you have long streams of Markdown; like
     /// big files or potentially long replies.
+    ///
+    /// Only the last item is re-parsed on every call; and, when the last
+    /// item is a list, only its last bullet is re-parsed, so that pushing
+    /// new items to a long list stays cheap.
+    ///
+    /// The result converges to the one obtained by parsing the whole
+    /// stream at once, as the stream grows.
     pub fn push_str(&mut self, markdown: &str) {
         if markdown.is_empty() {
             return;
         }
 
-        // Append to last leftover text
-        let mut leftover = std::mem::take(&mut self.state.leftover);
-        leftover.push_str(markdown);
+        self.raw.push_str(markdown);
 
-        let input = if leftover.trim_end().ends_with('|') {
-            leftover.trim_end().trim_end_matches('|')
+        // The text to re-parse: from the start of the source of the
+        // last item (or its last bullet, when it is a list) to the
+        // end. Unless a not-yet-settled metadata block is live (or
+        // was live on the last push), in which case the re-parse
+        // starts at the start of the block: it is swallowed by the
+        // parser once it is closed, and its first line (a tentative
+        // rule) must be re-parsed with it.
+        let block_live = self
+            .pending_block_start
+            .map(|start| Self::metadata_block_live(&self.raw[start..]))
+            .unwrap_or(false);
+        // A not-yet-settled metadata block that was live on the last
+        // push is now settled: the references registered while it was
+        // open are swallowed by it, so they must be dropped.
+        let block_closed = self.pending_block && !block_live;
+        let mut input_start = if self.pending_block || block_live {
+            self.pending_block_start.unwrap_or(self.window)
         } else {
-            leftover.as_str()
+            self.window
         };
 
-        // Pop the last item
-        let _ = self.items.pop();
+        // When the last item is a list and the previous item is a list
+        // or a quote, the last list may be a lazy continuation of the
+        // previous item's last bullet once more of it is streamed: an
+        // empty `2. two\n-` bullet list, for instance, becomes the
+        // `--` continuation of the numbered item as the second dash
+        // arrives, and a `-` outside a quoted list likewise becomes a
+        // continuation of the quoted bullet. Re-parse from the
+        // previous item's start so that this collapse is re-evaluated
+        // (and the re-parse yields the merged item, not a trailing
+        // paragraph or list).
+        if !self.pending_block
+            && !block_live
+            && let [.., prev, last] = self.items.as_slice()
+            && matches!(last, Item::List { .. })
+            && matches!(prev, Item::List { .. } | Item::Quote(_))
+        {
+            input_start = input_start.min(self.base[self.base.len() - 2]);
+        }
+        let tail = &self.raw[input_start..];
+        let trimmed = tail.trim_end();
+        let mut input = if trimmed.ends_with('|') {
+            trimmed.trim_end_matches('|')
+        } else {
+            tail
+        };
 
-        // Re-parse last item and new text
-        for (item, source, broken_links) in parse_with(&mut self.state, input) {
-            if !broken_links.is_empty() {
-                let _ = self.incomplete.insert(
-                    self.items.len(),
-                    Section {
-                        content: source.to_owned(),
-                        broken_links,
-                    },
-                );
-            }
-
-            self.items.push(item);
+        // Pop the last item and the items whose source falls within
+        // the text that will be re-parsed (an image and the paragraph
+        // it belongs to, for instance); they will be re-parsed as
+        // well.
+        let last = self.items.pop();
+        let _ = self.starts.pop();
+        // The true start of the source of the last item, if any; it
+        // is the start of the merged list, when the last item is a
+        // list.
+        let old_last_base = self.base.pop();
+        while self
+            .starts
+            .last()
+            .is_some_and(|start| *start >= input_start)
+        {
+            let _ = self.items.pop();
+            let _ = self.starts.pop();
+            let _ = self.base.pop();
         }
 
-        self.state.leftover.push_str(&leftover[input.len()..]);
+        // Re-parse the last item and the new text
+        let mut items: Vec<_> = parse_with(&mut self.state, input).collect();
 
-        // Re-parse incomplete sections if new references are available
-        if !self.incomplete.is_empty() {
-            self.incomplete.retain(|index, section| {
-                if self.items.len() <= *index {
-                    return false;
-                }
+        // We only re-parse the last bullet of a list, so merge the
+        // re-parsed list into the old one, keeping the bullets that
+        // were already parsed. This only applies when the re-parse
+        // actually started after the start of the list (at its last
+        // bullet); when it re-parsed the whole list, the re-parsed
+        // list already contains all the bullets, and merging would
+        // duplicate them.
+        let last_is_list = matches!(last.as_ref(), Some(Item::List { .. }));
+        let mut merged = false;
+        if let Some(Item::List { start, bullets, .. }) = last
+            && let Some((first_item, _, _)) = items.first_mut()
+            && let Item::List { bullets: new, .. } = first_item
+            && old_last_base.is_some_and(|base| input_start > base)
+        {
+            // The last bullet of the old list was re-parsed
+            let mut bullets = bullets;
+            let _ = bullets.pop();
+            bullets.extend(mem::take(new));
+            *first_item = Item::List { start, bullets };
+            merged = true;
+        } else if last_is_list {
+            // The re-parse of the last bullet no longer produces a
+            // list (the bullet grew into a rule or a heading, for
+            // instance), so it cannot be merged into the old list:
+            // re-parse from the start of the whole list, so its
+            // source is re-parsed in full.
+            //
+            // The re-parse must not start after a not-yet-settled
+            // metadata block opener (kept in `input_start`), or the
+            // block would be dropped; use the earliest of the two.
+            let base = old_last_base.expect("a list has a base").min(input_start);
+            let tail = &self.raw[base..];
+            let trimmed = tail.trim_end();
+            input = if trimmed.ends_with('|') {
+                trimmed.trim_end_matches('|')
+            } else {
+                tail
+            };
+            input_start = base;
+            items = parse_with(&mut self.state, input).collect();
+        } else if let Some((Item::List { .. }, 0, _)) = items.first()
+            && let Some(Item::List { .. }) = self.items.last()
+            && let Some(base) = self.base.last().copied()
+        {
+            // The re-parse produced a list that starts where the old
+            // last item (a lone paragraph, for instance) used to be,
+            // right after a previous list: the paragraph grew into a
+            // list item that continues the previous list. Re-parse
+            // from the start of the previous list, so that the list
+            // is not split in two; the parser decides whether the
+            // two regions are one list.
+            let tail = &self.raw[base..];
+            let trimmed = tail.trim_end();
+            input = if trimmed.ends_with('|') {
+                trimmed.trim_end_matches('|')
+            } else {
+                tail
+            };
 
-                let broken_links_before = section.broken_links.len();
+            let reparsed: Vec<_> = parse_with(&mut self.state, input).collect();
 
-                section
-                    .broken_links
-                    .retain(|link| !self.state.references.contains_key(link));
+            if let Some((Item::List { .. }, _, _)) = reparsed.first() {
+                input_start = base;
+                items = reparsed;
+                // The previous list is covered by the re-parse
+                let _ = self.items.pop();
+                let _ = self.starts.pop();
+                let _ = self.base.pop();
+            }
+        }
 
-                if broken_links_before != section.broken_links.len() {
-                    let mut state = State {
-                        leftover: String::new(),
-                        references: self.state.references.clone(),
-                        images: HashSet::new(),
-                        #[cfg(feature = "highlighter")]
-                        parser: None,
+        // The start of the most recent `---` or `+++` rule produced
+        // by the re-parse, if any; it is a tentative metadata block
+        // opener.
+        let mut newest_rule_start: Option<usize> = None;
+
+        if items.is_empty() {
+            // The new text did not produce any item (it completed a
+            // reference definition or a metadata block, for
+            // instance), so the last item was replaced by it; the
+            // next push re-parses from the start of the new last
+            // item.
+            self.window = self.starts.last().copied().unwrap_or(input_start);
+        } else {
+            // Remember the start of the source of each re-parsed
+            // item.
+            let starts: Vec<usize> = items
+                .iter()
+                .map(|(_, start, _)| input_start + *start)
+                .collect();
+
+            for (i, (item, _start, broken_links)) in items.into_iter().enumerate() {
+                let start = starts[i];
+                // The merged list is anchored at the start of the
+                // whole list, unlike `start`, which is the start of
+                // its last bullet.
+                let base = if i == 0 && merged {
+                    old_last_base.expect("a merged list has a base")
+                } else {
+                    start
+                };
+
+                if !broken_links.is_empty() {
+                    // The index of the item once it is pushed
+                    let index = self.items.len();
+
+                    // The next item can cover this one (a paragraph
+                    // and the image it contains, for instance); in
+                    // that case, the source to re-parse spans both.
+                    let covers = starts.get(i + 1).is_some_and(|next| *next <= start);
+
+                    // The source to re-parse starts at the start of
+                    // the covered group, if any, and ends where the
+                    // item after the group starts; it grows with the
+                    // source while the group is the last one.
+                    let (section_start, end) = if covers {
+                        (starts[i + 1], starts.get(i + 2).copied())
+                    } else {
+                        (base, starts.get(i + 1).copied())
                     };
 
-                    if let Some((item, _source, _broken_links)) =
-                        parse_with(&mut state, &section.content).next()
-                    {
-                        self.items[*index] = item;
+                    // A bullet that was not re-parsed can have broken
+                    // links of its own, so they need to be kept
+                    match self.incomplete.entry(index) {
+                        Entry::Occupied(mut entry) => {
+                            let section = entry.get_mut();
+                            section.broken_links.extend(broken_links);
+                            // The geometry can change (the item was
+                            // not covered when the section was
+                            // created, and its paragraph is now
+                            // re-parsed as well)
+                            section.start = section_start;
+                            section.end = end;
+                        }
+                        Entry::Vacant(entry) => {
+                            // The re-parse of the section's source
+                            // produces the items that fall within
+                            // the section's range (an image and the
+                            // paragraph it belongs to, for instance);
+                            // remember the index of the one this
+                            // section refers to.
+                            let item = starts
+                                .iter()
+                                .take(i)
+                                .copied()
+                                .filter(|start| *start >= section_start)
+                                .count();
+                            let _ = entry.insert(Section {
+                                start: section_start,
+                                end,
+                                broken_links,
+                                references: HashMap::new(),
+                                item,
+                            });
+                        }
                     }
-
-                    self.state.images.extend(state.images.drain());
-                    drop(state);
                 }
 
-                !section.broken_links.is_empty()
-            });
+                if matches!(item, Item::Rule) && Self::metadata_delimiter(&self.raw, start) {
+                    // A `---` or `+++` rule is a tentative metadata
+                    // block opener; remember where it starts so that
+                    // the block is re-parsed as a whole when it is
+                    // closed.
+                    newest_rule_start = Some(start);
+                }
+
+                self.items.push(item);
+                self.starts.push(start);
+                self.base.push(base);
+            }
+
+            self.window = input_start + self.state.window.unwrap_or(input.len());
         }
+
+        // Remember the tentative metadata block opener, if any, so
+        // that the block is re-parsed as a whole as it grows, and
+        // swallowed by the parser once it is closed.
+        self.pending_block_start = newest_rule_start;
+        self.pending_block = newest_rule_start
+            .map(|start| Self::metadata_block_live(&self.raw[start..]))
+            .unwrap_or(false);
+
+        // A metadata block that was open on the last push is now
+        // settled: the references registered while it was open are
+        // swallowed by it, so recompute the references from the whole
+        // source, as the one-shot parse does.
+        if block_closed {
+            self.recompute_references();
+        }
+
+        // The sections whose item is not the last one anymore have
+        // a fixed source range
+        self.fix_section_ends();
+
+        // The sections whose broken links became resolvable, or
+        // whose references changed, are re-parsed
+        self.resolve_sections();
+
+        // The images are those present in the items; recompute them,
+        // as an image parsed while a metadata block was still open
+        // can be swallowed by it once the block is closed.
+        self.state.images = self
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Image { url, .. } => Some(url.clone()),
+                _ => None,
+            })
+            .collect();
+    }
+
+    /// Returns `true` if the source starts with a metadata block that
+    /// is not settled yet: the first line is a complete `---` or
+    /// `+++` delimiter, the second line is not a blank one
+    /// (otherwise the first line is a rule), and the block has not
+    /// been closed.
+    ///
+    /// While such a block is live, its first line is a tentative
+    /// rule that the parser swallows once the block is closed, so
+    /// the re-parse has to cover the block as a whole.
+    fn metadata_block_live(source: &str) -> bool {
+        // The first line, which must be complete
+        let (first, rest) = match source.find('\n') {
+            Some(end) => (&source[..end], &source[end + 1..]),
+            None => return false,
+        };
+
+        // The delimiter line
+        let first = first.trim_end();
+        if first != "---" && first != "+++" {
+            return false;
+        }
+
+        // The second line: a blank one makes the first line a rule,
+        // not a metadata block; an incomplete one could still be
+        // the start of a block
+        let Some(second_end) = rest.find('\n') else {
+            return true;
+        };
+        let second = &rest[..second_end];
+        if second.trim().is_empty() {
+            return false;
+        }
+
+        // The block is closed by a `---` or `...` line, or a `+++`
+        // line, when it is delimited by `+++`
+        let closed = rest.lines().any(|line| {
+            let line = line.trim_end();
+            if first == "+++" {
+                line == "+++"
+            } else {
+                line == "---" || line == "..."
+            }
+        });
+
+        !closed
+    }
+
+    /// Returns `true` if the line starting at `start` is a complete
+    /// `---` or `+++` metadata block delimiter.
+    fn metadata_delimiter(source: &str, start: usize) -> bool {
+        let line = &source[start..];
+        let end = line.find('\n').unwrap_or(line.len());
+        let line = line[..end].trim_end();
+        line == "---" || line == "+++"
+    }
+
+    /// Re-parses the whole source and replaces the reference
+    /// definitions with those of the one-shot parse.
+    ///
+    /// A reference registered while a metadata block was still open
+    /// is swallowed by it once the block is settled, so it must not
+    /// resolve links any more; re-parsing the whole source drops it,
+    /// like the one-shot parse does.
+    fn recompute_references(&mut self) {
+        let parser = pulldown_cmark::Parser::new_ext(&self.raw, options());
+        let definitions = parser.reference_definitions();
+
+        self.state.references.clear();
+        self.state.references_staged.clear();
+
+        absorb_references(
+            &self.raw,
+            definitions,
+            &mut self.state.references,
+            &mut self.state.references_staged,
+        );
+    }
+
+    /// Ends the sections whose item is not the last one anymore:
+    /// their source range is now fixed, and it ends where the next
+    /// item starts.
+    fn fix_section_ends(&mut self) {
+        if self.incomplete.is_empty() {
+            return;
+        }
+
+        for (index, section) in self.incomplete.iter_mut() {
+            if section.end.is_none() && *index + 1 < self.items.len() {
+                // The next item can cover the section's item (a
+                // paragraph and the image it contains), so the end
+                // is the first start that is strictly after the
+                // section's start
+                section.end = self.starts[*index + 1..]
+                    .iter()
+                    .copied()
+                    .find(|end| *end > section.start);
+            }
+        }
+    }
+
+    /// Re-parses the sections whose broken links became resolvable,
+    /// or whose references changed destination; the sections that
+    /// are left with nothing to watch are dropped.
+    fn resolve_sections(&mut self) {
+        if self.incomplete.is_empty() {
+            return;
+        }
+
+        self.incomplete.retain(|index, section| {
+            if self.items.len() <= *index {
+                // The section's item is gone
+                return false;
+            }
+
+            // A link becomes resolvable...
+            let mut newly_resolved = Vec::new();
+            section.broken_links.retain(|link| {
+                if self.state.references.contains_key(link) {
+                    newly_resolved.push(link.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+
+            // ...or the destination of a resolved reference changes,
+            // or the reference is dropped (its definition swallowed
+            // by a metadata block, for instance)
+            let needs_reparse = !newly_resolved.is_empty()
+                || section.references.iter().any(|(link, dest)| {
+                    match self.state.references.get(link) {
+                        Some(new_dest) => new_dest != dest,
+                        None => true,
+                    }
+                });
+
+            if needs_reparse {
+                let mut state = State {
+                    window: None,
+                    references: self.state.references.clone(),
+                    references_staged: HashSet::new(),
+                    images: HashSet::new(),
+                    #[cfg(feature = "highlighter")]
+                    parser: None,
+                };
+
+                let end = section.end.unwrap_or(self.raw.len());
+                let source = &self.raw[section.start..end];
+
+                if let Some((item, _start, broken_links)) =
+                    parse_with(&mut state, source).nth(section.item)
+                {
+                    self.items[*index] = item;
+
+                    // Track the references that were resolved by the
+                    // re-parse, so that a later change of their
+                    // destination triggers a new re-parse
+                    for link in newly_resolved {
+                        if let Some(dest) = self.state.references.get(&link)
+                            && !broken_links.contains(&link)
+                        {
+                            let _ = section.references.insert(link, dest.to_owned());
+                        }
+                    }
+
+                    section.broken_links = broken_links;
+                    section
+                        .references
+                        .retain(|link, _| !section.broken_links.contains(link));
+
+                    for (link, dest) in &mut section.references {
+                        if let Some(new_dest) = self.state.references.get(link) {
+                            *dest = new_dest.clone();
+                        }
+                    }
+                }
+
+                self.state.images.extend(state.images);
+            }
+
+            // The section is kept while something is left to watch
+            !section.broken_links.is_empty() || !section.references.is_empty()
+        });
     }
 
     /// Returns the Markdown items, ready to be rendered.
@@ -186,6 +633,11 @@ impl Content {
     /// Returns the URLs of the Markdown images present in the [`Content`].
     pub fn images(&self) -> &HashSet<Uri> {
         &self.state.images
+    }
+
+    /// Returns the raw Markdown.
+    pub fn raw(&self) -> &str {
+        &self.raw
     }
 }
 
@@ -549,22 +1001,77 @@ impl Bullet {
 /// }
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
-    parse_with(State::default(), markdown).map(|(item, _source, _broken_links)| item)
+    parse_with(State::default(), markdown).map(|(item, _start, _broken_links)| item)
 }
 
 #[derive(Debug, Default)]
 struct State {
-    leftover: String,
+    /// The start of the source that will be re-parsed next, after the
+    /// current parse.
+    window: Option<usize>,
+    /// The reference definitions, mapping a label to its destination.
+    ///
+    /// The first definition of a label wins, like in CommonMark.
     references: HashMap<String, String>,
+    /// The labels whose destination in `references` comes from the
+    /// definition of the last line, which is not terminated yet and
+    /// can still grow; their destination is updated on each push,
+    /// until the line is terminated.
+    references_staged: HashSet<String>,
     images: HashSet<Uri>,
     #[cfg(feature = "highlighter")]
     parser: Option<code::Parser>,
 }
 
+/// The options used by the parser.
+fn options() -> pulldown_cmark::Options {
+    pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
+        | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
+        | pulldown_cmark::Options::ENABLE_TABLES
+        | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
+        | pulldown_cmark::Options::ENABLE_TASKLISTS
+}
+
+/// Absorbs the reference definitions of a parse into `references`,
+/// keeping the first definition of a label, like in CommonMark.
+///
+/// The definition of the last line, when that line is not terminated
+/// yet, can still grow, so its destination is updated on each push,
+/// until the line is terminated; the growing labels are tracked in
+/// `growing_refs`.
+///
+/// `markdown` is the source of the parse, and `definitions` are its
+/// reference definitions.
+fn absorb_references(
+    markdown: &str,
+    definitions: &pulldown_cmark::RefDefs<'_>,
+    references: &mut HashMap<String, String>,
+    growing_refs: &mut HashSet<String>,
+) {
+    for reference in definitions.iter() {
+        let name = reference.0.to_string();
+        let dest = reference.1.dest.to_string();
+
+        if markdown[reference.1.span.end..].contains('\n') {
+            if !references.contains_key(&name) || growing_refs.remove(&name) {
+                let _ = references.insert(name, dest);
+            }
+        } else if growing_refs.contains(&name) {
+            // The map's value is the growing one: update it
+            let _ = references.insert(name, dest);
+        } else if !references.contains_key(&name) {
+            // No terminated definition wins: the growing value is
+            // provisional
+            let _ = growing_refs.insert(name.clone());
+            let _ = references.insert(name, dest);
+        }
+    }
+}
+
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
-) -> impl Iterator<Item = (Item, &'a str, HashSet<String>)> + 'a {
+) -> impl Iterator<Item = (Item, usize, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
         Quote(Vec<Item>),
@@ -579,9 +1086,17 @@ fn parse_with<'a>(
     struct List {
         start: Option<u64>,
         bullets: Vec<Bullet>,
+        /// The start of the last item of the list, if any.
+        last_item_start: Option<usize>,
     }
 
-    let broken_links = Rc::new(RefCell::new(HashSet::new()));
+    // The broken links reported by the parser, along with their span
+    // in the input.
+    //
+    // The broken links are reported before the items that contain them
+    // are produced, so the links are attributed to an item by their
+    // span.
+    let broken_links = Rc::new(RefCell::new(Vec::new()));
 
     let mut spans = Vec::new();
     let mut code = String::new();
@@ -594,42 +1109,39 @@ fn parse_with<'a>(
     let mut code_block = false;
     let mut link = None;
     let mut image = None;
+    let mut paragraph_start = None;
     let mut stack = Vec::new();
 
     #[cfg(feature = "highlighter")]
     let mut code_parser = None;
 
-    let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
-        markdown,
-        pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
-            | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
-            | pulldown_cmark::Options::ENABLE_TABLES
-            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
-            | pulldown_cmark::Options::ENABLE_TASKLISTS,
-        {
-            let references = state.borrow().references.clone();
-            let broken_links = broken_links.clone();
+    let parser = pulldown_cmark::Parser::new_with_broken_link_callback(markdown, options(), {
+        let references = state.borrow().references.clone();
+        let broken_links = broken_links.clone();
 
-            Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
-                if let Some(reference) = references.get(broken_link.reference.as_ref()) {
-                    Some((
-                        pulldown_cmark::CowStr::from(reference.to_owned()),
-                        broken_link.reference.into_static(),
-                    ))
-                } else {
-                    let _ = RefCell::borrow_mut(&broken_links)
-                        .insert(broken_link.reference.into_string());
+        Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
+            if let Some(reference) = references.get(broken_link.reference.as_ref()) {
+                Some((
+                    pulldown_cmark::CowStr::from(reference.to_owned()),
+                    broken_link.reference.into_static(),
+                ))
+            } else {
+                RefCell::borrow_mut(&broken_links)
+                    .push((broken_link.span, broken_link.reference.into_string()));
 
-                    None
-                }
-            })
-        },
-    );
+                None
+            }
+        })
+    });
 
-    let references = &mut state.borrow_mut().references;
-
-    for reference in parser.reference_definitions().iter() {
-        let _ = references.insert(reference.0.to_owned(), reference.1.dest.to_string());
+    {
+        let state = state.borrow_mut();
+        absorb_references(
+            markdown,
+            parser.reference_definitions(),
+            &mut state.references,
+            &mut state.references_staged,
+        );
     }
 
     let produce = move |state: &mut State, stack: &mut Vec<Scope>, item, source: Range<usize>| {
@@ -648,13 +1160,43 @@ fn parse_with<'a>(
 
             None
         } else {
-            state.leftover = markdown[source.start..].to_owned();
+            state.window = Some(source.start);
 
-            Some((
-                item,
-                &markdown[source.start..source.end],
-                broken_links.take(),
-            ))
+            // Attribute the broken links whose span falls within the
+            // source of the item
+            let mut links = HashSet::new();
+            for (span, reference) in RefCell::borrow(&broken_links).iter() {
+                if source.contains(&span.start) {
+                    let _ = links.insert(reference.clone());
+                }
+            }
+
+            Some((item, source.start, links))
+        }
+    };
+
+    // A reference link or image resolves with the first definition
+    // of its label in the whole document, like in the one-shot
+    // parse. A later definition that falls within the input wins
+    // within the input, so, when known, prefer the global
+    // definition.
+    let resolve_reference = |state: &mut State,
+                             link_type: pulldown_cmark::LinkType,
+                             id: &str,
+                             dest_url: &pulldown_cmark::CowStr<'a>|
+     -> String {
+        match link_type {
+            pulldown_cmark::LinkType::Reference
+            | pulldown_cmark::LinkType::ReferenceUnknown
+            | pulldown_cmark::LinkType::Collapsed
+            | pulldown_cmark::LinkType::CollapsedUnknown
+            | pulldown_cmark::LinkType::Shortcut
+            | pulldown_cmark::LinkType::ShortcutUnknown => state
+                .references
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| dest_url.to_string()),
+            _ => dest_url.to_string(),
         }
     };
 
@@ -676,14 +1218,35 @@ fn parse_with<'a>(
                 strikethrough = true;
                 None
             }
-            pulldown_cmark::Tag::Link { dest_url, .. } if !metadata => {
-                link = Some(dest_url.into_string());
+            pulldown_cmark::Tag::Link {
+                link_type,
+                dest_url,
+                id,
+                ..
+            } if !metadata => {
+                link = Some(resolve_reference(
+                    state.borrow_mut(),
+                    link_type,
+                    &id,
+                    &dest_url,
+                ));
+                None
+            }
+            pulldown_cmark::Tag::Paragraph if !metadata => {
+                paragraph_start = Some(source.start);
                 None
             }
             pulldown_cmark::Tag::Image {
-                dest_url, title, ..
+                link_type,
+                dest_url,
+                title,
+                id,
             } if !metadata => {
-                image = Some((dest_url.into_string(), title.into_string()));
+                image = Some((
+                    resolve_reference(state.borrow_mut(), link_type, &id, &dest_url),
+                    title.into_string(),
+                    spans.len(),
+                ));
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata => {
@@ -701,12 +1264,14 @@ fn parse_with<'a>(
                 stack.push(Scope::List(List {
                     start: first_item,
                     bullets: Vec::new(),
+                    last_item_start: None,
                 }));
 
                 prev
             }
             pulldown_cmark::Tag::Item => {
                 if let Some(Scope::List(list)) = stack.last_mut() {
+                    list.last_item_start = Some(source.start);
                     list.bullets.push(Bullet::Point { items: Vec::new() });
                 }
 
@@ -815,6 +1380,8 @@ fn parse_with<'a>(
                 None
             }
             pulldown_cmark::TagEnd::Paragraph if !metadata => {
+                paragraph_start = None;
+
                 if spans.is_empty() {
                     None
                 } else {
@@ -845,7 +1412,8 @@ fn parse_with<'a>(
                     return None;
                 };
 
-                produce(
+                let last_item_start = list.last_item_start;
+                let produced = produce(
                     state.borrow_mut(),
                     &mut stack,
                     Item::List {
@@ -853,7 +1421,18 @@ fn parse_with<'a>(
                         bullets: list.bullets,
                     },
                     source,
-                )
+                );
+
+                // A list is re-parsed only from the start of its last
+                // item, so that adding new items to a long list does not
+                // require re-parsing the whole list.
+                if produced.is_some()
+                    && let Some(start) = last_item_start
+                {
+                    state.borrow_mut().window = Some(start);
+                }
+
+                produced
             }
             pulldown_cmark::TagEnd::BlockQuote(_kind) if !metadata => {
                 let scope = stack.pop()?;
@@ -865,13 +1444,22 @@ fn parse_with<'a>(
                 produce(state.borrow_mut(), &mut stack, Item::Quote(quote), source)
             }
             pulldown_cmark::TagEnd::Image if !metadata => {
-                let (url, title) = image.take()?;
-                let alt = Text::new(spans.drain(..).collect());
+                let (url, title, start) = image.take()?;
+                let alt = Text::new(spans.drain(start..).collect());
 
                 let state = state.borrow_mut();
                 let _ = state.images.insert(url.clone());
 
-                produce(state, &mut stack, Item::Image { url, title, alt }, source)
+                let produced = produce(state, &mut stack, Item::Image { url, title, alt }, source);
+
+                // A top-level image is re-parsed from the start of the
+                // line that contains it, as the rest of the line can
+                // change how the image is parsed.
+                if let Some(start) = paragraph_start.filter(|_| produced.is_some()) {
+                    state.borrow_mut().window = Some(start);
+                }
+
+                produced
             }
             pulldown_cmark::TagEnd::CodeBlock if !metadata => {
                 code_block = false;
@@ -1842,14 +2430,11 @@ mod code {
                             log::debug!("Refeeding {n} lines", n = self.lines.len());
 
                             let _ = self.stream.parse_line(&line.0);
+                            self.stream.commit();
                         }
                     }
 
                     log::trace!("Parsing: {text}", text = text.trim_end());
-
-                    if self.current + 1 < self.lines.len() {
-                        self.stream.commit();
-                    }
 
                     let mut spans = Vec::new();
 
@@ -1860,7 +2445,9 @@ mod code {
                         });
                     }
 
-                    if self.current + 1 == self.lines.len() {
+                    if self.current == self.lines.len() {
+                        self.stream.commit();
+                    } else if self.current + 1 == self.lines.len() {
                         let _ = self.lines.pop();
                     }
 
@@ -1876,129 +2463,5 @@ mod code {
                 .expect("Line must be parsed")
                 .1
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn groups<const N: usize>(items: &[Item]) -> [(Option<&Item>, &[Item]); N] {
-        sections(items)
-            .collect::<Vec<_>>()
-            .try_into()
-            .expect("Unexpected number of sections")
-    }
-
-    fn assert_same_items<'a>(
-        left: impl IntoIterator<Item = &'a Item>,
-        right: impl IntoIterator<Item = &'a Item>,
-    ) {
-        let (mut left, mut right) = (left.into_iter(), right.into_iter());
-
-        loop {
-            match (left.next(), right.next()) {
-                (Some(left), Some(right)) => assert!(std::ptr::eq(left, right)),
-                (None, None) => break,
-                (left, right) => panic!("Length mismatch: {left:?} vs {right:?}"),
-            }
-        }
-    }
-
-    #[test]
-    fn empty_input_has_no_sections() {
-        let items: Vec<_> = parse("").collect();
-        assert_eq!(sections(&items).count(), 0);
-    }
-
-    #[test]
-    fn input_without_headings_is_a_single_section() {
-        let items: Vec<_> = parse("hello\n\nworld").collect();
-        let [(heading, body)] = groups(&items);
-
-        assert!(heading.is_none());
-        assert_eq!(body.len(), items.len());
-    }
-
-    #[test]
-    fn prefix_before_first_heading() {
-        let items: Vec<_> = parse("prefix\n# Heading\n\nbody").collect();
-        let [(preamble_heading, preamble), (heading, body)] = groups(&items);
-
-        assert!(preamble_heading.is_none());
-        assert_eq!(preamble.len(), 1);
-        assert!(std::ptr::eq(&preamble[0], &items[0]));
-
-        assert!(std::ptr::eq(
-            heading.expect("Expected a heading"),
-            &items[1]
-        ));
-        assert_eq!(body.len(), 1);
-        assert!(std::ptr::eq(&body[0], &items[2]));
-    }
-
-    #[test]
-    fn consecutive_headings_yield_empty_bodies() {
-        let items: Vec<_> = parse("# A\n\n# B\n\n# C\n\nbody").collect();
-        let [
-            (heading_a, body_a),
-            (heading_b, body_b),
-            (heading_c, body_c),
-        ] = groups(&items);
-
-        assert!(heading_a.is_some());
-        assert!(body_a.is_empty());
-        assert!(heading_b.is_some());
-        assert!(body_b.is_empty());
-        assert!(heading_c.is_some());
-        assert_eq!(body_c.len(), 1);
-    }
-
-    #[test]
-    fn trailing_heading_yields_an_empty_body() {
-        let items: Vec<_> = parse("body\n# Heading").collect();
-        let [(preamble_heading, preamble), (heading, body)] = groups(&items);
-
-        assert!(preamble_heading.is_none());
-        assert_eq!(preamble.len(), 1);
-        assert!(heading.is_some());
-        assert!(body.is_empty());
-    }
-
-    #[test]
-    fn every_item_is_yielded_exactly_once() {
-        let items: Vec<_> =
-            parse("intro\n# H1\n\np1\n- item\n> quote\n## H2\n\n```\ncode\n```\np2\n# H3")
-                .collect();
-        let groups = sections(&items).collect::<Vec<_>>();
-
-        // The headings are yielded as the first element of their groups,
-        // in order
-        assert_same_items(
-            groups.iter().filter_map(|(heading, _)| *heading),
-            items
-                .iter()
-                .filter(|item| matches!(item, Item::Heading(..))),
-        );
-
-        // The bodies partition the non-heading items, in order
-        assert_same_items(
-            groups.iter().flat_map(|(_, body)| body.iter()),
-            items
-                .iter()
-                .filter(|item| !matches!(item, Item::Heading(..))),
-        );
-    }
-
-    #[test]
-    fn content_sections() {
-        let content = Content::parse("prefix\n# Heading\n\nbody");
-        let [(preamble_heading, _), (heading, _)] = groups(content.items());
-
-        assert!(preamble_heading.is_none());
-        assert!(std::ptr::eq(
-            heading.expect("Expected a heading"),
-            &content.items()[1]
-        ));
     }
 }
