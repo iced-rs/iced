@@ -2430,14 +2430,11 @@ mod code {
                             log::debug!("Refeeding {n} lines", n = self.lines.len());
 
                             let _ = self.stream.parse_line(&line.0);
+                            self.stream.commit();
                         }
                     }
 
                     log::trace!("Parsing: {text}", text = text.trim_end());
-
-                    if self.current + 1 < self.lines.len() {
-                        self.stream.commit();
-                    }
 
                     let mut spans = Vec::new();
 
@@ -2448,7 +2445,9 @@ mod code {
                         });
                     }
 
-                    if self.current + 1 == self.lines.len() {
+                    if self.current == self.lines.len() {
+                        self.stream.commit();
+                    } else if self.current + 1 == self.lines.len() {
                         let _ = self.lines.pop();
                     }
 
