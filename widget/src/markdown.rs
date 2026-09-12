@@ -225,8 +225,7 @@ impl Content {
         }
 
         // Re-parse the last item and the new text
-        let mut items: Vec<(Item, usize, HashSet<String>)> =
-            parse_with(&mut self.state, input).collect();
+        let mut items: Vec<_> = parse_with(&mut self.state, input).collect();
 
         // We only re-parse the last bullet of a list, so merge the
         // re-parsed list into the old one, keeping the bullets that
@@ -286,8 +285,9 @@ impl Content {
             } else {
                 tail
             };
-            let reparsed: Vec<(Item, usize, HashSet<String>)> =
-                parse_with(&mut self.state, input).collect();
+
+            let reparsed: Vec<_> = parse_with(&mut self.state, input).collect();
+
             if let Some((Item::List { .. }, _, _)) = reparsed.first() {
                 input_start = base;
                 items = reparsed;
