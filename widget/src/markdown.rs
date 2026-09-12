@@ -86,9 +86,9 @@ pub struct Content {
     /// the list, unlike `starts`, which is the start of its last
     /// bullet.
     base: Vec<usize>,
-    /// The Markdown source accumulated so far, shared between all the
+    /// The raw Markdown accumulated so far, shared between all the
     /// items and sections.
-    source: String,
+    raw: String,
     /// The start of the source that will be re-parsed on the next
     /// push.
     window: usize,
@@ -154,7 +154,7 @@ impl Content {
             return;
         }
 
-        self.source.push_str(markdown);
+        self.raw.push_str(markdown);
 
         // The text to re-parse: from the start of the source of the
         // last item (or its last bullet, when it is a list) to the
@@ -165,7 +165,7 @@ impl Content {
         // rule) must be re-parsed with it.
         let block_live = self
             .pending_block_start
-            .map(|start| Self::metadata_block_live(&self.source[start..]))
+            .map(|start| Self::metadata_block_live(&self.raw[start..]))
             .unwrap_or(false);
         // A not-yet-settled metadata block that was live on the last
         // push is now settled: the references registered while it was
@@ -195,7 +195,7 @@ impl Content {
         {
             input_start = input_start.min(self.base[self.base.len() - 2]);
         }
-        let tail = &self.source[input_start..];
+        let tail = &self.raw[input_start..];
         let trimmed = tail.trim_end();
         let mut input = if trimmed.ends_with('|') {
             trimmed.trim_end_matches('|')
@@ -258,7 +258,7 @@ impl Content {
             // metadata block opener (kept in `input_start`), or the
             // block would be dropped; use the earliest of the two.
             let base = old_last_base.expect("a list has a base").min(input_start);
-            let tail = &self.source[base..];
+            let tail = &self.raw[base..];
             let trimmed = tail.trim_end();
             input = if trimmed.ends_with('|') {
                 trimmed.trim_end_matches('|')
@@ -278,7 +278,7 @@ impl Content {
             // from the start of the previous list, so that the list
             // is not split in two; the parser decides whether the
             // two regions are one list.
-            let tail = &self.source[base..];
+            let tail = &self.raw[base..];
             let trimmed = tail.trim_end();
             input = if trimmed.ends_with('|') {
                 trimmed.trim_end_matches('|')
@@ -384,7 +384,7 @@ impl Content {
                     }
                 }
 
-                if matches!(item, Item::Rule) && Self::metadata_delimiter(&self.source, start) {
+                if matches!(item, Item::Rule) && Self::metadata_delimiter(&self.raw, start) {
                     // A `---` or `+++` rule is a tentative metadata
                     // block opener; remember where it starts so that
                     // the block is re-parsed as a whole when it is
@@ -405,7 +405,7 @@ impl Content {
         // swallowed by the parser once it is closed.
         self.pending_block_start = newest_rule_start;
         self.pending_block = newest_rule_start
-            .map(|start| Self::metadata_block_live(&self.source[start..]))
+            .map(|start| Self::metadata_block_live(&self.raw[start..]))
             .unwrap_or(false);
 
         // A metadata block that was open on the last push is now
@@ -501,12 +501,12 @@ impl Content {
     /// resolve links any more; re-parsing the whole source drops it,
     /// like the one-shot parse does.
     fn recompute_references(&mut self) {
-        let parser = pulldown_cmark::Parser::new_ext(&self.source, options());
+        let parser = pulldown_cmark::Parser::new_ext(&self.raw, options());
         let definitions = parser.reference_definitions();
         self.state.references.clear();
         self.state.growing_refs.clear();
         absorb_references(
-            &self.source,
+            &self.raw,
             definitions,
             &mut self.state.references,
             &mut self.state.growing_refs,
@@ -581,8 +581,8 @@ impl Content {
                     parser: None,
                 };
 
-                let end = section.end.unwrap_or(self.source.len());
-                let source = &self.source[section.start..end];
+                let end = section.end.unwrap_or(self.raw.len());
+                let source = &self.raw[section.start..end];
 
                 if let Some((item, _start, broken_links)) =
                     parse_with(&mut state, source).nth(section.item_index)
@@ -632,8 +632,8 @@ impl Content {
     }
 
     /// Returns the raw Markdown.
-    pub fn source(&self) -> &str {
-        &self.source
+    pub fn raw(&self) -> &str {
+        &self.raw
     }
 }
 

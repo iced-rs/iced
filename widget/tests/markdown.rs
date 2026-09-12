@@ -43,7 +43,7 @@ fn assert_converges(full: &str, label: &str) {
         for chunk in &chunks {
             c.push_str(chunk);
 
-            let one = Content::parse(c.source());
+            let one = Content::parse(c.raw());
 
             assert_eq!(
                 format!("{:?}", c.items()),
