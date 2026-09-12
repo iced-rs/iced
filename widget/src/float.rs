@@ -200,7 +200,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         offset: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
 
         let translation = self
@@ -221,13 +221,13 @@ where
                     -bounds.y - bounds.height / 2.0,
                 );
 
-            Some(overlay::Element::new(Box::new(Overlay {
+            vec![overlay::Element::new(Box::new(Overlay {
                 float: self,
                 state,
                 layout,
                 viewport: *viewport,
                 transformation,
-            })))
+            }))]
         } else {
             self.content
                 .as_widget_mut()
@@ -363,7 +363,7 @@ where
         &'a mut self,
         _layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.float.content.as_widget_mut().overlay(
             self.state,
             self.layout,

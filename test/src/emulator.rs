@@ -501,6 +501,8 @@ impl<P: Program + 'static> Emulator<P> {
             mouse::Cursor::Unavailable,
         );
 
+        self.cache = Some(user_interface.into_cache());
+
         let physical_size = Size::new(
             (self.size.width * scale_factor).round() as u32,
             (self.size.height * scale_factor).round() as u32,

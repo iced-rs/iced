@@ -171,7 +171,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, AnyTheme, Renderer>> {
         struct Overlay<'a, Message, Theme, Renderer> {
             theme: &'a Option<Theme>,
             content: overlay::Element<'a, Message, Theme, Renderer>,
@@ -239,30 +239,37 @@ where
                     .mouse_interaction(layout, cursor, renderer)
             }
 
-            fn overlay<'b>(
-                &'b mut self,
-                layout: Layout<'b>,
+            fn index(&self) -> f32 {
+                self.content.as_overlay().index()
+            }
+
+            fn overlay<'c>(
+                &'c mut self,
+                layout: Layout<'c>,
                 renderer: &Renderer,
-            ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
+            ) -> Vec<overlay::Element<'c, Message, AnyTheme, Renderer>> {
+                let theme = self.theme;
+
                 self.content
                     .as_overlay_mut()
                     .overlay(layout, renderer)
-                    .map(|content| Overlay {
-                        theme: self.theme,
-                        content,
-                    })
-                    .map(|overlay| overlay::Element::new(Box::new(overlay)))
+                    .into_iter()
+                    .map(|content| overlay::Element::new(Box::new(Overlay { theme, content })))
+                    .collect()
             }
         }
 
         self.content
             .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation)
-            .map(|content| Overlay {
-                theme: &self.theme,
-                content,
+            .into_iter()
+            .map(|content| {
+                overlay::Element::new(Box::new(Overlay {
+                    theme: &self.theme,
+                    content,
+                }))
             })
-            .map(|overlay| overlay::Element::new(Box::new(overlay)))
+            .collect()
     }
 }
 

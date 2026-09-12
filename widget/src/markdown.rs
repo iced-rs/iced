@@ -871,13 +871,13 @@ impl Span {
                 let weight = if *strong {
                     font::Weight::Bold
                 } else {
-                    font::Weight::Normal
+                    settings.font.weight
                 };
 
                 let style = if *emphasis {
                     font::Style::Italic
                 } else {
-                    font::Style::Normal
+                    settings.font.style
                 };
 
                 let span = if *inline_code {
@@ -1985,6 +1985,8 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
+    let padding = settings.code_block_size / 0.85 * 0.75;
+
     container(
         scrollable(column(lines.iter().map(|line| {
             rich_text(line.spans(settings, viewer.theme(), viewer.highlighter()))
@@ -1996,13 +1998,13 @@ where
         })))
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()
-                .width(settings.code_block_size / 2)
-                .scroller_width(settings.code_block_size / 2),
+                .width(padding / 2.0)
+                .scroller_width(padding / 2.0),
         ))
-        .spacing(settings.spacing * 0.75),
+        .spacing(padding),
     )
     .width(Length::Fill)
-    .padding(settings.spacing * 0.75)
+    .padding(padding)
     .class(Theme::code_block())
     .into()
 }

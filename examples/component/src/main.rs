@@ -73,7 +73,7 @@ mod numeric_input {
         type Event = Event;
 
         fn update(
-            &mut self,
+            &self,
             _state: &mut Self::State,
             event: Event,
             _renderer: &Renderer,

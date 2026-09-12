@@ -412,7 +412,7 @@ mod toast {
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: Vector,
-        ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
             let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
             let (content_state, toasts_state) = tree.children.split_at_mut(1);
@@ -436,9 +436,8 @@ mod toast {
                     timeout_secs: self.timeout_secs,
                 }))
             });
-            let overlays = content.into_iter().chain(toasts).collect::<Vec<_>>();
 
-            (!overlays.is_empty()).then(|| overlay::Group::with_children(overlays).overlay())
+            content.into_iter().chain(toasts).collect()
         }
     }
 

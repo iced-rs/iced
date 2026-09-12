@@ -176,8 +176,6 @@ impl core::text::Paragraph for Paragraph {
                 };
 
                 let attrs = attrs.padding(cosmic_text::SpanPadding {
-                    // top: span.padding.top,
-                    // bottom: span.padding.bottom,
                     start: span.padding.left,
                     end: span.padding.right,
                 });

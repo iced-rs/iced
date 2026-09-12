@@ -700,7 +700,7 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             self.content
                 .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, translation)
@@ -935,7 +935,7 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             let mut overlays = [&mut self.base, &mut self.top]
                 .into_iter()
                 .zip(layout.children().zip(tree.children.iter_mut()))
@@ -945,14 +945,12 @@ where
                         .overlay(tree, layout, renderer, viewport, translation)
                 });
 
-            if let Some(base_overlay) = overlays.next()? {
-                return Some(base_overlay);
-            }
+            let base_overlays = overlays.next().unwrap();
+            let top_overlays = overlays.next().unwrap();
 
-            let top_overlay = overlays.next()?;
-            self.is_top_overlay_active = top_overlay.is_some();
+            self.is_top_overlay_active = !top_overlays.is_empty();
 
-            top_overlay
+            base_overlays.into_iter().chain(top_overlays).collect()
         }
     }
 

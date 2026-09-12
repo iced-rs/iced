@@ -731,7 +731,9 @@ where
 
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
-                        if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
+                        if !(mouse_over_x_scrollbar
+                            || mouse_over_y_scrollbar
+                            || state.scrollers_grabbed()) =>
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
@@ -1125,41 +1127,46 @@ where
                     }
                 };
 
-            renderer.with_layer(
-                Rectangle {
+            let has_floating_scrollbar = scrollbars.is_any_floating();
+
+            if has_floating_scrollbar {
+                renderer.start_layer(Rectangle {
                     width: (visible_bounds.width + 2.0).min(viewport.width),
                     height: (visible_bounds.height + 2.0).min(viewport.height),
                     ..visible_bounds
-                },
-                |renderer| {
-                    if let Some(scrollbar) = scrollbars.y {
-                        draw_scrollbar(renderer, style.vertical_rail, &scrollbar);
-                    }
+                });
+            }
 
-                    if let Some(scrollbar) = scrollbars.x {
-                        draw_scrollbar(renderer, style.horizontal_rail, &scrollbar);
-                    }
+            if let Some(scrollbar) = scrollbars.y {
+                draw_scrollbar(renderer, style.vertical_rail, &scrollbar);
+            }
 
-                    if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
-                        let background = style.gap.or(style.container.background);
+            if let Some(scrollbar) = scrollbars.x {
+                draw_scrollbar(renderer, style.horizontal_rail, &scrollbar);
+            }
 
-                        if let Some(background) = background {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: Rectangle {
-                                        x: y.bounds.x,
-                                        y: x.bounds.y,
-                                        width: y.bounds.width,
-                                        height: x.bounds.height,
-                                    },
-                                    ..renderer::Quad::default()
-                                },
-                                background,
-                            );
-                        }
-                    }
-                },
-            );
+            if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
+                let background = style.gap.or(style.container.background);
+
+                if let Some(background) = background {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: y.bounds.x,
+                                y: x.bounds.y,
+                                width: y.bounds.width,
+                                height: x.bounds.height,
+                            },
+                            ..renderer::Quad::default()
+                        },
+                        background,
+                    );
+                }
+            }
+
+            if has_floating_scrollbar {
+                renderer.end_layer();
+            }
         } else {
             self.content.as_widget().draw(
                 &tree.children[0],
@@ -1229,7 +1236,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -1258,14 +1265,7 @@ where
             None
         };
 
-        match (overlay, icon) {
-            (None, None) => None,
-            (None, Some(icon)) => Some(icon),
-            (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
-                overlay::Group::with_children(vec![overlay, icon]),
-            ))),
-        }
+        overlay.into_iter().chain(icon).collect()
     }
 }
 
@@ -1770,6 +1770,7 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                spacing,
                 ..
             } = *vertical;
 
@@ -1824,6 +1825,7 @@ impl Scrollbars {
                 scroller,
                 alignment: vertical.alignment,
                 disabled: content_bounds.height <= bounds.height,
+                floating: spacing.is_none(),
             })
         } else {
             None
@@ -1834,6 +1836,7 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                spacing,
                 ..
             } = *horizontal;
 
@@ -1889,6 +1892,7 @@ impl Scrollbars {
                 scroller,
                 alignment: horizontal.alignment,
                 disabled: content_bounds.width <= bounds.width,
+                floating: spacing.is_none(),
             })
         } else {
             None
@@ -1955,6 +1959,11 @@ impl Scrollbars {
         }
     }
 
+    fn is_any_floating(&self) -> bool {
+        self.y.is_some_and(|scrollbar| scrollbar.floating)
+            || self.x.is_some_and(|scrollbar| scrollbar.floating)
+    }
+
     fn active(&self) -> bool {
         self.y.is_some() || self.x.is_some()
     }
@@ -1972,6 +1981,7 @@ pub(super) mod internals {
         pub scroller: Option<Scroller>,
         pub alignment: Anchor,
         pub disabled: bool,
+        pub floating: bool,
     }
 
     impl Scrollbar {
