@@ -1121,7 +1121,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 [[package]]
 name = "cryoglyph"
 version = "0.1.0"
-source = "git+https://github.com/iced-rs/cryoglyph.git?rev=f4e7e4eb84dc1d2f335a98c67d8694640d53a433#f4e7e4eb84dc1d2f335a98c67d8694640d53a433"
+source = "git+https://github.com/iced-rs/cryoglyph.git?rev=e6aec585e0db7cc0281c37b4e66ee91d732adb92#e6aec585e0db7cc0281c37b4e66ee91d732adb92"
 dependencies = [
  "cosmic-text",
  "etagere",
