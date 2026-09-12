@@ -423,13 +423,13 @@ impl Span {
                 let weight = if *strong {
                     font::Weight::Bold
                 } else {
-                    font::Weight::Normal
+                    settings.font.weight
                 };
 
                 let style = if *emphasis {
                     font::Style::Italic
                 } else {
-                    font::Style::Normal
+                    settings.font.style
                 };
 
                 let span = if *inline_code {
