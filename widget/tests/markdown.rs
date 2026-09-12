@@ -7,57 +7,7 @@
 //! [`sections`]: iced_widget::markdown::sections
 //! [`Content::push_str`]: iced_widget::markdown::Content::push_str
 //! [`Content::parse`]: iced_widget::markdown::Content::parse
-
 use iced_widget::markdown::{Content, Item, parse, sections};
-
-/// Asserts that parsing `full` incrementally, with different chunking
-/// schemes, converges to the one-shot parse.
-fn assert_converges(full: &str, label: &str) {
-    let mut idx = 0;
-    let three = std::iter::from_fn(|| {
-        if idx >= full.len() {
-            return None;
-        }
-        let end = (idx + 3).min(full.len());
-        let chunk = full[idx..end].to_owned();
-        idx = end;
-        Some(chunk)
-    })
-    .collect::<Vec<_>>();
-
-    for (chunks, name) in [
-        (
-            full.split_inclusive(' ')
-                .map(str::to_owned)
-                .collect::<Vec<_>>(),
-            "word-by-word",
-        ),
-        (
-            full.chars().map(|c| c.to_string()).collect::<Vec<_>>(),
-            "char-by-char",
-        ),
-        (three, "3-char chunks"),
-    ] {
-        let mut c = Content::new();
-
-        for chunk in &chunks {
-            c.push_str(chunk);
-
-            let one = Content::parse(c.raw());
-
-            assert_eq!(
-                format!("{:?}", c.items()),
-                format!("{:?}", one.items()),
-                "{label}: incremental ({name}) should converge to one-shot"
-            );
-            assert_eq!(
-                c.images(),
-                one.images(),
-                "{label}: images should converge ({name})"
-            );
-        }
-    }
-}
 
 /// A long list of bullets.
 #[test]
@@ -191,16 +141,7 @@ fn broken_reference_link_resolved_between_bullets() {
 #[test]
 fn table_word_by_word() {
     let full = "| a | b |\n| - | - |\n| 1 | 2 |\n| 3 | 4 |\n\nDone.\n";
-    let mut c = Content::new();
-    for w in full.split_inclusive(' ') {
-        c.push_str(w);
-    }
-    let one = Content::parse(full);
-    assert_eq!(
-        format!("{:?}", c.items()),
-        format!("{:?}", one.items()),
-        "incremental should converge to one-shot"
-    );
+    assert_converges(full, "table word by word");
 }
 
 /// An image and a reference link on the same line; the image must not
@@ -208,16 +149,7 @@ fn table_word_by_word() {
 #[test]
 fn image_and_link_on_same_line() {
     let full = "prev\n\n![alt](https://img.com/i.png) [x][ref]\n\ntext\n";
-    let mut c = Content::new();
-    for w in full.split_inclusive('\n') {
-        c.push_str(w);
-    }
-    let one = Content::parse(full);
-    assert_eq!(
-        format!("{:?}", c.items()),
-        format!("{:?}", one.items()),
-        "incremental should converge to one-shot"
-    );
+    assert_converges(full, "image and link on same line");
 }
 
 /// Several images and a paragraph on the same line; the images and
@@ -248,33 +180,14 @@ fn text_then_image() {
 #[test]
 fn reference_before_use() {
     let full = "[ref]: https://example.com\n\n- [x][ref]\n- [y][ref]\n";
-    let mut c = Content::new();
-    for chunk in full.chars().map(|c| c.to_string()) {
-        c.push_str(&chunk);
-    }
-    let one = Content::parse(full);
-    assert_eq!(
-        format!("{:?}", c.items()),
-        format!("{:?}", one.items()),
-        "char-by-char should converge to one-shot"
-    );
+    assert_converges(full, "reference before use");
 }
 
 /// A metadata block after content should not break the flow.
 #[test]
 fn metadata_after_content() {
     let full = "- a\n\n+++\nmeta: 1\n+++\n\n- b\n";
-    let mut c = Content::new();
-    c.push_str("");
-    for chunk in full.chars().map(|c| c.to_string()) {
-        c.push_str(&chunk);
-    }
-    let one = Content::parse(full);
-    assert_eq!(
-        format!("{:?}", c.items()),
-        format!("{:?}", one.items()),
-        "char-by-char should converge to one-shot"
-    );
+    assert_converges(full, "metadata after content");
 }
 
 /// Many constructs at once, streamed block by block, word by word and
@@ -304,35 +217,7 @@ fn mixed_document() {
     ];
     let full = parts.concat();
 
-    // Whole-document chunks, word chunks, char chunks
-    for (chunks, name) in [
-        (
-            parts.iter().map(ToString::to_string).collect(),
-            "block-by-block",
-        ),
-        (
-            full.split_inclusive(' ')
-                .map(str::to_owned)
-                .collect::<Vec<_>>(),
-            "word-by-word",
-        ),
-        (
-            full.chars().map(|c| c.to_string()).collect::<Vec<_>>(),
-            "char-by-char",
-        ),
-    ] {
-        let mut c = Content::new();
-        for chunk in &chunks {
-            c.push_str(chunk);
-        }
-        let one = Content::parse(&full);
-        assert_eq!(
-            format!("{:?}", c.items()),
-            format!("{:?}", one.items()),
-            "{name} should converge to one-shot"
-        );
-        assert_eq!(c.images(), one.images(), "images ({name})");
-    }
+    assert_converges(&full, "mixed document");
 }
 
 /// Pushing new bullets to a long list must stay cheap: `push_str`
@@ -494,12 +379,240 @@ fn mid_metadata_block_is_swallowed() {
     );
 }
 
-/// The sections yielded by [`sections`], expecting exactly `N` of them.
-fn groups<const N: usize>(items: &[Item]) -> [(Option<&Item>, &[Item]); N] {
-    sections(items)
-        .collect::<Vec<_>>()
-        .try_into()
-        .expect("Unexpected number of sections")
+#[test]
+fn empty_input_has_no_sections() {
+    let items: Vec<_> = parse("").collect();
+    assert_eq!(sections(&items).count(), 0);
+}
+
+#[test]
+fn input_without_headings_is_a_single_section() {
+    let items: Vec<_> = parse("hello\n\nworld").collect();
+    let [(heading, body)] = partition(&items);
+
+    assert!(heading.is_none());
+    assert_eq!(body.len(), items.len());
+}
+
+#[test]
+fn prefix_before_first_heading() {
+    let items: Vec<_> = parse("prefix\n# Heading\n\nbody\n\nand more").collect();
+    let [(preamble_heading, preamble), (heading, body)] = partition(&items);
+
+    assert!(preamble_heading.is_none());
+    assert_eq!(preamble.len(), 1);
+    assert!(std::ptr::eq(&preamble[0], &items[0]));
+
+    assert!(std::ptr::eq(
+        heading.expect("Expected a heading"),
+        &items[1]
+    ));
+    assert_eq!(body.len(), 2);
+    assert!(std::ptr::eq(&body[0], &items[2]));
+    assert!(std::ptr::eq(&body[1], &items[3]));
+}
+
+#[test]
+fn consecutive_headings_yield_empty_bodies() {
+    let items: Vec<_> = parse("# A\n\n# B\n\n# C\n\nbody").collect();
+    let [
+        (heading_a, body_a),
+        (heading_b, body_b),
+        (heading_c, body_c),
+    ] = partition(&items);
+
+    assert!(heading_a.is_some());
+    assert!(body_a.is_empty());
+    assert!(heading_b.is_some());
+    assert!(body_b.is_empty());
+    assert!(heading_c.is_some());
+    assert_eq!(body_c.len(), 1);
+}
+
+#[test]
+fn trailing_heading_yields_an_empty_body() {
+    let items: Vec<_> = parse("body\n# Heading").collect();
+    let [(preamble_heading, preamble), (heading, body)] = partition(&items);
+
+    assert!(preamble_heading.is_none());
+    assert_eq!(preamble.len(), 1);
+    assert!(heading.is_some());
+    assert!(body.is_empty());
+}
+
+#[test]
+fn every_item_is_yielded_exactly_once() {
+    let items: Vec<_> =
+        parse("intro\n# H1\n\np1\n- item\n> quote\n## H2\n\n```\ncode\n```\np2\n# H3").collect();
+    let sections = sections(&items).collect::<Vec<_>>();
+
+    // The headings are yielded as the first element of their sections,
+    // in order
+    assert_same_items(
+        sections.iter().filter_map(|(heading, _)| *heading),
+        items
+            .iter()
+            .filter(|item| matches!(item, Item::Heading(..))),
+    );
+
+    // The bodies partition the non-heading items, in order
+    assert_same_items(
+        sections.iter().flat_map(|(_, body)| body.iter()),
+        items
+            .iter()
+            .filter(|item| !matches!(item, Item::Heading(..))),
+    );
+}
+
+#[test]
+fn content_sections() {
+    let content = Content::parse("prefix\n# Heading\n\nbody");
+    let [(preamble_heading, _), (heading, _)] = partition(content.items());
+
+    assert!(preamble_heading.is_none());
+    assert!(std::ptr::eq(
+        heading.expect("Expected a heading"),
+        &content.items()[1]
+    ));
+}
+
+/// Fuzzes the convergence of the incremental parse over a corpus of
+/// generated documents, with the three chunking schemes, checking the
+/// one-shot equivalence after every push.
+#[test]
+fn fuzz() {
+    /// The blocks from which the fuzzed documents are generated.
+    const BLOCKS: &[&str] = &[
+        "para\n\n",
+        "text [x][ref] more\n\n",
+        "- a\n",
+        "- a\n- b\n",
+        "- a [x][ref]\n",
+        "- [x][ref]\n",
+        "- b [y][ref]\n\n",
+        "2. two\n",
+        "2. two [y][ref]\n",
+        "- [ ] task\n",
+        "> - in quote\n",
+        "> quote\n\n",
+        "| a | b |\n| - | - |\n| 1 | 2 |\n\n",
+        "| a | b |\n| - | - |\n| 1 | 2 | [x][ref] |\n\n",
+        "[ref]: https://example.com\n\n",
+        "[ref]: https://changed.com\n\n",
+        "[other]: https://other.com\n\n",
+        "[x]: https://x.com\n\n",
+        "![alt](https://img.com/i.png)\n\n",
+        "![alt with [x][ref]](https://img.com/i.png)\n\n",
+        "before ![alt [x][ref]](https://img.com/i.png) trailing\n\n",
+        "---\n\n",
+        "---\nkey: value\n---\n\n",
+        "+++\nkey: value\n+++\n\n",
+        "---\nkey: value\n...\n\n",
+        "---\nkey: value\n",
+        "# heading\n\n",
+        "## setext\n---\n\n",
+        "```\ncode\n```\n\n",
+        "\n",
+    ];
+
+    /// A deterministic pseudo-random generator.
+    struct Rng(u64);
+
+    impl Rng {
+        fn next(&mut self) -> usize {
+            self.0 = self
+                .0
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (self.0 >> 33) as usize
+        }
+    }
+
+    /// The documents to fuzz: the four convergence repros, and a
+    /// deterministic corpus of documents generated from `BLOCKS`.
+    fn corpus() -> Vec<String> {
+        let mut rng = Rng(0x5EED);
+        let repros = [
+            "[other]: https://other.com\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n\
+         [ref]: https://example.com\n\n- a\n---\n\n",
+            "2. two\n[ref]: https://changed.com\n\n\n- a\n| a | b |\n| - | - |\n| 1 | 2 |\n\n---\n\n",
+            "[ref]: https://example.com\n\n> - in quote\n[ref]: https://changed.com\n\n\
+         [ref]: https://changed.com\n\n> - in quote\n> - in quote\n- b [y][ref]\n\n",
+            // A metadata block at the start of the document
+            "---\nkey: value\n---\n\npara\n\n- a\n",
+            // A metadata block in the middle of the document, after a
+            // blank line and after a list item (no blank line), closed
+            // and unclosed
+            "para\n\n---\nkey: value\n---\n\nmore\n\n- a\n",
+            "- x\n---\nkey\n---\npara\n",
+            "- x\n---\nkey\n...\nmore\n",
+        ];
+        let mut docs: Vec<String> = repros.iter().map(ToString::to_string).collect();
+        for _ in 0..600 {
+            let mut doc = String::new();
+            for _ in 0..4 + rng.next() % 7 {
+                doc.push_str(BLOCKS[rng.next() % BLOCKS.len()]);
+            }
+            docs.push(doc);
+        }
+        docs
+    }
+
+    for doc in corpus() {
+        assert_converges(&doc, "fuzzed");
+    }
+}
+
+/// Asserts that parsing `full` incrementally, with different chunking
+/// schemes, converges to the one-shot parse.
+fn assert_converges(full: &str, label: &str) {
+    let word_by_word = full.split_inclusive(' ').map(str::to_owned).collect();
+    let char_by_char = full.chars().map(|c| c.to_string()).collect();
+
+    let three_char_chunks: Vec<_> = {
+        let mut i = 0;
+
+        std::iter::from_fn(|| {
+            if i >= full.len() {
+                return None;
+            }
+
+            let end = (i + 3).min(full.len());
+            let chunk = full[i..end].to_owned();
+            i = end;
+
+            Some(chunk)
+        })
+        .collect()
+    };
+
+    for (chunks, name) in [
+        (word_by_word, "word-by-word"),
+        (char_by_char, "char-by-char"),
+        (three_char_chunks, "3-char chunks"),
+    ] {
+        let mut stream = Content::new();
+
+        for chunk in chunks {
+            stream.push_str(&chunk);
+
+            let one_shot = Content::parse(stream.raw());
+
+            assert_eq!(
+                format!("{:?}", stream.items()),
+                format!("{:?}", one_shot.items()),
+                "{label}: incremental ({name}) should converge to one-shot\n\n{raw}",
+                raw = stream.raw(),
+            );
+
+            assert_eq!(
+                stream.images(),
+                one_shot.images(),
+                "{label}: images should converge ({name})\n\n{raw}",
+                raw = stream.raw(),
+            );
+        }
+    }
 }
 
 /// Asserts that two iterators yield the exact same [`Item`]
@@ -519,185 +632,10 @@ fn assert_same_items<'a>(
     }
 }
 
-#[test]
-fn empty_input_has_no_sections() {
-    let items: Vec<_> = parse("").collect();
-    assert_eq!(sections(&items).count(), 0);
-}
-
-#[test]
-fn input_without_headings_is_a_single_section() {
-    let items: Vec<_> = parse("hello\n\nworld").collect();
-    let [(heading, body)] = groups(&items);
-
-    assert!(heading.is_none());
-    assert_eq!(body.len(), items.len());
-}
-
-#[test]
-fn prefix_before_first_heading() {
-    let items: Vec<_> = parse("prefix\n# Heading\n\nbody").collect();
-    let [(preamble_heading, preamble), (heading, body)] = groups(&items);
-
-    assert!(preamble_heading.is_none());
-    assert_eq!(preamble.len(), 1);
-    assert!(std::ptr::eq(&preamble[0], &items[0]));
-
-    assert!(std::ptr::eq(
-        heading.expect("Expected a heading"),
-        &items[1]
-    ));
-    assert_eq!(body.len(), 1);
-    assert!(std::ptr::eq(&body[0], &items[2]));
-}
-
-#[test]
-fn consecutive_headings_yield_empty_bodies() {
-    let items: Vec<_> = parse("# A\n\n# B\n\n# C\n\nbody").collect();
-    let [
-        (heading_a, body_a),
-        (heading_b, body_b),
-        (heading_c, body_c),
-    ] = groups(&items);
-
-    assert!(heading_a.is_some());
-    assert!(body_a.is_empty());
-    assert!(heading_b.is_some());
-    assert!(body_b.is_empty());
-    assert!(heading_c.is_some());
-    assert_eq!(body_c.len(), 1);
-}
-
-#[test]
-fn trailing_heading_yields_an_empty_body() {
-    let items: Vec<_> = parse("body\n# Heading").collect();
-    let [(preamble_heading, preamble), (heading, body)] = groups(&items);
-
-    assert!(preamble_heading.is_none());
-    assert_eq!(preamble.len(), 1);
-    assert!(heading.is_some());
-    assert!(body.is_empty());
-}
-
-#[test]
-fn every_item_is_yielded_exactly_once() {
-    let items: Vec<_> =
-        parse("intro\n# H1\n\np1\n- item\n> quote\n## H2\n\n```\ncode\n```\np2\n# H3").collect();
-    let groups = sections(&items).collect::<Vec<_>>();
-
-    // The headings are yielded as the first element of their groups,
-    // in order
-    assert_same_items(
-        groups.iter().filter_map(|(heading, _)| *heading),
-        items
-            .iter()
-            .filter(|item| matches!(item, Item::Heading(..))),
-    );
-
-    // The bodies partition the non-heading items, in order
-    assert_same_items(
-        groups.iter().flat_map(|(_, body)| body.iter()),
-        items
-            .iter()
-            .filter(|item| !matches!(item, Item::Heading(..))),
-    );
-}
-
-#[test]
-fn content_sections() {
-    let content = Content::parse("prefix\n# Heading\n\nbody");
-    let [(preamble_heading, _), (heading, _)] = groups(content.items());
-
-    assert!(preamble_heading.is_none());
-    assert!(std::ptr::eq(
-        heading.expect("Expected a heading"),
-        &content.items()[1]
-    ));
-}
-
-/// The blocks from which the fuzzed documents are generated.
-const BLOCKS: &[&str] = &[
-    "para\n\n",
-    "text [x][ref] more\n\n",
-    "- a\n",
-    "- a\n- b\n",
-    "- a [x][ref]\n",
-    "- [x][ref]\n",
-    "- b [y][ref]\n\n",
-    "2. two\n",
-    "2. two [y][ref]\n",
-    "- [ ] task\n",
-    "> - in quote\n",
-    "> quote\n\n",
-    "| a | b |\n| - | - |\n| 1 | 2 |\n\n",
-    "| a | b |\n| - | - |\n| 1 | 2 | [x][ref] |\n\n",
-    "[ref]: https://example.com\n\n",
-    "[ref]: https://changed.com\n\n",
-    "[other]: https://other.com\n\n",
-    "[x]: https://x.com\n\n",
-    "![alt](https://img.com/i.png)\n\n",
-    "![alt with [x][ref]](https://img.com/i.png)\n\n",
-    "before ![alt [x][ref]](https://img.com/i.png) trailing\n\n",
-    "---\n\n",
-    "---\nkey: value\n---\n\n",
-    "+++\nkey: value\n+++\n\n",
-    "---\nkey: value\n...\n\n",
-    "---\nkey: value\n",
-    "# heading\n\n",
-    "## setext\n---\n\n",
-    "```\ncode\n```\n\n",
-    "\n",
-];
-
-/// A deterministic pseudo-random generator.
-struct Rng(u64);
-
-impl Rng {
-    fn next(&mut self) -> usize {
-        self.0 = self
-            .0
-            .wrapping_mul(6364136223846793005)
-            .wrapping_add(1442695040888963407);
-        (self.0 >> 33) as usize
-    }
-}
-
-/// The documents to fuzz: the four convergence repros, and a
-/// deterministic corpus of documents generated from `BLOCKS`.
-fn generated_documents() -> Vec<String> {
-    let mut rng = Rng(0x5EED);
-    let repros = [
-        "[other]: https://other.com\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n\
-         [ref]: https://example.com\n\n- a\n---\n\n",
-        "2. two\n[ref]: https://changed.com\n\n\n- a\n| a | b |\n| - | - |\n| 1 | 2 |\n\n---\n\n",
-        "[ref]: https://example.com\n\n> - in quote\n[ref]: https://changed.com\n\n\
-         [ref]: https://changed.com\n\n> - in quote\n> - in quote\n- b [y][ref]\n\n",
-        // A metadata block at the start of the document
-        "---\nkey: value\n---\n\npara\n\n- a\n",
-        // A metadata block in the middle of the document, after a
-        // blank line and after a list item (no blank line), closed
-        // and unclosed
-        "para\n\n---\nkey: value\n---\n\nmore\n\n- a\n",
-        "- x\n---\nkey\n---\npara\n",
-        "- x\n---\nkey\n...\nmore\n",
-    ];
-    let mut docs: Vec<String> = repros.iter().map(ToString::to_string).collect();
-    for _ in 0..600 {
-        let mut doc = String::new();
-        for _ in 0..4 + rng.next() % 7 {
-            doc.push_str(BLOCKS[rng.next() % BLOCKS.len()]);
-        }
-        docs.push(doc);
-    }
-    docs
-}
-
-/// Fuzzes the convergence of the incremental parse over a corpus of
-/// generated documents, with the three chunking schemes, checking the
-/// one-shot equivalence after every push.
-#[test]
-fn fuzz() {
-    for doc in generated_documents() {
-        assert_converges(&doc, &doc);
-    }
+/// The sections yielded by [`sections`], expecting exactly `N` of them.
+fn partition<const N: usize>(items: &[Item]) -> [(Option<&Item>, &[Item]); N] {
+    sections(items)
+        .collect::<Vec<_>>()
+        .try_into()
+        .expect("Unexpected number of sections")
 }
