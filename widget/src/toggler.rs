@@ -427,6 +427,7 @@ where
                     radius: border_radius,
                     width: style.background_border_width,
                     color: style.background_border_color,
+                    ..Border::default()
                 },
                 ..renderer::Quad::default()
             },
@@ -463,6 +464,7 @@ where
                     radius: border_radius,
                     width: style.foreground_border_width,
                     color: style.foreground_border_color,
+                    ..Border::default()
                 },
                 ..renderer::Quad::default()
             },

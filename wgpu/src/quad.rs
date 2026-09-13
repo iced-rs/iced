@@ -24,14 +24,15 @@ pub struct Quad {
     /// The size of the [`Quad`].
     pub size: [f32; 2],
 
-    /// The border color of the [`Quad`], in __linear RGB__.
-    pub border_color: color::Packed,
+    /// The border colors of the [`Quad`] in top, right, bottom, left order,
+    /// in __linear RGB__.
+    pub border_colors: [color::Packed; 4],
 
     /// The border radii of the [`Quad`].
     pub border_radius: [f32; 4],
 
-    /// The border width of the [`Quad`].
-    pub border_width: f32,
+    /// The border widths of the [`Quad`] in top, right, bottom, left order.
+    pub border_widths: [f32; 4],
 
     /// The shadow color of the [`Quad`].
     pub shadow_color: color::Packed,
@@ -44,6 +45,44 @@ pub struct Quad {
 
     /// Whether the [`Quad`] should be snapped to the pixel grid.
     pub snap: u32,
+}
+
+/// The compact representation used when every border side is identical.
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
+pub struct Uniform {
+    pub position: [f32; 2],
+    pub size: [f32; 2],
+    pub border_color: color::Packed,
+    pub border_radius: [f32; 4],
+    pub border_width: f32,
+    pub shadow_color: color::Packed,
+    pub shadow_offset: [f32; 2],
+    pub shadow_blur_radius: f32,
+    pub snap: u32,
+}
+
+impl Quad {
+    fn uniform(self) -> Option<Uniform> {
+        let border_color = self.border_colors[0];
+        let border_width = self.border_widths[0];
+
+        if self.border_colors == [border_color; 4] && self.border_widths == [border_width; 4] {
+            Some(Uniform {
+                position: self.position,
+                size: self.size,
+                border_color,
+                border_radius: self.border_radius,
+                border_width,
+                shadow_color: self.shadow_color,
+                shadow_offset: self.shadow_offset,
+                shadow_blur_radius: self.shadow_blur_radius,
+                snap: self.snap,
+            })
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -96,11 +135,22 @@ impl State {
         if let Some(layer) = self.layers.get(layer) {
             render_pass.set_scissor_rect(bounds.x, bounds.y, bounds.width, bounds.height);
 
+            let mut uniform_solid_offset = 0;
             let mut solid_offset = 0;
             let mut gradient_offset = 0;
 
             for (kind, count) in &quads.order {
                 match kind {
+                    Kind::UniformSolid => {
+                        pipeline.solid.render_uniform(
+                            render_pass,
+                            &layer.constants,
+                            &layer.solid,
+                            uniform_solid_offset..(uniform_solid_offset + count),
+                        );
+
+                        uniform_solid_offset += count;
+                    }
                     Kind::Solid => {
                         pipeline.solid.render(
                             render_pass,
@@ -202,8 +252,9 @@ impl Layer {
     ) {
         self.update(encoder, belt, transformation, scale);
 
-        if !quads.solids.is_empty() {
-            self.solid.prepare(device, encoder, belt, &quads.solids);
+        if !quads.uniform_solids.is_empty() || !quads.solids.is_empty() {
+            self.solid
+                .prepare(device, encoder, belt, &quads.uniform_solids, &quads.solids);
         }
 
         if !quads.gradients.is_empty() {
@@ -235,6 +286,9 @@ impl Layer {
 /// A group of [`Quad`]s rendered together.
 #[derive(Default, Debug)]
 pub struct Batch {
+    /// The solid quads with uniform borders.
+    uniform_solids: Vec<solid::Uniform>,
+
     /// The solid quads of the [`Layer`].
     solids: Vec<Solid>,
 
@@ -251,20 +305,30 @@ type Order = Vec<(Kind, usize)>;
 impl Batch {
     /// Returns true if there are no quads of any type in [`Quads`].
     pub fn is_empty(&self) -> bool {
-        self.solids.is_empty() && self.gradients.is_empty()
+        self.uniform_solids.is_empty() && self.solids.is_empty() && self.gradients.is_empty()
     }
 
     /// Adds a [`Quad`] with the provided `Background` type to the quad [`Layer`].
     pub fn add(&mut self, quad: Quad, background: &Background) {
         let kind = match background {
-            Background::Color(color) => {
-                self.solids.push(Solid {
-                    color: color::pack(*color),
-                    quad,
-                });
+            Background::Color(color) => match quad.uniform() {
+                Some(quad) => {
+                    self.uniform_solids.push(solid::Uniform {
+                        color: color::pack(*color),
+                        quad,
+                    });
 
-                Kind::Solid
-            }
+                    Kind::UniformSolid
+                }
+                None => {
+                    self.solids.push(Solid {
+                        color: color::pack(*color),
+                        quad,
+                    });
+
+                    Kind::Solid
+                }
+            },
             Background::Gradient(gradient) => {
                 self.gradients.push(Gradient {
                     gradient: graphics::gradient::pack(
@@ -289,12 +353,14 @@ impl Batch {
     }
 
     pub fn clear(&mut self) {
+        self.uniform_solids.clear();
         self.solids.clear();
         self.gradients.clear();
         self.order.clear();
     }
 
     pub fn append(&mut self, batch: &mut Batch) {
+        self.uniform_solids.append(&mut batch.uniform_solids);
         self.solids.append(&mut batch.solids);
         self.gradients.append(&mut batch.gradients);
         self.order.append(&mut batch.order);
@@ -304,6 +370,8 @@ impl Batch {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// The kind of a quad.
 enum Kind {
+    /// A solid quad with a uniform border.
+    UniformSolid,
     /// A solid quad
     Solid,
     /// A gradient quad

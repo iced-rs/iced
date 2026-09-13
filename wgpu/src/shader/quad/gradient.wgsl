@@ -7,10 +7,13 @@ struct GradientVertexInput {
     @location(4) @interpolate(flat) offsets: vec4<u32>,
     @location(5) direction: vec4<f32>,
     @location(6) position_and_scale: vec4<f32>,
-    @location(7) border_color: vec4<f32>,
-    @location(8) border_radius: vec4<f32>,
-    @location(9) border_width: f32,
-    @location(10) snap: u32,
+    @location(7) border_top: vec4<f32>,
+    @location(8) border_right: vec4<f32>,
+    @location(9) border_bottom: vec4<f32>,
+    @location(10) border_left: vec4<f32>,
+    @location(11) border_radius: vec4<f32>,
+    @location(12) border_widths: vec4<f32>,
+    @location(13) snap: u32,
 }
 
 struct GradientVertexOutput {
@@ -22,9 +25,12 @@ struct GradientVertexOutput {
     @location(5) @interpolate(flat) offsets: vec4<u32>,
     @location(6) direction: vec4<f32>,
     @location(7) position_and_scale: vec4<f32>,
-    @location(8) border_color: vec4<f32>,
-    @location(9) border_radius: vec4<f32>,
-    @location(10) border_width: f32,
+    @location(8) border_top: vec4<f32>,
+    @location(9) border_right: vec4<f32>,
+    @location(10) border_bottom: vec4<f32>,
+    @location(11) border_left: vec4<f32>,
+    @location(12) border_radius: vec4<f32>,
+    @location(13) border_widths: vec4<f32>,
 }
 
 @vertex
@@ -65,9 +71,12 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     out.offsets = input.offsets;
     out.direction = input.direction * globals.scale;
     out.position_and_scale = vec4<f32>(pos + pos_snap, scale + scale_snap);
-    out.border_color = premultiply(input.border_color);
+    out.border_top = premultiply(input.border_top);
+    out.border_right = premultiply(input.border_right);
+    out.border_bottom = premultiply(input.border_bottom);
+    out.border_left = premultiply(input.border_left);
     out.border_radius = border_radius * globals.scale;
-    out.border_width = input.border_width * globals.scale;
+    out.border_widths = input.border_widths * globals.scale;
 
     return out;
 }
@@ -172,11 +181,24 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
         input.border_radius * 2.0
     ) / 2.0;
 
-    if (input.border_width > 0.0) {
+    if (any(input.border_widths > vec4<f32>(0.0))) {
         mixed_color = mix(
             mixed_color,
-            input.border_color,
-            clamp(0.5 + dist + input.border_width, 0.0, 1.0)
+            border_color_at(
+                input.position.xy - pos,
+                scale,
+                input.border_widths,
+                input.border_top,
+                input.border_right,
+                input.border_bottom,
+                input.border_left
+            ),
+            border_coverage(
+                input.position.xy - pos,
+                scale,
+                input.border_radius,
+                input.border_widths
+            )
         );
     }
 
