@@ -287,11 +287,12 @@ where
                                     (
                                         ControlFlow::WaitUntil(current),
                                         ControlFlow::WaitUntil(new),
-                                    ) if current < new => {}
+                                    ) if current > Instant::now()
+                                        && current < new => {}
                                     (
-                                        ControlFlow::WaitUntil(target),
+                                        ControlFlow::WaitUntil(current),
                                         ControlFlow::Wait,
-                                    ) if target > Instant::now() => {}
+                                    ) if current > Instant::now() => {}
                                     _ => {
                                         event_loop.set_control_flow(flow);
                                     }
