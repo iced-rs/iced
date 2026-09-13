@@ -327,15 +327,19 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         // The popover only has an overlay when it is open (i.e. when the
         // `popover` argument is `Some`).
-        let popup = self.popup.as_mut()?;
+        let Some(popup) = self.popup.as_mut() else {
+            return Vec::new();
+        };
 
         let (base, rest) = tree.children.split_at_mut(1);
-        let tree = rest.first_mut()?;
+        let Some(tree) = rest.first_mut() else {
+            return Vec::new();
+        };
 
-        let content = self.content.as_widget_mut().overlay(
+        let mut overlays = self.content.as_widget_mut().overlay(
             &mut base[0],
             layout,
             renderer,
@@ -343,7 +347,7 @@ where
             translation,
         );
 
-        let overlay = overlay::Element::new(Box::new(Overlay {
+        overlays.push(overlay::Element::new(Box::new(Overlay {
             popup,
             tree,
             content_bounds: layout.bounds() + translation,
@@ -352,15 +356,9 @@ where
             gap: self.gap,
             on_close: self.on_close.clone(),
             viewport: *viewport,
-        }));
+        })));
 
-        let children = if let Some(content) = content {
-            vec![content, overlay]
-        } else {
-            vec![overlay]
-        };
-
-        Some(overlay::Group::with_children(children).overlay())
+        overlays
     }
 }
 
@@ -556,7 +554,7 @@ where
         &'a mut self,
         layout: Layout<'a>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.popup.as_widget_mut().overlay(
             self.tree,
             layout,

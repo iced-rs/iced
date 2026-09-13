@@ -28,13 +28,10 @@ impl<'a> Component<'a, Message> for WithTooltip {
     }
 
     fn view(&self, _state: &()) -> Element<'a, Self::Event, Theme, Renderer> {
-        tooltip(
-            button("Press").on_press(Event::Pressed),
-            "Hover me",
-            tooltip::Position::Top,
-        )
-        .delay(Duration::ZERO)
-        .into()
+        tooltip(button("Press").on_press(Event::Pressed), "Hover me")
+            .position(tooltip::Position::Top)
+            .delay(Duration::ZERO)
+            .into()
     }
 }
 

@@ -60,7 +60,7 @@ fn has_overlay(
     tree: &mut Tree,
     layout: Layout<'_>,
 ) -> bool {
-    element
+    !element
         .as_widget_mut()
         .overlay(
             tree,
@@ -69,7 +69,7 @@ fn has_overlay(
             &Rectangle::with_size(VIEWPORT),
             Vector::ZERO,
         )
-        .is_some()
+        .is_empty()
 }
 
 /// Drives a single event through the (open) popover overlay and returns the
@@ -86,6 +86,8 @@ fn drive_overlay(
     let mut overlay = element
         .as_widget_mut()
         .overlay(tree, layout, &(), &viewport, Vector::ZERO)
+        .into_iter()
+        .next()
         .expect("popover overlay should exist");
 
     let overlay_node = overlay.as_overlay_mut().layout(&(), VIEWPORT);

@@ -405,12 +405,9 @@ where
         operation.container(None, layout.bounds());
 
         operation.traverse(&mut |operation| {
-            self.tooltip.as_widget_mut().operate(
-                self.tree,
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
+            self.tooltip
+                .as_widget_mut()
+                .operate(self.tree, layout, renderer, operation);
         });
     }
 
