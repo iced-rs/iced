@@ -125,8 +125,14 @@ impl Pipeline {
                             8 => Float32x4,
                             // Border width
                             9 => Float32,
+                            // Shadow color (unused)
+                            10 => Float32x4,
+                            // Shadow offset (unused)
+                            11 => Float32x2,
+                            // Shadow blur radius (unused)
+                            12 => Float32,
                             // Snap
-                            10 => Uint32,
+                            13 => Uint32,
                         ),
                     }],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),

@@ -10,7 +10,7 @@ struct GradientVertexInput {
     @location(7) border_color: vec4<f32>,
     @location(8) border_radius: vec4<f32>,
     @location(9) border_width: f32,
-    @location(10) snap: u32,
+    @location(13) snap: u32,
 }
 
 struct GradientVertexOutput {
