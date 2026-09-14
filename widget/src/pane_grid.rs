@@ -463,6 +463,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -494,7 +495,7 @@ where
             let is_picked = picked_pane == Some(pane);
 
             content.update(
-                tree, event, layout, cursor, renderer, shell, viewport, is_picked,
+                tree, event, layout, cursor, touch, renderer, shell, viewport, is_picked,
             );
         }
 

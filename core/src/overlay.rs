@@ -10,7 +10,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Event, Layout, Rectangle, Shell, Size, Vector};
+use crate::{Event, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
@@ -52,6 +52,7 @@ where
         _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
+        _touch: Option<Point>,
         _renderer: &Renderer,
         _shell: &mut Shell<'_, Message>,
     ) {

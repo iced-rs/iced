@@ -6,7 +6,7 @@ use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
 use iced::time::Instant;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Rectangle, Size};
+use iced::{Background, Color, Element, Event, Length, Rectangle, Point, Size};
 
 use super::easing::{self, Easing};
 
@@ -173,6 +173,7 @@ where
         event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
+        _touch: Option<Point>,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

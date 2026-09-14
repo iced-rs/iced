@@ -8,7 +8,7 @@ use crate::core::shell;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector, Window,
+    Clipboard, Element, InputMethod, Layout, Point, Rectangle, Shell, Size, Vector, Window,
 };
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -195,6 +195,7 @@ where
         waker: &shell::Waker,
         events: &[Event],
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &mut Renderer,
         messages: &mut shell::Bus<Message>,
     ) -> (State, Vec<event::Status>) {
@@ -225,7 +226,7 @@ where
             for event in events {
                 let mut shell = Shell::new(window, waker.clone(), messages);
 
-                overlay.update(event, Layout::new(&layout), cursor, renderer, &mut shell);
+                overlay.update(event, Layout::new(&layout), cursor, touch, renderer, &mut shell);
 
                 event_statuses.push(shell.event_status());
                 redraw_request = redraw_request.min(shell.redraw_request());
@@ -332,6 +333,7 @@ where
                     event,
                     Layout::new(&self.base),
                     base_cursor,
+                    touch,
                     renderer,
                     &mut shell,
                     &viewport,

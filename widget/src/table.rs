@@ -7,7 +7,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    Alignment, Background, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
+    Alignment, Background, Element, Layout, Length, Point, Pixels, Rectangle, Size, Widget,
 };
 
 /// Creates a new [`Table`] with the given columns and rows.
@@ -448,6 +448,7 @@ where
         event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,
@@ -459,7 +460,7 @@ where
             .zip(layout.children())
         {
             cell.as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
         }
     }
 

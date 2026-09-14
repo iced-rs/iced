@@ -9,7 +9,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{Element, Event, Length, Rectangle, Shell, Size};
+use crate::core::{Element, Event, Length, Point, Rectangle, Shell, Size};
 use crate::renderer::wgpu::primitive;
 
 use std::marker::PhantomData;
@@ -89,6 +89,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -97,7 +98,7 @@ where
 
         let state = tree.state.downcast_mut::<P::State>();
 
-        if let Some(action) = self.program.update(state, event, bounds, cursor) {
+        if let Some(action) = self.program.update(state, event, bounds, cursor, touch) {
             let (message, redraw_request, event_status) = action.into_inner();
 
             shell.request_redraw_at(redraw_request);
@@ -168,8 +169,9 @@ where
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
     ) -> Option<Action<Message>> {
-        T::update(self, state, event, bounds, cursor)
+        T::update(self, state, event, bounds, cursor, touch)
     }
 
     fn draw(

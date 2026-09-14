@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
+    Element, Event, Layout, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -238,6 +238,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -250,7 +251,7 @@ where
         {
             child
                 .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
         }
     }
 
@@ -505,12 +506,13 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         self.column
-            .update(tree, event, layout, cursor, renderer, shell, viewport);
+            .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
     }
 
     fn mouse_interaction(

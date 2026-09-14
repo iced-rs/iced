@@ -7,7 +7,7 @@ use crate::core::theme;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Background, Color, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that applies any `Theme` to its contents.
@@ -105,13 +105,14 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         self.content
             .as_widget_mut()
-            .update(tree, event, layout, cursor, renderer, shell, viewport);
+            .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
@@ -209,12 +210,13 @@ where
                 event: &Event,
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
+                touch: Option<Point>,
                 renderer: &Renderer,
                 shell: &mut Shell<'_, Message>,
             ) {
                 self.content
                     .as_overlay_mut()
-                    .update(event, layout, cursor, renderer, shell);
+                    .update(event, layout, cursor, touch, renderer, shell);
             }
 
             fn operate(

@@ -1,11 +1,11 @@
 use crate::conversion;
 use crate::core::renderer;
-use crate::core::{Color, Size};
+use crate::core::{Color, Point, Size};
 use crate::core::{mouse, theme, window};
 use crate::graphics::Viewport;
 use crate::program::{self, Program};
 
-use winit::event::{Touch, WindowEvent};
+use winit::event::{TouchPhase, WindowEvent};
 use winit::window::Window;
 
 use std::fmt::{Debug, Formatter};
@@ -19,6 +19,7 @@ where
     viewport: Viewport,
     surface_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
+    touch_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: Option<P::Theme>,
     theme_mode: theme::Mode,
@@ -75,6 +76,7 @@ where
             viewport,
             surface_version: 0,
             cursor_position: None,
+            touch_position: None,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
             theme_mode,
@@ -114,6 +116,13 @@ where
             })
             .map(mouse::Cursor::Available)
             .unwrap_or(mouse::Cursor::Unavailable)
+    }
+
+    pub fn touch(&self) -> Option<Point> {
+        self.touch_position
+            .map(|position| {
+                conversion::cursor_position(position, self.viewport.scale_factor())
+            })
     }
 
     pub fn modifiers(&self) -> winit::keyboard::ModifiersState {
@@ -165,11 +174,19 @@ where
                 );
                 self.surface_version += 1;
             }
-            WindowEvent::CursorMoved { position, .. }
-            | WindowEvent::Touch(Touch {
-                location: position, ..
-            }) => {
+            WindowEvent::CursorMoved { position, .. } => {
                 self.cursor_position = Some(*position);
+            }
+            WindowEvent::Touch(touch) => {
+                match touch.phase {
+                    TouchPhase::Started | TouchPhase::Moved => {
+                        self.touch_position = Some(touch.location);
+                    },
+                    TouchPhase::Cancelled => {
+                        self.touch_position = None;
+                    }
+                    _ => {}
+                }
             }
             WindowEvent::CursorLeft { .. } => {
                 self.cursor_position = None;

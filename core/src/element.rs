@@ -5,7 +5,7 @@ use crate::renderer;
 use crate::shell;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::{Border, Color, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
 use std::borrow::{Borrow, BorrowMut};
 
@@ -317,6 +317,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
@@ -329,6 +330,7 @@ where
             event,
             layout,
             cursor,
+            touch,
             renderer,
             &mut local_shell,
             viewport,
@@ -443,13 +445,14 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
         self.element
             .widget
-            .update(tree, event, layout, cursor, renderer, shell, viewport);
+            .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
     }
 
     fn draw(

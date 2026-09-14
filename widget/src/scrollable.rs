@@ -545,6 +545,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -747,6 +748,7 @@ where
                     event,
                     content,
                     cursor,
+                    touch,
                     renderer,
                     shell,
                     &Rectangle {

@@ -146,6 +146,7 @@ impl<R: text::Renderer> Input<R> {
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         shell: &mut Shell<'_, Message>,
         key_binding: impl Fn(editor::KeyPress) -> Option<editor::Binding<Message>>,
     ) -> Option<Edit> {
@@ -237,7 +238,7 @@ impl<R: text::Renderer> Input<R> {
 
         let update = self
             .state
-            .update(editor, event, bounds, self.padding, cursor, key_binding)?;
+            .update(editor, event, bounds, self.padding, cursor, touch, key_binding)?;
 
         if let Some(secure) = &mut self.secure {
             fn apply_secure<Message>(

@@ -780,6 +780,7 @@ async fn run_instance<P>(
                             core::Event::Window(window::Event::RedrawRequested(Instant::now()));
 
                         let cursor = window.state.cursor();
+                        let touch = window.state.touch();
 
                         let mut interface =
                             user_interfaces.get_mut(&id).expect("Get user interface");
@@ -794,6 +795,7 @@ async fn run_instance<P>(
                                 &window.waker,
                                 slice::from_ref(&redraw_event),
                                 cursor,
+                                touch,
                                 &mut window.renderer,
                                 &mut messages,
                             );
@@ -1096,6 +1098,7 @@ async fn run_instance<P>(
                                     &window.waker,
                                     &window_events,
                                     window.state.cursor(),
+                                    window.state.touch(),
                                     &mut window.renderer,
                                     &mut messages,
                                 );

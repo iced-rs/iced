@@ -4,7 +4,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::Tree;
-use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 use crate::space;
 
 /// A widget that is aware of its dimensions.
@@ -97,6 +97,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -106,6 +107,7 @@ where
             event,
             layout.children().next().unwrap(),
             cursor,
+            touch,
             renderer,
             shell,
             viewport,

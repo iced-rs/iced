@@ -43,7 +43,7 @@ use crate::core::widget::operation::{self, Focusable, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Rectangle,
+    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Point, Rectangle,
     Shell, Size, Theme, Widget,
 };
 
@@ -335,6 +335,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -345,7 +346,7 @@ where
         if let Some(on_input) = &self.on_input {
             let edit = state
                 .input
-                .update(event, layout.bounds(), cursor, shell, |key_press| {
+                .update(event, layout.bounds(), cursor, touch, shell, |key_press| {
                     if let Some(on_submit) = &self.on_submit
                         && key_press.is_focused
                         && key_press.modified_key

@@ -280,13 +280,14 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
         let bounds = layout.bounds();
 
         self.list
-            .update(self.tree, event, layout, cursor, renderer, shell, &bounds);
+            .update(self.tree, event, layout, cursor, touch, renderer, shell, &bounds);
     }
 
     fn mouse_interaction(
@@ -409,6 +410,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

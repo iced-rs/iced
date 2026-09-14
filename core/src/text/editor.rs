@@ -334,6 +334,7 @@ impl State {
         bounds: Rectangle,
         padding: Padding,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         key_binding: impl Fn(KeyPress) -> Option<Binding<Message>>,
     ) -> Option<Update<Message>> {
         match event {

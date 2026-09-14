@@ -45,7 +45,7 @@ use crate::core::theme;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell,
+    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Point, Rectangle, Shell,
     Size, Theme,
 };
 
@@ -406,6 +406,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -458,6 +459,7 @@ where
             layout.bounds(),
             self.padding,
             cursor,
+            touch,
             self.key_binding
                 .as_deref()
                 .unwrap_or(&Binding::from_key_press as _),

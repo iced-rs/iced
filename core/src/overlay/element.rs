@@ -5,7 +5,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::shell;
 use crate::widget;
-use crate::{Event, Layout, Shell, Size};
+use crate::{Event, Layout, Point, Shell, Size};
 
 /// A generic [`Overlay`].
 pub struct Element<'a, Message, Theme, Renderer> {
@@ -81,6 +81,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, B>,
     ) {
@@ -88,7 +89,7 @@ where
         let mut local_shell = shell.local(&mut local_messages);
 
         self.content
-            .update(event, layout, cursor, renderer, &mut local_shell);
+            .update(event, layout, cursor, touch, renderer, &mut local_shell);
 
         shell.merge(local_shell, self.mapper);
     }

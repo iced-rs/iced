@@ -8,7 +8,7 @@ use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Size, Widget};
+use crate::core::{Element, Length, Point, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::lazy::Lazy;
@@ -657,6 +657,7 @@ where
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
+            touch: Option<Point>,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
@@ -666,7 +667,7 @@ where
 
             self.content
                 .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
                 shell.capture_event();
@@ -843,6 +844,7 @@ where
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
+            touch: Option<Point>,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
@@ -883,7 +885,7 @@ where
                 let redraw_request = shell.redraw_request();
 
                 self.top.as_widget_mut().update(
-                    top_tree, event, top_layout, cursor, renderer, shell, viewport,
+                    top_tree, event, top_layout, cursor, touch, renderer, shell, viewport,
                 );
 
                 // Ignore redraw requests of invisible content
@@ -901,6 +903,7 @@ where
                 event,
                 base_layout,
                 cursor,
+                touch,
                 renderer,
                 shell,
                 viewport,

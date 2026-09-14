@@ -6,7 +6,7 @@ use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
+    Alignment, Element, Event, Layout, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector,
     Widget,
 };
 
@@ -278,6 +278,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -290,7 +291,7 @@ where
         {
             child
                 .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
         }
     }
 

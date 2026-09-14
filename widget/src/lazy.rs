@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Event, Length, Point, Rectangle, Shell, Size, Vector};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
@@ -127,6 +127,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -140,6 +141,7 @@ where
             event,
             layout,
             cursor,
+            touch,
             renderer,
             shell,
             viewport,

@@ -208,6 +208,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -241,6 +242,7 @@ where
                 event,
                 Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
                 cursor,
+                touch,
                 renderer,
                 &mut local_shell,
                 viewport,
@@ -342,6 +344,7 @@ where
                 event,
                 Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
                 cursor,
+                touch,
                 renderer,
                 &mut local_shell,
                 viewport,
@@ -488,6 +491,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
@@ -496,7 +500,7 @@ where
 
         self.raw
             .as_overlay_mut()
-            .update(event, layout, cursor, renderer, &mut local_shell);
+            .update(event, layout, cursor, touch, renderer, &mut local_shell);
 
         if local_shell.is_event_captured() {
             shell.capture_event();

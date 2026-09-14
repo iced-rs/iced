@@ -4,7 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Event, Layout, Shell, Size};
+use crate::{Event, Layout, Point, Shell, Size};
 
 /// A container of nested overlays.
 pub struct Nested<'a, Message, Theme, Renderer> {
@@ -199,6 +199,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
@@ -207,6 +208,7 @@ where
             layout: Layout<'_>,
             event: &Event,
             cursor: mouse::Cursor,
+            touch: Option<Point>,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
         ) -> bool
@@ -236,7 +238,7 @@ where
                     .map(|(mut nested, nested_layout)| {
                         sort_overlays(&mut nested);
 
-                        recurse(&mut nested, nested_layout, event, cursor, renderer, shell)
+                        recurse(&mut nested, nested_layout, event, cursor, touch, renderer, shell)
                     })
                     .unwrap_or_default();
 
@@ -261,6 +263,7 @@ where
                     } else {
                         cursor
                     },
+                    touch,
                     renderer,
                     shell,
                 );
@@ -271,7 +274,7 @@ where
             is_over
         }
 
-        let _ = recurse(&mut self.children, layout, event, cursor, renderer, shell);
+        let _ = recurse(&mut self.children, layout, event, cursor, touch, renderer, shell);
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Nested`] overlay.

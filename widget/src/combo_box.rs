@@ -67,7 +67,7 @@ use crate::core::widget::operation::Focusable as _;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector,
+    Element, Event, Font, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
@@ -481,6 +481,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -493,6 +494,7 @@ where
             event,
             layout.bounds(),
             cursor,
+            touch,
             shell,
             editor::Binding::from_key_press,
         );

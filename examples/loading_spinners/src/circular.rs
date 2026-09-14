@@ -7,7 +7,7 @@ use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Radians, Rectangle, Renderer, Size, Vector};
+use iced::{Background, Color, Element, Event, Length, Radians, Rectangle, Renderer, Point, Size, Vector};
 
 use super::easing::{self, Easing};
 
@@ -247,6 +247,7 @@ where
         event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
+        _touch: Option<Point>,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

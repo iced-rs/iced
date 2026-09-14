@@ -200,6 +200,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -209,6 +210,7 @@ where
             event,
             layout,
             cursor,
+            touch,
             renderer,
             shell,
             viewport,
@@ -218,7 +220,7 @@ where
             return;
         }
 
-        update(self, tree, event, layout, cursor, shell);
+        update(self, tree, event, layout, cursor, touch, shell);
     }
 
     fn mouse_interaction(
@@ -306,6 +308,7 @@ fn update<Message: Clone, Theme, Renderer>(
     event: &Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
+    touch: Option<Point>,
     shell: &mut Shell<'_, Message>,
 ) {
     let state: &mut State = tree.state.downcast_mut();

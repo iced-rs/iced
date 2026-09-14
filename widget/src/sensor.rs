@@ -8,7 +8,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
+    self, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that can generate messages when its content pops in and out of view.
@@ -170,6 +170,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -250,6 +251,7 @@ where
             event,
             layout,
             cursor,
+            touch,
             renderer,
             shell,
             viewport,

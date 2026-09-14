@@ -27,7 +27,7 @@ use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size,
+    Background, Color, Element, Event, Layout, Length, Padding, Point, Rectangle, Shadow, Shell, Size,
     Theme, Vector, Widget,
 };
 
@@ -264,6 +264,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
+        touch: Option<Point>,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -273,6 +274,7 @@ where
             event,
             layout.children().next().unwrap(),
             cursor,
+            touch,
             renderer,
             shell,
             viewport,
@@ -282,16 +284,15 @@ where
             return;
         }
 
+        let state = tree.state.downcast_mut::<State>();
+        let bounds = layout.bounds();
+        let is_within_bounds = cursor.is_over(bounds) || touch.is_some_and(|point| bounds.contains(point));
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. })
                 if self.on_press.is_some() =>
             {
-                let bounds = layout.bounds();
-
-                if cursor.is_over(bounds) {
-                    let state = tree.state.downcast_mut::<State>();
-
+                if is_within_bounds {
                     state.is_pressed = true;
 
                     shell.capture_event();
@@ -300,14 +301,10 @@ where
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerLifted { .. }) => {
                 if let Some(on_press) = &self.on_press {
-                    let state = tree.state.downcast_mut::<State>();
-
                     if state.is_pressed {
                         state.is_pressed = false;
 
-                        let bounds = layout.bounds();
-
-                        if cursor.is_over(bounds) {
+                        if is_within_bounds {
                             shell.publish(on_press.get());
                         }
 
@@ -316,8 +313,6 @@ where
                 }
             }
             Event::Touch(touch::Event::FingerLost { .. }) => {
-                let state = tree.state.downcast_mut::<State>();
-
                 state.is_pressed = false;
             }
             _ => {}
