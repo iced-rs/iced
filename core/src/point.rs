@@ -34,6 +34,18 @@ impl<T: Num> Point<T> {
 
         a.hypot(b)
     }
+
+    /// Computes squared distance to another [`Point`], using a deterministic algorithm.
+    /// Suitable for sorting algorithms.
+    pub fn distance_squared(&self, to: Self) -> T
+    where
+        T: Float,
+    {
+        let a = self.x - to.x;
+        let b = self.y - to.y;
+
+        a * a + b * b
+    }
 }
 
 impl<T> From<[T; 2]> for Point<T>
