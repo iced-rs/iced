@@ -331,13 +331,23 @@ where
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 | Event::Touch(touch::Event::FingerPressed { .. }) => {
                     if let Some(cursor_position) = cursor.position_over(layout.bounds()) {
-                        if state.keyboard_modifiers.command() {
+                        let click = mouse::click::Click::new(
+                            cursor_position,
+                            mouse::Button::Left,
+                            state.last_click.take(),
+                        );
+
+                        if state.keyboard_modifiers.command()
+                            || click.kind() == mouse::click::Kind::Double
+                        {
                             let _ = self.default.map(change);
                             state.is_dragging = false;
                         } else {
                             let _ = locate(cursor_position).map(change);
                             state.is_dragging = true;
                         }
+
+                        state.last_click = Some(click);
 
                         shell.capture_event();
                     }
@@ -542,10 +552,11 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 struct State {
     is_dragging: bool,
     keyboard_modifiers: keyboard::Modifiers,
+    last_click: Option<mouse::Click>,
 }
 
 /// The possible status of a [`Slider`].
