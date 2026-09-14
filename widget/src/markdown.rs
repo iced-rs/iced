@@ -225,7 +225,7 @@ impl Content {
         }
 
         // Re-parse the last item and the new text
-        let mut items: Vec<_> = parse_with(&mut self.state, input).collect();
+        let mut items: Vec<_> = parse_with(&mut self.state, input, input_start).collect();
 
         // We only re-parse the last bullet of a list, so merge the
         // re-parsed list into the old one, keeping the bullets that
@@ -266,7 +266,7 @@ impl Content {
                 tail
             };
             input_start = base;
-            items = parse_with(&mut self.state, input).collect();
+            items = parse_with(&mut self.state, input, input_start).collect();
         } else if let Some((Item::List { .. }, 0, _)) = items.first()
             && let Some(Item::List { .. }) = self.items.last()
             && let Some(base) = self.base.last().copied()
@@ -286,7 +286,7 @@ impl Content {
                 tail
             };
 
-            let reparsed: Vec<_> = parse_with(&mut self.state, input).collect();
+            let reparsed: Vec<_> = parse_with(&mut self.state, input, base).collect();
 
             if let Some((Item::List { .. }, _, _)) = reparsed.first() {
                 input_start = base;
@@ -581,14 +581,14 @@ impl Content {
                     references_staged: HashSet::new(),
                     images: HashSet::new(),
                     #[cfg(feature = "highlighter")]
-                    parser: None,
+                    parsers: HashMap::new(),
                 };
 
                 let end = section.end.unwrap_or(self.raw.len());
                 let source = &self.raw[section.start..end];
 
                 if let Some((item, _start, broken_links)) =
-                    parse_with(&mut state, source).nth(section.item)
+                    parse_with(&mut state, source, section.start).nth(section.item)
                 {
                     self.items[*index] = item;
 
@@ -1001,7 +1001,7 @@ impl Bullet {
 /// }
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
-    parse_with(State::default(), markdown).map(|(item, _start, _broken_links)| item)
+    parse_with(State::default(), markdown, 0).map(|(item, _start, _broken_links)| item)
 }
 
 #[derive(Debug, Default)]
@@ -1019,8 +1019,14 @@ struct State {
     /// until the line is terminated.
     references_staged: HashSet<String>,
     images: HashSet<Uri>,
+    /// The highlighters of the code blocks seen in the last re-parses,
+    /// keyed by the start of the block's source in the outer stream.
+    ///
+    /// A highlighter is only reused for the same code block (the same
+    /// source start and language), so that its line cache stays valid
+    /// across the re-parses of a block that is still growing.
     #[cfg(feature = "highlighter")]
-    parser: Option<code::Parser>,
+    parsers: HashMap<usize, code::Parser>,
 }
 
 /// The options used by the parser.
@@ -1071,6 +1077,7 @@ fn absorb_references(
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
+    offset_: usize,
 ) -> impl Iterator<Item = (Item, usize, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
@@ -1113,7 +1120,7 @@ fn parse_with<'a>(
     let mut stack = Vec::new();
 
     #[cfg(feature = "highlighter")]
-    let mut code_parser = None;
+    let mut code_block_key = None;
 
     let parser = pulldown_cmark::Parser::new_with_broken_link_callback(markdown, options(), {
         let references = state.borrow().references.clone();
@@ -1298,20 +1305,24 @@ fn parse_with<'a>(
             {
                 #[cfg(feature = "highlighter")]
                 {
-                    code_parser = Some({
-                        let mut code_parser = state
-                            .borrow_mut()
-                            .parser
-                            .take()
-                            .filter(|parser| parser.language() == language.as_ref())
-                            .unwrap_or_else(|| {
-                                code::Parser::new(language.split(',').next().unwrap_or_default())
-                            });
+                    // The start of the block in the outer stream; the
+                    // key that identifies the block across re-parses,
+                    // so that the highlighter's line cache is only
+                    // reused for the same block.
+                    let key = offset_ + source.start;
+                    let state = state.borrow_mut();
+                    let language = language.split(',').next().unwrap_or_default();
 
-                        code_parser.prepare();
+                    let mut parser = state
+                        .parsers
+                        .remove(&key)
+                        .filter(|parser| parser.language() == language)
+                        .unwrap_or_else(|| code::Parser::new(language));
 
-                        code_parser
-                    });
+                    parser.prepare();
+                    let _ = state.parsers.insert(key, parser);
+
+                    code_block_key = Some(key);
                 }
 
                 code_block = true;
@@ -1464,11 +1475,6 @@ fn parse_with<'a>(
             pulldown_cmark::TagEnd::CodeBlock if !metadata => {
                 code_block = false;
 
-                #[cfg(feature = "highlighter")]
-                {
-                    state.borrow_mut().parser = code_parser.take();
-                }
-
                 produce(
                     state.borrow_mut(),
                     &mut stack,
@@ -1543,7 +1549,9 @@ fn parse_with<'a>(
                 code.push_str(&text);
 
                 #[cfg(feature = "highlighter")]
-                if let Some(highlighter) = &mut code_parser {
+                if let Some(key) = code_block_key
+                    && let Some(highlighter) = state.borrow_mut().parsers.get_mut(&key)
+                {
                     for line in text.lines() {
                         code_lines.push(Text::new(highlighter.parse_line(line).to_vec()));
                     }
@@ -2419,11 +2427,7 @@ mod code {
 
         pub fn parse_line(&mut self, text: &str) -> &[Span] {
             match self.lines.get(self.current) {
-                Some(line) if line.0 == text => {
-                    if self.current + 1 == self.lines.len() {
-                        self.stream.commit();
-                    }
-                }
+                Some(line) if line.0 == text => {}
                 _ => {
                     if self.current + 1 < self.lines.len() {
                         log::debug!("Resetting highlighter...");
@@ -2440,11 +2444,11 @@ mod code {
 
                     log::trace!("Parsing: {text}", text = text.trim_end());
 
-                    let mut spans = Vec::new();
-
                     if self.current == self.lines.len() {
                         self.stream.commit();
                     }
+
+                    let mut spans = Vec::new();
 
                     for (range, code) in self.stream.parse_line(text) {
                         spans.push(Span::Code {
