@@ -31,9 +31,10 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::{Duration, Instant};
+use crate::core::touch;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{Element, Event, Length, Padding, Pixels, Point, PointerInput, Rectangle, Shell, Size, Vector};
 
 /// An element to display a widget over another.
 ///
@@ -185,7 +186,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,

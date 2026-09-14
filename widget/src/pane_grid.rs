@@ -88,7 +88,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Border, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
+    self, Background, Border, Color, Element, Event, Layout, Length, Pixels, Point, PointerInput, Rectangle,
     Shell, Size, Theme, Vector, Widget,
 };
 
@@ -463,7 +463,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,

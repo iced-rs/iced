@@ -1,4 +1,4 @@
-use crate::{Point, Rectangle, Transformation, Vector};
+use crate::{Point, PointerInput, Transformation, Vector};
 
 /// The mouse cursor state.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -14,45 +14,17 @@ pub enum Cursor {
     Unavailable,
 }
 
-impl Cursor {
+impl PointerInput for Cursor {
     /// Returns the absolute position of the [`Cursor`], if available.
-    pub fn position(self) -> Option<Point> {
+    fn position(self) -> Option<Point> {
         match self {
             Cursor::Available(position) => Some(position),
             Cursor::Levitating(_) | Cursor::Unavailable => None,
         }
     }
+}
 
-    /// Returns the absolute position of the [`Cursor`], if available and inside
-    /// the given bounds.
-    ///
-    /// If the [`Cursor`] is not over the provided bounds, this method will
-    /// return `None`.
-    pub fn position_over(self, bounds: Rectangle) -> Option<Point> {
-        self.position().filter(|p| bounds.contains(*p))
-    }
-
-    /// Returns the relative position of the [`Cursor`] inside the given bounds,
-    /// if available.
-    ///
-    /// If the [`Cursor`] is not over the provided bounds, this method will
-    /// return `None`.
-    pub fn position_in(self, bounds: Rectangle) -> Option<Point> {
-        self.position_over(bounds)
-            .map(|p| p - Vector::new(bounds.x, bounds.y))
-    }
-
-    /// Returns the relative position of the [`Cursor`] from the given origin,
-    /// if available.
-    pub fn position_from(self, origin: Point) -> Option<Point> {
-        self.position().map(|p| p - Vector::new(origin.x, origin.y))
-    }
-
-    /// Returns true if the [`Cursor`] is over the given `bounds`.
-    pub fn is_over(self, bounds: Rectangle) -> bool {
-        self.position_over(bounds).is_some()
-    }
-
+impl Cursor {
     /// Returns true if the [`Cursor`] is levitating over a layer above.
     pub fn is_levitating(self) -> bool {
         matches!(self, Self::Levitating(_))

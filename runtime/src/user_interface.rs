@@ -3,12 +3,13 @@ use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
+use crate::core::touch;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Point, Rectangle, Shell, Size, Vector, Window,
+    Clipboard, Element, InputMethod, Layout, Point, PointerInput, Rectangle, Shell, Size, Vector, Window,
 };
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -195,7 +196,7 @@ where
         waker: &shell::Waker,
         events: &[Event],
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &mut Renderer,
         messages: &mut shell::Bus<Message>,
     ) -> (State, Vec<event::Status>) {

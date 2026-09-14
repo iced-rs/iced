@@ -3,6 +3,7 @@ use crate::alignment;
 use crate::clipboard;
 use crate::layout;
 use crate::mouse;
+use crate::touch;
 use crate::text::editor;
 use crate::text::paragraph;
 use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};
@@ -146,7 +147,7 @@ impl<R: text::Renderer> Input<R> {
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         shell: &mut Shell<'_, Message>,
         key_binding: impl Fn(editor::KeyPress) -> Option<editor::Binding<Message>>,
     ) -> Option<Edit> {

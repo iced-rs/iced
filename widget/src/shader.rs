@@ -7,6 +7,7 @@ use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::{Element, Event, Length, Point, Rectangle, Shell, Size};
@@ -89,7 +90,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -169,7 +170,7 @@ where
         event: &Event,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
     ) -> Option<Action<Message>> {
         T::update(self, state, event, bounds, cursor, touch)
     }

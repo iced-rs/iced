@@ -27,8 +27,8 @@ use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Padding, Point, Rectangle, Shadow, Shell, Size,
-    Theme, Vector, Widget,
+    Background, Color, Element, Event, Layout, Length, Padding, Point, PointerInput, Rectangle, Shadow,
+    Shell, Size, Theme, Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
@@ -264,7 +264,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -286,7 +286,7 @@ where
 
         let state = tree.state.downcast_mut::<State>();
         let bounds = layout.bounds();
-        let is_within_bounds = cursor.is_over(bounds) || touch.is_some_and(|point| bounds.contains(point));
+        let is_within_bounds = cursor.is_over(bounds) || touch.is_over(bounds);
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. })

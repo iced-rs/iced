@@ -38,8 +38,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Theme, Widget,
+    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, PointerInput, 
+    Rectangle, Shell, Size, Theme, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -250,7 +250,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

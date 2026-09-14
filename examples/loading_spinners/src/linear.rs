@@ -173,7 +173,7 @@ where
         event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _touch: Option<Point>,
+        _touch: touch::Touch,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

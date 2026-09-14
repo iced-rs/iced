@@ -6,9 +6,10 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::theme;
 use crate::core::time::Instant;
+use crate::core::touch;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Point, Size, Widget};
+use crate::core::{Element, Length, Point, PointerInput, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::lazy::Lazy;
@@ -657,7 +658,7 @@ where
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
-            touch: Option<Point>,
+            touch: touch::Touch,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
@@ -844,7 +845,7 @@ where
             event: &Event,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
-            touch: Option<Point>,
+            touch: touch::Touch,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,

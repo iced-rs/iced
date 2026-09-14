@@ -63,11 +63,12 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::text::editor;
 use crate::core::text::input;
+use crate::core::touch;
 use crate::core::widget::operation::Focusable as _;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Element, Event, Font, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Theme, Vector,
+    Element, Event, Font, Length, Padding, Pixels, Point, PointerInput, Rectangle, Shell, Size, Theme, Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
@@ -481,7 +482,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

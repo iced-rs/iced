@@ -1,5 +1,5 @@
 //! Build touch events.
-use crate::Point;
+use crate::{Point, PointerInput};
 
 /// A touch interaction.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -21,3 +21,24 @@ pub enum Event {
 /// A unique identifier representing a finger on a touch interaction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Finger(pub u64);
+
+/// The touch input state.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub enum Touch {
+    /// The touch has a defined position.
+    Available(Point),
+
+    /// The touch is currently unavailable (i.e. is not registered by the input device).
+    #[default]
+    Unavailable,
+}
+
+impl PointerInput for Touch {
+    /// Returns the absolute position of the [`Touch`], if available.
+    fn position(self) -> Option<Point> {
+        match self {
+            Touch::Available(position) => Some(position),
+            Touch::Unavailable => None,
+        }
+    }
+}

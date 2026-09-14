@@ -2,6 +2,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::Tree;
 use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
@@ -97,7 +98,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,

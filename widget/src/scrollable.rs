@@ -36,7 +36,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     self, Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    PointerInput, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
@@ -545,7 +545,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

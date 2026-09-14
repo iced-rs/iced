@@ -5,10 +5,11 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Element, Event, Layout, Length, Point, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
+    Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -116,7 +117,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -277,7 +278,7 @@ where
         event: &Event,
         _layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {

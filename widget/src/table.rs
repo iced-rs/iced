@@ -5,6 +5,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::touch;
 use crate::core::widget;
 use crate::core::{
     Alignment, Background, Element, Layout, Length, Point, Pixels, Rectangle, Size, Widget,
@@ -448,7 +449,7 @@ where
         event: &core::Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,

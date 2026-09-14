@@ -157,3 +157,39 @@ where
         move |result| self(prefix.clone(), result)
     }
 }
+
+/// A common base for the mouse cursor and touches  
+pub trait PointerInput : Sized {
+    /// Returns the absolute position of the [`PointerInput`], if available.
+    fn position(self) -> Option<Point>;
+
+    /// Returns the absolute position of the [`PointerInput`], if available and inside
+    /// the given bounds.
+    ///
+    /// If the [`PointerInput`] is not over the provided bounds, this method will
+    /// return `None`.
+    fn position_over(self, bounds: Rectangle) -> Option<Point> {
+        self.position().filter(|p| bounds.contains(*p))
+    }
+
+    /// Returns the relative position of the [`PointerInput`] inside the given bounds,
+    /// if available.
+    ///
+    /// If the [`PointerInput`] is not over the provided bounds, this method will
+    /// return `None`.
+    fn position_in(self, bounds: Rectangle) -> Option<Point> {
+        self.position_over(bounds)
+            .map(|p| p - Vector::new(bounds.x, bounds.y))
+    }
+
+    /// Returns the relative position of the [`PointerInput`] from the given origin,
+    /// if available.
+    fn position_from(self, origin: Point) -> Option<Point> {
+        self.position().map(|p| p - Vector::new(origin.x, origin.y))
+    }
+
+    /// Returns true if the [`PointerInput`] is over the given `bounds`.
+    fn is_over(self, bounds: Rectangle) -> bool {
+        self.position_over(bounds).is_some()
+    }
+}

@@ -1,6 +1,7 @@
 use crate::core::{Point, Rectangle};
 use crate::core::mouse;
 use crate::renderer::wgpu::Primitive;
+use crate::core::touch;
 use crate::shader::{self, Action};
 
 /// The state and logic of a [`Shader`] widget.
@@ -29,7 +30,7 @@ pub trait Program<Message> {
         _event: &shader::Event,
         _bounds: Rectangle,
         _cursor: mouse::Cursor,
-        _touch: Option<Point>,
+        _touch: touch::Touch,
     ) -> Option<Action<Message>> {
         None
     }

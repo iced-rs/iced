@@ -5,7 +5,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{Operation, Tree, tree};
-use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shell, Size, Vector, Widget};
 
 /// Emit messages on mouse events.
 pub struct MouseArea<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
@@ -200,7 +200,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
@@ -308,7 +308,7 @@ fn update<Message: Clone, Theme, Renderer>(
     event: &Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
-    touch: Option<Point>,
+    touch: touch::Touch,
     shell: &mut Shell<'_, Message>,
 ) {
     let state: &mut State = tree.state.downcast_mut();

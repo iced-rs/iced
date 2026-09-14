@@ -3,8 +3,9 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::touch;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that displays children on top of each other.
 ///
@@ -207,7 +208,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         mut cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,

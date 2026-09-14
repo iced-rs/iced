@@ -4,12 +4,13 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
+use crate::core::touch;
 use crate::core::widget::text::{
     self, Alignment, Catalog, Ellipsis, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell,
+    self, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, PointerInput, Rectangle, Shell,
     Size, Vector, Widget,
 };
 
@@ -367,7 +368,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

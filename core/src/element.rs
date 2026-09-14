@@ -1,6 +1,7 @@
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
+use crate::touch;
 use crate::renderer;
 use crate::shell;
 use crate::widget;
@@ -317,7 +318,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
@@ -445,7 +446,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,

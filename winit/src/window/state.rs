@@ -1,7 +1,7 @@
 use crate::conversion;
 use crate::core::renderer;
 use crate::core::{Color, Point, Size};
-use crate::core::{mouse, theme, window};
+use crate::core::{mouse, theme, touch, window};
 use crate::graphics::Viewport;
 use crate::program::{self, Program};
 
@@ -118,11 +118,13 @@ where
             .unwrap_or(mouse::Cursor::Unavailable)
     }
 
-    pub fn touch(&self) -> Option<Point> {
+    pub fn touch(&self) -> touch::Touch {
         self.touch_position
             .map(|position| {
                 conversion::cursor_position(position, self.viewport.scale_factor())
             })
+            .map(touch::Touch::Available)
+            .unwrap_or(touch::Touch::Unavailable)
     }
 
     pub fn modifiers(&self) -> winit::keyboard::ModifiersState {

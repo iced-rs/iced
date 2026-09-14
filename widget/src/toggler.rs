@@ -41,8 +41,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size, Theme, Widget,
+    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, PointerInput, 
+    Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A toggler widget.
@@ -313,7 +313,7 @@ where
         event: &Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        touch: Option<Point>,
+        touch: touch::Touch,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

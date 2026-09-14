@@ -12,6 +12,7 @@ pub use tree::Tree;
 
 use crate::layout::{self, Layout};
 use crate::mouse;
+use crate::touch;
 use crate::overlay;
 use crate::renderer;
 use crate::{Event, Length, Point, Rectangle, Shell, Size, Vector};
@@ -102,7 +103,7 @@ where
         _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _touch: Option<Point>,
+        _touch: touch::Touch,
         _renderer: &Renderer,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,

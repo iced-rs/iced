@@ -7,6 +7,7 @@ pub use nested::Nested;
 
 use crate::layout;
 use crate::mouse;
+use crate::touch;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
@@ -52,7 +53,7 @@ where
         _event: &Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _touch: Option<Point>,
+        _touch: touch::Touch,
         _renderer: &Renderer,
         _shell: &mut Shell<'_, Message>,
     ) {
