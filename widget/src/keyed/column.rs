@@ -59,7 +59,17 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Column::width`] or [`Column::height`] accordingly.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the number of keys does not match the number of children.
     pub fn from_vecs(keys: Vec<Key>, children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
+        assert_eq!(
+            keys.len(),
+            children.len(),
+            "keyed column must have one key per child"
+        );
+
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -366,5 +376,16 @@ where
 {
     fn from(column: Column<'a, Key, Message, Theme, Renderer>) -> Self {
         Self::new(column)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[should_panic(expected = "keyed column must have one key per child")]
+    fn from_vecs_rejects_mismatched_lengths() {
+        let _: Column<'_, u8, ()> = Column::from_vecs(vec![], vec![crate::text("hello").into()]);
     }
 }
