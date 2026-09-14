@@ -10,6 +10,15 @@ use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
 
+fn convert_phase(phase: winit::event::TouchPhase) -> mouse::ScrollPhase {
+    match phase {
+        winit::event::TouchPhase::Started => mouse::ScrollPhase::Started,
+        winit::event::TouchPhase::Moved => mouse::ScrollPhase::Moved,
+        winit::event::TouchPhase::Ended => mouse::ScrollPhase::Ended,
+        winit::event::TouchPhase::Cancelled => mouse::ScrollPhase::Cancelled,
+    }
+}
+
 /// Converts some [`window::Settings`] into some `WindowAttributes` from `winit`.
 pub fn window_attributes(
     settings: window::Settings,
@@ -181,13 +190,14 @@ pub fn window_event(
                 winit::event::ElementState::Released => mouse::Event::ButtonReleased(button),
             }))
         }
-        WindowEvent::MouseWheel { delta, .. } => match delta {
+        WindowEvent::MouseWheel { delta, phase, .. } => match delta {
             winit::event::MouseScrollDelta::LineDelta(delta_x, delta_y) => {
                 Some(Event::Mouse(mouse::Event::WheelScrolled {
                     delta: mouse::ScrollDelta::Lines {
                         x: delta_x,
                         y: delta_y,
                     },
+                    phase: convert_phase(phase),
                 }))
             }
             winit::event::MouseScrollDelta::PixelDelta(position) => {
@@ -196,6 +206,7 @@ pub fn window_event(
                         x: position.x as f32,
                         y: position.y as f32,
                     },
+                    phase: convert_phase(phase),
                 }))
             }
         },

@@ -397,7 +397,7 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.publish(message.clone());
             }
         }
-        Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+        Event::Mouse(mouse::Event::WheelScrolled { delta, .. }) => {
             if let Some(on_scroll) = widget.on_scroll.as_ref() {
                 shell.publish(on_scroll(*delta));
                 shell.capture_event();
