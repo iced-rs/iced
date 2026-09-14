@@ -21,7 +21,7 @@ use crate::core::window;
 use crate::core::{Color, Element, Font, Settings, Size, Theme};
 use crate::futures::futures::channel::mpsc;
 use crate::program::Program;
-use crate::runtime::task::{self, Task};
+use crate::runtime::task::Task;
 use crate::test::emulator;
 use crate::test::ice;
 use crate::test::instruction;
@@ -298,10 +298,8 @@ impl<P: Program + 'static> Tester<P> {
 
                 Task::future(import)
                     .and_then(|file| {
-                        task::blocking(move |mut sender| {
-                            let _ = sender.try_send(Ice::parse(
-                                &fs::read_to_string(file.path()).unwrap_or_default(),
-                            ));
+                        Task::blocking(move || {
+                            Ice::parse(&fs::read_to_string(file.path()).unwrap_or_default())
                         })
                     })
                     .map(Event::Imported)
