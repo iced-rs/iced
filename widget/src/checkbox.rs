@@ -327,9 +327,9 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let mouse_over = cursor.is_over(layout.bounds());
+                let is_over = cursor.is_over(layout.bounds()) || touch.is_over(layout.bounds());
 
-                if mouse_over && let Some(on_toggle) = &self.on_toggle {
+                if is_over && let Some(on_toggle) = &self.on_toggle {
                     shell.publish((on_toggle)(!self.is_checked));
                     shell.capture_event();
                 }
