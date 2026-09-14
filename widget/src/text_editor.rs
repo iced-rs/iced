@@ -319,6 +319,7 @@ struct State<Parser: text::Parser> {
     parser: RefCell<Parser>,
     parser_settings: Parser::Settings,
     last_theme: RefCell<Option<String>>,
+    last_id: Option<widget::Id>,
 }
 
 impl<Parser, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -338,7 +339,14 @@ where
             parser: RefCell::new(Parser::new(&self.parser_settings)),
             parser_settings: self.parser_settings.clone(),
             last_theme: RefCell::new(None),
+            last_id: self.id.clone(),
         })
+    }
+
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        if tree.state.downcast_mut::<State<Highlighter>>().last_id != self.id {
+            tree.state = self.state();
+        }
     }
 
     fn size(&self) -> Size<Length> {
