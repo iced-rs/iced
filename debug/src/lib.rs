@@ -114,6 +114,7 @@ pub fn commands() -> Subscription<Command> {
     internal::commands()
 }
 
+#[inline]
 pub fn hot<O>(f: impl FnOnce() -> O) -> O {
     hot::call(f)
 }
@@ -474,6 +475,7 @@ mod hot {
 mod hot {
     pub fn init() {}
 
+    #[inline]
     pub fn call<O>(f: impl FnOnce() -> O) -> O {
         f()
     }

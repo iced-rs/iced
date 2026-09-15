@@ -43,8 +43,8 @@ use crate::core::widget::operation::{self, Focusable, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell,
-    Size, Theme, Widget,
+    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 /// A field that can be filled with text.
@@ -79,21 +79,20 @@ use crate::core::{
 ///     }
 /// }
 /// ```
-pub struct TextInput<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct TextInput<'a, Message, Theme = crate::Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     id: Option<widget::Id>,
     placeholder: text::Fragment<'a>,
     value: text::Fragment<'a>,
     is_secure: bool,
-    font: Option<Renderer::Font>,
+    font: Option<Font>,
     width: Length,
     height: Length,
     padding: Padding,
     size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     alignment: text::Alignment,
     multiline: Option<text::Wrapping>,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
@@ -106,11 +105,10 @@ where
 /// The default [`Padding`] of a [`TextInput`].
 pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
 
-impl<'a, Message, Theme, Renderer> TextInput<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme> TextInput<'a, Message, Theme>
 where
     Message: Clone,
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// Creates a new [`TextInput`] with the given placeholder and
     /// its current value.
@@ -128,7 +126,7 @@ where
             height: Length::Fit,
             padding: DEFAULT_PADDING,
             size: None,
-            line_height: text::LineHeight::default(),
+            line_height: None,
             alignment: text::Alignment::Default,
             multiline: None,
             on_input: None,
@@ -199,8 +197,8 @@ where
 
     /// Sets the [`Font`] of the [`TextInput`].
     ///
-    /// [`Font`]: text::Renderer::Font
-    pub fn font(mut self, font: Renderer::Font) -> Self {
+    /// [`Font`]: crate::core::Font
+    pub fn font(mut self, font: Font) -> Self {
         self.font = Some(font);
         self
     }
@@ -225,7 +223,7 @@ where
 
     /// Sets the [`text::LineHeight`] of the [`TextInput`].
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -261,8 +259,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for TextInput<'_, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TextInput<'_, Message, Theme>
 where
     Message: Clone,
     Theme: Catalog,
@@ -457,16 +454,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<TextInput<'a, Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer> From<TextInput<'a, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'static,
 {
-    fn from(
-        text_input: TextInput<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(text_input: TextInput<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text_input)
     }
 }

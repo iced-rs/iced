@@ -7,7 +7,7 @@ use crate::text::editor;
 use crate::text::paragraph;
 use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};
 use crate::widget::operation::{Focusable, TextInput};
-use crate::{Color, Event, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell};
+use crate::{Color, Event, Font, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell};
 
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -24,14 +24,14 @@ pub struct Input<R: text::Renderer> {
     multiline: Option<Wrapping>,
 }
 
-pub struct Layout<'a, Font> {
+pub struct Layout<'a> {
     pub width: Length,
     pub height: Length,
     pub padding: Padding,
     pub placeholder: &'a str,
     pub font: Option<Font>,
     pub size: Option<Pixels>,
-    pub line_height: LineHeight,
+    pub line_height: Option<LineHeight>,
     pub alignment: Alignment,
     pub multiline: Option<Wrapping>,
     pub is_secure: bool,
@@ -74,7 +74,7 @@ impl<R: text::Renderer> Input<R> {
         &mut self,
         renderer: &R,
         limits: &layout::Limits,
-        layout: Layout<'_, R::Font>,
+        layout: Layout<'_>,
     ) -> layout::Node {
         self.padding = layout.padding;
         self.multiline = layout.multiline;
@@ -84,8 +84,9 @@ impl<R: text::Renderer> Input<R> {
             .height(layout.height)
             .shrink(layout.padding);
 
-        let font = layout.font.unwrap_or_else(|| renderer.default_font());
-        let size = layout.size.unwrap_or_else(|| renderer.default_size());
+        let font = layout.font.unwrap_or_else(|| renderer.font());
+        let size = layout.size.unwrap_or_else(|| renderer.text_size());
+        let line_height = layout.line_height.unwrap_or_else(|| renderer.line_height());
         let hint_factor = renderer.hint_factor();
 
         if layout.is_secure {
@@ -105,11 +106,11 @@ impl<R: text::Renderer> Input<R> {
             limits.max(),
             font,
             size,
-            layout.line_height,
+            line_height,
             layout.multiline.unwrap_or(text::Wrapping::None),
             layout.alignment,
             hint_factor,
-            &mut text::highlighter::PlainText,
+            &mut text::parser::PlainText,
         );
 
         let bounds = match layout.height {
@@ -126,7 +127,7 @@ impl<R: text::Renderer> Input<R> {
         let _ = self.placeholder.update(Text {
             content: layout.placeholder,
             font,
-            line_height: layout.line_height,
+            line_height,
             bounds,
             size,
             align_x: layout.alignment,

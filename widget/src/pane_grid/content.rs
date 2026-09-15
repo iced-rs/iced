@@ -332,31 +332,40 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
-            let title_bar_layout = children.next()?;
+            let Some(title_bar_layout) = children.next() else {
+                return Vec::new();
+            };
+            let body_layout = children.next();
 
             let mut states = tree.children.iter_mut();
             let body_state = states.next().unwrap();
             let title_bar_state = states.next().unwrap();
 
-            match title_bar.overlay(
+            let title_bar_overlays = title_bar.overlay(
                 title_bar_state,
                 title_bar_layout,
                 renderer,
                 viewport,
                 translation,
-            ) {
-                Some(overlay) => Some(overlay),
-                None => self.body.as_widget_mut().overlay(
+            );
+
+            let body_overlays = body_layout.map(|body_layout| {
+                self.body.as_widget_mut().overlay(
                     body_state,
-                    children.next()?,
+                    body_layout,
                     renderer,
                     viewport,
                     translation,
-                ),
-            }
+                )
+            });
+
+            title_bar_overlays
+                .into_iter()
+                .chain(body_overlays.into_iter().flatten())
+                .collect()
         } else {
             self.body.as_widget_mut().overlay(
                 &mut tree.children[0],

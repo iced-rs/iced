@@ -5,21 +5,21 @@ use crate::keyboard;
 use crate::keyboard::key;
 use crate::mouse;
 use crate::renderer;
-use crate::text::highlighter::{self, Highlighter};
+use crate::text::highlighter;
 use crate::text::{self, Alignment, LineHeight, Position, Wrapping};
 use crate::time::{Duration, Instant};
+use crate::touch;
 use crate::widget::operation::{Focusable, TextInput};
 use crate::window;
-use crate::{Color, Event, InputMethod, Padding, Pixels, Point, Rectangle, Size, SmolStr, Vector};
+use crate::{
+    Color, Event, Font, InputMethod, Padding, Pixels, Point, Rectangle, Size, SmolStr, Vector,
+};
 
 use std::borrow::Cow;
 use std::sync::Arc;
 
 /// A component that can be used by widgets to edit multi-line text.
 pub trait Editor: Sized + Default {
-    /// The font of the [`Editor`].
-    type Font: Copy + PartialEq + Default;
-
     /// Creates a new [`Editor`] laid out with the given text.
     fn with_text(text: &str) -> Self;
 
@@ -61,24 +61,24 @@ pub trait Editor: Sized + Default {
     fn update(
         &mut self,
         new_bounds: Size,
-        new_font: Self::Font,
+        new_font: Font,
         new_size: Pixels,
         new_line_height: LineHeight,
         new_wrapping: Wrapping,
         new_alignment: Alignment,
         new_hint_factor: Option<f32>,
-        new_highlighter: &mut impl Highlighter,
+        new_parser: &mut impl text::Parser,
     );
 
     /// Overwrites the current contents of the [`Editor`].
     fn overwrite(&mut self, new_text: &str);
 
-    /// Runs a text [`Highlighter`] in the [`Editor`].
-    fn highlight<H: Highlighter>(
+    /// Runs a [`text::Highlighter`] in the [`Editor`].
+    fn highlight<P: text::Parser>(
         &mut self,
-        font: Self::Font,
-        highlighter: &mut H,
-        format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
+        font: Font,
+        parser: &mut P,
+        highlight: impl Fn(P::Output) -> highlighter::Style,
     );
 
     /// Returns an iterator of the text of the lines in the [`Editor`].
@@ -109,8 +109,8 @@ pub trait Editor: Sized + Default {
         contents
     }
 
-    /// Returns the current [`Font`](Self::Font) of the [`Editor`].
-    fn font(&self) -> Self::Font;
+    /// Returns the current [`Font`] of the [`Editor`].
+    fn font(&self) -> Font;
 
     /// Returns the current text size of the [`Editor`].
     fn text_size(&self) -> Pixels;
@@ -418,8 +418,8 @@ impl State {
                     Some(Update::Release)
                 }
                 mouse::Event::CursorMoved { .. } if self.is_dragging => {
-                    let position =
-                        cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
+                    let position = cursor.position_from(bounds.position())?
+                        - Vector::new(padding.left, padding.top);
 
                     Some(Update::Action(Action::Drag(position)))
                 }
@@ -449,6 +449,47 @@ impl State {
                     }))
                 }
                 _ => None,
+            },
+            Event::Touch(event) => match event {
+                touch::Event::FingerPressed { .. } => {
+                    if let Some(cursor_position) = cursor.position_in(bounds) {
+                        let cursor_position =
+                            cursor_position - Vector::new(padding.left, padding.top);
+
+                        let click = mouse::Click::new(
+                            cursor_position,
+                            mouse::Button::Left,
+                            self.last_click,
+                        );
+
+                        self.focus = Some(Focus::now());
+                        self.last_click = Some(click);
+                        self.is_dragging = true;
+
+                        Some(Update::Action(Action::Click(
+                            click.position(),
+                            click.kind(),
+                        )))
+                    } else if self.focus.is_some() {
+                        self.focus = None;
+
+                        Some(Update::Unfocus)
+                    } else {
+                        None
+                    }
+                }
+                touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. } => {
+                    self.is_dragging = false;
+
+                    Some(Update::Release)
+                }
+                touch::Event::FingerMoved { .. } if self.is_dragging => {
+                    let position =
+                        cursor.position_in(bounds)? - Vector::new(padding.left, padding.top);
+
+                    Some(Update::Action(Action::Drag(position)))
+                }
+                touch::Event::FingerMoved { .. } => None,
             },
             Event::InputMethod(event) => match event {
                 input_method::Event::Opened | input_method::Event::Closed => {
@@ -832,27 +873,27 @@ impl<Message> Binding<Message> {
 
         match modified_key.as_ref() {
             keyboard::Key::Named(key::Named::Enter) => Some(Self::Enter),
-            keyboard::Key::Named(key::Named::Backspace) => Some(if modifiers.command() {
-                if modifiers.shift() {
+            keyboard::Key::Named(key::Named::Backspace) => Some(
+                if modifiers.macos_command() || (modifiers.command() && modifiers.shift()) {
                     Self::BackspaceLine
-                } else {
+                } else if modifiers.jump() {
                     Self::BackspaceWord
-                }
-            } else {
-                Self::Backspace
-            }),
+                } else {
+                    Self::Backspace
+                },
+            ),
             keyboard::Key::Named(key::Named::Delete)
                 if text.is_none() || text.as_deref() == Some("\u{7f}") =>
             {
-                Some(if modifiers.command() {
-                    if modifiers.shift() {
+                Some(
+                    if modifiers.macos_command() || (modifiers.command() && modifiers.shift()) {
                         Self::DeleteLine
-                    } else {
+                    } else if modifiers.jump() {
                         Self::DeleteWord
-                    }
-                } else {
-                    Self::Delete
-                })
+                    } else {
+                        Self::Delete
+                    },
+                )
             }
             keyboard::Key::Named(key::Named::Escape) => Some(Self::Unfocus),
             _ => {

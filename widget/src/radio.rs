@@ -67,7 +67,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
+    Background, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
     Widget,
 };
 
@@ -129,10 +129,9 @@ use crate::core::{
 ///     column![a, b, c, all].into()
 /// }
 /// ```
-pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Radio<'a, Message, Theme = crate::Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     is_selected: bool,
     on_click: Message,
@@ -141,19 +140,18 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<Pixels>,
-    line_height: text::LineHeight,
+    line_height: Option<text::LineHeight>,
     shaping: text::Shaping,
     wrapping: text::Wrapping,
-    font: Option<Renderer::Font>,
+    font: Option<Font>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
 }
 
-impl<'a, Message, Theme, Renderer> Radio<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme> Radio<'a, Message, Theme>
 where
     Message: Clone,
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// The default size of a [`Radio`] button.
     pub const DEFAULT_SIZE: f32 = 16.0;
@@ -182,7 +180,7 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
-            line_height: text::LineHeight::default(),
+            line_height: None,
             shaping: text::Shaping::default(),
             wrapping: text::Wrapping::default(),
             font: None,
@@ -217,7 +215,7 @@ where
 
     /// Sets the text [`text::LineHeight`] of the [`Radio`] button.
     pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
@@ -234,7 +232,7 @@ where
     }
 
     /// Sets the text font of the [`Radio`] button.
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+    pub fn font(mut self, font: impl Into<Font>) -> Self {
         self.font = Some(font.into());
         self
     }
@@ -258,8 +256,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Radio<'_, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Radio<'_, Message, Theme>
 where
     Message: Clone,
     Theme: Catalog,
@@ -448,14 +445,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
     Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
 {
-    fn from(radio: Radio<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(radio: Radio<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(radio)
     }
 }

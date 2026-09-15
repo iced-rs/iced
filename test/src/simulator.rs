@@ -67,8 +67,9 @@ where
 
             crate::futures::futures::executor::block_on(Renderer::new(
                 core::renderer::Settings {
-                    default_font: settings.default_font,
-                    default_text_size: settings.default_text_size,
+                    font: settings.font,
+                    text_size: settings.text_size,
+                    line_height: settings.line_height,
                     metrics_hinting: settings.metrics_hinting,
                 },
                 backend.as_deref(),

@@ -13,6 +13,7 @@ use crate::Buffer;
 use crate::core::border;
 use crate::core::{Rectangle, Size, Transformation};
 use crate::graphics::Shell;
+use crate::nudge;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -231,12 +232,12 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    let bounds = (*bounds * scale).round();
-                    let clip_bounds = (*clip_bounds * scale).round();
-
-                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                    let Some(bounds) = nudge::snap(*bounds * scale) else {
                         continue;
-                    }
+                    };
+
+                    let clip_bounds = nudge::snap(*clip_bounds * scale)
+                        .map_or(Rectangle::with_size(Size::ZERO), Rectangle::from);
 
                     if let Some((atlas_entry, bind_group)) =
                         cache.upload_raster(device, encoder, belt, &image.handle)
@@ -280,12 +281,12 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    let bounds = (*bounds * scale).round();
-                    let clip_bounds = (*clip_bounds * scale).round();
-
-                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                    let Some(bounds) = nudge::snap(*bounds * scale) else {
                         continue;
-                    }
+                    };
+
+                    let clip_bounds = nudge::snap(*clip_bounds * scale)
+                        .map_or(Rectangle::with_size(Size::ZERO), Rectangle::from);
 
                     if let Some((atlas_entry, bind_group)) = cache.upload_vector(
                         device,
@@ -293,7 +294,7 @@ impl State {
                         belt,
                         &svg.handle,
                         svg.color,
-                        Size::new(bounds.width as u32, bounds.height as u32),
+                        bounds.size(),
                     ) {
                         match atlas.as_mut() {
                             None => {
@@ -579,7 +580,7 @@ struct Uniforms {
 }
 
 fn add_instances(
-    bounds: Rectangle,
+    bounds: Rectangle<u32>,
     clip_bounds: Rectangle,
     border_radius: border::Radius,
     rotation: f32,
@@ -587,6 +588,8 @@ fn add_instances(
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
+    let bounds: Rectangle<f32> = bounds.into();
+
     let center = [
         bounds.x + bounds.width / 2.0,
         bounds.y + bounds.height / 2.0,

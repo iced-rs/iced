@@ -184,7 +184,7 @@ where
     ///     cache = user_interface.into_cache();
     ///
     ///     // Process the produced messages
-    ///     for message in messages.drain() {
+    ///     for (message, _receipt) in messages.drain() {
     ///         counter.update(message);
     ///     }
     /// }
@@ -205,17 +205,15 @@ where
         let mut has_layout_changed = false;
         let viewport = Rectangle::with_size(self.bounds);
 
-        let mut maybe_overlay = self
-            .root
-            .as_widget_mut()
-            .overlay(
-                &mut self.state,
-                Layout::new(&self.base),
-                renderer,
-                &viewport,
-                Vector::ZERO,
-            )
-            .map(overlay::Nested::new);
+        let overlay = self.root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+            &viewport,
+            Vector::ZERO,
+        );
+
+        let mut maybe_overlay = (!overlay.is_empty()).then(|| overlay::Nested::new(overlay));
 
         let (base_cursor, overlay_statuses, overlay_interaction) = if maybe_overlay.is_some() {
             let bounds = self.bounds;
@@ -250,19 +248,20 @@ where
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    maybe_overlay = self
-                        .root
-                        .as_widget_mut()
-                        .overlay(
+                    maybe_overlay = {
+                        let overlay = self.root.as_widget_mut().overlay(
                             &mut self.state,
                             Layout::new(&self.base),
                             renderer,
                             &viewport,
                             Vector::ZERO,
-                        )
-                        .map(overlay::Nested::new);
+                        );
+
+                        (!overlay.is_empty()).then(|| overlay::Nested::new(overlay))
+                    };
 
                     if maybe_overlay.is_none() {
+                        event_statuses.resize(events.len(), event::Status::Ignored);
                         break;
                     }
 
@@ -300,13 +299,15 @@ where
                 (cursor, mouse::Interaction::None)
             };
 
-            self.overlay = Some(Overlay {
+            self.overlay = maybe_overlay.as_ref().map(|_| Overlay {
                 layout,
                 interaction,
             });
 
             (base_cursor, event_statuses, interaction)
         } else {
+            self.overlay = None;
+
             (
                 cursor,
                 vec![event::Status::Ignored; events.len()],
@@ -360,18 +361,17 @@ where
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
-                    if let Some(mut overlay) = self
-                        .root
-                        .as_widget_mut()
-                        .overlay(
-                            &mut self.state,
-                            Layout::new(&self.base),
-                            renderer,
-                            &viewport,
-                            Vector::ZERO,
-                        )
-                        .map(overlay::Nested::new)
-                    {
+                    let overlay = self.root.as_widget_mut().overlay(
+                        &mut self.state,
+                        Layout::new(&self.base),
+                        renderer,
+                        &viewport,
+                        Vector::ZERO,
+                    );
+
+                    if !overlay.is_empty() {
+                        let mut overlay = overlay::Nested::new(overlay);
+
                         let layout = overlay.layout(renderer, self.bounds);
                         let interaction =
                             overlay.mouse_interaction(Layout::new(&layout), cursor, renderer);
@@ -487,7 +487,7 @@ where
     ///
     ///     cache = user_interface.into_cache();
     ///
-    ///     for message in messages.drain() {
+    ///     for (message, _receipt) in messages.drain() {
     ///         counter.update(message);
     ///     }
     ///
@@ -535,18 +535,17 @@ where
             return;
         };
 
-        let overlay = root
-            .as_widget_mut()
-            .overlay(
-                &mut self.state,
-                Layout::new(base),
-                renderer,
-                &viewport,
-                Vector::ZERO,
-            )
-            .map(overlay::Nested::new);
+        let overlay = root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(base),
+            renderer,
+            &viewport,
+            Vector::ZERO,
+        );
 
-        if let Some(mut overlay) = overlay {
+        if !overlay.is_empty() {
+            let mut overlay = overlay::Nested::new(overlay);
+
             overlay.draw(renderer, theme, style, Layout::new(layout), cursor);
         }
     }
@@ -562,18 +561,17 @@ where
             operation,
         );
 
-        if let Some(mut overlay) = self
-            .root
-            .as_widget_mut()
-            .overlay(
-                &mut self.state,
-                Layout::new(&self.base),
-                renderer,
-                &viewport,
-                Vector::ZERO,
-            )
-            .map(overlay::Nested::new)
-        {
+        let overlay = self.root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+            &viewport,
+            Vector::ZERO,
+        );
+
+        if !overlay.is_empty() {
+            let mut overlay = overlay::Nested::new(overlay);
+
             if self.overlay.is_none() {
                 self.overlay = Some(Overlay {
                     layout: overlay.layout(renderer, self.bounds),

@@ -513,6 +513,9 @@ pub use iced_renderer::wgpu::wgpu;
 
 mod error;
 
+#[cfg(feature = "hot")]
+mod hot;
+
 pub mod application;
 pub mod daemon;
 pub mod time;
@@ -529,7 +532,7 @@ pub use crate::core::gradient;
 pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    Alignment, Animation, Background, Border, Color, ContentFit, Degrees, Function, Gradient,
+    Alignment, Animation, Background, Border, Code, Color, ContentFit, Degrees, Function, Gradient,
     Length, Never, Padding, Pixels, Point, Radians, Rectangle, Rotation, Settings, Shadow, Size,
     Theme, Transformation, Vector, never,
 };
@@ -561,10 +564,10 @@ pub mod clipboard {
     pub use crate::core::clipboard::{Content, Error, Kind};
     pub use crate::runtime::clipboard::{read, read_files, read_html, read_text, write};
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image-without-codecs")]
     pub use crate::core::clipboard::Image;
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image-without-codecs")]
     pub use crate::runtime::clipboard::read_image;
 }
 

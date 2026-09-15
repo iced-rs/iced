@@ -74,11 +74,7 @@ impl Tree {
     ) where
         Renderer: crate::Renderer,
     {
-        self.diff_children_custom(
-            new_children,
-            |tree, widget| tree.diff(widget.borrow_mut()),
-            |widget| Self::new(widget.borrow()),
-        );
+        diff_children(&mut self.children, new_children);
     }
 
     /// Reconciles the children of the tree with the provided list of widgets using custom
@@ -89,18 +85,43 @@ impl Tree {
         diff: impl Fn(&mut Tree, &mut T),
         new_state: impl Fn(&T) -> Self,
     ) {
-        if self.children.len() > new_children.len() {
-            self.children.truncate(new_children.len());
-        }
+        diff_children_custom(&mut self.children, new_children, diff, new_state);
+    }
+}
 
-        if self.children.len() < new_children.len() {
-            self.children
-                .extend(new_children[self.children.len()..].iter().map(new_state));
-        }
+/// Reconciles the children of the tree with the provided list of widgets.
+pub fn diff_children<'a, Message, Theme, Renderer>(
+    old_children: &mut Vec<Tree>,
+    new_children: &mut [impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>],
+) where
+    Renderer: crate::Renderer,
+{
+    diff_children_custom(
+        old_children,
+        new_children,
+        |tree, widget| tree.diff(widget.borrow_mut()),
+        |widget| Tree::new(widget.borrow()),
+    );
+}
 
-        for (child_state, new) in self.children.iter_mut().zip(new_children.iter_mut()) {
-            diff(child_state, new);
-        }
+/// Reconciles the children of the tree with the provided list of widgets using custom
+/// logic both for diffing and creating new widget state.
+pub fn diff_children_custom<T>(
+    old_children: &mut Vec<Tree>,
+    new_children: &mut [T],
+    diff: impl Fn(&mut Tree, &mut T),
+    new_state: impl Fn(&T) -> Tree,
+) {
+    if old_children.len() > new_children.len() {
+        old_children.truncate(new_children.len());
+    }
+
+    if old_children.len() < new_children.len() {
+        old_children.extend(new_children[old_children.len()..].iter().map(new_state));
+    }
+
+    for (child_state, new) in old_children.iter_mut().zip(new_children.iter_mut()) {
+        diff(child_state, new);
     }
 }
 

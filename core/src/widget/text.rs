@@ -2,7 +2,7 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+//! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 //! #            pub use iced_core::color; }
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
@@ -27,7 +27,7 @@ use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::{Color, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 
@@ -35,7 +35,7 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+/// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 /// #            pub use iced_core::color; }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
@@ -54,20 +54,18 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 /// }
 /// ```
 #[must_use]
-pub struct Text<'a, Theme, Renderer>
+pub struct Text<'a, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     fragment: text::Fragment<'a>,
-    format: Format<Renderer::Font>,
+    format: Format,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
+impl<'a, Theme> Text<'a, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new(fragment: impl text::IntoFragment<'a>) -> Self {
@@ -86,22 +84,18 @@ where
 
     /// Sets the [`LineHeight`] of the [`Text`].
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
-        self.format.line_height = line_height.into();
+        self.format.line_height = Some(line_height.into());
         self
     }
 
     /// Sets the [`Font`] of the [`Text`].
-    ///
-    /// [`Font`]: crate::text::Renderer::Font
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+    pub fn font(mut self, font: impl Into<Font>) -> Self {
         self.format.font = Some(font.into());
         self
     }
 
     /// Sets the [`Font`] of the [`Text`], if `Some`.
-    ///
-    /// [`Font`]: crate::text::Renderer::Font
-    pub fn font_maybe(mut self, font: Option<impl Into<Renderer::Font>>) -> Self {
+    pub fn font_maybe(mut self, font: Option<impl Into<Font>>) -> Self {
         self.format.font = font.map(Into::into);
         self
     }
@@ -192,7 +186,7 @@ where
 /// The internal state of a [`Text`] widget.
 pub type State<P> = paragraph::Plain<P>;
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
@@ -267,12 +261,12 @@ where
 /// to learn more about each field.
 #[derive(Debug, Clone, Copy)]
 #[allow(missing_docs)]
-pub struct Format<Font> {
+pub struct Format {
     pub width: Length,
     pub height: Length,
     pub size: Option<Pixels>,
     pub font: Option<Font>,
-    pub line_height: LineHeight,
+    pub line_height: Option<LineHeight>,
     pub align_x: text::Alignment,
     pub align_y: alignment::Vertical,
     pub shaping: Shaping,
@@ -280,11 +274,11 @@ pub struct Format<Font> {
     pub ellipsis: Ellipsis,
 }
 
-impl<Font> Default for Format<Font> {
+impl Default for Format {
     fn default() -> Self {
         Self {
             size: None,
-            line_height: LineHeight::default(),
+            line_height: None,
             font: None,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -303,7 +297,7 @@ pub fn layout<Renderer>(
     renderer: &Renderer,
     limits: &layout::Limits,
     content: &str,
-    format: Format<Renderer::Font>,
+    format: Format,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -311,14 +305,15 @@ where
     layout::sized(limits, format.width, format.height, |limits| {
         let bounds = limits.max();
 
-        let size = format.size.unwrap_or_else(|| renderer.default_size());
-        let font = format.font.unwrap_or_else(|| renderer.default_font());
+        let size = format.size.unwrap_or_else(|| renderer.text_size());
+        let font = format.font.unwrap_or_else(|| renderer.font());
+        let line_height = format.line_height.unwrap_or_else(|| renderer.line_height());
 
         let _ = paragraph.update(text::Text {
             content,
             bounds,
             size,
-            line_height: format.line_height,
+            line_height,
             font,
             align_x: format.align_x,
             align_y: format.align_y,
@@ -357,21 +352,19 @@ pub fn draw<Renderer>(
     );
 }
 
-impl<'a, Message, Theme, Renderer> From<Text<'a, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Text<'a, Theme>> for Element<'a, Message, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
-    fn from(text: Text<'a, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(text: Text<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }
 }
 
-impl<'a, Theme, Renderer> From<&'a str> for Text<'a, Theme, Renderer>
+impl<'a, Theme> From<&'a str> for Text<'a, Theme>
 where
     Theme: Catalog + 'a,
-    Renderer: text::Renderer,
 {
     fn from(content: &'a str) -> Self {
         Self::new(content)

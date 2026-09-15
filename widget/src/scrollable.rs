@@ -74,7 +74,7 @@ where
     direction: Direction,
     auto_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Viewport) -> Option<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
@@ -134,11 +134,14 @@ where
         self
     }
 
-    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    /// Sets a handler to call when the [`Scrollable`] is scrolled.
     ///
     /// The function takes the [`Viewport`] of the [`Scrollable`]
-    pub fn on_scroll(mut self, f: impl Fn(Viewport) -> Message + 'a) -> Self {
-        self.on_scroll = Some(Box::new(f));
+    pub fn on_scroll<T>(mut self, f: impl Fn(Viewport) -> T + 'a) -> Self
+    where
+        T: Into<Option<Message>>,
+    {
+        self.on_scroll = Some(Box::new(move |viewport| f(viewport).into()));
         self
     }
 
@@ -728,7 +731,9 @@ where
 
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
-                        if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
+                        if !(mouse_over_x_scrollbar
+                            || mouse_over_y_scrollbar
+                            || state.scrollers_grabbed()) =>
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
@@ -1122,41 +1127,46 @@ where
                     }
                 };
 
-            renderer.with_layer(
-                Rectangle {
+            let has_floating_scrollbar = scrollbars.is_any_floating();
+
+            if has_floating_scrollbar {
+                renderer.start_layer(Rectangle {
                     width: (visible_bounds.width + 2.0).min(viewport.width),
                     height: (visible_bounds.height + 2.0).min(viewport.height),
                     ..visible_bounds
-                },
-                |renderer| {
-                    if let Some(scrollbar) = scrollbars.y {
-                        draw_scrollbar(renderer, style.vertical_rail, &scrollbar);
-                    }
+                });
+            }
 
-                    if let Some(scrollbar) = scrollbars.x {
-                        draw_scrollbar(renderer, style.horizontal_rail, &scrollbar);
-                    }
+            if let Some(scrollbar) = scrollbars.y {
+                draw_scrollbar(renderer, style.vertical_rail, &scrollbar);
+            }
 
-                    if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
-                        let background = style.gap.or(style.container.background);
+            if let Some(scrollbar) = scrollbars.x {
+                draw_scrollbar(renderer, style.horizontal_rail, &scrollbar);
+            }
 
-                        if let Some(background) = background {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: Rectangle {
-                                        x: y.bounds.x,
-                                        y: x.bounds.y,
-                                        width: y.bounds.width,
-                                        height: x.bounds.height,
-                                    },
-                                    ..renderer::Quad::default()
-                                },
-                                background,
-                            );
-                        }
-                    }
-                },
-            );
+            if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
+                let background = style.gap.or(style.container.background);
+
+                if let Some(background) = background {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: y.bounds.x,
+                                y: x.bounds.y,
+                                width: y.bounds.width,
+                                height: x.bounds.height,
+                            },
+                            ..renderer::Quad::default()
+                        },
+                        background,
+                    );
+                }
+            }
+
+            if has_floating_scrollbar {
+                renderer.end_layer();
+            }
         } else {
             self.content.as_widget().draw(
                 &tree.children[0],
@@ -1226,7 +1236,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -1255,14 +1265,7 @@ where
             None
         };
 
-        match (overlay, icon) {
-            (None, None) => None,
-            (None, Some(icon)) => Some(icon),
-            (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
-                overlay::Group::with_children(vec![overlay, icon]),
-            ))),
-        }
+        overlay.into_iter().chain(icon).collect()
     }
 }
 
@@ -1424,7 +1427,7 @@ where
 
 fn notify_scroll<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -1440,7 +1443,7 @@ fn notify_scroll<Message>(
 
 fn notify_viewport<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -1480,8 +1483,10 @@ fn notify_viewport<Message>(
 
     state.last_notified = Some(viewport);
 
-    if let Some(on_scroll) = on_scroll {
-        shell.publish(on_scroll(viewport));
+    if let Some(on_scroll) = on_scroll
+        && let Some(message) = on_scroll(viewport)
+    {
+        shell.publish(message);
     }
 
     true
@@ -1699,14 +1704,12 @@ impl State {
             if let Some(horizontal) = direction.horizontal() {
                 self.offset_x
                     .translation(bounds.width, content_bounds.width, horizontal.alignment)
-                    .round()
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
                 self.offset_y
                     .translation(bounds.height, content_bounds.height, vertical.alignment)
-                    .round()
             } else {
                 0.0
             },
@@ -1767,6 +1770,7 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                spacing,
                 ..
             } = *vertical;
 
@@ -1821,6 +1825,7 @@ impl Scrollbars {
                 scroller,
                 alignment: vertical.alignment,
                 disabled: content_bounds.height <= bounds.height,
+                floating: spacing.is_none(),
             })
         } else {
             None
@@ -1831,6 +1836,7 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                spacing,
                 ..
             } = *horizontal;
 
@@ -1886,6 +1892,7 @@ impl Scrollbars {
                 scroller,
                 alignment: horizontal.alignment,
                 disabled: content_bounds.width <= bounds.width,
+                floating: spacing.is_none(),
             })
         } else {
             None
@@ -1952,6 +1959,11 @@ impl Scrollbars {
         }
     }
 
+    fn is_any_floating(&self) -> bool {
+        self.y.is_some_and(|scrollbar| scrollbar.floating)
+            || self.x.is_some_and(|scrollbar| scrollbar.floating)
+    }
+
     fn active(&self) -> bool {
         self.y.is_some() || self.x.is_some()
     }
@@ -1969,6 +1981,7 @@ pub(super) mod internals {
         pub scroller: Option<Scroller>,
         pub alignment: Anchor,
         pub disabled: bool,
+        pub floating: bool,
     }
 
     impl Scrollbar {

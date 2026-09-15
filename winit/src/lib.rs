@@ -129,7 +129,7 @@ where
     let (control_sender, control_receiver) = mpsc::unbounded();
     let (system_theme_sender, system_theme_receiver) = oneshot::channel();
 
-    let instance = Box::pin(run_instance::<P>(
+    let instance: std::pin::Pin<Box<dyn Future<Output = ()>>> = Box::pin(run_instance::<P>(
         program,
         runtime,
         proxy.clone(),
@@ -145,8 +145,8 @@ where
 
     let context = task::Context::from_waker(task::noop_waker_ref());
 
-    struct Runner<Message: 'static, F> {
-        instance: std::pin::Pin<Box<F>>,
+    struct Runner<Message: 'static> {
+        instance: std::pin::Pin<Box<dyn Future<Output = ()>>>,
         context: task::Context<'static>,
         id: Option<String>,
         sender: mpsc::UnboundedSender<Event<Action<Message>>>,
@@ -173,10 +173,7 @@ where
 
     boot_span.finish();
 
-    impl<Message, F> winit::application::ApplicationHandler<Action<Message>> for Runner<Message, F>
-    where
-        F: Future<Output = ()>,
-    {
+    impl<Message> winit::application::ApplicationHandler<Action<Message>> for Runner<Message> {
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
             if let Some(sender) = self.system_theme.take() {
                 let _ = sender.send(
@@ -259,10 +256,7 @@ where
         }
     }
 
-    impl<Message, F> Runner<Message, F>
-    where
-        F: Future<Output = ()>,
-    {
+    impl<Message> Runner<Message> {
         fn process_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
@@ -287,9 +281,9 @@ where
                                     (
                                         ControlFlow::WaitUntil(current),
                                         ControlFlow::WaitUntil(new),
-                                    ) if current < new => {}
-                                    (ControlFlow::WaitUntil(target), ControlFlow::Wait)
-                                        if target > Instant::now() => {}
+                                    ) if current > Instant::now() && current < new => {}
+                                    (ControlFlow::WaitUntil(current), ControlFlow::Wait)
+                                        if current > Instant::now() => {}
                                     _ => {
                                         event_loop.set_control_flow(flow);
                                     }
@@ -817,7 +811,9 @@ async fn run_instance<P>(
 
                             redraw_count += 1;
 
-                            if !messages.is_empty() {
+                            if !messages.is_empty()
+                                || matches!(state, user_interface::State::Outdated)
+                            {
                                 let caches: FxHashMap<_, _> =
                                     ManuallyDrop::into_inner(user_interfaces)
                                         .into_iter()
@@ -1243,7 +1239,7 @@ where
     let mut outputs = Vec::new();
 
     while !messages.is_empty() {
-        for message in messages.drain() {
+        for (message, _receipt) in messages.drain() {
             let task = runtime.enter(|| program.update(message));
 
             if let Some(mut stream) = runtime::task::into_stream(task) {
@@ -1667,8 +1663,8 @@ fn run_action<'a, P, C>(
                 }
             }
             font::Action::SetDefaults { font, text_size } => {
-                renderer_settings.default_font = font;
-                renderer_settings.default_text_size = text_size;
+                renderer_settings.font = font;
+                renderer_settings.text_size = text_size;
 
                 let Some(compositor) = compositor else {
                     return;

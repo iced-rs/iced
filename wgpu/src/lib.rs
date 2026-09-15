@@ -32,6 +32,7 @@ pub mod geometry;
 mod buffer;
 mod color;
 mod engine;
+mod nudge;
 mod quad;
 mod text;
 mod triangle;
@@ -60,7 +61,7 @@ pub use primitive::Primitive;
 pub use geometry::Geometry;
 
 use crate::core::renderer;
-use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
+use crate::core::{Background, Color, Font, Point, Rectangle, Size, Transformation};
 use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::{Shell, Viewport};
@@ -291,11 +292,9 @@ impl Renderer {
         self.layers.merge();
 
         for layer in self.layers.iter() {
-            let clip_bounds = layer.bounds * scale_factor;
-
             if physical_bounds
-                .intersection(&clip_bounds)
-                .and_then(Rectangle::snap)
+                .intersection(&(layer.bounds * scale_factor))
+                .and_then(nudge::snap)
                 .is_none()
             {
                 continue;
@@ -453,7 +452,7 @@ impl Renderer {
                 continue;
             };
 
-            let Some(scissor_rect) = physical_bounds.snap() else {
+            let Some(scissor_rect) = nudge::snap(physical_bounds) else {
                 continue;
             };
 
@@ -521,7 +520,7 @@ impl Renderer {
 
                     if let Some(clip_bounds) = (instance.bounds * scale)
                         .intersection(&physical_bounds)
-                        .and_then(Rectangle::snap)
+                        .and_then(nudge::snap)
                     {
                         render_pass.set_viewport(
                             bounds.x,
@@ -633,7 +632,7 @@ impl Renderer {
                     !layer.is_empty()
                         && physical_bounds
                             .intersection(&(layer.bounds * scale_factor))
-                            .is_some_and(|viewport| viewport.snap().is_some())
+                            .is_some_and(|viewport| nudge::snap(viewport).is_some())
                 })
                 .count()
         });
@@ -685,13 +684,13 @@ impl core::Renderer for Renderer {
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         _handle: &core::image::Handle,
         _callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>) + Send + 'static,
     ) {
         #[cfg(feature = "image")]
         self.image_cache
-            .get_mut()
+            .borrow_mut()
             .allocate_image(_handle, _callback);
     }
 
@@ -723,7 +722,6 @@ impl core::Renderer for Renderer {
 }
 
 impl core::text::Renderer for Renderer {
-    type Font = Font;
     type Paragraph = Paragraph;
     type Editor = Editor;
 
@@ -735,14 +733,6 @@ impl core::text::Renderer for Renderer {
     const SCROLL_DOWN_ICON: char = '\u{e803}';
     const SCROLL_LEFT_ICON: char = '\u{e804}';
     const SCROLL_RIGHT_ICON: char = '\u{e805}';
-
-    fn default_font(&self) -> Self::Font {
-        self.settings.default_font
-    }
-
-    fn default_size(&self) -> Pixels {
-        self.settings.default_text_size
-    }
 
     fn fill_paragraph(
         &mut self,

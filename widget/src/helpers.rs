@@ -11,6 +11,7 @@ use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
+use crate::lazy::Lazy;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
@@ -30,6 +31,7 @@ use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack,
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
 
+pub use crate::component::component;
 pub use crate::table::table;
 
 /// Creates a [`Column`] with the given children.
@@ -698,7 +700,7 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             self.content
                 .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, translation)
@@ -933,7 +935,7 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             let mut overlays = [&mut self.base, &mut self.top]
                 .into_iter()
                 .zip(layout.children().zip(tree.children.iter_mut()))
@@ -943,14 +945,12 @@ where
                         .overlay(tree, layout, renderer, viewport, translation)
                 });
 
-            if let Some(base_overlay) = overlays.next()? {
-                return Some(base_overlay);
-            }
+            let base_overlays = overlays.next().unwrap();
+            let top_overlays = overlays.next().unwrap();
 
-            let top_overlay = overlays.next()?;
-            self.is_top_overlay_active = top_overlay.is_some();
+            self.is_top_overlay_active = !top_overlays.is_empty();
 
-            top_overlay
+            base_overlays.into_iter().chain(top_overlays).collect()
         }
     }
 
@@ -1098,19 +1098,17 @@ where
 ///         .into()
 /// }
 /// ```
-pub fn text<'a, Theme, Renderer>(text: impl text::IntoFragment<'a>) -> Text<'a, Theme, Renderer>
+pub fn text<'a, Theme>(text: impl text::IntoFragment<'a>) -> Text<'a, Theme>
 where
     Theme: text::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Text::new(text)
 }
 
 /// Creates a new [`Text`] widget that displays the provided value.
-pub fn value<'a, Theme, Renderer>(value: impl ToString) -> Text<'a, Theme, Renderer>
+pub fn value<'a, Theme>(value: impl ToString) -> Text<'a, Theme>
 where
     Theme: text::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Text::new(value.to_string())
 }
@@ -1145,14 +1143,12 @@ where
 ///     .into()
 /// }
 /// ```
-pub fn rich_text<'a, Link, Message, Theme, Renderer>(
-    spans: impl AsRef<[text::Span<'a, Link, Renderer::Font>]> + 'a,
-) -> text::Rich<'a, Link, Message, Theme, Renderer>
+pub fn rich_text<'a, Link, Message, Theme>(
+    spans: impl AsRef<[text::Span<'a, Link>]> + 'a,
+) -> text::Rich<'a, Link, Message, Theme>
 where
     Link: Clone + 'static,
     Theme: text::Catalog + 'a,
-    Renderer: core::text::Renderer,
-    Renderer::Font: 'a,
 {
     text::Rich::with_spans(spans)
 }
@@ -1189,7 +1185,7 @@ where
 ///     .into()
 /// }
 /// ```
-pub fn span<'a, Link, Font>(text: impl text::IntoFragment<'a>) -> text::Span<'a, Link, Font> {
+pub fn span<'a, Link>(text: impl text::IntoFragment<'a>) -> text::Span<'a, Link> {
     text::Span::new(text)
 }
 
@@ -1300,16 +1296,15 @@ where
 ///     column![a, b, c, all].into()
 /// }
 /// ```
-pub fn radio<'a, Message, Theme, Renderer, V>(
+pub fn radio<'a, Message, Theme, V>(
     label: impl Into<String>,
     value: V,
     selected: Option<V>,
     on_click: impl FnOnce(V) -> Message,
-) -> Radio<'a, Message, Theme, Renderer>
+) -> Radio<'a, Message, Theme>
 where
     Message: Clone,
     Theme: radio::Catalog + 'a,
-    Renderer: core::text::Renderer,
     V: Copy + Eq,
 {
     Radio::new(label, value, selected, on_click)
@@ -1349,12 +1344,9 @@ where
 ///     }
 /// }
 /// ```
-pub fn toggler<'a, Message, Theme, Renderer>(
-    is_checked: bool,
-) -> Toggler<'a, Message, Theme, Renderer>
+pub fn toggler<'a, Message, Theme>(is_checked: bool) -> Toggler<'a, Message, Theme>
 where
     Theme: toggler::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Toggler::new(is_checked)
 }
@@ -1393,14 +1385,13 @@ where
 ///     }
 /// }
 /// ```
-pub fn text_input<'a, Message, Theme, Renderer>(
+pub fn text_input<'a, Message, Theme>(
     placeholder: impl text::IntoFragment<'a>,
     value: impl text::IntoFragment<'a>,
-) -> TextInput<'a, Message, Theme, Renderer>
+) -> TextInput<'a, Message, Theme>
 where
     Message: Clone,
     Theme: text_input::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     TextInput::new(placeholder, value)
 }
@@ -1442,7 +1433,7 @@ where
 /// ```
 pub fn text_editor<'a, Message, Theme, Renderer>(
     content: &'a text_editor::Content<Renderer>,
-) -> TextEditor<'a, core::text::highlighter::PlainText, Message, Theme, Renderer>
+) -> TextEditor<'a, core::text::parser::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
     Theme: text_editor::Catalog + 'a,
@@ -1606,18 +1597,17 @@ where
 ///     }
 /// }
 /// ```
-pub fn pick_list<'a, T, L, V, Message, Theme, Renderer>(
+pub fn pick_list<'a, T, L, V, Message, Theme>(
     selected: Option<V>,
     options: L,
     to_string: impl Fn(&T) -> String + 'a,
-) -> PickList<'a, T, L, V, Message, Theme, Renderer>
+) -> PickList<'a, T, L, V, Message, Theme>
 where
     T: PartialEq + Clone + 'a,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
     Theme: pick_list::Catalog + overlay::menu::Catalog,
-    Renderer: core::text::Renderer,
 {
     PickList::new(selected, options, to_string)
 }
@@ -1680,16 +1670,15 @@ where
 ///     }
 /// }
 /// ```
-pub fn combo_box<'a, T, Message, Theme, Renderer>(
+pub fn combo_box<'a, T, Message, Theme>(
     state: &'a combo_box::State<T>,
     placeholder: impl text::IntoFragment<'a>,
     selection: Option<&T>,
     on_selected: impl Fn(T) -> Message + 'a,
-) -> ComboBox<'a, T, Message, Theme, Renderer>
+) -> ComboBox<'a, T, Message, Theme>
 where
     T: std::fmt::Display + Clone,
     Theme: combo_box::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
 }
@@ -1802,7 +1791,7 @@ pub fn iced<'a, Message, Theme, Renderer>(
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: core::Renderer + core::text::Renderer<Font = core::Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
     Theme: text::Catalog + container::Catalog + 'a,
     <Theme as container::Catalog>::Class<'a>: From<container::StyleFn<'a, Theme>>,
     <Theme as text::Catalog>::Class<'a>: From<text::StyleFn<'a, Theme>>,
@@ -2090,4 +2079,17 @@ where
 /// containers.
 pub fn void() -> core::widget::Void {
     core::widget::Void
+}
+
+/// Creates a new [`Lazy`] widget with the given data `Dependency` and a
+/// closure that can turn this data into a widget tree.
+pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
+    dependency: Dependency,
+    view: impl Fn(&Dependency) -> View + 'a,
+) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
+where
+    Dependency: std::hash::Hash + 'a,
+    View: Into<Element<'static, Message, Theme, Renderer>>,
+{
+    Lazy::new(dependency, view)
 }

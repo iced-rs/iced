@@ -5,6 +5,7 @@ use crate::graphics::cache;
 use crate::graphics::color;
 use crate::graphics::text::cache::{self as text_cache, Cache as BufferCache};
 use crate::graphics::text::{Editor, Paragraph, font_system, to_color};
+use crate::nudge;
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
@@ -599,7 +600,8 @@ fn prepare(
             };
 
             let clip_bounds = layer_bounds
-                .intersection(&(clip_bounds * transformation * layer_transformation))?;
+                .intersection(&(clip_bounds * transformation * layer_transformation))
+                .and_then(nudge::snap)?;
 
             let translation = Vector::new(-buffer.scroll().horizontal, 0.0);
 
@@ -629,10 +631,10 @@ fn prepare(
                 top: position.y,
                 scale,
                 bounds: cryoglyph::TextBounds {
-                    left: clip_bounds.x.round() as i32,
-                    top: clip_bounds.y.round() as i32,
-                    right: (clip_bounds.x + clip_bounds.width).round() as i32,
-                    bottom: (clip_bounds.y + clip_bounds.height).round() as i32,
+                    left: clip_bounds.x as i32,
+                    top: clip_bounds.y as i32,
+                    right: (clip_bounds.x + clip_bounds.width) as i32,
+                    bottom: (clip_bounds.y + clip_bounds.height) as i32,
                 },
                 default_color: to_color(color),
             })

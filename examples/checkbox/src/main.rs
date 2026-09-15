@@ -5,7 +5,7 @@ const ICON_FONT: Font = Font::new("icons");
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
-        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .fonts([include_bytes!("../fonts/icons.ttf").as_slice()])
         .run()
 }
 
@@ -64,7 +64,7 @@ impl Example {
                 font: ICON_FONT,
                 code_point: '\u{e901}',
                 size: None,
-                line_height: text::LineHeight::Relative(1.0),
+                line_height: Some(text::LineHeight::Relative(1.0)),
                 shaping: text::Shaping::Basic,
             });
 

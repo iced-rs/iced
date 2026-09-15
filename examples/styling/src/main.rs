@@ -121,7 +121,8 @@ impl Styling {
         let scroll_me = scrollable(column!["Scroll me!", space().height(800), "You did it!"])
             .width(Fill)
             .height(Fill)
-            .auto_scroll(true);
+            .auto_scroll(true)
+            .spacing(10);
 
         let check = checkbox(self.checkbox_value)
             .label("Check me!")

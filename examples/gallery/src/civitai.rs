@@ -50,6 +50,7 @@ impl Image {
             let hash = match &self.hash {
                 Hash::Number(n) => n.to_string(),
                 Hash::String(hash) => hash.clone(),
+                Hash::Other => String::new(),
             };
 
             let pixels = blurhash::decode(&hash, width, height, 1.0)?;
@@ -112,6 +113,7 @@ pub struct Id(u32);
 enum Hash {
     Number(u32),
     String(String),
+    Other,
 }
 
 #[derive(Debug, Clone)]

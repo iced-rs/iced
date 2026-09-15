@@ -20,10 +20,12 @@ mod themer;
 pub mod button;
 pub mod checkbox;
 pub mod combo_box;
+pub mod component;
 pub mod container;
 pub mod float;
 pub mod grid;
 pub mod keyed;
+pub mod lazy;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
@@ -48,12 +50,6 @@ mod helpers;
 
 pub use helpers::*;
 
-#[cfg(feature = "lazy")]
-mod lazy;
-
-#[cfg(feature = "lazy")]
-pub use crate::lazy::helpers::*;
-
 #[doc(no_inline)]
 pub use button::Button;
 #[doc(no_inline)]
@@ -63,11 +59,15 @@ pub use column::Column;
 #[doc(no_inline)]
 pub use combo_box::ComboBox;
 #[doc(no_inline)]
+pub use component::Component;
+#[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]
 pub use float::Float;
 #[doc(no_inline)]
 pub use grid::Grid;
+#[doc(no_inline)]
+pub use lazy::Lazy;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
 #[doc(no_inline)]

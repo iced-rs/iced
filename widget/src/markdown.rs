@@ -29,7 +29,11 @@
 //!     }
 //!
 //!     fn view(&self) -> Element<'_, Message> {
-//!         markdown::view(&self.markdown, Theme::TokyoNight)
+//!         markdown::view(
+//!             &self.markdown,
+//!             markdown::Settings::default(),
+//!             Theme::TokyoNight,
+//!         )
 //!             .map(Message::LinkClicked)
 //!             .into()
 //!     }
@@ -43,23 +47,26 @@
 //!     }
 //! }
 //! ```
+use crate::core;
 use crate::core::alignment;
 use crate::core::border;
 use crate::core::font::{self, Font};
 use crate::core::padding;
-use crate::core::theme::palette;
-use crate::core::{self, Color, Element, Length, Padding, Pixels, Theme, color};
+use crate::core::text::LineHeight;
+use crate::core::theme;
+use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme};
 use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::mem;
 use std::ops::Range;
 use std::rc::Rc;
 use std::sync::Arc;
 
-pub use core::text::Highlight;
+pub use core::text::{Highlight, Highlighter};
 pub use pulldown_cmark::HeadingLevel;
 
 /// A [`String`] representing a [URI] in a Markdown document
@@ -70,15 +77,53 @@ pub type Uri = String;
 /// A bunch of Markdown that has been parsed.
 #[derive(Debug, Default)]
 pub struct Content {
+    /// The raw Markdown accumulated so far, shared between all the
+    /// items and sections.
+    raw: String,
+    /// The parsed output.
     items: Vec<Item>,
+    /// The start of the source that is re-parsed when the item is the
+    /// last one: the start of the item, or the start of its last
+    /// bullet, when it is a list.
+    starts: Vec<usize>,
+    /// The true start of the item's source; for a list, the start of
+    /// the list, unlike `starts`, which is the start of its last
+    /// bullet.
+    base: Vec<usize>,
+    /// The start of the source that will be re-parsed on the next
+    /// push.
+    window: usize,
+    /// Whether a not-yet-settled metadata block was live on the last
+    /// push; when it was, the re-parse starts at the start of the
+    /// block, so that the block is swallowed by the parser once it is
+    /// closed (or re-parsed as the rule it turned out to be).
+    pending_block: bool,
+    /// The start of the not-yet-settled metadata block, if any; the
+    /// re-parse starts there, so that the block (a tentative rule and
+    /// its content, for instance) is re-parsed as a whole.
+    pending_block_start: Option<usize>,
     incomplete: HashMap<usize, Section>,
     state: State,
 }
 
 #[derive(Debug)]
 struct Section {
-    content: String,
+    /// The start of the source to re-parse when a reference becomes
+    /// available or changes.
+    start: usize,
+    /// The end of the source to re-parse; `None` if the item is still
+    /// the last one, so that the source can still grow.
+    end: Option<usize>,
     broken_links: HashSet<String>,
+    /// The references that were resolved when the item was last
+    /// re-parsed, along with their destination at that time.
+    references: HashMap<String, String>,
+    /// The index of the item in the re-parse of the source.
+    ///
+    /// A source region can produce more than one item (an image and
+    /// the paragraph it belongs to, for instance); this is the index
+    /// of the item that this section refers to.
+    item: usize,
 }
 
 impl Content {
@@ -98,76 +143,484 @@ impl Content {
     ///
     /// This is specially useful when you have long streams of Markdown; like
     /// big files or potentially long replies.
+    ///
+    /// Only the last item is re-parsed on every call; and, when the last
+    /// item is a list, only its last bullet is re-parsed, so that pushing
+    /// new items to a long list stays cheap.
+    ///
+    /// The result converges to the one obtained by parsing the whole
+    /// stream at once, as the stream grows.
     pub fn push_str(&mut self, markdown: &str) {
         if markdown.is_empty() {
             return;
         }
 
-        // Append to last leftover text
-        let mut leftover = std::mem::take(&mut self.state.leftover);
-        leftover.push_str(markdown);
+        self.raw.push_str(markdown);
 
-        let input = if leftover.trim_end().ends_with('|') {
-            leftover.trim_end().trim_end_matches('|')
+        // The text to re-parse: from the start of the source of the
+        // last item (or its last bullet, when it is a list) to the
+        // end. Unless a not-yet-settled metadata block is live (or
+        // was live on the last push), in which case the re-parse
+        // starts at the start of the block: it is swallowed by the
+        // parser once it is closed, and its first line (a tentative
+        // rule) must be re-parsed with it.
+        let block_live = self
+            .pending_block_start
+            .map(|start| Self::metadata_block_live(&self.raw[start..]))
+            .unwrap_or(false);
+        // A not-yet-settled metadata block that was live on the last
+        // push is now settled: the references registered while it was
+        // open are swallowed by it, so they must be dropped.
+        let block_closed = self.pending_block && !block_live;
+        let mut input_start = if self.pending_block || block_live {
+            self.pending_block_start.unwrap_or(self.window)
         } else {
-            leftover.as_str()
+            self.window
         };
 
-        // Pop the last item
-        let _ = self.items.pop();
+        // When the last item is a list and the previous item is a list
+        // or a quote, the last list may be a lazy continuation of the
+        // previous item's last bullet once more of it is streamed: an
+        // empty `2. two\n-` bullet list, for instance, becomes the
+        // `--` continuation of the numbered item as the second dash
+        // arrives, and a `-` outside a quoted list likewise becomes a
+        // continuation of the quoted bullet. Re-parse from the
+        // previous item's start so that this collapse is re-evaluated
+        // (and the re-parse yields the merged item, not a trailing
+        // paragraph or list).
+        if !self.pending_block
+            && !block_live
+            && let [.., prev, last] = self.items.as_slice()
+            && matches!(last, Item::List { .. })
+            && matches!(prev, Item::List { .. } | Item::Quote(_))
+        {
+            input_start = input_start.min(self.base[self.base.len() - 2]);
+        }
+        let tail = &self.raw[input_start..];
+        let trimmed = tail.trim_end();
+        let mut input = if trimmed.ends_with('|') {
+            trimmed.trim_end_matches('|')
+        } else {
+            tail
+        };
 
-        // Re-parse last item and new text
-        for (item, source, broken_links) in parse_with(&mut self.state, input) {
-            if !broken_links.is_empty() {
-                let _ = self.incomplete.insert(
-                    self.items.len(),
-                    Section {
-                        content: source.to_owned(),
-                        broken_links,
-                    },
-                );
-            }
-
-            self.items.push(item);
+        // Pop the last item and the items whose source falls within
+        // the text that will be re-parsed (an image and the paragraph
+        // it belongs to, for instance); they will be re-parsed as
+        // well.
+        let last = self.items.pop();
+        let _ = self.starts.pop();
+        // The true start of the source of the last item, if any; it
+        // is the start of the merged list, when the last item is a
+        // list.
+        let old_last_base = self.base.pop();
+        while self
+            .starts
+            .last()
+            .is_some_and(|start| *start >= input_start)
+        {
+            let _ = self.items.pop();
+            let _ = self.starts.pop();
+            let _ = self.base.pop();
         }
 
-        self.state.leftover.push_str(&leftover[input.len()..]);
+        // Re-parse the last item and the new text
+        let mut items: Vec<_> = parse_with(&mut self.state, input, input_start).collect();
 
-        // Re-parse incomplete sections if new references are available
-        if !self.incomplete.is_empty() {
-            self.incomplete.retain(|index, section| {
-                if self.items.len() <= *index {
-                    return false;
-                }
+        // We only re-parse the last bullet of a list, so merge the
+        // re-parsed list into the old one, keeping the bullets that
+        // were already parsed. This only applies when the re-parse
+        // actually started after the start of the list (at its last
+        // bullet); when it re-parsed the whole list, the re-parsed
+        // list already contains all the bullets, and merging would
+        // duplicate them.
+        let last_is_list = matches!(last.as_ref(), Some(Item::List { .. }));
+        let mut merged = false;
+        if let Some(Item::List { start, bullets, .. }) = last
+            && let Some((first_item, _, _)) = items.first_mut()
+            && let Item::List { bullets: new, .. } = first_item
+            && old_last_base.is_some_and(|base| input_start > base)
+        {
+            // The last bullet of the old list was re-parsed
+            let mut bullets = bullets;
+            let _ = bullets.pop();
+            bullets.extend(mem::take(new));
+            *first_item = Item::List { start, bullets };
+            merged = true;
+        } else if last_is_list {
+            // The re-parse of the last bullet no longer produces a
+            // list (the bullet grew into a rule or a heading, for
+            // instance), so it cannot be merged into the old list:
+            // re-parse from the start of the whole list, so its
+            // source is re-parsed in full.
+            //
+            // The re-parse must not start after a not-yet-settled
+            // metadata block opener (kept in `input_start`), or the
+            // block would be dropped; use the earliest of the two.
+            let base = old_last_base.expect("a list has a base").min(input_start);
+            let tail = &self.raw[base..];
+            let trimmed = tail.trim_end();
+            input = if trimmed.ends_with('|') {
+                trimmed.trim_end_matches('|')
+            } else {
+                tail
+            };
+            input_start = base;
+            items = parse_with(&mut self.state, input, input_start).collect();
+        } else if let Some((Item::List { .. }, 0, _)) = items.first()
+            && let Some(Item::List { .. }) = self.items.last()
+            && let Some(base) = self.base.last().copied()
+        {
+            // The re-parse produced a list that starts where the old
+            // last item (a lone paragraph, for instance) used to be,
+            // right after a previous list: the paragraph grew into a
+            // list item that continues the previous list. Re-parse
+            // from the start of the previous list, so that the list
+            // is not split in two; the parser decides whether the
+            // two regions are one list.
+            let tail = &self.raw[base..];
+            let trimmed = tail.trim_end();
+            input = if trimmed.ends_with('|') {
+                trimmed.trim_end_matches('|')
+            } else {
+                tail
+            };
 
-                let broken_links_before = section.broken_links.len();
+            let reparsed: Vec<_> = parse_with(&mut self.state, input, base).collect();
 
-                section
-                    .broken_links
-                    .retain(|link| !self.state.references.contains_key(link));
+            if let Some((Item::List { .. }, _, _)) = reparsed.first() {
+                input_start = base;
+                items = reparsed;
+                // The previous list is covered by the re-parse
+                let _ = self.items.pop();
+                let _ = self.starts.pop();
+                let _ = self.base.pop();
+            }
+        }
 
-                if broken_links_before != section.broken_links.len() {
-                    let mut state = State {
-                        leftover: String::new(),
-                        references: self.state.references.clone(),
-                        images: HashSet::new(),
-                        #[cfg(feature = "highlighter")]
-                        highlighter: None,
+        // The start of the most recent `---` or `+++` rule produced
+        // by the re-parse, if any; it is a tentative metadata block
+        // opener.
+        let mut newest_rule_start: Option<usize> = None;
+
+        if items.is_empty() {
+            // The new text did not produce any item (it completed a
+            // reference definition or a metadata block, for
+            // instance), so the last item was replaced by it; the
+            // next push re-parses from the start of the new last
+            // item.
+            self.window = self.starts.last().copied().unwrap_or(input_start);
+        } else {
+            // Remember the start of the source of each re-parsed
+            // item.
+            let starts: Vec<usize> = items
+                .iter()
+                .map(|(_, start, _)| input_start + *start)
+                .collect();
+
+            for (i, (item, _start, broken_links)) in items.into_iter().enumerate() {
+                let start = starts[i];
+                // The merged list is anchored at the start of the
+                // whole list, unlike `start`, which is the start of
+                // its last bullet.
+                let base = if i == 0 && merged {
+                    old_last_base.expect("a merged list has a base")
+                } else {
+                    start
+                };
+
+                if !broken_links.is_empty() {
+                    // The index of the item once it is pushed
+                    let index = self.items.len();
+
+                    // The next item can cover this one (a paragraph
+                    // and the image it contains, for instance); in
+                    // that case, the source to re-parse spans both.
+                    let covers = starts.get(i + 1).is_some_and(|next| *next <= start);
+
+                    // The source to re-parse starts at the start of
+                    // the covered group, if any, and ends where the
+                    // item after the group starts; it grows with the
+                    // source while the group is the last one.
+                    let (section_start, end) = if covers {
+                        (starts[i + 1], starts.get(i + 2).copied())
+                    } else {
+                        (base, starts.get(i + 1).copied())
                     };
 
-                    if let Some((item, _source, _broken_links)) =
-                        parse_with(&mut state, &section.content).next()
-                    {
-                        self.items[*index] = item;
+                    // A bullet that was not re-parsed can have broken
+                    // links of its own, so they need to be kept
+                    match self.incomplete.entry(index) {
+                        Entry::Occupied(mut entry) => {
+                            let section = entry.get_mut();
+                            section.broken_links.extend(broken_links);
+                            // The geometry can change (the item was
+                            // not covered when the section was
+                            // created, and its paragraph is now
+                            // re-parsed as well)
+                            section.start = section_start;
+                            section.end = end;
+                        }
+                        Entry::Vacant(entry) => {
+                            // The re-parse of the section's source
+                            // produces the items that fall within
+                            // the section's range (an image and the
+                            // paragraph it belongs to, for instance);
+                            // remember the index of the one this
+                            // section refers to.
+                            let item = starts
+                                .iter()
+                                .take(i)
+                                .copied()
+                                .filter(|start| *start >= section_start)
+                                .count();
+                            let _ = entry.insert(Section {
+                                start: section_start,
+                                end,
+                                broken_links,
+                                references: HashMap::new(),
+                                item,
+                            });
+                        }
                     }
-
-                    self.state.images.extend(state.images.drain());
-                    drop(state);
                 }
 
-                !section.broken_links.is_empty()
-            });
+                if matches!(item, Item::Rule) && Self::metadata_delimiter(&self.raw, start) {
+                    // A `---` or `+++` rule is a tentative metadata
+                    // block opener; remember where it starts so that
+                    // the block is re-parsed as a whole when it is
+                    // closed.
+                    newest_rule_start = Some(start);
+                }
+
+                self.items.push(item);
+                self.starts.push(start);
+                self.base.push(base);
+            }
+
+            self.window = input_start + self.state.window.unwrap_or(input.len());
         }
+
+        // Remember the tentative metadata block opener, if any, so
+        // that the block is re-parsed as a whole as it grows, and
+        // swallowed by the parser once it is closed.
+        self.pending_block_start = newest_rule_start;
+        self.pending_block = newest_rule_start
+            .map(|start| Self::metadata_block_live(&self.raw[start..]))
+            .unwrap_or(false);
+
+        // A metadata block that was open on the last push is now
+        // settled: the references registered while it was open are
+        // swallowed by it, so recompute the references from the whole
+        // source, as the one-shot parse does.
+        if block_closed {
+            self.recompute_references();
+        }
+
+        // The sections whose item is not the last one anymore have
+        // a fixed source range
+        self.fix_section_ends();
+
+        // The sections whose broken links became resolvable, or
+        // whose references changed, are re-parsed
+        self.resolve_sections();
+
+        // The images are those present in the items; recompute them,
+        // as an image parsed while a metadata block was still open
+        // can be swallowed by it once the block is closed.
+        self.state.images = self
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                Item::Image { url, .. } => Some(url.clone()),
+                _ => None,
+            })
+            .collect();
+    }
+
+    /// Returns `true` if the source starts with a metadata block that
+    /// is not settled yet: the first line is a complete `---` or
+    /// `+++` delimiter, the second line is not a blank one
+    /// (otherwise the first line is a rule), and the block has not
+    /// been closed.
+    ///
+    /// While such a block is live, its first line is a tentative
+    /// rule that the parser swallows once the block is closed, so
+    /// the re-parse has to cover the block as a whole.
+    fn metadata_block_live(source: &str) -> bool {
+        // The first line, which must be complete
+        let (first, rest) = match source.find('\n') {
+            Some(end) => (&source[..end], &source[end + 1..]),
+            None => return false,
+        };
+
+        // The delimiter line
+        let first = first.trim_end();
+        if first != "---" && first != "+++" {
+            return false;
+        }
+
+        // The second line: a blank one makes the first line a rule,
+        // not a metadata block; an incomplete one could still be
+        // the start of a block
+        let Some(second_end) = rest.find('\n') else {
+            return true;
+        };
+        let second = &rest[..second_end];
+        if second.trim().is_empty() {
+            return false;
+        }
+
+        // The block is closed by a `---` or `...` line, or a `+++`
+        // line, when it is delimited by `+++`
+        let closed = rest.lines().any(|line| {
+            let line = line.trim_end();
+            if first == "+++" {
+                line == "+++"
+            } else {
+                line == "---" || line == "..."
+            }
+        });
+
+        !closed
+    }
+
+    /// Returns `true` if the line starting at `start` is a complete
+    /// `---` or `+++` metadata block delimiter.
+    fn metadata_delimiter(source: &str, start: usize) -> bool {
+        let line = &source[start..];
+        let end = line.find('\n').unwrap_or(line.len());
+        let line = line[..end].trim_end();
+        line == "---" || line == "+++"
+    }
+
+    /// Re-parses the whole source and replaces the reference
+    /// definitions with those of the one-shot parse.
+    ///
+    /// A reference registered while a metadata block was still open
+    /// is swallowed by it once the block is settled, so it must not
+    /// resolve links any more; re-parsing the whole source drops it,
+    /// like the one-shot parse does.
+    fn recompute_references(&mut self) {
+        let parser = pulldown_cmark::Parser::new_ext(&self.raw, options());
+        let definitions = parser.reference_definitions();
+
+        self.state.references.clear();
+        self.state.references_staged.clear();
+
+        absorb_references(
+            &self.raw,
+            definitions,
+            &mut self.state.references,
+            &mut self.state.references_staged,
+        );
+    }
+
+    /// Ends the sections whose item is not the last one anymore:
+    /// their source range is now fixed, and it ends where the next
+    /// item starts.
+    fn fix_section_ends(&mut self) {
+        if self.incomplete.is_empty() {
+            return;
+        }
+
+        for (index, section) in self.incomplete.iter_mut() {
+            if section.end.is_none() && *index + 1 < self.items.len() {
+                // The next item can cover the section's item (a
+                // paragraph and the image it contains), so the end
+                // is the first start that is strictly after the
+                // section's start
+                section.end = self.starts[*index + 1..]
+                    .iter()
+                    .copied()
+                    .find(|end| *end > section.start);
+            }
+        }
+    }
+
+    /// Re-parses the sections whose broken links became resolvable,
+    /// or whose references changed destination; the sections that
+    /// are left with nothing to watch are dropped.
+    fn resolve_sections(&mut self) {
+        if self.incomplete.is_empty() {
+            return;
+        }
+
+        self.incomplete.retain(|index, section| {
+            if self.items.len() <= *index {
+                // The section's item is gone
+                return false;
+            }
+
+            // A link becomes resolvable...
+            let mut newly_resolved = Vec::new();
+            section.broken_links.retain(|link| {
+                if self.state.references.contains_key(link) {
+                    newly_resolved.push(link.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+
+            // ...or the destination of a resolved reference changes,
+            // or the reference is dropped (its definition swallowed
+            // by a metadata block, for instance)
+            let needs_reparse = !newly_resolved.is_empty()
+                || section.references.iter().any(|(link, dest)| {
+                    match self.state.references.get(link) {
+                        Some(new_dest) => new_dest != dest,
+                        None => true,
+                    }
+                });
+
+            if needs_reparse {
+                let mut state = State {
+                    window: None,
+                    references: self.state.references.clone(),
+                    references_staged: HashSet::new(),
+                    images: HashSet::new(),
+                    #[cfg(feature = "highlighter")]
+                    parsers: HashMap::new(),
+                };
+
+                let end = section.end.unwrap_or(self.raw.len());
+                let source = &self.raw[section.start..end];
+
+                if let Some((item, _start, broken_links)) =
+                    parse_with(&mut state, source, section.start).nth(section.item)
+                {
+                    self.items[*index] = item;
+
+                    // Track the references that were resolved by the
+                    // re-parse, so that a later change of their
+                    // destination triggers a new re-parse
+                    for link in newly_resolved {
+                        if let Some(dest) = self.state.references.get(&link)
+                            && !broken_links.contains(&link)
+                        {
+                            let _ = section.references.insert(link, dest.to_owned());
+                        }
+                    }
+
+                    section.broken_links = broken_links;
+                    section
+                        .references
+                        .retain(|link, _| !section.broken_links.contains(link));
+
+                    for (link, dest) in &mut section.references {
+                        if let Some(new_dest) = self.state.references.get(link) {
+                            *dest = new_dest.clone();
+                        }
+                    }
+                }
+
+                self.state.images.extend(state.images);
+            }
+
+            // The section is kept while something is left to watch
+            !section.broken_links.is_empty() || !section.references.is_empty()
+        });
     }
 
     /// Returns the Markdown items, ready to be rendered.
@@ -181,6 +634,95 @@ impl Content {
     pub fn images(&self) -> &HashSet<Uri> {
         &self.state.images
     }
+
+    /// Returns the raw Markdown.
+    pub fn raw(&self) -> &str {
+        &self.raw
+    }
+}
+
+/// Groups the given Markdown [`Item`]s by [`Item::Heading`].
+///
+/// The returned iterator yields a `(Option<&Item>, &[Item])` pair for each
+/// group, without cloning any [`Item`]:
+///
+/// * The first element is the heading that starts the group, if any. It is
+///   [`None`] for the group of items that appears before the first heading,
+///   if there is any;
+/// * The second element is the slice of items that follow the heading, up to
+///   (but not including) the next one.
+///
+/// Every item in the given slice is yielded exactly once: a heading is
+/// returned as the first element of the group it starts, and every other
+/// item is part of the slice that follows the last heading before it.
+///
+/// # Example
+/// ```
+/// use iced_widget::markdown;
+///
+/// let items: Vec<_> = markdown::parse("# Title\n\nHello!\n\n# Subtitle\n\nMore!").collect();
+///
+/// let mut groups = markdown::sections(&items);
+///
+/// let (heading, contents) = groups.next().unwrap();
+/// assert!(heading.is_some());
+/// assert_eq!(contents.len(), 1);
+///
+/// let (heading, contents) = groups.next().unwrap();
+/// assert!(heading.is_some());
+/// assert_eq!(contents.len(), 1);
+///
+/// assert!(groups.next().is_none());
+/// ```
+pub fn sections<'a>(
+    items: &'a [Item],
+) -> impl Iterator<Item = (Option<&'a Item>, &'a [Item])> + 'a {
+    struct Sections<'a> {
+        /// The items being grouped.
+        items: &'a [Item],
+        /// The index of the first item of the next group.
+        ///
+        /// This is always the index of a heading, except for the very first
+        /// group, where it may point at any item (the content before the
+        /// first heading).
+        start: usize,
+    }
+
+    impl<'a> Iterator for Sections<'a> {
+        type Item = (Option<&'a Item>, &'a [Item]);
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let Self { items, start } = self;
+
+            if *start >= items.len() {
+                return None;
+            }
+
+            // The heading of the current group, if any
+            let heading = if matches!(items[*start], Item::Heading(..)) {
+                Some(*start)
+            } else {
+                None
+            };
+
+            // The body of the group: the items after the heading, if any, up to
+            // the next heading
+            let body_start = heading.map_or(*start, |heading| heading + 1);
+            let next_heading = (body_start..items.len())
+                .find(|&index| matches!(items[index], Item::Heading(..)))
+                .unwrap_or(items.len());
+
+            // The next group starts at the next heading, if any
+            *start = next_heading;
+
+            Some((
+                heading.map(|index| &items[index]),
+                &items[body_start..next_heading],
+            ))
+        }
+    }
+
+    Sections { items, start: 0 }
 }
 
 /// A Markdown item.
@@ -250,7 +792,7 @@ pub struct Row {
 #[derive(Debug, Clone)]
 pub struct Text {
     spans: Vec<Span>,
-    last_style: Cell<Option<Style>>,
+    last_style: RefCell<Option<(Settings, String, String)>>,
     last_styled_spans: RefCell<Arc<[text::Span<'static, Uri>]>>,
 }
 
@@ -258,21 +800,38 @@ impl Text {
     fn new(spans: Vec<Span>) -> Self {
         Self {
             spans,
-            last_style: Cell::default(),
+            last_style: RefCell::default(),
             last_styled_spans: RefCell::default(),
         }
     }
 
     /// Returns the [`rich_text()`] spans ready to be used for the given style.
     ///
-    /// This method performs caching for you. It will only reallocate if the [`Style`]
-    /// provided changes.
-    pub fn spans(&self, style: Style) -> Arc<[text::Span<'static, Uri>]> {
-        if Some(style) != self.last_style.get() {
-            *self.last_styled_spans.borrow_mut() =
-                self.spans.iter().map(|span| span.view(&style)).collect();
+    /// This method performs caching for you. It will only reallocate if the [`Settings`]
+    /// or the [`Catalog`] provided changes.
+    pub fn spans<Theme: Catalog>(
+        &self,
+        settings: Settings,
+        theme: &Theme,
+        highlighter: &dyn text::Highlighter<Code, Theme>,
+    ) -> Arc<[text::Span<'static, Uri>]> {
+        let is_dirty = self.last_style.borrow().as_ref().is_none_or(
+            |(last_settings, last_theme, last_highlighter)| {
+                &settings != last_settings
+                    || theme.id() != last_theme
+                    || highlighter.id() != last_highlighter
+            },
+        );
 
-            self.last_style.set(Some(style));
+        if is_dirty {
+            *self.last_styled_spans.borrow_mut() = self
+                .spans
+                .iter()
+                .map(|span| span.view(&settings, theme, highlighter))
+                .collect();
+
+            *self.last_style.borrow_mut() =
+                Some((settings, theme.id().to_owned(), highlighter.id().to_owned()));
         }
 
         self.last_styled_spans.borrow().clone()
@@ -287,18 +846,21 @@ enum Span {
         link: Option<Uri>,
         strong: bool,
         emphasis: bool,
-        code: bool,
+        inline_code: bool,
     },
-    #[cfg(feature = "highlighter")]
-    Highlight {
+    Code {
         text: String,
-        color: Option<Color>,
-        font: Option<Font>,
+        code: Code,
     },
 }
 
 impl Span {
-    fn view(&self, style: &Style) -> text::Span<'static, Uri> {
+    fn view<Theme: Catalog>(
+        &self,
+        settings: &Settings,
+        theme: &Theme,
+        highlighter: &dyn text::Highlighter<Code, Theme>,
+    ) -> text::Span<'static, Uri> {
         match self {
             Span::Standard {
                 text,
@@ -306,43 +868,58 @@ impl Span {
                 link,
                 strong,
                 emphasis,
-                code,
+                inline_code,
             } => {
                 let span = span(text.clone()).strikethrough(*strikethrough);
 
-                let span = if *code {
-                    span.font(style.inline_code_font)
-                        .color(style.inline_code_color)
-                        .background(style.inline_code_highlight.background)
-                        .border(style.inline_code_highlight.border)
-                        .padding(style.inline_code_padding)
-                } else if *strong || *emphasis {
-                    span.font(Font {
-                        weight: if *strong {
-                            font::Weight::Bold
-                        } else {
-                            font::Weight::Normal
-                        },
-                        style: if *emphasis {
-                            font::Style::Italic
-                        } else {
-                            font::Style::Normal
-                        },
-                        ..style.font
-                    })
+                let weight = if *strong {
+                    font::Weight::Bold
                 } else {
-                    span.font(style.font)
+                    settings.font.weight
+                };
+
+                let style = if *emphasis {
+                    font::Style::Italic
+                } else {
+                    settings.font.style
+                };
+
+                let span = if *inline_code {
+                    let code = theme.code();
+
+                    span.font(Font {
+                        weight,
+                        style,
+                        ..settings.inline_code_font
+                    })
+                    .size(settings.inline_code_size)
+                    .color(code.color)
+                    .background(code.highlight.background)
+                    .border(code.highlight.border)
+                    .padding(code.padding)
+                } else {
+                    span.font(Font {
+                        weight,
+                        style,
+                        ..settings.font
+                    })
                 };
 
                 if let Some(link) = link.as_ref() {
-                    span.color(style.link_color).link(link.clone())
+                    span.color(theme.link_color()).link(link.clone())
                 } else {
                     span
                 }
             }
-            #[cfg(feature = "highlighter")]
-            Span::Highlight { text, color, font } => {
-                span(text.clone()).color_maybe(*color).font_maybe(*font)
+            Span::Code { text, code } => {
+                let format = highlighter.highlight(*code, theme);
+
+                span(text.clone())
+                    .color_maybe(format.color)
+                    .font_maybe(format.style.map(|style| Font {
+                        style,
+                        ..settings.code_block_font
+                    }))
             }
         }
     }
@@ -405,7 +982,11 @@ impl Bullet {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(&self.markdown, Theme::TokyoNight)
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             Theme::TokyoNight,
+///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
 ///     }
@@ -420,99 +1001,84 @@ impl Bullet {
 /// }
 /// ```
 pub fn parse(markdown: &str) -> impl Iterator<Item = Item> + '_ {
-    parse_with(State::default(), markdown).map(|(item, _source, _broken_links)| item)
+    parse_with(State::default(), markdown, 0).map(|(item, _start, _broken_links)| item)
 }
 
 #[derive(Debug, Default)]
 struct State {
-    leftover: String,
+    /// The start of the source that will be re-parsed next, after the
+    /// current parse.
+    window: Option<usize>,
+    /// The reference definitions, mapping a label to its destination.
+    ///
+    /// The first definition of a label wins, like in CommonMark.
     references: HashMap<String, String>,
+    /// The labels whose destination in `references` comes from the
+    /// definition of the last line, which is not terminated yet and
+    /// can still grow; their destination is updated on each push,
+    /// until the line is terminated.
+    references_staged: HashSet<String>,
     images: HashSet<Uri>,
+    /// The highlighters of the code blocks seen in the last re-parses,
+    /// keyed by the start of the block's source in the outer stream.
+    ///
+    /// A highlighter is only reused for the same code block (the same
+    /// source start and language), so that its line cache stays valid
+    /// across the re-parses of a block that is still growing.
     #[cfg(feature = "highlighter")]
-    highlighter: Option<Highlighter>,
+    parsers: HashMap<usize, code::Parser>,
 }
 
-#[cfg(feature = "highlighter")]
-#[derive(Debug)]
-struct Highlighter {
-    lines: Vec<(String, Vec<Span>)>,
-    language: String,
-    parser: iced_highlighter::Stream,
-    current: usize,
+/// The options used by the parser.
+fn options() -> pulldown_cmark::Options {
+    pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
+        | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
+        | pulldown_cmark::Options::ENABLE_TABLES
+        | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
+        | pulldown_cmark::Options::ENABLE_TASKLISTS
 }
 
-#[cfg(feature = "highlighter")]
-impl Highlighter {
-    pub fn new(language: &str) -> Self {
-        Self {
-            lines: Vec::new(),
-            parser: iced_highlighter::Stream::new(&iced_highlighter::Settings {
-                theme: iced_highlighter::Theme::Base16Ocean,
-                token: language.to_owned(),
-            }),
-            language: language.to_owned(),
-            current: 0,
-        }
-    }
+/// Absorbs the reference definitions of a parse into `references`,
+/// keeping the first definition of a label, like in CommonMark.
+///
+/// The definition of the last line, when that line is not terminated
+/// yet, can still grow, so its destination is updated on each push,
+/// until the line is terminated; the growing labels are tracked in
+/// `growing_refs`.
+///
+/// `markdown` is the source of the parse, and `definitions` are its
+/// reference definitions.
+fn absorb_references(
+    markdown: &str,
+    definitions: &pulldown_cmark::RefDefs<'_>,
+    references: &mut HashMap<String, String>,
+    growing_refs: &mut HashSet<String>,
+) {
+    for reference in definitions.iter() {
+        let name = reference.0.to_string();
+        let dest = reference.1.dest.to_string();
 
-    pub fn prepare(&mut self) {
-        self.current = 0;
-    }
-
-    pub fn highlight_line(&mut self, text: &str) -> &[Span] {
-        match self.lines.get(self.current) {
-            Some(line) if line.0 == text => {}
-            _ => {
-                if self.current + 1 < self.lines.len() {
-                    log::debug!("Resetting highlighter...");
-                    self.parser.reset();
-                    self.lines.truncate(self.current);
-
-                    for line in &self.lines {
-                        log::debug!("Refeeding {n} lines", n = self.lines.len());
-
-                        let _ = self.parser.highlight_line(&line.0);
-                    }
-                }
-
-                log::trace!("Parsing: {text}", text = text.trim_end());
-
-                if self.current + 1 < self.lines.len() {
-                    self.parser.commit();
-                }
-
-                let mut spans = Vec::new();
-
-                for (range, highlight) in self.parser.highlight_line(text) {
-                    spans.push(Span::Highlight {
-                        text: text[range].to_owned(),
-                        color: highlight.color(),
-                        font: highlight.font(),
-                    });
-                }
-
-                if self.current + 1 == self.lines.len() {
-                    let _ = self.lines.pop();
-                }
-
-                self.lines.push((text.to_owned(), spans));
+        if markdown[reference.1.span.end..].contains('\n') {
+            if !references.contains_key(&name) || growing_refs.remove(&name) {
+                let _ = references.insert(name, dest);
             }
+        } else if growing_refs.contains(&name) {
+            // The map's value is the growing one: update it
+            let _ = references.insert(name, dest);
+        } else if !references.contains_key(&name) {
+            // No terminated definition wins: the growing value is
+            // provisional
+            let _ = growing_refs.insert(name.clone());
+            let _ = references.insert(name, dest);
         }
-
-        self.current += 1;
-
-        &self
-            .lines
-            .get(self.current - 1)
-            .expect("Line must be parsed")
-            .1
     }
 }
 
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
-) -> impl Iterator<Item = (Item, &'a str, HashSet<String>)> + 'a {
+    offset_: usize,
+) -> impl Iterator<Item = (Item, usize, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
         Quote(Vec<Item>),
@@ -527,9 +1093,17 @@ fn parse_with<'a>(
     struct List {
         start: Option<u64>,
         bullets: Vec<Bullet>,
+        /// The start of the last item of the list, if any.
+        last_item_start: Option<usize>,
     }
 
-    let broken_links = Rc::new(RefCell::new(HashSet::new()));
+    // The broken links reported by the parser, along with their span
+    // in the input.
+    //
+    // The broken links are reported before the items that contain them
+    // are produced, so the links are attributed to an item by their
+    // span.
+    let broken_links = Rc::new(RefCell::new(Vec::new()));
 
     let mut spans = Vec::new();
     let mut code = String::new();
@@ -542,42 +1116,39 @@ fn parse_with<'a>(
     let mut code_block = false;
     let mut link = None;
     let mut image = None;
+    let mut paragraph_start = None;
     let mut stack = Vec::new();
 
     #[cfg(feature = "highlighter")]
-    let mut highlighter = None;
+    let mut code_block_key = None;
 
-    let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
-        markdown,
-        pulldown_cmark::Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
-            | pulldown_cmark::Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
-            | pulldown_cmark::Options::ENABLE_TABLES
-            | pulldown_cmark::Options::ENABLE_STRIKETHROUGH
-            | pulldown_cmark::Options::ENABLE_TASKLISTS,
-        {
-            let references = state.borrow().references.clone();
-            let broken_links = broken_links.clone();
+    let parser = pulldown_cmark::Parser::new_with_broken_link_callback(markdown, options(), {
+        let references = state.borrow().references.clone();
+        let broken_links = broken_links.clone();
 
-            Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
-                if let Some(reference) = references.get(broken_link.reference.as_ref()) {
-                    Some((
-                        pulldown_cmark::CowStr::from(reference.to_owned()),
-                        broken_link.reference.into_static(),
-                    ))
-                } else {
-                    let _ = RefCell::borrow_mut(&broken_links)
-                        .insert(broken_link.reference.into_string());
+        Some(move |broken_link: pulldown_cmark::BrokenLink<'_>| {
+            if let Some(reference) = references.get(broken_link.reference.as_ref()) {
+                Some((
+                    pulldown_cmark::CowStr::from(reference.to_owned()),
+                    broken_link.reference.into_static(),
+                ))
+            } else {
+                RefCell::borrow_mut(&broken_links)
+                    .push((broken_link.span, broken_link.reference.into_string()));
 
-                    None
-                }
-            })
-        },
-    );
+                None
+            }
+        })
+    });
 
-    let references = &mut state.borrow_mut().references;
-
-    for reference in parser.reference_definitions().iter() {
-        let _ = references.insert(reference.0.to_owned(), reference.1.dest.to_string());
+    {
+        let state = state.borrow_mut();
+        absorb_references(
+            markdown,
+            parser.reference_definitions(),
+            &mut state.references,
+            &mut state.references_staged,
+        );
     }
 
     let produce = move |state: &mut State, stack: &mut Vec<Scope>, item, source: Range<usize>| {
@@ -596,13 +1167,43 @@ fn parse_with<'a>(
 
             None
         } else {
-            state.leftover = markdown[source.start..].to_owned();
+            state.window = Some(source.start);
 
-            Some((
-                item,
-                &markdown[source.start..source.end],
-                broken_links.take(),
-            ))
+            // Attribute the broken links whose span falls within the
+            // source of the item
+            let mut links = HashSet::new();
+            for (span, reference) in RefCell::borrow(&broken_links).iter() {
+                if source.contains(&span.start) {
+                    let _ = links.insert(reference.clone());
+                }
+            }
+
+            Some((item, source.start, links))
+        }
+    };
+
+    // A reference link or image resolves with the first definition
+    // of its label in the whole document, like in the one-shot
+    // parse. A later definition that falls within the input wins
+    // within the input, so, when known, prefer the global
+    // definition.
+    let resolve_reference = |state: &mut State,
+                             link_type: pulldown_cmark::LinkType,
+                             id: &str,
+                             dest_url: &pulldown_cmark::CowStr<'a>|
+     -> String {
+        match link_type {
+            pulldown_cmark::LinkType::Reference
+            | pulldown_cmark::LinkType::ReferenceUnknown
+            | pulldown_cmark::LinkType::Collapsed
+            | pulldown_cmark::LinkType::CollapsedUnknown
+            | pulldown_cmark::LinkType::Shortcut
+            | pulldown_cmark::LinkType::ShortcutUnknown => state
+                .references
+                .get(id)
+                .cloned()
+                .unwrap_or_else(|| dest_url.to_string()),
+            _ => dest_url.to_string(),
         }
     };
 
@@ -624,14 +1225,35 @@ fn parse_with<'a>(
                 strikethrough = true;
                 None
             }
-            pulldown_cmark::Tag::Link { dest_url, .. } if !metadata => {
-                link = Some(dest_url.into_string());
+            pulldown_cmark::Tag::Link {
+                link_type,
+                dest_url,
+                id,
+                ..
+            } if !metadata => {
+                link = Some(resolve_reference(
+                    state.borrow_mut(),
+                    link_type,
+                    &id,
+                    &dest_url,
+                ));
+                None
+            }
+            pulldown_cmark::Tag::Paragraph if !metadata => {
+                paragraph_start = Some(source.start);
                 None
             }
             pulldown_cmark::Tag::Image {
-                dest_url, title, ..
+                link_type,
+                dest_url,
+                title,
+                id,
             } if !metadata => {
-                image = Some((dest_url.into_string(), title.into_string()));
+                image = Some((
+                    resolve_reference(state.borrow_mut(), link_type, &id, &dest_url),
+                    title.into_string(),
+                    spans.len(),
+                ));
                 None
             }
             pulldown_cmark::Tag::List(first_item) if !metadata => {
@@ -649,12 +1271,14 @@ fn parse_with<'a>(
                 stack.push(Scope::List(List {
                     start: first_item,
                     bullets: Vec::new(),
+                    last_item_start: None,
                 }));
 
                 prev
             }
             pulldown_cmark::Tag::Item => {
                 if let Some(Scope::List(list)) = stack.last_mut() {
+                    list.last_item_start = Some(source.start);
                     list.bullets.push(Bullet::Point { items: Vec::new() });
                 }
 
@@ -681,20 +1305,24 @@ fn parse_with<'a>(
             {
                 #[cfg(feature = "highlighter")]
                 {
-                    highlighter = Some({
-                        let mut highlighter = state
-                            .borrow_mut()
-                            .highlighter
-                            .take()
-                            .filter(|highlighter| highlighter.language == language.as_ref())
-                            .unwrap_or_else(|| {
-                                Highlighter::new(language.split(',').next().unwrap_or_default())
-                            });
+                    // The start of the block in the outer stream; the
+                    // key that identifies the block across re-parses,
+                    // so that the highlighter's line cache is only
+                    // reused for the same block.
+                    let key = offset_ + source.start;
+                    let state = state.borrow_mut();
+                    let language = language.split(',').next().unwrap_or_default();
 
-                        highlighter.prepare();
+                    let mut parser = state
+                        .parsers
+                        .remove(&key)
+                        .filter(|parser| parser.language() == language)
+                        .unwrap_or_else(|| code::Parser::new(language));
 
-                        highlighter
-                    });
+                    parser.prepare();
+                    let _ = state.parsers.insert(key, parser);
+
+                    code_block_key = Some(key);
                 }
 
                 code_block = true;
@@ -763,6 +1391,8 @@ fn parse_with<'a>(
                 None
             }
             pulldown_cmark::TagEnd::Paragraph if !metadata => {
+                paragraph_start = None;
+
                 if spans.is_empty() {
                     None
                 } else {
@@ -793,7 +1423,8 @@ fn parse_with<'a>(
                     return None;
                 };
 
-                produce(
+                let last_item_start = list.last_item_start;
+                let produced = produce(
                     state.borrow_mut(),
                     &mut stack,
                     Item::List {
@@ -801,7 +1432,18 @@ fn parse_with<'a>(
                         bullets: list.bullets,
                     },
                     source,
-                )
+                );
+
+                // A list is re-parsed only from the start of its last
+                // item, so that adding new items to a long list does not
+                // require re-parsing the whole list.
+                if produced.is_some()
+                    && let Some(start) = last_item_start
+                {
+                    state.borrow_mut().window = Some(start);
+                }
+
+                produced
             }
             pulldown_cmark::TagEnd::BlockQuote(_kind) if !metadata => {
                 let scope = stack.pop()?;
@@ -813,21 +1455,25 @@ fn parse_with<'a>(
                 produce(state.borrow_mut(), &mut stack, Item::Quote(quote), source)
             }
             pulldown_cmark::TagEnd::Image if !metadata => {
-                let (url, title) = image.take()?;
-                let alt = Text::new(spans.drain(..).collect());
+                let (url, title, start) = image.take()?;
+                let alt = Text::new(spans.drain(start..).collect());
 
                 let state = state.borrow_mut();
                 let _ = state.images.insert(url.clone());
 
-                produce(state, &mut stack, Item::Image { url, title, alt }, source)
+                let produced = produce(state, &mut stack, Item::Image { url, title, alt }, source);
+
+                // A top-level image is re-parsed from the start of the
+                // line that contains it, as the rest of the line can
+                // change how the image is parsed.
+                if let Some(start) = paragraph_start.filter(|_| produced.is_some()) {
+                    state.borrow_mut().window = Some(start);
+                }
+
+                produced
             }
             pulldown_cmark::TagEnd::CodeBlock if !metadata => {
                 code_block = false;
-
-                #[cfg(feature = "highlighter")]
-                {
-                    state.borrow_mut().highlighter = highlighter.take();
-                }
 
                 produce(
                     state.borrow_mut(),
@@ -903,21 +1549,19 @@ fn parse_with<'a>(
                 code.push_str(&text);
 
                 #[cfg(feature = "highlighter")]
-                if let Some(highlighter) = &mut highlighter {
+                if let Some(key) = code_block_key
+                    && let Some(highlighter) = state.borrow_mut().parsers.get_mut(&key)
+                {
                     for line in text.lines() {
-                        code_lines.push(Text::new(highlighter.highlight_line(line).to_vec()));
+                        code_lines.push(Text::new(highlighter.parse_line(line).to_vec()));
                     }
                 }
 
                 #[cfg(not(feature = "highlighter"))]
                 for line in text.lines() {
-                    code_lines.push(Text::new(vec![Span::Standard {
+                    code_lines.push(Text::new(vec![Span::Code {
                         text: line.to_owned(),
-                        strong,
-                        emphasis,
-                        strikethrough,
-                        link: link.clone(),
-                        code: false,
+                        code: Code::Other,
                     }]));
                 }
 
@@ -930,7 +1574,7 @@ fn parse_with<'a>(
                 emphasis,
                 strikethrough,
                 link: link.clone(),
-                code: false,
+                inline_code: false,
             };
 
             spans.push(span);
@@ -944,7 +1588,7 @@ fn parse_with<'a>(
                 emphasis,
                 strikethrough,
                 link: link.clone(),
-                code: true,
+                inline_code: true,
             };
 
             spans.push(span);
@@ -957,7 +1601,7 @@ fn parse_with<'a>(
                 strong,
                 emphasis,
                 link: link.clone(),
-                code: false,
+                inline_code: false,
             });
             None
         }
@@ -968,7 +1612,7 @@ fn parse_with<'a>(
                 strong,
                 emphasis,
                 link: link.clone(),
-                code: false,
+                inline_code: false,
             });
             None
         }
@@ -991,10 +1635,22 @@ fn parse_with<'a>(
 }
 
 /// Configuration controlling Markdown rendering in [`view`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
+    /// The [`Font`] to be applied to basic text.
+    pub font: Font,
+    /// The [`Font`] to be applied to inline code.
+    pub inline_code_font: Font,
+    /// The [`Font`] to be applied to code blocks.
+    pub code_block_font: Font,
+    /// The base line height.
+    pub line_height: LineHeight,
     /// The base text size.
     pub text_size: Pixels,
+    /// The text size used in code blocks.
+    pub code_block_size: Pixels,
+    /// The text size used in inline code.
+    pub inline_code_size: Pixels,
     /// The text size of level 1 heading.
     pub h1_size: Pixels,
     /// The text size of level 2 heading.
@@ -1007,107 +1663,54 @@ pub struct Settings {
     pub h5_size: Pixels,
     /// The text size of level 6 heading.
     pub h6_size: Pixels,
-    /// The text size used in code blocks.
-    pub code_size: Pixels,
     /// The spacing to be used between elements.
     pub spacing: Pixels,
-    /// The styling of the Markdown.
-    pub style: Style,
 }
 
 impl Settings {
-    /// Creates new [`Settings`] with default text size and the given [`Style`].
-    pub fn with_style(style: impl Into<Style>) -> Self {
-        Self::with_text_size(16, style)
-    }
-
     /// Creates new [`Settings`] with the given base text size in [`Pixels`].
     ///
     /// Heading levels will be adjusted automatically. Specifically,
-    /// the first level will be twice the base size, and then every level
-    /// after that will be 25% smaller.
-    pub fn with_text_size(text_size: impl Into<Pixels>, style: impl Into<Style>) -> Self {
+    /// the first level will be 1.5 times the base size, the second
+    /// 1.25 times, the third 1.125 times, and the remaining levels
+    /// will use the base size.
+    pub fn with_text_size(text_size: impl Into<Pixels>) -> Self {
         let text_size = text_size.into();
+        let line_height = LineHeight::default();
 
         Self {
-            text_size,
-            h1_size: text_size * 2.0,
-            h2_size: text_size * 1.75,
-            h3_size: text_size * 1.5,
-            h4_size: text_size * 1.25,
-            h5_size: text_size,
-            h6_size: text_size,
-            code_size: text_size * 0.75,
-            spacing: text_size * 0.875,
-            style: style.into(),
-        }
-    }
-}
-
-impl From<&Theme> for Settings {
-    fn from(theme: &Theme) -> Self {
-        Self::with_style(Style::from(theme))
-    }
-}
-
-impl From<Theme> for Settings {
-    fn from(theme: Theme) -> Self {
-        Self::with_style(Style::from(theme))
-    }
-}
-
-/// The text styling of some Markdown rendering in [`view`].
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Style {
-    /// The [`Font`] to be applied to basic text.
-    pub font: Font,
-    /// The [`Highlight`] to be applied to the background of inline code.
-    pub inline_code_highlight: Highlight,
-    /// The [`Padding`] to be applied to the background of inline code.
-    pub inline_code_padding: Padding,
-    /// The [`Color`] to be applied to inline code.
-    pub inline_code_color: Color,
-    /// The [`Font`] to be applied to inline code.
-    pub inline_code_font: Font,
-    /// The [`Font`] to be applied to code blocks.
-    pub code_block_font: Font,
-    /// The [`Color`] to be applied to links.
-    pub link_color: Color,
-}
-
-impl Style {
-    /// Creates a new [`Style`] from the given [`palette::Seed`].
-    pub fn from_palette(seed: palette::Seed) -> Self {
-        Self {
-            font: Font::default(),
-            inline_code_padding: padding::left(1).right(1),
-            inline_code_highlight: Highlight {
-                background: color!(0x111111).into(),
-                border: border::rounded(4),
-            },
-            inline_code_color: Color::WHITE,
+            font: Font::DEFAULT,
             inline_code_font: Font::MONOSPACE,
             code_block_font: Font::MONOSPACE,
-            link_color: seed.primary,
+            line_height,
+            text_size,
+            inline_code_size: text_size * 0.85,
+            code_block_size: text_size * 0.85,
+            h1_size: text_size * 1.5,
+            h2_size: text_size * 1.25,
+            h3_size: text_size * 1.125,
+            h4_size: text_size,
+            h5_size: text_size,
+            h6_size: text_size,
+            spacing: line_height.to_absolute(text_size) / 1.5,
+        }
+    }
+
+    /// Sets the [`LineHeight`] of the [`Settings`].
+    pub fn line_height(self, line_height: impl Into<LineHeight>) -> Self {
+        let line_height = line_height.into();
+
+        Self {
+            line_height,
+            spacing: line_height.to_absolute(self.text_size) / 1.5,
+            ..self
         }
     }
 }
 
-impl From<palette::Seed> for Style {
-    fn from(seed: palette::Seed) -> Self {
-        Self::from_palette(seed)
-    }
-}
-
-impl From<&Theme> for Style {
-    fn from(theme: &Theme) -> Self {
-        Self::from_palette(theme.seed())
-    }
-}
-
-impl From<Theme> for Style {
-    fn from(theme: Theme) -> Self {
-        Self::from_palette(theme.seed())
+impl Default for Settings {
+    fn default() -> Self {
+        Self::with_text_size(16)
     }
 }
 
@@ -1139,7 +1742,11 @@ impl From<Theme> for Style {
 ///     }
 ///
 ///     fn view(&self) -> Element<'_, Message> {
-///         markdown::view(&self.markdown, Theme::TokyoNight)
+///         markdown::view(
+///             &self.markdown,
+///             markdown::Settings::default(),
+///             Theme::TokyoNight,
+///         )
 ///             .map(Message::LinkClicked)
 ///             .into()
 ///     }
@@ -1154,14 +1761,22 @@ impl From<Theme> for Style {
 /// }
 /// ```
 pub fn view<'a, Theme, Renderer>(
-    items: impl IntoIterator<Item = &'a Item>,
+    items: &'a [Item],
     settings: impl Into<Settings>,
+    theme: Theme,
 ) -> Element<'a, Uri, Theme, Renderer>
 where
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
-    view_with(items, settings, &DefaultViewer)
+    view_with(
+        items,
+        settings,
+        &DefaultViewer {
+            theme,
+            highlighter: None,
+        },
+    )
 }
 
 /// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into
@@ -1170,23 +1785,16 @@ where
 /// This is useful if you want to customize the look of certain Markdown
 /// elements.
 pub fn view_with<'a, Message, Theme, Renderer>(
-    items: impl IntoIterator<Item = &'a Item>,
+    items: &'a [Item],
     settings: impl Into<Settings>,
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
-    let settings = settings.into();
-
-    let blocks = items
-        .into_iter()
-        .enumerate()
-        .map(|(i, item_)| item(viewer, settings, item_, i));
-
-    Element::new(column(blocks).spacing(settings.spacing))
+    self::items(viewer, settings.into(), items)
 }
 
 /// Displays an [`Item`] using the given [`Viewer`].
@@ -1194,16 +1802,15 @@ pub fn item<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     item: &'a Item,
-    index: usize,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
     match item {
         Item::Image { url, title, alt } => viewer.image(settings, url, title, alt),
-        Item::Heading(level, text) => viewer.heading(settings, level, text, index),
+        Item::Heading(level, text) => viewer.heading(settings, level, text),
         Item::Paragraph(text) => viewer.paragraph(settings, text),
         Item::CodeBlock {
             language,
@@ -1219,23 +1826,23 @@ where
             bullets,
         } => viewer.ordered_list(settings, *start, bullets),
         Item::Quote(quote) => viewer.quote(settings, quote),
-        Item::Rule => viewer.rule(settings),
+        Item::Rule => viewer.rule(),
         Item::Table { columns, rows } => viewer.table(settings, columns, rows),
     }
 }
 
 /// Displays a heading using the default look.
 pub fn heading<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     level: &'a HeadingLevel,
     text: &'a Text,
-    index: usize,
     on_link_click: impl Fn(Uri) -> Message + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
     let Settings {
         h1_size,
@@ -1244,32 +1851,45 @@ where
         h4_size,
         h5_size,
         h6_size,
-        text_size,
         ..
     } = settings;
 
+    let size = match level {
+        pulldown_cmark::HeadingLevel::H1 => h1_size,
+        pulldown_cmark::HeadingLevel::H2 => h2_size,
+        pulldown_cmark::HeadingLevel::H3 => h3_size,
+        pulldown_cmark::HeadingLevel::H4 => h4_size,
+        pulldown_cmark::HeadingLevel::H5 => h5_size,
+        pulldown_cmark::HeadingLevel::H6 => h6_size,
+    };
+
     container(
-        rich_text(text.spans(settings.style))
-            .on_link_click(on_link_click)
-            .size(match level {
-                pulldown_cmark::HeadingLevel::H1 => h1_size,
-                pulldown_cmark::HeadingLevel::H2 => h2_size,
-                pulldown_cmark::HeadingLevel::H3 => h3_size,
-                pulldown_cmark::HeadingLevel::H4 => h4_size,
-                pulldown_cmark::HeadingLevel::H5 => h5_size,
-                pulldown_cmark::HeadingLevel::H6 => h6_size,
-            }),
+        rich_text(text.spans(
+            Settings {
+                font: Font {
+                    weight: font::Weight::Bold,
+                    ..settings.font
+                },
+                inline_code_font: Font {
+                    weight: font::Weight::Bold,
+                    ..settings.inline_code_font
+                },
+                inline_code_size: size * (settings.inline_code_size / settings.text_size),
+                ..settings
+            },
+            viewer.theme(),
+            viewer.highlighter(),
+        ))
+        .on_link_click(on_link_click)
+        .size(size)
+        .line_height(settings.line_height),
     )
-    .padding(padding::top(if index > 0 {
-        text_size / 2.0
-    } else {
-        Pixels::ZERO
-    }))
     .into()
 }
 
 /// Displays a paragraph using the default look.
 pub fn paragraph<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     text: &Text,
     on_link_click: impl Fn(Uri) -> Message + 'a,
@@ -1277,10 +1897,11 @@ pub fn paragraph<'a, Message, Theme, Renderer>(
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
-    rich_text(text.spans(settings.style))
+    rich_text(text.spans(settings, viewer.theme(), viewer.highlighter()))
         .size(settings.text_size)
+        .line_height(settings.line_height)
         .on_link_click(on_link_click)
         .into()
 }
@@ -1295,7 +1916,7 @@ pub fn unordered_list<'a, Message, Theme, Renderer>(
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
     column(bullets.iter().map(|bullet| {
         row![
@@ -1310,20 +1931,20 @@ where
                     )
                 }
             },
-            view_with(
-                bullet.items(),
+            items(
+                viewer,
                 Settings {
-                    spacing: settings.spacing * 0.6,
+                    spacing: settings.spacing / 2.0,
                     ..settings
                 },
-                viewer,
+                bullet.items(),
             )
         ]
-        .spacing(settings.spacing)
+        .spacing(settings.text_size / 2.0)
         .into()
     }))
-    .spacing(settings.spacing * 0.75)
-    .padding([0.0, settings.spacing.0])
+    .spacing(settings.spacing / 2.0)
+    .padding(padding::left(settings.text_size.0))
     .into()
 }
 
@@ -1338,7 +1959,7 @@ pub fn ordered_list<'a, Message, Theme, Renderer>(
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
     let digits = (start + bullets.len() as u64).max(1).ilog10() + 1;
 
@@ -1348,24 +1969,25 @@ where
                 .size(settings.text_size)
                 .align_x(alignment::Horizontal::Right)
                 .width(settings.text_size * ((digits as f32 / 2.0).ceil() + 1.0)),
-            view_with(
-                bullet.items(),
+            items(
+                viewer,
                 Settings {
-                    spacing: settings.spacing * 0.6,
+                    spacing: settings.spacing / 2.0,
                     ..settings
                 },
-                viewer,
+                bullet.items(),
             )
         ]
-        .spacing(settings.spacing)
+        .spacing(settings.text_size / 2.0)
         .into()
     }))
-    .spacing(settings.spacing * 0.75)
+    .spacing(settings.spacing / 2.0)
     .into()
 }
 
 /// Displays a code block using the default look.
 pub fn code_block<'a, Message, Theme, Renderer>(
+    viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     lines: &'a [Text],
     on_link_click: impl Fn(Uri) -> Message + Clone + 'a,
@@ -1373,27 +1995,28 @@ pub fn code_block<'a, Message, Theme, Renderer>(
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
+    let padding = settings.code_block_size / 0.85 * 0.75;
+
     container(
-        scrollable(
-            container(column(lines.iter().map(|line| {
-                rich_text(line.spans(settings.style))
-                    .on_link_click(on_link_click.clone())
-                    .font(settings.style.code_block_font)
-                    .size(settings.code_size)
-                    .into()
-            })))
-            .padding(settings.code_size),
-        )
+        scrollable(column(lines.iter().map(|line| {
+            rich_text(line.spans(settings, viewer.theme(), viewer.highlighter()))
+                .on_link_click(on_link_click.clone())
+                .font(settings.code_block_font)
+                .size(settings.code_block_size)
+                .line_height(settings.line_height)
+                .into()
+        })))
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()
-                .width(settings.code_size / 2)
-                .scroller_width(settings.code_size / 2),
-        )),
+                .width(padding / 2.0)
+                .scroller_width(padding / 2.0),
+        ))
+        .spacing(padding),
     )
     .width(Length::Fill)
-    .padding(settings.code_size / 4)
+    .padding(padding)
     .class(Theme::code_block())
     .into()
 }
@@ -1407,20 +2030,19 @@ pub fn quote<'a, Message, Theme, Renderer>(
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
-    row![
-        rule::vertical(4),
+    container(
         column(
             contents
                 .iter()
-                .enumerate()
-                .map(|(i, content)| item(viewer, settings, content, i)),
+                .map(|content| item(viewer, settings, content)),
         )
         .spacing(settings.spacing.0),
-    ]
-    .height(Length::Shrink)
-    .spacing(settings.spacing.0)
+    )
+    .width(Length::Fill)
+    .padding(settings.spacing.0)
+    .class(Theme::quote())
     .into()
 }
 
@@ -1429,7 +2051,7 @@ pub fn rule<'a, Message, Theme, Renderer>() -> Element<'a, Message, Theme, Rende
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
     rule::horizontal(2).into()
 }
@@ -1444,7 +2066,7 @@ pub fn table<'a, Message, Theme, Renderer>(
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
     use crate::table;
 
@@ -1488,26 +2110,46 @@ pub fn items<'a, Message, Theme, Renderer>(
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
-    column(
-        items
-            .iter()
-            .enumerate()
-            .map(|(i, content)| item(viewer, settings, content, i)),
-    )
-    .spacing(settings.spacing.0)
+    column(sections(items).map(|(heading, contents)| {
+        let contents = column(
+            contents
+                .iter()
+                .map(|content| item(viewer, settings, content)),
+        )
+        .spacing(settings.spacing)
+        .into();
+
+        if let Some(heading) = heading {
+            column![item(viewer, settings, heading), contents]
+                .spacing(settings.spacing / 2.0)
+                .into()
+        } else {
+            contents
+        }
+    }))
+    .spacing(settings.spacing * 1.5)
     .into()
 }
 
 /// A view strategy to display a Markdown [`Item`].
+///
+/// A [`Viewer`] is in charge of turning each [`Item`] into an [`Element`]. It
+/// also provides the [`Theme`] and [`text::Highlighter`] used for rendering.
 pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Self: Sized + 'a,
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
+    /// The [`Theme`] used for styling the Markdown elements.
+    fn theme(&self) -> &Theme;
+
+    /// The [`text::Highlighter`] used for highligthing [`Code`] regions.
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Theme>;
+
     /// Produces a message when a link is clicked with the given [`Uri`].
     fn on_link_click(url: Uri) -> Message;
 
@@ -1524,10 +2166,13 @@ where
         let _url = url;
         let _title = title;
 
-        container(rich_text(alt.spans(settings.style)).on_link_click(Self::on_link_click))
-            .padding(settings.spacing.0)
-            .class(Theme::code_block())
-            .into()
+        container(
+            rich_text(alt.spans(settings, self.theme(), self.highlighter()))
+                .on_link_click(Self::on_link_click),
+        )
+        .padding(settings.spacing.0)
+        .class(Theme::code_block())
+        .into()
     }
 
     /// Displays a heading.
@@ -1538,16 +2183,15 @@ where
         settings: Settings,
         level: &'a HeadingLevel,
         text: &'a Text,
-        index: usize,
     ) -> Element<'a, Message, Theme, Renderer> {
-        heading(settings, level, text, index, Self::on_link_click)
+        heading(self, settings, level, text, Self::on_link_click)
     }
 
     /// Displays a paragraph.
     ///
     /// By default, it calls [`paragraph`].
     fn paragraph(&self, settings: Settings, text: &Text) -> Element<'a, Message, Theme, Renderer> {
-        paragraph(settings, text, Self::on_link_click)
+        paragraph(self, settings, text, Self::on_link_click)
     }
 
     /// Displays a code block.
@@ -1563,7 +2207,7 @@ where
         let _language = language;
         let _code = code;
 
-        code_block(settings, lines, Self::on_link_click)
+        code_block(self, settings, lines, Self::on_link_click)
     }
 
     /// Displays an unordered list.
@@ -1603,7 +2247,7 @@ where
     /// Displays a rule.
     ///
     /// By default, it calls [`rule`](self::rule()).
-    fn rule(&self, _settings: Settings) -> Element<'a, Message, Theme, Renderer> {
+    fn rule(&self) -> Element<'a, Message, Theme, Renderer> {
         rule()
     }
 
@@ -1620,14 +2264,43 @@ where
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-struct DefaultViewer;
+/// The default [`Viewer`].
+pub struct DefaultViewer<'a, Theme> {
+    theme: Theme,
+    highlighter: Option<Box<dyn text::Highlighter<Code, Theme> + 'a>>,
+}
 
-impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer
+impl<'a, Theme> DefaultViewer<'a, Theme> {
+    /// Creates a new [`DefaultViewer`] with the given [`Theme`].
+    pub fn new(theme: Theme) -> Self {
+        Self {
+            theme,
+            highlighter: None,
+        }
+    }
+
+    /// Sets a custom [`text::Highlighter`] for the [`DefaultViewer`].
+    pub fn highlighter(mut self, highlighter: impl text::Highlighter<Code, Theme> + 'a) -> Self {
+        self.highlighter = Some(Box::new(highlighter));
+        self
+    }
+}
+
+impl<'a, Theme, Renderer> Viewer<'a, Uri, Theme, Renderer> for DefaultViewer<'a, Theme>
 where
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer<Font = Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
 {
+    fn theme(&self) -> &Theme {
+        &self.theme
+    }
+
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Theme> {
+        self.highlighter
+            .as_deref()
+            .unwrap_or_else(|| self.theme.highlighter())
+    }
+
     fn on_link_click(url: Uri) -> Uri {
         url
     }
@@ -1641,13 +2314,164 @@ pub trait Catalog:
     + crate::rule::Catalog
     + checkbox::Catalog
     + crate::table::Catalog
+    + Clone
+    + PartialEq
 {
-    /// The styling class of a Markdown code block.
+    /// The unique identifier of the [`Catalog`].
+    ///
+    /// This will be used to invalidate span styling when a theme changes.
+    fn id(&self) -> &str;
+
+    /// The [`Color`] of some link.
+    fn link_color(&self) -> Color;
+
+    /// The [`InlineCode`] style of some inline code.
+    fn code(&self) -> InlineCode;
+
+    /// The styling class of a code block.
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a>;
+
+    /// The styling class of a quote.
+    fn quote<'a>() -> <Self as container::Catalog>::Class<'a>;
+
+    /// The default [`text::Highlighter`] to use to highlight code.
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Self>;
+}
+
+/// The style of some inline code.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct InlineCode {
+    /// The [`Padding`] to apply around the code.
+    pub padding: Padding,
+    /// The [`Highlight`] of the code.
+    pub highlight: Highlight,
+    /// The [`Color`] of the code.
+    pub color: Color,
 }
 
 impl Catalog for Theme {
+    fn id(&self) -> &str {
+        theme::Base::name(self)
+    }
+
+    fn link_color(&self) -> Color {
+        self.seed().primary
+    }
+
+    fn code(&self) -> InlineCode {
+        let palette = self.palette();
+
+        InlineCode {
+            padding: padding::horizontal(4).vertical(1),
+            highlight: Highlight {
+                background: palette.background.weaker.color.into(),
+                border: border::rounded(4),
+            },
+            color: palette.background.weaker.text,
+        }
+    }
+
     fn code_block<'a>() -> <Self as container::Catalog>::Class<'a> {
-        Box::new(container::dark)
+        Box::new(|theme| container::dark(theme).border(border::rounded(5)))
+    }
+
+    fn quote<'a>() -> <Self as container::Catalog>::Class<'a> {
+        Box::new(|theme| {
+            let palette = theme.palette();
+
+            container::Style {
+                text_color: Some(palette.background.weakest.text),
+                background: Some(palette.background.weakest.color.into()),
+                border: border::rounded(5),
+                ..container::Style::default()
+            }
+        })
+    }
+
+    fn highlighter(&self) -> &dyn text::Highlighter<Code, Self> {
+        &Code::highlight
+    }
+}
+
+#[cfg(feature = "highlighter")]
+mod code {
+    use super::Span;
+
+    #[derive(Debug)]
+    pub struct Parser {
+        lines: Vec<(String, Vec<Span>)>,
+        language: String,
+        stream: iced_highlighter::Stream,
+        current: usize,
+    }
+
+    impl Parser {
+        pub fn new(language: &str) -> Self {
+            Self {
+                lines: Vec::new(),
+                stream: iced_highlighter::Stream::new(&iced_highlighter::Settings {
+                    token: language.to_owned(),
+                }),
+                language: language.to_owned(),
+                current: 0,
+            }
+        }
+
+        pub fn language(&self) -> &str {
+            &self.language
+        }
+
+        pub fn prepare(&mut self) {
+            self.current = 0;
+        }
+
+        pub fn parse_line(&mut self, text: &str) -> &[Span] {
+            match self.lines.get(self.current) {
+                Some(line) if line.0 == text => {}
+                _ => {
+                    if self.current + 1 < self.lines.len() {
+                        log::debug!("Resetting highlighter...");
+                        self.stream.reset();
+                        self.lines.truncate(self.current);
+
+                        for line in &self.lines {
+                            log::debug!("Refeeding {n} lines", n = self.lines.len());
+
+                            let _ = self.stream.parse_line(&line.0);
+                            self.stream.commit();
+                        }
+                    }
+
+                    log::trace!("Parsing: {text}", text = text.trim_end());
+
+                    if self.current == self.lines.len() {
+                        self.stream.commit();
+                    }
+
+                    let mut spans = Vec::new();
+
+                    for (range, code) in self.stream.parse_line(text) {
+                        spans.push(Span::Code {
+                            text: text[range].to_owned(),
+                            code,
+                        });
+                    }
+
+                    if self.current == self.lines.len() {
+                        self.lines.push((text.to_owned(), spans));
+                    } else {
+                        self.lines[self.current] = (text.to_owned(), spans);
+                    }
+                }
+            }
+
+            self.current += 1;
+
+            &self
+                .lines
+                .get(self.current - 1)
+                .expect("Line must be parsed")
+                .1
+        }
     }
 }

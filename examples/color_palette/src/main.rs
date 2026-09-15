@@ -16,7 +16,7 @@ pub fn main() -> iced::Result {
         ColorPalette::view,
     )
     .theme(ColorPalette::theme)
-    .default_font(Font::MONOSPACE)
+    .font(Font::MONOSPACE)
     .run()
 }
 

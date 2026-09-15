@@ -81,7 +81,7 @@ pub use title_bar::TitleBar;
 use crate::container;
 use crate::core::layout;
 use crate::core::mouse;
-use crate::core::overlay::{self, Group};
+use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget;
@@ -879,42 +879,39 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<Memory>();
         let picked_pane = state.action.picked_pane();
 
-        let children = self
-            .panes
+        self.panes
             .iter()
             .copied()
             .zip(&mut self.contents)
             .zip(&mut tree.children)
             .zip(layout.children())
-            .filter_map(|(((pane, content), tree), layout)| {
+            .flat_map(|(((pane, content), tree), layout)| {
                 if self
                     .internal
                     .maximized()
                     .is_some_and(|maximized| maximized != pane)
                 {
-                    return None;
+                    return Vec::new();
                 }
 
                 if let Some((picked_pane, origin)) = picked_pane
                     && picked_pane == pane
                 {
-                    return Some(overlay::Element::new(Box::new(PickedPane {
+                    return vec![overlay::Element::new(Box::new(PickedPane {
                         origin,
                         content,
                         tree,
                         layout,
-                    })));
+                    }))];
                 }
 
                 content.overlay(tree, layout, renderer, viewport, translation)
             })
-            .collect::<Vec<_>>();
-
-        (!children.is_empty()).then(|| Group::with_children(children).overlay())
+            .collect()
     }
 }
 

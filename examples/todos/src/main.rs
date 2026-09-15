@@ -23,7 +23,7 @@ fn application() -> Application<impl Program<Message = Message, Theme = Theme>> 
     iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)
-        .font(Todos::ICON_FONT)
+        .fonts([Todos::ICON_FONT])
         .window_size((500.0, 800.0))
         .presets(presets())
 }

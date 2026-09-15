@@ -63,7 +63,7 @@ where
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
@@ -94,13 +94,12 @@ where
 impl<A, B> core::text::Renderer for Renderer<A, B>
 where
     A: core::text::Renderer,
-    B: core::text::Renderer<Font = A::Font, Paragraph = A::Paragraph, Editor = A::Editor>,
+    B: core::text::Renderer<Paragraph = A::Paragraph, Editor = A::Editor>,
 {
-    type Font = A::Font;
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
 
-    const ICON_FONT: Self::Font = A::ICON_FONT;
+    const ICON_FONT: core::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
     const SCROLL_UP_ICON: char = A::SCROLL_UP_ICON;
@@ -108,14 +107,6 @@ where
     const SCROLL_LEFT_ICON: char = A::SCROLL_LEFT_ICON;
     const SCROLL_RIGHT_ICON: char = A::SCROLL_RIGHT_ICON;
     const ICED_LOGO: char = A::ICED_LOGO;
-
-    fn default_font(&self) -> Self::Font {
-        delegate!(self, renderer, renderer.default_font())
-    }
-
-    fn default_size(&self) -> core::Pixels {
-        delegate!(self, renderer, renderer.default_size())
-    }
 
     fn fill_paragraph(
         &mut self,
@@ -147,7 +138,7 @@ where
 
     fn fill_text(
         &mut self,
-        text: core::Text<String, Self::Font>,
+        text: core::Text<String>,
         position: Point,
         color: Color,
         clip_bounds: Rectangle,

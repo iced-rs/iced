@@ -3,6 +3,7 @@
 mod null;
 
 use crate::image;
+use crate::text;
 use crate::{
     Background, Border, Color, Font, Pixels, Rectangle, Shadow, Size, Transformation, Vector,
 };
@@ -55,7 +56,7 @@ pub trait Renderer {
 
     /// Creates an [`image::Allocation`] for the given [`image::Handle`] and calls the given callback with it.
     fn allocate_image(
-        &mut self,
+        &self,
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     );
@@ -165,12 +166,17 @@ pub trait Headless {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The default [`Font`] to use.
-    pub default_font: Font,
+    pub font: Font,
 
     /// The default size of text.
     ///
     /// By default, it will be set to `16.0`.
-    pub default_text_size: Pixels,
+    pub text_size: Pixels,
+
+    /// The default line height of text.
+    ///
+    /// By default, it will be set to `LineHeight::Relative(1.375)`.
+    pub line_height: text::LineHeight,
 
     /// Whether the [`Renderer`] should perform metrics hinting.
     ///
@@ -181,8 +187,9 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            default_font: Font::DEFAULT,
-            default_text_size: Pixels(16.0),
+            font: Font::DEFAULT,
+            text_size: Pixels(16.0),
+            line_height: text::LineHeight::default(),
             metrics_hinting: true,
         }
     }

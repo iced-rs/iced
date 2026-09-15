@@ -18,7 +18,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
 
 [features]
-lazy = ["ouroboros"]
 image = ["iced_renderer/image"]
 svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
@@ -38,9 +37,6 @@ rustc-hash.workspace = true
 thiserror.workspace = true
 unicode-segmentation.workspace = true
 
-ouroboros.workspace = true
-ouroboros.optional = true
-
 qrcode.workspace = true
 qrcode.optional = true
 
@@ -49,3 +45,12 @@ pulldown-cmark.optional = true
 
 iced_highlighter.workspace = true
 iced_highlighter.optional = true
+
+[dev-dependencies]
+iced_test.workspace = true
+
+iced_renderer.workspace = true
+iced_renderer.features = ["tiny-skia", "x11", "wayland"]
+
+iced_widget.workspace = true
+iced_widget.features = ["markdown"]

@@ -263,8 +263,12 @@ impl Generator {
                             .on_link_click(Message::OpenPullRequest)
                             .font(Font::MONOSPACE);
 
-                            let description =
-                                markdown(description, self.theme()).map(Message::LinkClicked);
+                            let description = markdown::view(
+                                description,
+                                markdown::Settings::default(),
+                                self.theme(),
+                            )
+                            .map(Message::LinkClicked);
 
                             let labels = row(pull_request.labels.iter().map(|label| {
                                 container(text(label).size(10).font(Font::MONOSPACE))
@@ -321,9 +325,10 @@ impl Generator {
                 } else {
                     container(
                         scrollable(
-                            markdown(
+                            markdown::view(
                                 preview,
-                                markdown::Settings::with_text_size(12, self.theme()),
+                                markdown::Settings::with_text_size(12),
+                                self.theme(),
                             )
                             .map(Message::LinkClicked),
                         )

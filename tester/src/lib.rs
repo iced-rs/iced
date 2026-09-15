@@ -729,7 +729,7 @@ impl<P: Program + 'static> Tester<P> {
                 .into()
             };
 
-            let control = |icon: text::Text<'static, _, _>| {
+            let control = |icon: text::Text<'static, _>| {
                 button(icon.size(14).width(Fill).height(Fill).center())
             };
 

@@ -19,7 +19,7 @@ pub struct Rectangle<T = f32> {
 
 impl<T> Rectangle<T>
 where
-    T: Default,
+    T: Default + Copy,
 {
     /// Creates a new [`Rectangle`] with its top-left corner at the origin
     /// and with the provided [`Size`].
@@ -30,6 +30,11 @@ where
             width: size.width,
             height: size.height,
         }
+    }
+
+    /// Returns the [`Size`] of the [`Rectangle`].
+    pub fn size(&self) -> Size<T> {
+        Size::new(self.width, self.height)
     }
 }
 
@@ -125,11 +130,6 @@ impl Rectangle<f32> {
     /// Returns the position of the top left corner of the [`Rectangle`].
     pub fn position(&self) -> Point {
         Point::new(self.x, self.y)
-    }
-
-    /// Returns the [`Size`] of the [`Rectangle`].
-    pub fn size(&self) -> Size {
-        Size::new(self.width, self.height)
     }
 
     /// Returns the area of the [`Rectangle`].

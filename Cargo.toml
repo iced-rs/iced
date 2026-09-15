@@ -30,9 +30,9 @@ wgpu-bare = ["iced_renderer/wgpu-bare", "iced_widget/wgpu"]
 # Enables the `tiny-skia` software renderer
 tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `image` widget and image clipboard support
-image = ["image-without-codecs", "image/default", "iced_winit/image"]
+image = ["image-without-codecs", "image/default"]
 # Enables the `image` widget, without any built-in codecs of the `image` crate
-image-without-codecs = ["iced_widget/image", "dep:image"]
+image-without-codecs = ["iced_widget/image", "iced_winit/image", "dep:image"]
 # Enables the `svg` widget
 svg = ["iced_widget/svg", "iced_renderer/svg-text"]
 # Enables the `canvas` widget
@@ -41,8 +41,6 @@ canvas = ["iced_widget/canvas"]
 qr_code = ["iced_widget/qr_code"]
 # Enables the `markdown` widget
 markdown = ["iced_widget/markdown"]
-# Enables lazy widgets
-lazy = ["iced_widget/lazy"]
 # Enables debug metrics in native platforms (press F12)
 debug = ["iced_winit/debug", "dep:iced_devtools"]
 # Enables time-travel debugging (very experimental!)
@@ -172,7 +170,7 @@ repository = "https://github.com/iced-rs/iced"
 homepage = "https://iced.rs"
 categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-rust-version = "1.92"
+rust-version = "1.93"
 
 [workspace.dependencies]
 iced = { version = "0.15.0-dev", path = "." }
@@ -200,8 +198,8 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
-cosmic-text = "0.19"
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "f4e7e4eb84dc1d2f335a98c67d8694640d53a433" }
+cosmic-text = { git = "https://github.com/hecrj/cosmic-text.git", rev = "6e10ac2ce889f48c9eeb1f19c1340a37d6afae31" }
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "e6aec585e0db7cc0281c37b4e66ee91d732adb92" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.33.2"
 guillotiere = "0.6"
@@ -216,7 +214,6 @@ lyon_path = "1.0"
 mundy = { version = "0.2", default-features = false }
 nom = "8"
 num-traits = "0.2"
-ouroboros = "0.18"
 png = "0.18"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
@@ -227,7 +224,7 @@ rustc-hash = "2.0"
 semver = "1.0"
 serde = "1.0"
 sha2 = "0.10"
-sipper = "0.1"
+sipper = "0.2"
 smol = "2"
 smol_str = "0.2"
 softbuffer = { version = "0.4", default-features = false }
@@ -236,7 +233,7 @@ thiserror = "2"
 tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
 tokio = "1.0"
 tracing = "0.1"
-two-face = { version = "0.4", default-features = false, features = ["syntect-default-fancy"] }
+two-face = { version = "0.5", default-features = false, features = ["syntect-fancy"] }
 unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"

@@ -1,4 +1,5 @@
 use crate::core::alignment;
+use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -8,23 +9,22 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    self, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell,
+    Size, Vector, Widget,
 };
 
 /// A bunch of [`Rich`] text.
-pub struct Rich<'a, Link, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Rich<'a, Link, Message, Theme = crate::Theme>
 where
     Link: Clone + 'static,
     Theme: Catalog,
-    Renderer: core::text::Renderer,
 {
-    spans: Box<dyn AsRef<[Span<'a, Link, Renderer::Font>]> + 'a>,
+    spans: Box<dyn AsRef<[Span<'a, Link>]> + 'a>,
     size: Option<Pixels>,
-    line_height: LineHeight,
+    line_height: Option<LineHeight>,
     width: Length,
     height: Length,
-    font: Option<Renderer::Font>,
+    font: Option<Font>,
     align_x: Alignment,
     align_y: alignment::Vertical,
     wrapping: Wrapping,
@@ -34,19 +34,17 @@ where
     on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
 }
 
-impl<'a, Link, Message, Theme, Renderer> Rich<'a, Link, Message, Theme, Renderer>
+impl<'a, Link, Message, Theme> Rich<'a, Link, Message, Theme>
 where
     Link: Clone + 'static,
     Theme: Catalog,
-    Renderer: core::text::Renderer,
-    Renderer::Font: 'a,
 {
     /// Creates a new empty [`Rich`] text.
     pub fn new() -> Self {
         Self {
             spans: Box::new([]),
             size: None,
-            line_height: LineHeight::default(),
+            line_height: None,
             width: Length::Shrink,
             height: Length::Shrink,
             font: None,
@@ -61,7 +59,7 @@ where
     }
 
     /// Creates a new [`Rich`] text with the given text spans.
-    pub fn with_spans(spans: impl AsRef<[Span<'a, Link, Renderer::Font>]> + 'a) -> Self {
+    pub fn with_spans(spans: impl AsRef<[Span<'a, Link>]> + 'a) -> Self {
         Self {
             spans: Box::new(spans),
             ..Self::new()
@@ -76,12 +74,12 @@ where
 
     /// Sets the default [`LineHeight`] of the [`Rich`] text.
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
-        self.line_height = line_height.into();
+        self.line_height = Some(line_height.into());
         self
     }
 
     /// Sets the default font of the [`Rich`] text.
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+    pub fn font(mut self, font: impl Into<Font>) -> Self {
         self.font = Some(font.into());
         self
     }
@@ -176,12 +174,10 @@ where
     }
 }
 
-impl<'a, Link, Message, Theme, Renderer> Default for Rich<'a, Link, Message, Theme, Renderer>
+impl<'a, Link, Message, Theme> Default for Rich<'a, Link, Message, Theme>
 where
     Link: Clone + 'a,
     Theme: Catalog,
-    Renderer: core::text::Renderer,
-    Renderer::Font: 'a,
 {
     fn default() -> Self {
         Self::new()
@@ -189,13 +185,13 @@ where
 }
 
 struct State<Link, P: Paragraph> {
-    spans: Vec<Span<'static, Link, P::Font>>,
+    spans: Vec<Span<'static, Link>>,
     span_pressed: Option<usize>,
     paragraph: P,
 }
 
 impl<Link, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Rich<'_, Link, Message, Theme, Renderer>
+    for Rich<'_, Link, Message, Theme>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -272,16 +268,34 @@ where
                 let regions = state.paragraph.span_bounds(index);
 
                 if let Some(highlight) = span.highlight {
-                    for bounds in &regions {
+                    for (i, bounds) in regions.iter().enumerate() {
+                        let starts = i == 0;
+                        let ends = i + 1 == regions.len();
+
+                        // The horizontal padding belongs to the start and end
+                        // of the span, not to each of its lines
+                        let left = if starts { span.padding.left } else { 0.0 };
+                        let right = if ends { span.padding.right } else { 0.0 };
+
                         let bounds = Rectangle::new(
-                            bounds.position() - Vector::new(span.padding.left, span.padding.top),
-                            bounds.size() + Size::new(span.padding.x(), span.padding.y()),
+                            bounds.position() - Vector::new(left, span.padding.top),
+                            bounds.size() + Size::new(left + right, span.padding.y()),
                         );
+
+                        let radius = border::Radius {
+                            top_left: highlight.border.radius.top_left * f32::from(starts),
+                            bottom_left: highlight.border.radius.bottom_left * f32::from(starts),
+                            top_right: highlight.border.radius.top_right * f32::from(ends),
+                            bottom_right: highlight.border.radius.bottom_right * f32::from(ends),
+                        };
 
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: bounds + translation,
-                                border: highlight.border,
+                                border: Border {
+                                    radius,
+                                    ..highlight.border
+                                },
                                 ..Default::default()
                             },
                             highlight.background,
@@ -290,11 +304,12 @@ where
                 }
 
                 if span.underline || span.strikethrough || is_hovered_link {
-                    let size = span.size.or(self.size).unwrap_or(renderer.default_size());
+                    let size = span.size.or(self.size).unwrap_or(renderer.text_size());
 
                     let line_height = span
                         .line_height
-                        .unwrap_or(self.line_height)
+                        .or(self.line_height)
+                        .unwrap_or_else(|| renderer.line_height())
                         .to_absolute(size);
 
                     let color = span.color.or(style.color).unwrap_or(defaults.text_color);
@@ -307,8 +322,7 @@ where
                             renderer.fill_quad(
                                 renderer::Quad {
                                     bounds: Rectangle::new(
-                                        bounds.position() + baseline
-                                            - Vector::new(0.0, size.0 * 0.08),
+                                        bounds.position() + baseline,
                                         Size::new(bounds.width, 1.0),
                                     ),
                                     ..Default::default()
@@ -442,10 +456,10 @@ fn layout<Link, Renderer>(
     limits: &layout::Limits,
     width: Length,
     height: Length,
-    spans: &[Span<'_, Link, Renderer::Font>],
-    line_height: LineHeight,
+    spans: &[Span<'_, Link>],
+    line_height: Option<LineHeight>,
     size: Option<Pixels>,
-    font: Option<Renderer::Font>,
+    font: Option<Font>,
     align_x: Alignment,
     align_y: alignment::Vertical,
     wrapping: Wrapping,
@@ -458,8 +472,9 @@ where
     layout::sized(limits, width, height, |limits| {
         let bounds = limits.max();
 
-        let size = size.unwrap_or_else(|| renderer.default_size());
-        let font = font.unwrap_or_else(|| renderer.default_font());
+        let size = size.unwrap_or_else(|| renderer.text_size());
+        let font = font.unwrap_or_else(|| renderer.font());
+        let line_height = line_height.unwrap_or_else(|| renderer.line_height());
 
         let text_with_spans = || core::Text {
             content: spans,
@@ -506,20 +521,17 @@ where
     })
 }
 
-impl<'a, Link, Message, Theme, Renderer> FromIterator<Span<'a, Link, Renderer::Font>>
-    for Rich<'a, Link, Message, Theme, Renderer>
+impl<'a, Link, Message, Theme> FromIterator<Span<'a, Link>> for Rich<'a, Link, Message, Theme>
 where
     Link: Clone + 'a,
     Theme: Catalog,
-    Renderer: core::text::Renderer,
-    Renderer::Font: 'a,
 {
-    fn from_iter<T: IntoIterator<Item = Span<'a, Link, Renderer::Font>>>(spans: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = Span<'a, Link>>>(spans: T) -> Self {
         Self::with_spans(spans.into_iter().collect::<Vec<_>>())
     }
 }
 
-impl<'a, Link, Message, Theme, Renderer> From<Rich<'a, Link, Message, Theme, Renderer>>
+impl<'a, Link, Message, Theme, Renderer> From<Rich<'a, Link, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -527,9 +539,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
-    fn from(
-        text: Rich<'a, Link, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(text: Rich<'a, Link, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }
 }
