@@ -388,6 +388,15 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
+        let state = tree.state.downcast_mut::<State>();
+
+        if state.last_id != self.id {
+            *state = State {
+                last_id: self.id.clone(),
+                ..State::default()
+            };
+        }
+
         let size = self.content.as_widget().size();
 
         if self.direction.horizontal().is_none() {
@@ -1492,7 +1501,7 @@ fn notify_viewport<Message>(
     true
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct State {
     offset_y: Offset,
     offset_x: Offset,
@@ -1502,6 +1511,7 @@ struct State {
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
     last_status: Option<Status>,
+    last_id: Option<widget::Id>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1528,6 +1538,7 @@ impl Default for State {
             last_scrolled: None,
             is_scrollbar_visible: true,
             last_status: None,
+            last_id: None,
         }
     }
 }
