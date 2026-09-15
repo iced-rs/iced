@@ -38,7 +38,7 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, PointerInput, 
+    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, PointerInput,
     Rectangle, Shell, Size, Theme, Widget,
 };
 
@@ -260,12 +260,12 @@ where
         let mut update = || {
             let current_value = self.value;
 
-            let locate = |cursor_position: Point| -> Option<T> {
+            let locate = |position: Point| -> Option<T> {
                 let bounds = layout.bounds();
 
-                if cursor_position.x <= bounds.x {
+                if position.x <= bounds.x {
                     Some(*self.range.start())
-                } else if cursor_position.x >= bounds.x + bounds.width {
+                } else if position.x >= bounds.x + bounds.width {
                     Some(*self.range.end())
                 } else {
                     let step = if state.keyboard_modifiers.shift() {
@@ -277,7 +277,7 @@ where
                     let start = (*self.range.start()).as_();
                     let end = (*self.range.end()).as_();
 
-                    let percent = f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
+                    let percent = f64::from(position.x - bounds.x) / f64::from(bounds.width);
 
                     let steps = (percent * (end - start) / step).round();
                     let value = steps * step + start;
@@ -329,8 +329,7 @@ where
             };
 
             match &event {
-                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                     if let Some(cursor_position) = cursor.position_over(layout.bounds()) {
                         if state.keyboard_modifiers.command() {
                             let _ = self.default.map(change);
@@ -339,6 +338,14 @@ where
                             let _ = locate(cursor_position).map(change);
                             state.is_dragging = true;
                         }
+
+                        shell.capture_event();
+                    }
+                }
+                Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    if let Some(position) = touch.position_over(layout.bounds()) {
+                        let _ = locate(position).map(change);
+                        state.is_dragging = true;
 
                         shell.capture_event();
                     }
@@ -353,11 +360,13 @@ where
                     }
                     state.is_dragging = false;
                 }
-                Event::Mouse(mouse::Event::CursorMoved { .. })
-                | Event::Touch(touch::Event::FingerMoved { .. })
-                    if state.is_dragging =>
-                {
+                Event::Mouse(mouse::Event::CursorMoved { .. }) if state.is_dragging => {
                     let _ = cursor.land().position().and_then(locate).map(change);
+
+                    shell.capture_event();
+                }
+                Event::Touch(touch::Event::FingerMoved { .. }) if state.is_dragging => {
+                    let _ = touch.position().and_then(locate).map(change);
 
                     shell.capture_event();
                 }
