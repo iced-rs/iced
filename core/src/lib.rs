@@ -159,7 +159,7 @@ where
 }
 
 /// A common base for the mouse cursor and touches  
-pub trait PointerInput : Sized {
+pub trait PointerInput: Sized {
     /// Returns the absolute position of the [`PointerInput`], if available.
     fn position(self) -> Option<Point>;
 

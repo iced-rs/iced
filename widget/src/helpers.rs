@@ -666,9 +666,9 @@ where
             let is_mouse_press =
                 matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
 
-            self.content
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+            self.content.as_widget_mut().update(
+                tree, event, layout, cursor, touch, renderer, shell, viewport,
+            );
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
                 shell.capture_event();

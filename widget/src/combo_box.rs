@@ -68,7 +68,8 @@ use crate::core::widget::operation::Focusable as _;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Element, Event, Font, Length, Padding, Pixels, Point, PointerInput, Rectangle, Shell, Size, Theme, Vector,
+    Element, Event, Font, Length, Padding, Pixels, Point, PointerInput, Rectangle, Shell, Size,
+    Theme, Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;

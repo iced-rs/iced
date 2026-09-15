@@ -5,7 +5,9 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{Operation, Tree, tree};
-use crate::core::{Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{
+    Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shell, Size, Vector, Widget,
+};
 
 /// Emit messages on mouse events.
 pub struct MouseArea<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {

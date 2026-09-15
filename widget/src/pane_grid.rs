@@ -88,8 +88,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Border, Color, Element, Event, Layout, Length, Pixels, Point, PointerInput, Rectangle,
-    Shell, Size, Theme, Vector, Widget,
+    self, Background, Border, Color, Element, Event, Layout, Length, Pixels, Point, PointerInput,
+    Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 
 const DRAG_DEADBAND_DISTANCE: f32 = 10.0;

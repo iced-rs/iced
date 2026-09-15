@@ -44,7 +44,7 @@ use crate::core::widget::operation::{self, Focusable, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Point, 
+    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Point,
     PointerInput, Rectangle, Shell, Size, Theme, Widget,
 };
 
@@ -345,19 +345,20 @@ where
         let is_disabled = self.on_input.is_none();
 
         if let Some(on_input) = &self.on_input {
-            let edit = state
-                .input
-                .update(event, layout.bounds(), cursor, touch, shell, |key_press| {
-                    if let Some(on_submit) = &self.on_submit
-                        && key_press.is_focused
-                        && key_press.modified_key
-                            == keyboard::Key::Named(keyboard::key::Named::Enter)
-                    {
-                        return Some(editor::Binding::Custom(on_submit.clone()));
-                    }
+            let edit =
+                state
+                    .input
+                    .update(event, layout.bounds(), cursor, touch, shell, |key_press| {
+                        if let Some(on_submit) = &self.on_submit
+                            && key_press.is_focused
+                            && key_press.modified_key
+                                == keyboard::Key::Named(keyboard::key::Named::Enter)
+                        {
+                            return Some(editor::Binding::Custom(on_submit.clone()));
+                        }
 
-                    editor::Binding::from_key_press(key_press)
-                });
+                        editor::Binding::from_key_press(key_press)
+                    });
 
             if let Some(edit) = edit {
                 let on_input = if let Some(on_paste) = &self.on_paste

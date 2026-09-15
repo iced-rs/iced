@@ -2,9 +2,9 @@ pub use crate::Overlay;
 
 use crate::layout;
 use crate::mouse;
-use crate::touch;
 use crate::renderer;
 use crate::shell;
+use crate::touch;
 use crate::widget;
 use crate::{Event, Layout, Point, Shell, Size};
 

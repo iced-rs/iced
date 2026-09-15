@@ -1,9 +1,9 @@
 use crate::event;
 use crate::layout;
 use crate::mouse;
-use crate::touch;
 use crate::overlay;
 use crate::renderer;
+use crate::touch;
 use crate::widget;
 use crate::{Event, Layout, Point, PointerInput, Shell, Size};
 
@@ -239,7 +239,15 @@ where
                     .map(|(mut nested, nested_layout)| {
                         sort_overlays(&mut nested);
 
-                        recurse(&mut nested, nested_layout, event, cursor, touch, renderer, shell)
+                        recurse(
+                            &mut nested,
+                            nested_layout,
+                            event,
+                            cursor,
+                            touch,
+                            renderer,
+                            shell,
+                        )
                     })
                     .unwrap_or_default();
 
@@ -275,7 +283,15 @@ where
             is_over
         }
 
-        let _ = recurse(&mut self.children, layout, event, cursor, touch, renderer, shell);
+        let _ = recurse(
+            &mut self.children,
+            layout,
+            event,
+            cursor,
+            touch,
+            renderer,
+            shell,
+        );
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Nested`] overlay.

@@ -10,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Event, Font, Length, Padding, Pixels, Point, PointerInput, Rectangle, Shadow, Size, Theme,
-    Vector,
+    Background, Color, Event, Font, Length, Padding, Pixels, Point, PointerInput, Rectangle,
+    Shadow, Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -286,8 +286,9 @@ where
     ) {
         let bounds = layout.bounds();
 
-        self.list
-            .update(self.tree, event, layout, cursor, touch, renderer, shell, &bounds);
+        self.list.update(
+            self.tree, event, layout, cursor, touch, renderer, shell, &bounds,
+        );
     }
 
     fn mouse_interaction(

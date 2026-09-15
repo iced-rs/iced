@@ -67,8 +67,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Font, Layout, Length, Point, PointerInput, Pixels, Rectangle, Shell, Size, Theme,
-    Widget,
+    Background, Color, Element, Event, Font, Layout, Length, Pixels, Point, PointerInput,
+    Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -328,7 +328,7 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. })
-                if cursor.is_over(layout.bounds()) || touch.is_over(layout.bounds())  =>
+                if cursor.is_over(layout.bounds()) || touch.is_over(layout.bounds()) =>
             {
                 shell.publish(self.on_click.clone());
                 shell.capture_event();

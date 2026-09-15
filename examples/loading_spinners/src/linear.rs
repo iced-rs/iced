@@ -6,7 +6,7 @@ use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
 use iced::time::Instant;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Rectangle, Point, Size};
+use iced::{Background, Color, Element, Event, Length, Point, Rectangle, Size};
 
 use super::easing::{self, Easing};
 

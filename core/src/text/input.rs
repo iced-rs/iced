@@ -3,10 +3,10 @@ use crate::alignment;
 use crate::clipboard;
 use crate::layout;
 use crate::mouse;
-use crate::touch;
 use crate::text::editor;
 use crate::text::paragraph;
 use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};
+use crate::touch;
 use crate::widget::operation::{Focusable, TextInput};
 use crate::{Color, Event, Font, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell};
 
@@ -237,9 +237,15 @@ impl<R: text::Renderer> Input<R> {
 
         let editor = self.secure.as_ref().unwrap_or(&self.editor);
 
-        let update = self
-            .state
-            .update(editor, event, bounds, self.padding, cursor, touch, key_binding)?;
+        let update = self.state.update(
+            editor,
+            event,
+            bounds,
+            self.padding,
+            cursor,
+            touch,
+            key_binding,
+        )?;
 
         if let Some(secure) = &mut self.secure {
             fn apply_secure<Message>(

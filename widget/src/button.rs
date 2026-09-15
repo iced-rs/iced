@@ -27,8 +27,8 @@ use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Padding, Point, PointerInput, Rectangle, Shadow,
-    Shell, Size, Theme, Vector, Widget,
+    Background, Color, Element, Event, Layout, Length, Padding, Point, PointerInput, Rectangle,
+    Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.

@@ -46,8 +46,8 @@ use crate::core::touch;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Point, PointerInput, Rectangle, Shell,
-    Size, Theme,
+    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Point, PointerInput,
+    Rectangle, Shell, Size, Theme,
 };
 
 use std::borrow::Cow;

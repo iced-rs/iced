@@ -256,9 +256,9 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            child
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+            child.as_widget_mut().update(
+                tree, event, layout, cursor, touch, renderer, shell, viewport,
+            );
         }
     }
 
@@ -515,8 +515,9 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.row
-            .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+        self.row.update(
+            tree, event, layout, cursor, touch, renderer, shell, viewport,
+        );
     }
 
     fn mouse_interaction(

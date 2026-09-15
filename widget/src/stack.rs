@@ -5,7 +5,9 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{
+    Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shell, Size, Vector, Widget,
+};
 
 /// A container that displays children on top of each other.
 ///
@@ -228,9 +230,9 @@ where
             .zip(layout.children().rev())
             .enumerate()
         {
-            child
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+            child.as_widget_mut().update(
+                tree, event, layout, cursor, touch, renderer, shell, viewport,
+            );
 
             if shell.is_event_captured() {
                 return;

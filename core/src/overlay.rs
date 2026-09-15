@@ -7,8 +7,8 @@ pub use nested::Nested;
 
 use crate::layout;
 use crate::mouse;
-use crate::touch;
 use crate::renderer;
+use crate::touch;
 use crate::widget;
 use crate::widget::Tree;
 use crate::{Event, Layout, Point, Rectangle, Shell, Size, Vector};

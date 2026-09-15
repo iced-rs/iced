@@ -120,9 +120,7 @@ where
 
     pub fn touch(&self) -> touch::Touch {
         self.touch_position
-            .map(|position| {
-                conversion::cursor_position(position, self.viewport.scale_factor())
-            })
+            .map(|position| conversion::cursor_position(position, self.viewport.scale_factor()))
             .map(touch::Touch::Available)
             .unwrap_or(touch::Touch::Unavailable)
     }
@@ -179,17 +177,15 @@ where
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor_position = Some(*position);
             }
-            WindowEvent::Touch(touch) => {
-                match touch.phase {
-                    TouchPhase::Started | TouchPhase::Moved => {
-                        self.touch_position = Some(touch.location);
-                    },
-                    TouchPhase::Cancelled => {
-                        self.touch_position = None;
-                    }
-                    _ => {}
+            WindowEvent::Touch(touch) => match touch.phase {
+                TouchPhase::Started | TouchPhase::Moved => {
+                    self.touch_position = Some(touch.location);
                 }
-            }
+                TouchPhase::Cancelled => {
+                    self.touch_position = None;
+                }
+                _ => {}
+            },
             WindowEvent::CursorLeft { .. } => {
                 self.cursor_position = None;
             }

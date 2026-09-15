@@ -9,7 +9,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
+    Element, Event, Layout, Length, Point, PointerInput, Rectangle, Shadow, Shell, Size,
+    Transformation, Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -126,9 +127,9 @@ where
             return;
         }
 
-        self.content
-            .as_widget_mut()
-            .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+        self.content.as_widget_mut().update(
+            tree, event, layout, cursor, touch, renderer, shell, viewport,
+        );
     }
 
     fn draw(

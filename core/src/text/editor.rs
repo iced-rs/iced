@@ -12,7 +12,8 @@ use crate::touch;
 use crate::widget::operation::{Focusable, TextInput};
 use crate::window;
 use crate::{
-    Color, Event, Font, InputMethod, Padding, Pixels, Point, PointerInput, Rectangle, Size, SmolStr, Vector,
+    Color, Event, Font, InputMethod, Padding, Pixels, Point, PointerInput, Rectangle, Size,
+    SmolStr, Vector,
 };
 
 use std::borrow::Cow;

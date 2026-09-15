@@ -8,7 +8,8 @@ use crate::core::touch;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget,
+    Background, Color, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A widget that applies any `Theme` to its contents.
@@ -111,9 +112,9 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content
-            .as_widget_mut()
-            .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+        self.content.as_widget_mut().update(
+            tree, event, layout, cursor, touch, renderer, shell, viewport,
+        );
     }
 
     fn mouse_interaction(

@@ -31,8 +31,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Padding, Point, Rectangle, Shadow, Shell,
-    Size, Theme, Vector, Widget, color,
+    self, Background, Color, Element, Event, Layout, Length, Padding, Point, Rectangle, Shadow,
+    Shell, Size, Theme, Vector, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.

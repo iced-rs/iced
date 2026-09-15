@@ -275,9 +275,9 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            child
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+            child.as_widget_mut().update(
+                tree, event, layout, cursor, touch, renderer, shell, viewport,
+            );
         }
     }
 

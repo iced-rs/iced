@@ -1,9 +1,9 @@
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::touch;
 use crate::renderer;
 use crate::shell;
+use crate::touch;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{Border, Color, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
@@ -451,9 +451,9 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.element
-            .widget
-            .update(tree, event, layout, cursor, touch, renderer, shell, viewport);
+        self.element.widget.update(
+            tree, event, layout, cursor, touch, renderer, shell, viewport,
+        );
     }
 
     fn draw(

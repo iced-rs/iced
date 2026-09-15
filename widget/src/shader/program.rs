@@ -1,7 +1,7 @@
-use crate::core::{Point, Rectangle};
 use crate::core::mouse;
-use crate::renderer::wgpu::Primitive;
 use crate::core::touch;
+use crate::core::{Point, Rectangle};
+use crate::renderer::wgpu::Primitive;
 use crate::shader::{self, Action};
 
 /// The state and logic of a [`Shader`] widget.

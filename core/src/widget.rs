@@ -12,9 +12,9 @@ pub use tree::Tree;
 
 use crate::layout::{self, Layout};
 use crate::mouse;
-use crate::touch;
 use crate::overlay;
 use crate::renderer;
+use crate::touch;
 use crate::{Event, Length, Point, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
