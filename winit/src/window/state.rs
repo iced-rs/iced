@@ -181,10 +181,9 @@ where
                 TouchPhase::Started | TouchPhase::Moved => {
                     self.touch_position = Some(touch.location);
                 }
-                TouchPhase::Cancelled => {
+                _ => {
                     self.touch_position = None;
                 }
-                _ => {}
             },
             WindowEvent::CursorLeft { .. } => {
                 self.cursor_position = None;

@@ -362,7 +362,9 @@ where
                 }
                 state.is_dragging = false;
             }
-            Event::Mouse(mouse::Event::CursorMoved { .. }) if is_dragging => {
+            Event::Mouse(mouse::Event::CursorMoved { .. })
+                if is_dragging && touch.position().is_none() =>
+            {
                 let _ = cursor.land().position().and_then(locate).map(change);
 
                 shell.capture_event();
