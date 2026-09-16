@@ -26,10 +26,8 @@ impl<'a> Layout<'a> {
     /// Creates a new [`Layout`] for the given [`Node`] with the provided offset
     /// from the origin.
     pub fn with_offset(offset: Vector, node: &'a Node) -> Self {
-        let bounds = node.bounds();
-
         Self {
-            position: Point::new(bounds.x, bounds.y) + offset,
+            position: node.position() + offset,
             node,
             parent: None,
         }
@@ -54,14 +52,7 @@ impl<'a> Layout<'a> {
     /// The returned [`Rectangle`] describes the position and size of a
     /// [`Node`].
     pub fn bounds(&self) -> Rectangle {
-        let bounds = self.node.bounds();
-
-        Rectangle {
-            x: self.position.x,
-            y: self.position.y,
-            width: bounds.width,
-            height: bounds.height,
-        }
+        Rectangle::new(self.position, self.node.size())
     }
 
     /// Returns the bounds of the parent of this [`Layout`], if any.
@@ -74,14 +65,10 @@ impl<'a> Layout<'a> {
         let parent = self.bounds();
         let offset = Vector::new(self.position.x, self.position.y);
 
-        self.node.children().iter().map(move |node| {
-            let bounds = node.bounds();
-
-            Layout {
-                position: Point::new(bounds.x, bounds.y) + offset,
-                node,
-                parent: Some(parent),
-            }
+        self.node.children().iter().map(move |node| Layout {
+            position: node.position() + offset,
+            node,
+            parent: Some(parent),
         })
     }
 
@@ -95,10 +82,9 @@ impl<'a> Layout<'a> {
     pub fn child(self, index: usize) -> Layout<'a> {
         let node = &self.node.children()[index];
         let offset = Vector::new(self.position.x, self.position.y);
-        let bounds = node.bounds();
 
         Layout {
-            position: Point::new(bounds.x, bounds.y) + offset,
+            position: node.position() + offset,
             node,
             parent: Some(self.bounds()),
         }
