@@ -58,3 +58,61 @@ pub const NUDGE: f32 = 0.001;
 pub fn snap(bounds: Rectangle) -> Option<Rectangle<u32>> {
     (bounds + Vector::new(NUDGE, NUDGE)).snap()
 }
+
+/// Snaps `bounds` to the physical pixel grid, keeping signed coordinates.
+///
+/// It applies the same nudge-and-round convention as [`snap`], but keeps
+/// floating-point coordinates, so negative values are preserved instead of
+/// being saturated to zero.
+///
+/// Use this for coordinates that can legitimately extend beyond the
+/// top-left corner of the viewport, like the bounds of content scrolled out
+/// of view: those are clipped afterwards by their surroundings.
+pub fn round(bounds: Rectangle) -> Rectangle {
+    (bounds + Vector::new(NUDGE, NUDGE)).round()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{Point, Size};
+
+    /// An image scrolled out of view above the viewport must keep its
+    /// negative position when snapped; saturating it to the origin would
+    /// leave it stuck to the upper edge of the scrollable.
+    #[test]
+    fn round_keeps_negative_coordinates() {
+        let bounds = Rectangle::new(Point::new(10.0, -50.0), Size::new(100.0, 100.0));
+
+        assert_eq!(
+            round(bounds),
+            Rectangle::new(Point::new(10.0, -50.0), Size::new(100.0, 100.0))
+        );
+    }
+
+    /// Coordinates landing a hair below a half-pixel boundary must round
+    /// up onto the grid, like the `quad` vertex shader.
+    #[test]
+    fn round_applies_the_nudge() {
+        let bounds = Rectangle::new(Point::new(0.0, 10.4998), Size::new(10.0, 1.0));
+
+        // Without the nudge, plain `round` would land a pixel off:
+        assert_eq!(bounds.y.round(), 10.0);
+
+        // With it, the boundary rounds up, matching the GPU:
+        assert_eq!(round(bounds).y, 11.0);
+    }
+
+    /// `snap` saturates negative coordinates to zero, so it must only be
+    /// used on bounds that are known to be within the viewport, like
+    /// scissor rects.
+    #[test]
+    fn snap_saturates_negative_coordinates() {
+        let bounds = Rectangle::new(Point::new(10.0, -50.0), Size::new(100.0, 100.0));
+
+        let snapped = snap(bounds).expect("Visible rectangle");
+
+        assert_eq!(snapped.y, 0);
+        assert_eq!(round(bounds).y, -50.0);
+    }
+}
