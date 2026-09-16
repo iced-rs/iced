@@ -155,8 +155,6 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        // The contents are displayed by the overlay when they are not fully
-        // inside the visible bounds
         if !layout.bounds().is_within(viewport) {
             return;
         }
@@ -174,8 +172,6 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        // The contents are displayed by the overlay when they are not fully
-        // inside the visible bounds
         if !layout.bounds().is_within(viewport) {
             return mouse::Interaction::None;
         }
@@ -195,13 +191,13 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        // The contents are displayed by the overlay when they are not fully
-        // inside the visible bounds
-        if layout.bounds().is_within(viewport) {
-            self.content
-                .as_widget()
-                .draw(tree, renderer, theme, style, layout, cursor, viewport);
+        if !layout.bounds().is_within(viewport) {
+            return;
         }
+
+        self.content
+            .as_widget()
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
     fn overlay<'b>(
@@ -220,10 +216,6 @@ where
             && !bounds.is_within(&viewport)
             && parent.intersects(&viewport)
         {
-            // The contents are not fully inside the visible bounds: they are
-            // displayed on an overlay, stuck to the visible bounds. When
-            // their edges reach the edges of the parent, they stay attached
-            // to them, keeping their original bounds.
             let position = Point::new(
                 stuck_axis(
                     bounds.x,
@@ -252,9 +244,6 @@ where
                 viewport,
             }))]
         } else {
-            // The contents are fully inside the visible bounds, or their
-            // parent has gone out of them: the contents scroll with the
-            // parent.
             self.content
                 .as_widget_mut()
                 .overlay(tree, layout, renderer, &viewport, translation)
@@ -327,8 +316,6 @@ where
     Renderer: core::Renderer,
 {
     fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        // The contents are not re-laid-out: they keep their original layout
-        // and simply float inside the viewport.
         layout::Node::new(self.viewport.size()).move_to(self.viewport.position())
     }
 
