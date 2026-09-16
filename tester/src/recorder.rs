@@ -102,6 +102,7 @@ where
                     self.content.as_widget_mut().operate(
                         &mut tree.children[0],
                         layout,
+                        viewport,
                         renderer,
                         operation,
                     );
@@ -189,12 +190,17 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        self.content.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'a>(

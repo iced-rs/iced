@@ -436,10 +436,11 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
             self.panes
                 .iter_mut()
@@ -452,7 +453,7 @@ where
                         .is_none_or(|maximized| **pane == maximized)
                 })
                 .for_each(|(((_, content), state), layout)| {
-                    content.operate(state, layout, renderer, operation);
+                    content.operate(state, layout, viewport, renderer, operation);
                 });
         });
     }

@@ -339,6 +339,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -360,6 +361,7 @@ where
                     compact.as_widget_mut().operate(
                         &mut tree.children[2],
                         compact_layout,
+                        viewport,
                         renderer,
                         operation,
                     );
@@ -369,6 +371,7 @@ where
                     controls.full.as_widget_mut().operate(
                         &mut tree.children[1],
                         controls_layout,
+                        viewport,
                         renderer,
                         operation,
                     );
@@ -377,6 +380,7 @@ where
                 controls.full.as_widget_mut().operate(
                     &mut tree.children[1],
                     controls_layout,
+                    viewport,
                     renderer,
                     operation,
                 );
@@ -387,6 +391,7 @@ where
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
                 title_layout,
+                viewport,
                 renderer,
                 operation,
             );

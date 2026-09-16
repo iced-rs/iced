@@ -87,6 +87,8 @@ impl Pipeline {
                     "\n",
                     include_str!("../shader/vertex.wgsl"),
                     "\n",
+                    include_str!("../shader/quad/shadow.wgsl"),
+                    "\n",
                     include_str!("../shader/quad/gradient.wgsl"),
                     "\n",
                     include_str!("../shader/color.wgsl"),
@@ -117,16 +119,24 @@ impl Pipeline {
                             4 => Uint32x4,
                             // Direction
                             5 => Float32x4,
-                            // Position & Scale
-                            6 => Float32x4,
+                            // Position
+                            6 => Float32x2,
+                            // Scale
+                            7 => Float32x2,
                             // Border color
-                            7 => Float32x4,
-                            // Border radius
                             8 => Float32x4,
+                            // Border radius
+                            9 => Float32x4,
                             // Border width
-                            9 => Float32,
+                            10 => Float32,
+                            // Shadow color
+                            11 => Float32x4,
+                            // Shadow offset
+                            12 => Float32x2,
+                            // Shadow blur radius
+                            13 => Float32,
                             // Snap
-                            10 => Uint32,
+                            14 => Uint32,
                         ),
                     }],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),

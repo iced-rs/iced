@@ -758,6 +758,7 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {

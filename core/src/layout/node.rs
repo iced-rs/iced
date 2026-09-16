@@ -39,6 +39,11 @@ impl Node {
         Size::new(self.bounds.width, self.bounds.height)
     }
 
+    /// Returns the position of the [`Node`].
+    pub fn position(&self) -> Point {
+        self.bounds.position()
+    }
+
     /// Returns the bounds of the [`Node`].
     pub fn bounds(&self) -> Rectangle {
         self.bounds

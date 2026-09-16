@@ -281,14 +281,16 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
                 layout,
+                viewport,
                 renderer,
                 operation,
             );
@@ -544,9 +546,13 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.popup
-            .as_widget_mut()
-            .operate(self.tree, layout, renderer, operation);
+        self.popup.as_widget_mut().operate(
+            self.tree,
+            layout,
+            &layout.bounds(),
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'a>(

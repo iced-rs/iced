@@ -79,6 +79,8 @@ impl Pipeline {
                 "\n",
                 include_str!("../shader/vertex.wgsl"),
                 "\n",
+                include_str!("../shader/quad/shadow.wgsl"),
+                "\n",
                 include_str!("../shader/quad/solid.wgsl"),
             ))),
         });

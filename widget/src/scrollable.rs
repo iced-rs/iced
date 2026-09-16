@@ -388,6 +388,15 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
+        let state = tree.state.downcast_mut::<State>();
+
+        if state.last_id != self.id {
+            *state = State {
+                last_id: self.id.clone(),
+                ..State::default()
+            };
+        }
+
         let size = self.content.as_widget().size();
 
         if self.direction.horizontal().is_none() {
@@ -517,6 +526,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
@@ -529,10 +539,22 @@ where
 
         operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
 
+        let visible_bounds = bounds.intersection(viewport);
+        let viewport = visible_bounds
+            .map(|visible_bounds| Rectangle {
+                y: visible_bounds.y + translation.y,
+                x: visible_bounds.x + translation.x,
+                ..visible_bounds
+            })
+            .unwrap_or_default();
+
+        operation.container(self.id.as_ref(), content_bounds, &viewport);
+
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
-                layout.children().next().unwrap(),
+                content_layout,
+                &viewport,
                 renderer,
                 operation,
             );
@@ -1492,7 +1514,7 @@ fn notify_viewport<Message>(
     true
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct State {
     offset_y: Offset,
     offset_x: Offset,
@@ -1502,6 +1524,7 @@ struct State {
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
     last_status: Option<Status>,
+    last_id: Option<widget::Id>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1528,6 +1551,7 @@ impl Default for State {
             last_scrolled: None,
             is_scrollbar_visible: true,
             last_status: None,
+            last_id: None,
         }
     }
 }

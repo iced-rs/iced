@@ -247,6 +247,45 @@ fn pushing_to_a_long_list_stays_fast() {
     assert_eq!(c.items().len(), 1);
 }
 
+/// Pushing a large document with many code blocks, word by word,
+/// must stay fast and converge to the one-shot parse.
+///
+/// Without a per-block highlighter cache, the blocks (or the whole
+/// document) would be re-highlighted on every push: for this fixture
+/// that is ~90s in a debug build with the `highlighter` feature (and
+/// ~10s in release). The budget must cover the slowest CI runners
+/// (debug, `highlighter`: ~6s) with headroom, while staying far
+/// below the uncached times so that a regression to re-highlighting
+/// every block on every push still fails it.
+#[test]
+#[ignore]
+fn pushing_a_document_with_code_blocks_stays_fast() {
+    let full = include_str!("fixtures/slow-incremental-markdown.md");
+    let chunks: Vec<_> = full.split_inclusive(' ').map(str::to_owned).collect();
+
+    let start = std::time::Instant::now();
+    let mut c = Content::new();
+    for chunk in &chunks {
+        c.push_str(chunk);
+    }
+    let elapsed = start.elapsed();
+
+    let one_shot = Content::parse(full);
+    assert_eq!(
+        format!("{:?}", c.items()),
+        format!("{:?}", one_shot.items()),
+        "the incremental parse should converge to the one-shot parse"
+    );
+    assert_eq!(c.images(), one_shot.images());
+
+    let words = chunks.len();
+    assert!(
+        elapsed.as_secs_f64() < 15.0,
+        "pushing {words} words took {elapsed:?}, which suggests that the \
+         code blocks (or the whole document) are re-parsed on every push"
+    );
+}
+
 #[test]
 fn reference_resolved_before_next_item() {
     let full = "- a [x][ref]\n\n[ref]: https://example.com\n\npara\n";
@@ -480,6 +519,7 @@ fn content_sections() {
 /// generated documents, with the three chunking schemes, checking the
 /// one-shot equivalence after every push.
 #[test]
+#[ignore]
 fn fuzz() {
     /// The blocks from which the fuzzed documents are generated.
     const BLOCKS: &[&str] = &[

@@ -194,6 +194,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -203,6 +204,7 @@ where
             title_bar.operate(
                 &mut tree.children[1],
                 children.next().unwrap(),
+                viewport,
                 renderer,
                 operation,
             );
@@ -212,9 +214,13 @@ where
             layout
         };
 
-        self.body
-            .as_widget_mut()
-            .operate(&mut tree.children[0], body_layout, renderer, operation);
+        self.body.as_widget_mut().operate(
+            &mut tree.children[0],
+            body_layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     pub(crate) fn update(

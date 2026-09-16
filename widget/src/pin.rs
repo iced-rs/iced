@@ -154,12 +154,14 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         self.content.as_widget_mut().operate(
             tree,
             layout.children().next().unwrap(),
+            viewport,
             renderer,
             operation,
         );

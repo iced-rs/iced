@@ -408,6 +408,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -422,6 +423,7 @@ where
         self.view.as_widget_mut().operate(
             &mut tree.children[0],
             Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            viewport,
             renderer,
             operation,
         );

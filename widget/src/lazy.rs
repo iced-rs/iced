@@ -108,6 +108,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -115,10 +116,13 @@ where
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
 
-        cached
-            .element
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        cached.element.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn update(
