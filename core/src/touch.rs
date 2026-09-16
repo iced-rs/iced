@@ -1,5 +1,5 @@
 //! Build touch events.
-use crate::{Point, PointerInput};
+use crate::{Point, PointerInput, Rectangle};
 
 /// A touch interaction.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -29,8 +29,11 @@ pub enum Touch {
     Available(Point),
 
     /// The touch is currently unavailable (i.e. is not registered by the input device).
+    Unavailable(Point),
+
+    /// The state is unknown
     #[default]
-    Unavailable,
+    Unknown,
 }
 
 impl PointerInput for Touch {
@@ -38,7 +41,31 @@ impl PointerInput for Touch {
     fn position(self) -> Option<Point> {
         match self {
             Touch::Available(position) => Some(position),
-            Touch::Unavailable => None,
+            _ => None,
         }
+    }
+}
+
+impl Touch {
+    /// Returns the last observable absolute position of the [`Touch`]
+    pub fn last_position(self) -> Option<Point> {
+        match self {
+            Touch::Available(position) | Touch::Unavailable(position) => Some(position),
+            _ => None,
+        }
+    }
+
+    /// Returns the last absolute position of the [`PointerInput`], if available and inside
+    /// the given bounds.
+    ///
+    /// If the [`PointerInput`] has not been over the provided bounds, this method will
+    /// return `None`.
+    pub fn last_position_over(self, bounds: Rectangle) -> Option<Point> {
+        self.last_position().filter(|p| bounds.contains(*p))
+    }
+
+    /// Returns true if the [`PointerInput`] has been over the given `bounds`.
+    pub fn has_been_over(self, bounds: Rectangle) -> bool {
+        self.last_position_over(bounds).is_some()
     }
 }

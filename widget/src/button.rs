@@ -286,30 +286,29 @@ where
 
         let state = tree.state.downcast_mut::<State>();
         let bounds = layout.bounds();
-        let is_within_bounds = cursor.is_over(bounds) || touch.is_over(bounds);
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. })
                 if self.on_press.is_some() =>
             {
-                if is_within_bounds {
+                if cursor.is_over(bounds) || touch.is_over(bounds) {
                     state.is_pressed = true;
 
                     shell.capture_event();
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. }) => {
+            | Event::Touch(touch::Event::FingerLifted { .. })
+                if state.is_pressed =>
+            {
                 if let Some(on_press) = &self.on_press {
-                    if state.is_pressed {
-                        state.is_pressed = false;
+                    state.is_pressed = false;
 
-                        if is_within_bounds {
-                            shell.publish(on_press.get());
-                        }
-
-                        shell.capture_event();
+                    if cursor.is_over(bounds) || touch.has_been_over(bounds) {
+                        shell.publish(on_press.get());
                     }
+
+                    shell.capture_event();
                 }
             }
             Event::Touch(touch::Event::FingerLost { .. }) => {

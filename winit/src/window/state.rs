@@ -10,6 +10,28 @@ use winit::window::Window;
 
 use std::fmt::{Debug, Formatter};
 
+/// A state of the touch position
+enum TouchState {
+    /// The touch is currently registered
+    Available(winit::dpi::PhysicalPosition<f64>),
+    /// No touches currently registered, but the last known position is saved
+    Unavailable(winit::dpi::PhysicalPosition<f64>),
+    /// The default state
+    Unknown,
+}
+
+impl TouchState {
+    pub fn map<U, F>(self, f: F) -> Option<U>
+    where
+        F: FnOnce(winit::dpi::PhysicalPosition<f64>) -> U,
+    {
+        match self {
+            Self::Available(i) | Self::Unavailable(i) => Some(f(i)),
+            _ => None,
+        }
+    }
+}
+
 /// The state of the window of a [`Program`].
 pub struct State<P: Program>
 where
@@ -19,7 +41,7 @@ where
     viewport: Viewport,
     surface_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
-    touch_position: Option<winit::dpi::PhysicalPosition<f64>>,
+    touch_position: TouchState,
     modifiers: winit::keyboard::ModifiersState,
     theme: Option<P::Theme>,
     theme_mode: theme::Mode,
@@ -76,7 +98,7 @@ where
             viewport,
             surface_version: 0,
             cursor_position: None,
-            touch_position: None,
+            touch_position: TouchState::Unknown,
             modifiers: winit::keyboard::ModifiersState::default(),
             theme,
             theme_mode,
@@ -119,10 +141,17 @@ where
     }
 
     pub fn touch(&self) -> touch::Touch {
-        self.touch_position
-            .map(|position| conversion::cursor_position(position, self.viewport.scale_factor()))
-            .map(touch::Touch::Available)
-            .unwrap_or(touch::Touch::Unavailable)
+        match self.touch_position {
+            TouchState::Available(pos) => touch::Touch::Available(conversion::cursor_position(
+                pos,
+                self.viewport.scale_factor(),
+            )),
+            TouchState::Unavailable(pos) => touch::Touch::Unavailable(conversion::cursor_position(
+                pos,
+                self.viewport.scale_factor(),
+            )),
+            TouchState::Unknown => touch::Touch::Unknown,
+        }
     }
 
     pub fn modifiers(&self) -> winit::keyboard::ModifiersState {
@@ -179,10 +208,10 @@ where
             }
             WindowEvent::Touch(touch) => match touch.phase {
                 TouchPhase::Started | TouchPhase::Moved => {
-                    self.touch_position = Some(touch.location);
+                    self.touch_position = TouchState::Available(touch.location);
                 }
                 _ => {
-                    self.touch_position = None;
+                    self.touch_position = TouchState::Unavailable(touch.location);
                 }
             },
             WindowEvent::CursorLeft { .. } => {
