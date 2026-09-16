@@ -51,7 +51,6 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::text;
 use crate::core::touch;
 use crate::core::widget::{self, Widget};
 use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
@@ -91,7 +90,7 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///     popover(
 ///         button(text("Click me!")).on_press(Message::Close),
 ///         state.is_open.then(|| {
-///             container(text("This is the popover contents!")).padding(10)
+///             container("This is the popover contents!").padding(10)
 ///         }),
 ///     )
 ///     .position(popover::Position::Bottom)
@@ -101,7 +100,7 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 /// ```
 pub struct Popover<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
-    Renderer: text::Renderer,
+    Renderer: crate::core::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
     popup: Option<Popup<'a, Message, Theme, Renderer>>,
@@ -111,33 +110,9 @@ where
     on_close: Option<Message>,
 }
 
-enum Popup<'a, Message, Theme, Renderer> {
-    Opaque(Opaque<'a, Message, Theme, Renderer>),
-    Transparent(Element<'a, Message, Theme, Renderer>),
-}
-
-impl<'a, Message, Theme, Renderer> Popup<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
-    fn as_widget(&self) -> &dyn Widget<Message, Theme, Renderer> {
-        match self {
-            Popup::Opaque(opaque) => opaque,
-            Popup::Transparent(element) => element.as_widget(),
-        }
-    }
-
-    fn as_widget_mut(&mut self) -> &mut dyn Widget<Message, Theme, Renderer> {
-        match self {
-            Popup::Opaque(opaque) => opaque,
-            Popup::Transparent(element) => element.as_widget_mut(),
-        }
-    }
-}
-
 impl<'a, Message, Theme, Renderer> Popover<'a, Message, Theme, Renderer>
 where
-    Renderer: text::Renderer,
+    Renderer: crate::core::Renderer,
 {
     /// Creates a new [`Popover`].
     ///
@@ -215,7 +190,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Popover<'_, Message, Theme, Renderer>
 where
     Message: Clone,
-    Renderer: text::Renderer,
+    Renderer: crate::core::Renderer,
 {
     fn diff(&mut self, tree: &mut widget::Tree) {
         match self.popup.as_mut() {
@@ -367,12 +342,36 @@ impl<'a, Message, Theme, Renderer> From<Popover<'a, Message, Theme, Renderer>>
 where
     Message: 'a + Clone,
     Theme: 'a,
-    Renderer: text::Renderer + 'a,
+    Renderer: crate::core::Renderer + 'a,
 {
     fn from(
         popover: Popover<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(popover)
+    }
+}
+
+enum Popup<'a, Message, Theme, Renderer> {
+    Opaque(Opaque<'a, Message, Theme, Renderer>),
+    Transparent(Element<'a, Message, Theme, Renderer>),
+}
+
+impl<'a, Message, Theme, Renderer> Popup<'a, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
+    fn as_widget(&self) -> &dyn Widget<Message, Theme, Renderer> {
+        match self {
+            Popup::Opaque(opaque) => opaque,
+            Popup::Transparent(element) => element.as_widget(),
+        }
+    }
+
+    fn as_widget_mut(&mut self) -> &mut dyn Widget<Message, Theme, Renderer> {
+        match self {
+            Popup::Opaque(opaque) => opaque,
+            Popup::Transparent(element) => element.as_widget_mut(),
+        }
     }
 }
 
@@ -409,7 +408,7 @@ impl From<Position> for crate::overlay::Position {
 
 struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Renderer: text::Renderer,
+    Renderer: crate::core::Renderer,
 {
     popup: &'b mut Popup<'a, Message, Theme, Renderer>,
     tree: &'b mut widget::Tree,
@@ -424,7 +423,7 @@ where
 impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'_, '_, Message, Theme, Renderer>
 where
-    Renderer: text::Renderer,
+    Renderer: crate::core::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
