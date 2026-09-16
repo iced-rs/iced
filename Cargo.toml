@@ -113,6 +113,7 @@ image.optional = true
 
 [dev-dependencies]
 criterion = "0.5"
+iced_test.workspace = true
 iced_wgpu.workspace = true
 iced_renderer.workspace = true
 

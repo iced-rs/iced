@@ -168,6 +168,20 @@ where
             .fold(event::Status::Ignored, event::Status::merge)
     }
 
+    /// Scrolls with the given [`delta`] in the [`Simulator`].
+    ///
+    /// The mouse cursor must be over the content being scrolled for the
+    /// scroll to be applied, e.g. via [`Self::point_at`].
+    ///
+    /// [`delta`]: crate::core::mouse::ScrollDelta
+    pub fn scroll(&mut self, delta: mouse::ScrollDelta) -> event::Status {
+        let statuses = self.simulate(scroll(delta));
+
+        statuses
+            .into_iter()
+            .fold(event::Status::Ignored, event::Status::merge)
+    }
+
     /// Simulates the given raw sequence of events in the [`Simulator`].
     pub fn simulate(&mut self, events: impl IntoIterator<Item = Event>) -> Vec<event::Status> {
         let events: Vec<Event> = events.into_iter().collect();
@@ -346,6 +360,13 @@ pub fn click() -> impl Iterator<Item = Event> {
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)),
     ]
     .into_iter()
+}
+
+/// Returns the sequence of events of a scroll, with the given [`delta`].
+///
+/// [`delta`]: crate::core::mouse::ScrollDelta
+pub fn scroll(delta: mouse::ScrollDelta) -> impl Iterator<Item = Event> {
+    std::iter::once(Event::Mouse(mouse::Event::WheelScrolled { delta }))
 }
 
 /// Returns the sequence of events of a key press.

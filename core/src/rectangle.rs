@@ -33,7 +33,7 @@ where
     }
 
     /// Returns the [`Size`] of the [`Rectangle`].
-    pub fn size(&self) -> Size<T> {
+    pub const fn size(&self) -> Size<T> {
         Size::new(self.width, self.height)
     }
 }

@@ -88,6 +88,7 @@ where
         &mut self,
         _tree: &mut Tree,
         _layout: Layout<'_>,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         _operation: &mut dyn Operation,
     ) {

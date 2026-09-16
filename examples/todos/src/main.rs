@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::widget::{
-    self, Text, button, center, center_x, checkbox, column, keyed_column, operation, row,
-    scrollable, text, text_input,
+    self, Text, button, center, center_x, checkbox, column, container, keyed_column, operation,
+    row, scrollable, sticky, text, text_input,
 };
 use iced::window;
 use iced::{
@@ -197,21 +197,26 @@ impl Todos {
                 tasks,
                 ..
             }) => {
-                let title = text("todos")
-                    .width(Fill)
-                    .size(100)
-                    .style(subtle)
-                    .align_x(Center);
+                let header = {
+                    let title = text("todos")
+                        .width(Fill)
+                        .size(100)
+                        .style(subtle)
+                        .align_x(Center);
 
-                let input = text_input("What needs to be done?", input_value)
-                    .id("new-task")
-                    .on_input(Message::InputChanged)
-                    .on_submit(Message::CreateTask)
-                    .padding(15)
-                    .size(30)
-                    .align_x(Center);
+                    let input = text_input("What needs to be done?", input_value)
+                        .id("new-task")
+                        .on_input(Message::InputChanged)
+                        .on_submit(Message::CreateTask)
+                        .padding(15)
+                        .size(30)
+                        .align_x(Center);
 
-                let controls = view_controls(tasks, *filter);
+                    let controls = view_controls(tasks, *filter);
+
+                    column![title, input, controls].spacing(20)
+                };
+
                 let filtered_tasks = tasks.iter().filter(|task| filter.matches(task));
 
                 let tasks: Element<_> = if filtered_tasks.count() > 0 {
@@ -234,11 +239,18 @@ impl Todos {
                     })
                 };
 
-                let content = column![title, input, controls, tasks]
-                    .spacing(20)
-                    .width(Fit.max(800));
+                let content = column![
+                    sticky(container(header).style(|theme| {
+                        container::Style::default().background(theme.seed().background)
+                    })),
+                    tasks
+                ]
+                .spacing(20)
+                .width(Fit.max(400));
 
-                scrollable(center_x(content).padding(40)).into()
+                container(scrollable(center_x(content)).spacing(10))
+                    .padding(10)
+                    .into()
             }
         }
     }

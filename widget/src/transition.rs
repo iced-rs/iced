@@ -328,6 +328,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -340,9 +341,13 @@ where
             tree.state.downcast_mut::<State<P>>().should_reset = true;
         }
 
-        self.element
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        self.element.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'a>(

@@ -27,7 +27,7 @@ pub trait Operation<T = ()>: Send {
     fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<T>));
 
     /// Operates on a widget that contains other widgets.
-    fn container(&mut self, _id: Option<&Id>, _bounds: Rectangle) {}
+    fn container(&mut self, _id: Option<&Id>, _bounds: Rectangle, _viewport: &Rectangle) {}
 
     /// Operates on a widget that can be scrolled.
     fn scrollable(
@@ -66,8 +66,8 @@ where
         self.as_mut().traverse(operate);
     }
 
-    fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
-        self.as_mut().container(id, bounds);
+    fn container(&mut self, id: Option<&Id>, bounds: Rectangle, viewport: &Rectangle) {
+        self.as_mut().container(id, bounds, viewport);
     }
 
     fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
@@ -147,8 +147,8 @@ where
             });
         }
 
-        fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
-            self.operation.container(id, bounds);
+        fn container(&mut self, id: Option<&Id>, bounds: Rectangle, viewport: &Rectangle) {
+            self.operation.container(id, bounds, viewport);
         }
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
@@ -219,10 +219,10 @@ where
                     });
                 }
 
-                fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
+                fn container(&mut self, id: Option<&Id>, bounds: Rectangle, viewport: &Rectangle) {
                     let Self { operation, .. } = self;
 
-                    operation.container(id, bounds);
+                    operation.container(id, bounds, viewport);
                 }
 
                 fn scrollable(
@@ -269,8 +269,8 @@ where
             });
         }
 
-        fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
-            self.operation.container(id, bounds);
+        fn container(&mut self, id: Option<&Id>, bounds: Rectangle, viewport: &Rectangle) {
+            self.operation.container(id, bounds, viewport);
         }
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
@@ -350,8 +350,8 @@ where
             });
         }
 
-        fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
-            self.operation.container(id, bounds);
+        fn container(&mut self, id: Option<&Id>, bounds: Rectangle, viewport: &Rectangle) {
+            self.operation.container(id, bounds, viewport);
         }
 
         fn focusable(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn Focusable) {
@@ -418,7 +418,7 @@ pub fn scope<T: 'static>(target: Id, operation: impl Operation<T> + 'static) -> 
             self.current = None;
         }
 
-        fn container(&mut self, id: Option<&Id>, _bounds: Rectangle) {
+        fn container(&mut self, id: Option<&Id>, _bounds: Rectangle, _viewport: &Rectangle) {
             self.current = id.cloned();
         }
 
