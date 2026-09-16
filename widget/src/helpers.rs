@@ -19,6 +19,7 @@ use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
+use crate::sticky::Sticky;
 use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
@@ -1009,6 +1010,40 @@ where
     Renderer: core::text::Renderer,
 {
     Scrollable::new(content)
+}
+
+/// Creates a new [`Sticky`] for the provided content.
+///
+/// The contents of a [`Sticky`] will be displayed on an overlay, inside the
+/// visible bounds, whenever they would otherwise go out of view.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, container, scrollable, sticky, space};
+/// use iced::Fill;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     scrollable(column![
+///         sticky(container("I always stay in view!").width(Fill).padding(10)),
+///         space().height(3000),
+///     ]).into()
+/// }
+/// ```
+pub fn sticky<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Sticky<'a, Message, Theme, Renderer>
+where
+    Theme: 'a,
+    Renderer: core::Renderer + 'a,
+{
+    Sticky::new(content)
 }
 
 /// Creates a new [`Button`] with the provided content.
