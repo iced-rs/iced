@@ -562,7 +562,8 @@ where
 
         let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_over(cursor);
+        let (touch_over_y_scrollbar, touch_over_x_scrollbar) = scrollbars.is_over(touch);
 
         let last_offsets = (state.offset_x, state.offset_y);
 
@@ -590,12 +591,13 @@ where
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) = cursor.land().position() else {
+                            let Some(position) = touch.position().or(cursor.land().position())
+                            else {
                                 return;
                             };
 
                             state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
+                                scrollbar.scroll_percentage_y(scroller_grabbed_at, position),
                                 bounds,
                                 content_bounds,
                             );
@@ -613,19 +615,19 @@ where
                     }
                     _ => {}
                 }
-            } else if mouse_over_y_scrollbar {
+            } else if mouse_over_y_scrollbar || touch_over_y_scrollbar {
                 match event {
                     Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
+                        let Some(position) = touch.position().or(cursor.position()) else {
                             return;
                         };
 
                         if let (Some(scroller_grabbed_at), Some(scrollbar)) =
-                            (scrollbars.grab_y_scroller(cursor_position), scrollbars.y)
+                            (scrollbars.grab_y_scroller(position), scrollbars.y)
                         {
                             state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
+                                scrollbar.scroll_percentage_y(scroller_grabbed_at, position),
                                 bounds,
                                 content_bounds,
                             );
@@ -651,13 +653,13 @@ where
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.land().position() else {
+                        let Some(position) = touch.position().or(cursor.land().position()) else {
                             return;
                         };
 
                         if let Some(scrollbar) = scrollbars.x {
                             state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
+                                scrollbar.scroll_percentage_x(scroller_grabbed_at, position),
                                 bounds,
                                 content_bounds,
                             );
@@ -675,19 +677,19 @@ where
                     }
                     _ => {}
                 }
-            } else if mouse_over_x_scrollbar {
+            } else if mouse_over_x_scrollbar || touch_over_x_scrollbar {
                 match event {
                     Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
+                        let Some(position) = touch.position().or(cursor.position()) else {
                             return;
                         };
 
                         if let (Some(scroller_grabbed_at), Some(scrollbar)) =
-                            (scrollbars.grab_x_scroller(cursor_position), scrollbars.x)
+                            (scrollbars.grab_x_scroller(position), scrollbars.x)
                         {
                             state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
+                                scrollbar.scroll_percentage_x(scroller_grabbed_at, position),
                                 bounds,
                                 content_bounds,
                             );
@@ -843,7 +845,7 @@ where
                 {
                     match event {
                         touch::Event::FingerPressed { .. } => {
-                            let Some(position) = cursor_over_scrollable else {
+                            let Some(position) = touch.position_over(bounds) else {
                                 return;
                             };
 
@@ -856,18 +858,18 @@ where
                                 return;
                             };
 
-                            let Some(cursor_position) = cursor.position() else {
+                            let Some(position) = touch.position() else {
                                 return;
                             };
 
                             let delta = Vector::new(
-                                scroll_box_touched_at.x - cursor_position.x,
-                                scroll_box_touched_at.y - cursor_position.y,
+                                scroll_box_touched_at.x - position.x,
+                                scroll_box_touched_at.y - position.y,
                             );
 
                             state.scroll(self.direction.align(delta), bounds, content_bounds);
 
-                            state.interaction = Interaction::TouchScrolling(cursor_position);
+                            state.interaction = Interaction::TouchScrolling(position);
 
                             // TODO: bubble up touch movements if not consumed.
                             let _ = notify_scroll(
@@ -1044,7 +1046,7 @@ where
         let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
         let cursor_over_scrollable = cursor.position_over(bounds);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_over(cursor);
 
         let translation = state.translation(self.direction, bounds, content_bounds);
 
@@ -1203,7 +1205,7 @@ where
 
         let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
 
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_over(cursor);
 
         if state.scrollers_grabbed() {
             return mouse::Interaction::None;
@@ -1906,16 +1908,16 @@ impl Scrollbars {
         }
     }
 
-    fn is_mouse_over(&self, cursor: mouse::Cursor) -> (bool, bool) {
-        if let Some(cursor_position) = cursor.position() {
+    fn is_over<T: PointerInput>(&self, pointer: T) -> (bool, bool) {
+        if let Some(position) = pointer.position() {
             (
                 self.y
                     .as_ref()
-                    .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+                    .map(|scrollbar| scrollbar.is_point_over(position))
                     .unwrap_or(false),
                 self.x
                     .as_ref()
-                    .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+                    .map(|scrollbar| scrollbar.is_point_over(position))
                     .unwrap_or(false),
             )
         } else {
@@ -1987,17 +1989,16 @@ pub(super) mod internals {
     }
 
     impl Scrollbar {
-        /// Returns whether the mouse is over the scrollbar or not.
-        pub fn is_mouse_over(&self, cursor_position: Point) -> bool {
-            self.total_bounds.contains(cursor_position)
+        /// Returns whether the mouse or a touch is over the scrollbar or not.
+        pub fn is_point_over(&self, position: Point) -> bool {
+            self.total_bounds.contains(position)
         }
 
-        /// Returns the y-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_y(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
+        /// Returns the y-axis scrolled percentage from the cursor/touch position.
+        pub fn scroll_percentage_y(&self, grabbed_at: f32, position: Point) -> f32 {
             if let Some(scroller) = self.scroller {
-                let percentage =
-                    (cursor_position.y - self.bounds.y - scroller.bounds.height * grabbed_at)
-                        / (self.bounds.height - scroller.bounds.height);
+                let percentage = (position.y - self.bounds.y - scroller.bounds.height * grabbed_at)
+                    / (self.bounds.height - scroller.bounds.height);
 
                 match self.alignment {
                     Anchor::Start => percentage,
@@ -2008,12 +2009,11 @@ pub(super) mod internals {
             }
         }
 
-        /// Returns the x-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_x(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
+        /// Returns the x-axis scrolled percentage from the cursor/touch position.
+        pub fn scroll_percentage_x(&self, grabbed_at: f32, position: Point) -> f32 {
             if let Some(scroller) = self.scroller {
-                let percentage =
-                    (cursor_position.x - self.bounds.x - scroller.bounds.width * grabbed_at)
-                        / (self.bounds.width - scroller.bounds.width);
+                let percentage = (position.x - self.bounds.x - scroller.bounds.width * grabbed_at)
+                    / (self.bounds.width - scroller.bounds.width);
 
                 match self.alignment {
                     Anchor::Start => percentage,
