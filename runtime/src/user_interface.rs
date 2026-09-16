@@ -293,7 +293,7 @@ where
                 if interaction == mouse::Interaction::None {
                     (cursor, mouse::Interaction::None)
                 } else {
-                    (mouse::Cursor::Unavailable, interaction)
+                    (cursor.levitate(), interaction)
                 }
             } else {
                 (cursor, mouse::Interaction::None)
@@ -511,7 +511,7 @@ where
                 interaction: mouse::Interaction::None,
                 ..
             }) => cursor,
-            _ => mouse::Cursor::Unavailable,
+            _ => cursor.levitate(),
         };
 
         self.root.as_widget().draw(
