@@ -332,14 +332,16 @@ mod toast {
             &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn Operation,
         ) {
-            operation.container(None, layout.bounds());
+            operation.container(None, layout.bounds(), viewport);
             operation.traverse(&mut |operation| {
                 self.content.as_widget_mut().operate(
                     &mut tree.children[0],
                     layout,
+                    viewport,
                     renderer,
                     operation,
                 );
@@ -555,16 +557,20 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn widget::Operation,
         ) {
-            operation.container(None, layout.bounds());
+            operation.container(None, layout.bounds(), &self.viewport);
             operation.traverse(&mut |operation| {
                 self.toasts
                     .iter_mut()
                     .zip(self.trees.iter_mut())
                     .zip(layout.children())
                     .for_each(|((child, state), layout)| {
-                        child
-                            .as_widget_mut()
-                            .operate(state, layout, renderer, operation);
+                        child.as_widget_mut().operate(
+                            state,
+                            layout,
+                            &self.viewport,
+                            renderer,
+                            operation,
+                        );
                     });
             });
         }

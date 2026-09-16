@@ -554,12 +554,15 @@ where
     pub fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         let viewport = Rectangle::with_size(self.bounds);
 
-        self.root.as_widget_mut().operate(
-            &mut self.state,
-            Layout::new(&self.base),
-            renderer,
-            operation,
-        );
+        operation.traverse(&mut |operation| {
+            self.root.as_widget_mut().operate(
+                &mut self.state,
+                Layout::new(&self.base),
+                &viewport,
+                renderer,
+                operation,
+            );
+        });
 
         let overlay = self.root.as_widget_mut().overlay(
             &mut self.state,
@@ -572,12 +575,17 @@ where
         if !overlay.is_empty() {
             let mut overlay = overlay::Nested::new(overlay);
 
-            if self.overlay.is_none() {
-                self.overlay = Some(Overlay {
-                    layout: overlay.layout(renderer, self.bounds),
-                    interaction: mouse::Interaction::None,
-                });
-            }
+            let layout = overlay.layout(renderer, self.bounds);
+            let interaction = self
+                .overlay
+                .as_ref()
+                .map(|overlay| overlay.interaction)
+                .unwrap_or_default();
+
+            self.overlay = Some(Overlay {
+                layout,
+                interaction,
+            });
 
             overlay.operate(
                 Layout::new(&self.overlay.as_ref().unwrap().layout),

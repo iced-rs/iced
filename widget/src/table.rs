@@ -556,6 +556,7 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -566,7 +567,7 @@ where
             .zip(layout.children())
         {
             cell.as_widget_mut()
-                .operate(state, layout, renderer, operation);
+                .operate(state, layout, viewport, renderer, operation);
         }
     }
 

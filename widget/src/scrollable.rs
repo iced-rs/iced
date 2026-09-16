@@ -526,6 +526,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
@@ -538,10 +539,22 @@ where
 
         operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
 
+        let visible_bounds = bounds.intersection(viewport);
+        let viewport = visible_bounds
+            .map(|visible_bounds| Rectangle {
+                y: visible_bounds.y + translation.y,
+                x: visible_bounds.x + translation.x,
+                ..visible_bounds
+            })
+            .unwrap_or_default();
+
+        operation.container(self.id.as_ref(), content_bounds, &viewport);
+
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
-                layout.children().next().unwrap(),
+                content_layout,
+                &viewport,
                 renderer,
                 operation,
             );

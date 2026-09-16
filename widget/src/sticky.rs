@@ -137,12 +137,17 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
+        if !layout.bounds().is_within(viewport) {
+            return;
+        }
+
         self.content
             .as_widget_mut()
-            .operate(tree, layout, renderer, operation);
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
@@ -325,9 +330,13 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content
-            .as_widget_mut()
-            .operate(self.tree, self.layout, renderer, operation);
+        self.content.as_widget_mut().operate(
+            self.tree,
+            self.layout,
+            &self.viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn update(

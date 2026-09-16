@@ -644,12 +644,13 @@ where
             &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
             self.content
                 .as_widget_mut()
-                .operate(tree, layout, renderer, operation);
+                .operate(tree, layout, viewport, renderer, operation);
         }
 
         fn update(
@@ -824,6 +825,7 @@ where
             &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
@@ -834,7 +836,7 @@ where
             for (child, (layout, tree)) in children {
                 child
                     .as_widget_mut()
-                    .operate(tree, layout, renderer, operation);
+                    .operate(tree, layout, viewport, renderer, operation);
             }
         }
 
@@ -860,6 +862,7 @@ where
                 self.top.as_widget_mut().operate(
                     top_tree,
                     top_layout,
+                    viewport,
                     renderer,
                     &mut operation::black_box(&mut count_focused),
                 );

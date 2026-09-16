@@ -2,8 +2,8 @@
 use iced::advanced::layout;
 use iced::advanced::widget;
 use iced::widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
-use iced::widget::{column, container, row, scrollable, space, sticky};
-use iced::{Fill, Never, Point, Rectangle, Size, Theme, Vector};
+use iced::widget::{column, container, pick_list, row, scrollable, space, sticky};
+use iced::{Fill, Never, Point, Rectangle, Settings, Size, Theme, Vector, mouse};
 
 type Element = iced::Element<'static, Never, Theme, ()>;
 
@@ -48,9 +48,13 @@ fn scroll(element: &mut Element, tree: &mut widget::Tree, node: &layout::Node, x
             y: Some(y),
         },
     );
-    element
-        .as_widget_mut()
-        .operate(tree, layout::Layout::new(node), &(), &mut scroll_to);
+    element.as_widget_mut().operate(
+        tree,
+        layout::Layout::new(node),
+        &VIEWPORT,
+        &(),
+        &mut scroll_to,
+    );
 }
 
 fn overlay_bounds(
@@ -264,4 +268,65 @@ fn sticky_out_of_view_horizontally() {
         overlay_bounds(&mut element, &mut tree, &node),
         Some(Rectangle::new(Point::ORIGIN, Size::new(50.0, 100.0)))
     );
+}
+
+#[test]
+fn sticky_pick_list_menu_opens_at_floating_position() -> Result<(), iced_test::Error> {
+    use iced_test::simulator::{self, Simulator};
+
+    /// The messages produced by the `pick_list`.
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    enum Message {
+        Opened,
+        Selected(&'static str),
+    }
+
+    let pick_list_widget = pick_list(Some("One"), ["One", "Two", "Three"], |option| {
+        option.to_string()
+    })
+    .placeholder("Select an option")
+    .on_open(Message::Opened)
+    .on_select(|option| Message::Selected(option));
+
+    let view: iced::Element<'static, Message, Theme, iced::Renderer> = scrollable(column![
+        space().height(300),
+        sticky(pick_list_widget),
+        space().height(1000),
+    ])
+    .width(Fill)
+    .height(Fill)
+    .id("scrollable")
+    .into();
+
+    let mut ui = Simulator::with_size(Settings::default(), VIEWPORT.size(), view);
+
+    // Scroll down, so that the sticky contents go out of the visible bounds.
+    ui.point_at(VIEWPORT.center());
+    let _ = ui.scroll(mouse::ScrollDelta::Pixels {
+        x: 0.0,
+        y: -1_000.0,
+    });
+
+    // Click the pick_list at its floating position, at the top of the
+    // visible bounds.
+    let _ = ui.click("One")?;
+
+    // The menu is displayed below the floating pick_list, inside the
+    // visible bounds, not at its original, scrolled-out position.
+    let option = ui.find("Three").expect("the menu option should be found");
+    let visible = option
+        .visible_bounds()
+        .expect("the menu option should be visible");
+
+    assert!(visible.y > 0.0 && visible.y < 100.0);
+
+    // Move the cursor over the option, and select it from the floating
+    // menu.
+    ui.point_at(visible.center());
+    let _ = ui.simulate(simulator::click());
+
+    let messages: Vec<Message> = ui.into_messages().collect();
+    assert_eq!(messages, vec![Message::Opened, Message::Selected("Three")]);
+
+    Ok(())
 }
