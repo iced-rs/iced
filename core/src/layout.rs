@@ -14,6 +14,7 @@ use crate::{Length, Padding, Point, Rectangle, Size, Vector};
 pub struct Layout<'a> {
     position: Point,
     node: &'a Node,
+    parent: Option<Rectangle>,
 }
 
 impl<'a> Layout<'a> {
@@ -30,6 +31,7 @@ impl<'a> Layout<'a> {
         Self {
             position: Point::new(bounds.x, bounds.y) + offset,
             node,
+            parent: None,
         }
     }
 
@@ -43,6 +45,7 @@ impl<'a> Layout<'a> {
         Self {
             position: position.into(),
             node: self.node,
+            parent: self.parent,
         }
     }
 
@@ -61,10 +64,24 @@ impl<'a> Layout<'a> {
         }
     }
 
+    /// Returns the bounds of the parent of this [`Layout`], if any.
+    pub fn parent(&self) -> Option<Rectangle> {
+        self.parent
+    }
+
     /// Returns an iterator over the children of this [`Layout`].
     pub fn children(self) -> impl DoubleEndedIterator<Item = Layout<'a>> + ExactSizeIterator {
+        let parent = self.bounds();
+        let offset = Vector::new(self.position.x, self.position.y);
+
         self.node.children().iter().map(move |node| {
-            Layout::with_offset(Vector::new(self.position.x, self.position.y), node)
+            let bounds = node.bounds();
+
+            Layout {
+                position: Point::new(bounds.x, bounds.y) + offset,
+                node,
+                parent: Some(parent),
+            }
         })
     }
 
@@ -77,8 +94,14 @@ impl<'a> Layout<'a> {
     /// Panics if index is out of bounds.
     pub fn child(self, index: usize) -> Layout<'a> {
         let node = &self.node.children()[index];
+        let offset = Vector::new(self.position.x, self.position.y);
+        let bounds = node.bounds();
 
-        Layout::with_offset(Vector::new(self.position.x, self.position.y), node)
+        Layout {
+            position: Point::new(bounds.x, bounds.y) + offset,
+            node,
+            parent: Some(self.bounds()),
+        }
     }
 }
 
