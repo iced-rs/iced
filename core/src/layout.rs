@@ -38,6 +38,14 @@ impl<'a> Layout<'a> {
         self.position
     }
 
+    /// Moves the [`Layout`] to the given position.
+    pub fn move_to(self, position: impl Into<Point>) -> Self {
+        Self {
+            position: position.into(),
+            node: self.node,
+        }
+    }
+
     /// Returns the bounds of the [`Layout`].
     ///
     /// The returned [`Rectangle`] describes the position and size of a
