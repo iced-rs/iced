@@ -454,15 +454,11 @@ impl State {
             },
             Event::Touch(event) => match event {
                 touch::Event::FingerPressed { .. } => {
-                    if let Some(cursor_position) = cursor.position_in(bounds) {
-                        let cursor_position =
-                            cursor_position - Vector::new(padding.left, padding.top);
+                    if let Some(position) = touch.position_in(bounds) {
+                        let position = position - Vector::new(padding.left, padding.top);
 
-                        let click = mouse::Click::new(
-                            cursor_position,
-                            mouse::Button::Left,
-                            self.last_click,
-                        );
+                        let click =
+                            mouse::Click::new(position, mouse::Button::Left, self.last_click);
 
                         self.focus = Some(Focus::now());
                         self.last_click = Some(click);
