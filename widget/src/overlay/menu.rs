@@ -454,14 +454,14 @@ where
                 }
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
+                if let Some(position) = touch.position_in(layout.bounds()) {
                     let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
                     let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
 
                     let option_height =
                         f32::from(line_height.to_absolute(text_size)) + self.padding.y();
 
-                    *self.hovered_option = Some((cursor_position.y / option_height) as usize);
+                    *self.hovered_option = Some((position.y / option_height) as usize);
 
                     if let Some(index) = *self.hovered_option
                         && let Some(option) = self.options.get(index)

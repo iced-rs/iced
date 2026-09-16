@@ -452,7 +452,7 @@ where
                     }
 
                     shell.capture_event();
-                } else if cursor.is_over(layout.bounds()) {
+                } else if cursor.is_over(layout.bounds()) || touch.is_over(layout.bounds()) {
                     let selected = self.selected.as_ref().map(Borrow::borrow);
 
                     state.is_open = true;
