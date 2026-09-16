@@ -1,11 +1,12 @@
 //! Tests for the `sticky` widget.
-use iced::advanced::layout;
-use iced::advanced::widget;
-use iced::widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
-use iced::widget::{column, container, pick_list, row, scrollable, space, sticky};
-use iced::{Fill, Never, Point, Rectangle, Settings, Size, Theme, Vector, mouse};
+use iced_widget::core::{
+    Length::Fill, Never, Point, Rectangle, Settings, Size, Vector, layout, mouse, widget,
+};
+use iced_widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
+use iced_widget::{Renderer, Theme, column, container, pick_list, row, scrollable, space, sticky};
 
-type Element = iced::Element<'static, Never, Theme, ()>;
+type Element<Message = Never, Renderer = ()> =
+    iced_widget::core::Element<'static, Message, Theme, Renderer>;
 
 const VIEWPORT: Rectangle = Rectangle::new(Point::ORIGIN, Size::new(1024.0, 768.0));
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(Size::ZERO, VIEWPORT.size());
@@ -288,7 +289,7 @@ fn sticky_pick_list_menu_opens_at_floating_position() -> Result<(), iced_test::E
     .on_open(Message::Opened)
     .on_select(|option| Message::Selected(option));
 
-    let view: iced::Element<'static, Message, Theme, iced::Renderer> = scrollable(column![
+    let view: Element<Message, Renderer> = scrollable(column![
         space().height(300),
         sticky(pick_list_widget),
         space().height(1000),
