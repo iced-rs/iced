@@ -7,15 +7,8 @@ use iced::{Fill, Never, Point, Rectangle, Size, Theme, Vector};
 
 type Element = iced::Element<'static, Never, Theme, ()>;
 
-const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
-    Size::ZERO,
-    Size {
-        width: 1024.0,
-        height: 768.0,
-    },
-);
-
 const VIEWPORT: Rectangle = Rectangle::new(Point::ORIGIN, Size::new(1024.0, 768.0));
+const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(Size::ZERO, VIEWPORT.size());
 
 fn vertical_view() -> Element {
     scrollable(column![
@@ -30,7 +23,7 @@ fn vertical_view() -> Element {
 
 fn horizontal_view() -> Element {
     scrollable(row![
-        sticky(container("Header").height(100).width(50)),
+        sticky(container("Header").width(50).height(100)),
         space().width(3000),
     ])
     .direction(Direction::Horizontal(Scrollbar::default()))
@@ -76,9 +69,7 @@ fn overlay_bounds(
     match overlays.len() {
         0 => None,
         1 => {
-            let node = overlays[0]
-                .as_overlay_mut()
-                .layout(&(), Size::new(1024.0, 768.0));
+            let node = overlays[0].as_overlay_mut().layout(&(), VIEWPORT.size());
 
             Some(node.bounds())
         }
@@ -97,15 +88,7 @@ fn sticky_in_view() {
 
     // The sticky contents are in view, so they are not displayed on an
     // overlay.
-    let overlays = element.as_widget_mut().overlay(
-        &mut tree,
-        layout::Layout::new(&node),
-        &(),
-        &VIEWPORT,
-        Vector::ZERO,
-    );
-
-    assert!(overlays.is_empty());
+    assert_eq!(overlay_bounds(&mut element, &mut tree, &node), None);
 }
 
 #[test]
@@ -120,12 +103,9 @@ fn sticky_partially_out_of_view() {
     // Scroll down a little: the sticky contents are partially out of the
     // visible bounds, so they are displayed on an overlay, inside them.
     scroll(&mut element, &mut tree, &node, 0.0, 30.0);
-
-    let bounds = overlay_bounds(&mut element, &mut tree, &node).unwrap();
-
     assert_eq!(
-        bounds,
-        Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))
+        overlay_bounds(&mut element, &mut tree, &node),
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
     );
 }
 
@@ -138,16 +118,12 @@ fn sticky_out_of_view() {
         .as_widget_mut()
         .layout(&mut tree, &(), &DEFAULT_LIMITS);
 
-    // Scroll down, so that the sticky contents go out of view.
+    // Scroll down, so that the sticky contents go out of view: they are
+    // displayed on an overlay, inside the visible bounds.
     scroll(&mut element, &mut tree, &node, 0.0, 100.0);
-
-    // The sticky contents are displayed on an overlay, inside the visible
-    // bounds.
-    let bounds = overlay_bounds(&mut element, &mut tree, &node).unwrap();
-
     assert_eq!(
-        bounds,
-        Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))
+        overlay_bounds(&mut element, &mut tree, &node),
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
     );
 }
 
@@ -171,25 +147,20 @@ fn sticky_pinned_to_nearest_edge() {
     // Scroll a little: the sticky contents are out of the visible bounds on
     // the bottom edge, so they are displayed on an overlay, pinned to it.
     scroll(&mut element, &mut tree, &node, 0.0, 30.0);
-
-    {
-        let bounds = overlay_bounds(&mut element, &mut tree, &node).unwrap();
-
-        assert_eq!(
-            bounds,
-            Rectangle::new(Point::new(0.0, 718.0), Size::new(1024.0, 50.0))
-        );
-    }
+    assert_eq!(
+        overlay_bounds(&mut element, &mut tree, &node),
+        Some(Rectangle::new(
+            Point::new(0.0, 718.0),
+            Size::new(1024.0, 50.0)
+        ))
+    );
 
     // Scroll past the sticky contents: they are displayed on an overlay,
     // pinned to the top edge.
     scroll(&mut element, &mut tree, &node, 0.0, 1060.0);
-
-    let bounds = overlay_bounds(&mut element, &mut tree, &node).unwrap();
-
     assert_eq!(
-        bounds,
-        Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))
+        overlay_bounds(&mut element, &mut tree, &node),
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
     );
 }
 
@@ -218,16 +189,13 @@ fn sticky_clamped_to_visible_bounds() {
         .as_widget_mut()
         .layout(&mut tree, &(), &DEFAULT_LIMITS);
 
-    // Scroll down, so that the sticky contents go out of the visible bounds.
+    // Scroll down, so that the sticky contents go out of the visible bounds:
+    // the overlay is clamped, and the 2000px-wide contents are displayed
+    // with a width of 1024px.
     scroll(&mut element, &mut tree, &node, 0.0, 100.0);
-
-    // The overlay is clamped to the visible bounds: the 2000px-wide contents
-    // are displayed with a width of 1024px.
-    let bounds = overlay_bounds(&mut element, &mut tree, &node).unwrap();
-
     assert_eq!(
-        bounds,
-        Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))
+        overlay_bounds(&mut element, &mut tree, &node),
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
     );
 }
 
@@ -289,15 +257,11 @@ fn sticky_out_of_view_horizontally() {
         .as_widget_mut()
         .layout(&mut tree, &(), &DEFAULT_LIMITS);
 
-    // Scroll to the right, so that the sticky contents go out of view.
+    // Scroll to the right, so that the sticky contents go out of view: they
+    // are displayed on an overlay, inside the visible bounds.
     scroll(&mut element, &mut tree, &node, 100.0, 0.0);
-
-    // The sticky contents are displayed on an overlay, inside the visible
-    // bounds.
-    let bounds = overlay_bounds(&mut element, &mut tree, &node).unwrap();
-
     assert_eq!(
-        bounds,
-        Rectangle::new(Point::ORIGIN, Size::new(50.0, 100.0))
+        overlay_bounds(&mut element, &mut tree, &node),
+        Some(Rectangle::new(Point::ORIGIN, Size::new(50.0, 100.0)))
     );
 }
