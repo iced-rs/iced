@@ -213,13 +213,12 @@ where
         viewport: &Rectangle,
         translation: Vector,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let bounds = layout.bounds() + translation;
-        let viewport = *viewport;
-        let parent = layout.parent().map(|parent| parent + translation);
+        let bounds = layout.bounds();
+        let parent = layout.parent();
 
         if let Some(parent) = parent
-            && !bounds.is_within(&viewport)
-            && parent.intersects(&viewport)
+            && !bounds.is_within(viewport)
+            && parent.intersects(viewport)
         {
             let position = Point::new(
                 stuck_axis(
@@ -238,9 +237,9 @@ where
                 ),
             );
 
-            let layout = layout.move_to(position);
+            let layout = layout.move_to(position + translation);
             let bounds = Rectangle::new(position, bounds.size());
-            let viewport = bounds.intersection(&viewport).unwrap_or(bounds);
+            let viewport = bounds.intersection(viewport).unwrap_or(bounds) + translation;
 
             vec![overlay::Element::new(Box::new(Overlay {
                 content: &mut self.content,
@@ -251,7 +250,7 @@ where
         } else {
             self.content
                 .as_widget_mut()
-                .overlay(tree, layout, renderer, &viewport, translation)
+                .overlay(tree, layout, renderer, viewport, translation)
         }
     }
 }

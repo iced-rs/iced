@@ -430,7 +430,7 @@ mod toast {
             let toasts = (!self.toasts.is_empty()).then(|| {
                 overlay::Element::new(Box::new(Overlay {
                     position: layout.bounds().position() + translation,
-                    viewport: *viewport,
+                    viewport: *viewport + translation,
                     toasts: &mut self.toasts,
                     trees: toasts_state,
                     instants,

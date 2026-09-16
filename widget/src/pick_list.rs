@@ -754,7 +754,7 @@ where
 
             vec![menu.overlay(
                 layout.position() + translation,
-                *viewport,
+                *viewport + translation,
                 bounds.height,
                 self.menu_height,
             )]

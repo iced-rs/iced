@@ -119,6 +119,8 @@ where
     /// Turns the [`Menu`] into an overlay [`Element`] at the given target
     /// position.
     ///
+    /// Both `position` and `viewport` are in screen coordinates.
+    ///
     /// The `target_height` will be used to display the menu either on top
     /// of the target or under it, depending on the screen position and the
     /// dimensions of the [`Menu`].

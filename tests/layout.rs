@@ -348,7 +348,7 @@ fn layout_fill_min_max_sidebar() {
             row![sidebar, content].width(screen_width)
         };
 
-        let sidebar_width = (screen_width as f32 / 4.0).max(150.0).min(200.0);
+        let sidebar_width = (screen_width as f32 / 4.0).clamp(150.0, 200.0);
 
         let layout = {
             let sidebar = node((0, 0), (sidebar_width, 768), []);

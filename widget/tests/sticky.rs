@@ -287,7 +287,7 @@ fn sticky_pick_list_menu_opens_at_floating_position() -> Result<(), iced_test::E
     })
     .placeholder("Select an option")
     .on_open(Message::Opened)
-    .on_select(|option| Message::Selected(option));
+    .on_select(Message::Selected);
 
     let view: Element<Message, Renderer> = scrollable(column![
         space().height(300),

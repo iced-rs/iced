@@ -207,7 +207,7 @@ where
         let translation = self
             .translate
             .as_ref()
-            .map(|translate| translate(bounds + offset, *viewport))
+            .map(|translate| translate(bounds + offset, *viewport + offset))
             .unwrap_or(Vector::ZERO);
 
         if self.scale > 1.0 || translation != Vector::ZERO {
@@ -226,7 +226,7 @@ where
                 float: self,
                 state,
                 layout,
-                viewport: *viewport,
+                viewport: *viewport + offset,
                 transformation,
             }))]
         } else {

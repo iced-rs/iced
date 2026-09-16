@@ -536,18 +536,9 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
         let translation = state.translation(self.direction, bounds, content_bounds);
+        let viewport = viewport.intersection(&bounds).unwrap_or_default() + translation;
 
         operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
-
-        let visible_bounds = bounds.intersection(viewport);
-        let viewport = visible_bounds
-            .map(|visible_bounds| Rectangle {
-                y: visible_bounds.y + translation.y,
-                x: visible_bounds.x + translation.x,
-                ..visible_bounds
-            })
-            .unwrap_or_default();
-
         operation.container(self.id.as_ref(), content_bounds, &viewport);
 
         operation.traverse(&mut |operation| {
@@ -1057,7 +1048,7 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
 
-        let Some(visible_bounds) = bounds.intersection(viewport) else {
+        let Some(viewport) = viewport.intersection(&bounds) else {
             return;
         };
 
@@ -1088,11 +1079,11 @@ where
         // Draw inner content
         if scrollbars.active() {
             let scale_factor = renderer.hint_factor().unwrap_or(1.0);
-            let translation = (translation * scale_factor).round() / scale_factor;
+            let hinted_translation = (translation * scale_factor).round() / scale_factor;
 
-            renderer.with_layer(visible_bounds, |renderer| {
+            renderer.with_layer(viewport, |renderer| {
                 renderer.with_translation(
-                    Vector::new(-translation.x, -translation.y),
+                    Vector::new(-hinted_translation.x, -hinted_translation.y),
                     |renderer| {
                         self.content.as_widget().draw(
                             &tree.children[0],
@@ -1101,11 +1092,7 @@ where
                             defaults,
                             content_layout,
                             cursor,
-                            &Rectangle {
-                                y: visible_bounds.y + translation.y,
-                                x: visible_bounds.x + translation.x,
-                                ..visible_bounds
-                            },
+                            &(viewport + translation),
                         );
                     },
                 );
@@ -1152,11 +1139,7 @@ where
             let has_floating_scrollbar = scrollbars.is_any_floating();
 
             if has_floating_scrollbar {
-                renderer.start_layer(Rectangle {
-                    width: (visible_bounds.width + 2.0).min(viewport.width),
-                    height: (visible_bounds.height + 2.0).min(viewport.height),
-                    ..visible_bounds
-                });
+                renderer.start_layer(viewport);
             }
 
             if let Some(scrollbar) = scrollbars.y {
@@ -1197,11 +1180,7 @@ where
                 defaults,
                 content_layout,
                 cursor,
-                &Rectangle {
-                    x: visible_bounds.x + translation.x,
-                    y: visible_bounds.y + translation.y,
-                    ..visible_bounds
-                },
+                &(viewport + translation),
             );
         }
     }
@@ -1211,7 +1190,7 @@ where
         tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
@@ -1226,8 +1205,12 @@ where
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         if state.scrollers_grabbed() {
-            return mouse::Interaction::None;
+            return mouse::Interaction::Idle;
         }
+
+        let Some(viewport) = viewport.intersection(&bounds) else {
+            return mouse::Interaction::None;
+        };
 
         let translation = state.translation(self.direction, bounds, content_bounds);
 
@@ -1242,11 +1225,7 @@ where
             &tree.children[0],
             content_layout,
             cursor,
-            &Rectangle {
-                y: bounds.y + translation.y,
-                x: bounds.x + translation.x,
-                ..bounds
-            },
+            &(viewport + translation),
             renderer,
         )
     }
@@ -1263,14 +1242,14 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
-        let visible_bounds = bounds.intersection(viewport).unwrap_or(*viewport);
+        let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
         let offset = state.translation(self.direction, bounds, content_bounds);
 
         let overlay = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
-            &visible_bounds,
+            &(viewport + offset),
             translation - offset,
         );
 
