@@ -423,7 +423,7 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
-        _direction: Direction,
+        direction: Direction,
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
@@ -439,6 +439,7 @@ where
                 size: self.size,
                 line_height: self.line_height,
                 alignment: text::Alignment::Default,
+                direction,
                 multiline: None,
                 is_secure: false,
             },

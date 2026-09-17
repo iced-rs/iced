@@ -285,7 +285,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
-        _direction: Direction,
+        direction: Direction,
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<State<Renderer>>();
 
@@ -311,6 +311,7 @@ where
                 size: self.size,
                 line_height: self.line_height,
                 alignment: self.alignment,
+                direction,
                 multiline: self.multiline,
                 is_secure: self.is_secure,
             },
