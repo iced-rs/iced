@@ -205,6 +205,33 @@ where
         self
     }
 
+    /// Adds padding at the ends of the [`Scrollbar`]s of the [`Scrollable`].
+    ///
+    /// The `padding` provided will be used as space at the top and bottom of a
+    /// vertical [`Scrollbar`], and at the left and right ends of a horizontal
+    /// [`Scrollbar`], when they are visible.
+    ///
+    /// Unlike [`Self::spacing`], the padding does not affect the layout of the
+    /// [`Scrollable`].
+    pub fn padding(mut self, new_padding: impl Into<Pixels>) -> Self {
+        let padding = new_padding.into().0;
+
+        match &mut self.direction {
+            Direction::Horizontal(scrollbar) | Direction::Vertical(scrollbar) => {
+                scrollbar.padding = padding;
+            }
+            Direction::Both {
+                horizontal,
+                vertical,
+            } => {
+                horizontal.padding = padding;
+                vertical.padding = padding;
+            }
+        }
+
+        self
+    }
+
     /// Sets whether the user should be allowed to auto-scroll the [`Scrollable`]
     /// with the middle mouse button.
     ///
@@ -299,6 +326,7 @@ pub struct Scrollbar {
     scroller_width: f32,
     alignment: Anchor,
     spacing: Option<f32>,
+    padding: f32,
 }
 
 impl Default for Scrollbar {
@@ -309,6 +337,7 @@ impl Default for Scrollbar {
             scroller_width: 10.0,
             alignment: Anchor::Start,
             spacing: None,
+            padding: 0.0,
         }
     }
 }
@@ -356,6 +385,18 @@ impl Scrollbar {
     /// and will not float over the contents.
     pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
         self.spacing = Some(spacing.into().0);
+        self
+    }
+
+    /// Sets the padding of the [`Scrollbar`].
+    ///
+    /// The padding is added at the top and bottom of the scrollbar (or at the
+    /// left and right ends for a horizontal [`Scrollbar`]) when it is visible.
+    ///
+    /// Unlike [`Self::margin`] and [`Self::spacing`], the padding does not
+    /// affect the layout of the [`Scrollable`].
+    pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
+        self.padding = padding.into().0;
         self
     }
 }
@@ -1774,6 +1815,7 @@ impl Scrollbars {
                 margin,
                 scroller_width,
                 spacing,
+                padding,
                 ..
             } = *vertical;
 
@@ -1784,20 +1826,24 @@ impl Scrollbars {
 
             let total_scrollbar_width = width.max(scroller_width) + 2.0 * margin;
 
+            // The padding is purely visual: it shrinks the top and bottom of the
+            // scrollbar without affecting the layout
+            let scrollbar_height = (bounds.height - x_scrollbar_height - 2.0 * padding).max(0.0);
+
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
                 x: bounds.x + bounds.width - total_scrollbar_width,
-                y: bounds.y,
+                y: bounds.y + padding,
                 width: total_scrollbar_width,
-                height: (bounds.height - x_scrollbar_height).max(0.0),
+                height: scrollbar_height,
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
                 x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - width / 2.0,
-                y: bounds.y,
+                y: bounds.y + padding,
                 width,
-                height: (bounds.height - x_scrollbar_height).max(0.0),
+                height: scrollbar_height,
             };
 
             let ratio = bounds.height / content_bounds.height;
@@ -1840,6 +1886,7 @@ impl Scrollbars {
                 margin,
                 scroller_width,
                 spacing,
+                padding,
                 ..
             } = *horizontal;
 
@@ -1850,19 +1897,23 @@ impl Scrollbars {
 
             let total_scrollbar_height = width.max(scroller_width) + 2.0 * margin;
 
+            // The padding is purely visual: it shrinks the left and right ends of
+            // the scrollbar without affecting the layout
+            let scrollbar_width = (bounds.width - scrollbar_y_width - 2.0 * padding).max(0.0);
+
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
-                x: bounds.x,
+                x: bounds.x + padding,
                 y: bounds.y + bounds.height - total_scrollbar_height,
-                width: (bounds.width - scrollbar_y_width).max(0.0),
+                width: scrollbar_width,
                 height: total_scrollbar_height,
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
-                x: bounds.x,
+                x: bounds.x + padding,
                 y: bounds.y + bounds.height - total_scrollbar_height / 2.0 - width / 2.0,
-                width: (bounds.width - scrollbar_y_width).max(0.0),
+                width: scrollbar_width,
                 height: width,
             };
 
