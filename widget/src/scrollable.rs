@@ -458,7 +458,13 @@ where
         limits: &layout::Limits,
         layout_direction: crate::core::Direction,
     ) -> layout::Node {
-        let mut layout = |right_padding, bottom_padding| {
+        tree.state.downcast_mut::<State>().layout_direction = layout_direction;
+
+        // The vertical scrollbar sits on the leading edge, which is the left in
+        // an RTL layout, so the gutter reserved for it has to follow.
+        let is_rtl = layout_direction == crate::core::Direction::RightToLeft;
+
+        let mut layout = |side_padding, bottom_padding| {
             let is_horizontal = self.direction.horizontal().is_some();
             let is_vertical = self.direction.vertical().is_some();
 
@@ -467,7 +473,8 @@ where
                 self.width,
                 self.height,
                 Padding {
-                    right: right_padding,
+                    left: if is_rtl { side_padding } else { 0.0 },
+                    right: if is_rtl { 0.0 } else { side_padding },
                     bottom: bottom_padding,
                     ..Padding::ZERO
                 },
@@ -1540,6 +1547,7 @@ struct State {
     is_scrollbar_visible: bool,
     last_status: Option<Status>,
     last_id: Option<widget::Id>,
+    layout_direction: crate::core::Direction,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1567,6 +1575,7 @@ impl Default for State {
             is_scrollbar_visible: true,
             last_status: None,
             last_id: None,
+            layout_direction: crate::core::Direction::default(),
         }
     }
 }
@@ -1796,6 +1805,10 @@ impl Scrollbars {
     ) -> Self {
         let translation = state.translation(direction, bounds, content_bounds);
 
+        // In an RTL layout the vertical scrollbar moves to the left edge, and the
+        // horizontal scrollbar shifts right to make room for it.
+        let is_rtl = state.layout_direction == crate::core::Direction::RightToLeft;
+
         let show_scrollbar_x = direction
             .horizontal()
             .filter(|_scrollbar| content_bounds.width > bounds.width);
@@ -1825,9 +1838,17 @@ impl Scrollbars {
             // scrollbar without affecting the layout
             let scrollbar_height = (bounds.height - x_scrollbar_height - 2.0 * padding).max(0.0);
 
+            // The x of the scrollbar's leading edge: the left of the bounds in an
+            // RTL layout, otherwise the width of the gutter in from the right.
+            let x = if is_rtl {
+                bounds.x
+            } else {
+                bounds.x + bounds.width - total_scrollbar_width
+            };
+
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width - total_scrollbar_width,
+                x,
                 y: bounds.y + padding,
                 width: total_scrollbar_width,
                 height: scrollbar_height,
@@ -1835,7 +1856,7 @@ impl Scrollbars {
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - width / 2.0,
+                x: x + total_scrollbar_width / 2.0 - width / 2.0,
                 y: bounds.y + padding,
                 width,
                 height: scrollbar_height,
@@ -1852,7 +1873,7 @@ impl Scrollbars {
                     translation.y * ratio * scrollbar_bounds.height / bounds.height;
 
                 let scroller_bounds = Rectangle {
-                    x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - scroller_width / 2.0,
+                    x: x + total_scrollbar_width / 2.0 - scroller_width / 2.0,
                     y: (scrollbar_bounds.y + scroller_offset).max(0.0),
                     width: scroller_width,
                     height: scroller_height,
@@ -1896,9 +1917,17 @@ impl Scrollbars {
             // the scrollbar without affecting the layout
             let scrollbar_width = (bounds.width - scrollbar_y_width - 2.0 * padding).max(0.0);
 
+            // The vertical scrollbar takes the left edge in an RTL layout, so the
+            // horizontal one starts after it instead of at the bounds.
+            let x = if is_rtl {
+                bounds.x + padding + scrollbar_y_width
+            } else {
+                bounds.x + padding
+            };
+
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
-                x: bounds.x + padding,
+                x,
                 y: bounds.y + bounds.height - total_scrollbar_height,
                 width: scrollbar_width,
                 height: total_scrollbar_height,
@@ -1906,7 +1935,7 @@ impl Scrollbars {
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
-                x: bounds.x + padding,
+                x,
                 y: bounds.y + bounds.height - total_scrollbar_height / 2.0 - width / 2.0,
                 width: scrollbar_width,
                 height: width,
