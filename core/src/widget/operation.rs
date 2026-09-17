@@ -321,7 +321,10 @@ where
 
 /// Chains the output of an [`Operation`] with the provided function to
 /// build a new [`Operation`].
-pub fn then<A, B, O>(operation: impl Operation<A> + 'static, f: fn(A) -> O) -> impl Operation<B>
+pub fn then<A, B, O>(
+    operation: impl Operation<A> + 'static,
+    f: impl Fn(A) -> O + Send + Sync + 'static,
+) -> impl Operation<B>
 where
     A: 'static,
     B: Send + 'static,
@@ -333,7 +336,7 @@ where
         O: Operation<B>,
     {
         operation: T,
-        next: fn(A) -> O,
+        f: Arc<dyn Fn(A) -> O + Send + Sync>,
         _result: PhantomData<B>,
     }
 
@@ -385,15 +388,19 @@ where
         fn finish(&self) -> Outcome<B> {
             match self.operation.finish() {
                 Outcome::None => Outcome::None,
-                Outcome::Some(value) => Outcome::Chain(Box::new((self.next)(value))),
-                Outcome::Chain(operation) => Outcome::Chain(Box::new(then(operation, self.next))),
+                Outcome::Some(value) => Outcome::Chain(Box::new((self.f)(value))),
+                Outcome::Chain(next) => Outcome::Chain(Box::new(Chain {
+                    operation: next,
+                    f: self.f.clone(),
+                    _result: PhantomData,
+                })),
             }
         }
     }
 
     Chain {
         operation,
-        next: f,
+        f: Arc::new(f),
         _result: PhantomData,
     }
 }
