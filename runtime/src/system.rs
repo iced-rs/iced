@@ -1,4 +1,5 @@
 //! Access the native system.
+use crate::core::Color;
 use crate::core::theme;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::subscription::{self, Subscription};
@@ -15,6 +16,12 @@ pub enum Action {
 
     /// Notify to the runtime that the system theme has changed.
     NotifyTheme(theme::Mode),
+
+    /// Send the current system accent color.
+    GetAccentColor(oneshot::Sender<Option<Color>>),
+
+    /// Notify to the runtime that the system accent color has changed.
+    NotifyAccentColor(Option<Color>),
 }
 
 /// Contains information about the system (e.g. system name, processor, memory, graphics adapter).
@@ -68,5 +75,33 @@ pub fn theme_changes() -> Subscription<theme::Mode> {
         };
 
         Some(mode)
+    })
+}
+
+/// Returns the current system accent color.
+///
+/// The [`Task`] produces `None` when the system has no accent color
+/// preference or when accent color detection is unsupported on the
+/// current platform.
+///
+/// Accent color detection is currently only available on Linux with
+/// the `linux-theme-detection` feature enabled.
+pub fn accent_color() -> Task<Option<Color>> {
+    task::oneshot(|sender| crate::Action::System(Action::GetAccentColor(sender)))
+}
+
+/// Subscribes to system accent color changes.
+///
+/// `None` means the system no longer has an accent color preference.
+pub fn accent_color_changes() -> Subscription<Option<Color>> {
+    #[derive(Hash)]
+    struct AccentColorChanges;
+
+    subscription::filter_map(AccentColorChanges, |event| {
+        let subscription::Event::SystemAccentColorChanged(color) = event else {
+            return None;
+        };
+
+        Some(color)
     })
 }

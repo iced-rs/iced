@@ -44,7 +44,7 @@ use crate::core::shell;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Color, Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -495,38 +495,67 @@ async fn run_instance<P>(
     let mut clipboard = Clipboard::new();
 
     #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
-    let mut system_theme = {
+    let (mut system_theme, mut system_accent_color) = {
+        use crate::futures::futures::stream;
+
+        let interest = mundy::Interest::ColorScheme | mundy::Interest::AccentColor;
+
         let to_mode = |color_scheme| match color_scheme {
             mundy::ColorScheme::NoPreference => theme::Mode::None,
             mundy::ColorScheme::Light => theme::Mode::Light,
             mundy::ColorScheme::Dark => theme::Mode::Dark,
         };
 
+        let to_color = |accent_color: mundy::AccentColor| {
+            accent_color.0.map(|color| {
+                Color::from_rgba(
+                    color.red as f32,
+                    color.green as f32,
+                    color.blue as f32,
+                    color.alpha as f32,
+                )
+            })
+        };
+
+        // `mundy` deduplicates its stream, but a single item may carry a
+        // change in either preference; we notify both and let the runtime
+        // discard the ones that did not actually change.
         runtime.run(
-            mundy::Preferences::stream(mundy::Interest::ColorScheme)
-                .map(move |preferences| {
-                    Action::System(system::Action::NotifyTheme(to_mode(
-                        preferences.color_scheme,
-                    )))
+            mundy::Preferences::stream(interest)
+                .flat_map(move |preferences| {
+                    stream::iter([
+                        Action::System(system::Action::NotifyTheme(to_mode(
+                            preferences.color_scheme,
+                        ))),
+                        Action::System(system::Action::NotifyAccentColor(to_color(
+                            preferences.accent_color,
+                        ))),
+                    ])
                 })
                 .boxed(),
         );
 
         runtime
             .enter(|| {
-                mundy::Preferences::once_blocking(
-                    mundy::Interest::ColorScheme,
-                    core::time::Duration::from_millis(200),
+                mundy::Preferences::once_blocking(interest, core::time::Duration::from_millis(200))
+            })
+            .map(|preferences| {
+                (
+                    to_mode(preferences.color_scheme),
+                    to_color(preferences.accent_color),
                 )
             })
-            .map(|preferences| to_mode(preferences.color_scheme))
             .unwrap_or_default()
     };
 
     #[cfg(not(all(feature = "linux-theme-detection", target_os = "linux")))]
-    let mut system_theme = _system_theme.try_recv().ok().flatten().unwrap_or_default();
+    let (mut system_theme, mut system_accent_color): (theme::Mode, Option<Color>) = (
+        _system_theme.try_recv().ok().flatten().unwrap_or_default(),
+        None,
+    );
 
     log::info!("System theme: {system_theme:?}");
+    log::info!("System accent color: {system_accent_color:?}");
 
     'next_event: loop {
         // Empty the queue if possible
@@ -730,6 +759,7 @@ async fn run_instance<P>(
                             &mut ui_caches,
                             &mut is_window_opening,
                             &mut system_theme,
+                            &mut system_accent_color,
                             &mut renderer_settings,
                         );
                         actions += 1;
@@ -852,6 +882,7 @@ async fn run_instance<P>(
                                         &mut ui_caches,
                                         &mut is_window_opening,
                                         &mut system_theme,
+                                        &mut system_accent_color,
                                         &mut renderer_settings,
                                     );
                                 }
@@ -1043,6 +1074,7 @@ async fn run_instance<P>(
                                 &mut ui_caches,
                                 &mut is_window_opening,
                                 &mut system_theme,
+                                &mut system_accent_color,
                                 &mut renderer_settings,
                             );
                         } else {
@@ -1176,6 +1208,7 @@ async fn run_instance<P>(
                                     &mut ui_caches,
                                     &mut is_window_opening,
                                     &mut system_theme,
+                                    &mut system_accent_color,
                                     &mut renderer_settings,
                                 );
                             }
@@ -1295,6 +1328,7 @@ fn run_action<'a, P, C>(
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
     is_window_opening: &mut bool,
     system_theme: &mut theme::Mode,
+    system_accent_color: &mut Option<Color>,
     renderer_settings: &mut renderer::Settings,
 ) where
     P: Program,
@@ -1646,6 +1680,16 @@ fn run_action<'a, P, C>(
                         &window.raw,
                         &winit::event::WindowEvent::ThemeChanged(theme),
                     );
+                }
+            }
+            system::Action::GetAccentColor(channel) => {
+                let _ = channel.send(*system_accent_color);
+            }
+            system::Action::NotifyAccentColor(color) => {
+                if color != *system_accent_color {
+                    *system_accent_color = color;
+
+                    runtime.broadcast(subscription::Event::SystemAccentColorChanged(color));
                 }
             }
         },

@@ -81,7 +81,7 @@ strict-assertions = ["iced_renderer/strict-assertions"]
 unconditional-rendering = ["iced_winit/unconditional-rendering"]
 # Enables support for the `sipper` library
 sipper = ["iced_runtime/sipper"]
-# Enables Linux system theme detection
+# Enables Linux system theme and accent color detection
 linux-theme-detection = ["iced_winit/linux-theme-detection"]
 # Enables the Unix X11 backend
 x11 = ["iced_renderer/x11", "iced_winit/x11"]

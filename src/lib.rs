@@ -603,7 +603,7 @@ pub mod mouse {
 
 pub mod system {
     //! Retrieve system information.
-    pub use crate::runtime::system::{theme, theme_changes};
+    pub use crate::runtime::system::{accent_color, accent_color_changes, theme, theme_changes};
 
     #[cfg(feature = "sysinfo")]
     pub use crate::runtime::system::{Information, information};
