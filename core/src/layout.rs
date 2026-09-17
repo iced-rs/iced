@@ -202,7 +202,7 @@ pub fn positioned(
 
     let limits = limits.width(width).height(height);
     let content = layout(&limits.shrink(padding));
-    let padding = padding.fit(content.size(), limits.max());
+    let padding = padding.fit(content.size(), limits.bounds());
 
     let size = limits
         .shrink(padding)

@@ -68,6 +68,7 @@ pub fn snap(bounds: Rectangle) -> Option<Rectangle<u32>> {
 /// Use this for coordinates that can legitimately extend beyond the
 /// top-left corner of the viewport, like the bounds of content scrolled out
 /// of view: those are clipped afterwards by their surroundings.
+#[cfg(any(feature = "image", feature = "svg"))]
 pub fn round(bounds: Rectangle) -> Rectangle {
     (bounds + Vector::new(NUDGE, NUDGE)).round()
 }

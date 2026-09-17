@@ -5,47 +5,58 @@ use crate::{Length, Size};
 /// A set of size constraints for layouting.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Limits {
-    min: Size,
-    max: Size,
-    compression: Size<bool>,
+    /// The minimum bounds.
+    pub min: Size,
+    /// The maximum bounds.
+    pub max: Size,
+    /// Whether fluid lengths should be compressed to intrinsic dimensions.
+    pub compression: Size<bool>,
+    /// Whether intrinsic dimensions can exceed maximum bounds. The maximum
+    /// boundary becomes a hint in this case.
+    pub infinite: Size<bool>,
 }
 
 impl Limits {
-    /// No limits
-    pub const NONE: Limits = Limits {
-        min: Size::ZERO,
-        max: Size::INFINITE,
-        compression: Size::new(false, false),
-    };
-
     /// Creates new [`Limits`] with the given minimum and maximum [`Size`].
     pub const fn new(min: Size, max: Size) -> Limits {
-        Limits::with_compression(min, max, Size::new(false, false))
+        Limits::with_flags(min, max, Size::new(false, false), Size::new(false, false))
     }
 
-    /// Creates new [`Limits`] with the given minimun and maximum [`Size`], and
-    /// whether fluid lengths should be compressed to intrinsic dimensions.
-    pub const fn with_compression(min: Size, max: Size, compress: Size<bool>) -> Self {
+    /// Creates new [`Limits`] with the given minimum and maximum [`Size`],
+    /// whether fluid lengths should be compressed to intrinsic dimensions,
+    /// and whether the upper bounds may grow indefinitely.
+    pub const fn with_flags(
+        min: Size,
+        max: Size,
+        compression: Size<bool>,
+        infinite: Size<bool>,
+    ) -> Self {
         Limits {
             min,
             max,
-            compression: compress,
+            compression,
+            infinite,
         }
     }
 
-    /// Returns the minimum [`Size`] of the [`Limits`].
-    pub fn min(&self) -> Size {
-        self.min
-    }
-
     /// Returns the maximum [`Size`] of the [`Limits`].
-    pub fn max(&self) -> Size {
-        self.max
-    }
-
-    /// Returns the compression of the [`Limits`].
-    pub fn compression(&self) -> Size<bool> {
-        self.compression
+    ///
+    /// On axes with [`infinite`](Self::infinite) bounds, the value is
+    /// [`f32::INFINITY`], as the maximum boundary becomes a hint in this
+    /// case.
+    pub fn bounds(&self) -> Size {
+        Size::new(
+            if self.infinite.width {
+                f32::INFINITY
+            } else {
+                self.max.width
+            },
+            if self.infinite.height {
+                f32::INFINITY
+            } else {
+                self.max.height
+            },
+        )
     }
 
     /// Applies a width constraint to the current [`Limits`].
@@ -145,19 +156,20 @@ impl Limits {
         let size = size.into();
 
         let min = Size::new(
-            (self.min().width - size.width).max(0.0),
-            (self.min().height - size.height).max(0.0),
+            (self.min.width - size.width).max(0.0),
+            (self.min.height - size.height).max(0.0),
         );
 
         let max = Size::new(
-            (self.max().width - size.width).max(0.0),
-            (self.max().height - size.height).max(0.0),
+            (self.max.width - size.width).max(0.0),
+            (self.max.height - size.height).max(0.0),
         );
 
         Limits {
             min,
             max,
             compression: self.compression,
+            infinite: self.infinite,
         }
     }
 
@@ -167,6 +179,7 @@ impl Limits {
             min: Size::ZERO,
             max: self.max,
             compression: self.compression,
+            infinite: self.infinite,
         }
     }
 
@@ -193,9 +206,25 @@ impl Limits {
             | Length::Bounded {
                 sizing: length::Sizing::Fill(_),
                 ..
-            } if !self.compression.width => self.max.width,
-            Length::Fixed(amount) => amount.min(self.max.width).max(self.min.width),
-            _ => intrinsic_width.min(self.max.width).max(self.min.width),
+            } if !self.compression.width => {
+                if self.infinite.width {
+                    self.max.width.max(intrinsic_width)
+                } else {
+                    self.max.width
+                }
+            }
+            Length::Fixed(amount) => if self.infinite.width {
+                amount
+            } else {
+                amount.min(self.max.width)
+            }
+            .max(self.min.width),
+            _ => if self.infinite.width {
+                intrinsic_width
+            } else {
+                intrinsic_width.min(self.max.width)
+            }
+            .max(self.min.width),
         }
     }
 
@@ -207,9 +236,25 @@ impl Limits {
             | Length::Bounded {
                 sizing: length::Sizing::Fill(_),
                 ..
-            } if !self.compression.height => self.max.height,
-            Length::Fixed(amount) => amount.min(self.max.height).max(self.min.height),
-            _ => intrinsic_height.min(self.max.height).max(self.min.height),
+            } if !self.compression.height => {
+                if self.infinite.height {
+                    self.max.height.max(intrinsic_height)
+                } else {
+                    self.max.height
+                }
+            }
+            Length::Fixed(amount) => if self.infinite.height {
+                amount
+            } else {
+                amount.min(self.max.height)
+            }
+            .max(self.min.height),
+            _ => if self.infinite.height {
+                intrinsic_height
+            } else {
+                intrinsic_height.min(self.max.height)
+            }
+            .max(self.min.height),
         }
     }
 }

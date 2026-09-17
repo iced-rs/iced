@@ -397,7 +397,7 @@ where
         let child_limits = limits.loose();
         let spacing = self.row.spacing;
         let vertical_spacing = self.vertical_spacing.unwrap_or(spacing);
-        let max_width = limits.max().width;
+        let max_width = limits.bounds().width;
 
         let mut children: Vec<layout::Node> = Vec::new();
         let mut intrinsic_size = Size::ZERO;

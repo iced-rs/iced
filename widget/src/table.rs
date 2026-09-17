@@ -229,7 +229,7 @@ where
         let rows = self.cells.len() / columns;
 
         let limits = limits.width(self.width).height(self.height);
-        let available = limits.max();
+        let available = limits.max;
         let table_fluid = if self.width.fill_factor() == 0 {
             Length::Shrink
         } else {

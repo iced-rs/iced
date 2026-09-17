@@ -362,7 +362,7 @@ where
         let option_text = Text {
             content: "",
             bounds: Size::new(
-                limits.max().width,
+                limits.bounds().width,
                 line_height.to_absolute(text_size).into(),
             ),
             size: text_size,

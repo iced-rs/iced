@@ -76,7 +76,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
-        let size = limits.max();
+        let size = limits.bounds();
 
         self.content = (self.view)(size);
         tree.diff_children(std::slice::from_mut(&mut self.content));

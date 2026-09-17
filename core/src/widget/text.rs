@@ -304,7 +304,7 @@ where
     Renderer: text::Renderer,
 {
     layout::sized(limits, format.width, format.height, |limits| {
-        let bounds = limits.max();
+        let bounds = limits.bounds();
 
         let size = format.size.unwrap_or_else(|| renderer.text_size());
         let font = format.font.unwrap_or_else(|| renderer.font());

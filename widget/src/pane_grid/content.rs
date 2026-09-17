@@ -157,7 +157,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         if let Some(title_bar) = &mut self.title_bar {
-            let max_size = limits.max();
+            let max_size = limits.max;
 
             let title_bar_layout = title_bar.layout(
                 &mut tree.children[1],

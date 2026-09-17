@@ -366,7 +366,7 @@ where
         let limits = limits.width(self.width).height(self.height);
 
         internal.editor.update(
-            limits.shrink(self.padding).max(),
+            limits.shrink(self.padding).bounds(),
             self.font.unwrap_or_else(|| renderer.font()),
             self.text_size.unwrap_or_else(|| renderer.text_size()),
             self.line_height.unwrap_or_else(|| renderer.line_height()),
@@ -388,7 +388,7 @@ where
                 layout::Node::new(
                     limits
                         .height(min_bounds.height)
-                        .max()
+                        .bounds()
                         .expand(Size::new(0.0, self.padding.y())),
                 )
             }
@@ -396,7 +396,7 @@ where
             | Length::FillPortion(_)
             | Length::Fixed(_)
             | Length::Bounded { .. }
-            | Length::Fluid(_) => layout::Node::new(limits.max()),
+            | Length::Fluid(_) => layout::Node::new(limits.bounds()),
         }
     }
 

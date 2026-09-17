@@ -470,7 +470,7 @@ where
     Renderer: core::text::Renderer,
 {
     layout::sized(limits, width, height, |limits| {
-        let bounds = limits.max();
+        let bounds = limits.bounds();
 
         let size = size.unwrap_or_else(|| renderer.text_size());
         let font = font.unwrap_or_else(|| renderer.font());

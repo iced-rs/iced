@@ -434,21 +434,10 @@ where
                 |limits| {
                     let is_horizontal = self.direction.horizontal().is_some();
                     let is_vertical = self.direction.vertical().is_some();
-
-                    let child_limits = layout::Limits::with_compression(
-                        limits.min(),
-                        Size::new(
-                            if is_horizontal {
-                                f32::INFINITY
-                            } else {
-                                limits.max().width
-                            },
-                            if is_vertical {
-                                f32::INFINITY
-                            } else {
-                                limits.max().height
-                            },
-                        ),
+                    let child_limits = layout::Limits::with_flags(
+                        limits.min,
+                        limits.max,
+                        limits.compression,
                         Size::new(is_horizontal, is_vertical),
                     );
 

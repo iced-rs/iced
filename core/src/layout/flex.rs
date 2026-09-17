@@ -77,10 +77,10 @@ where
 {
     let limits = limits.width(width).height(height).shrink(padding);
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;
-    let max_cross = axis.cross(limits.max());
+    let max_cross = axis.cross(limits.max);
 
     let (main_compress, cross_compress) = {
-        let compression = limits.compression();
+        let compression = limits.compression;
         axis.pack(compression.width, compression.height)
     };
 
@@ -89,6 +89,8 @@ where
         Size::new(compress_x, compress_y)
     };
 
+    let infinite = limits.infinite;
+
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
     let mut some_fill_max = false;
@@ -96,7 +98,7 @@ where
     let mut min_total = 0.0;
     let mut min_factors = 0;
     let mut cross = 0.0;
-    let mut available = axis.main(limits.max()) - total_spacing;
+    let mut available = axis.main(limits.max) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
@@ -195,8 +197,12 @@ where
             },
         );
 
-        let child_limits =
-            Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
+        let child_limits = Limits::with_flags(
+            Size::ZERO,
+            Size::new(max_width, max_height),
+            compression,
+            infinite,
+        );
 
         let layout = child
             .as_widget_mut()
@@ -230,8 +236,12 @@ where
             let (max_width, max_height) =
                 axis.pack(available, if cross_compress { cross } else { max_cross });
 
-            let child_limits =
-                Limits::with_compression(Size::ZERO, Size::new(max_width, max_height), compression);
+            let child_limits = Limits::with_flags(
+                Size::ZERO,
+                Size::new(max_width, max_height),
+                compression,
+                infinite,
+            );
 
             let layout = child
                 .as_widget_mut()
@@ -344,10 +354,11 @@ where
                 },
             );
 
-            let child_limits = Limits::with_compression(
+            let child_limits = Limits::with_flags(
                 Size::new(min_width, min_height),
                 Size::new(max_width, max_height),
                 compression,
+                infinite,
             );
 
             let layout = child
@@ -408,10 +419,11 @@ where
                 },
             );
 
-            let child_limits = Limits::with_compression(
+            let child_limits = Limits::with_flags(
                 Size::new(min_width, min_height),
                 Size::new(max_width, max_height),
                 compression,
+                infinite,
             );
 
             let layout = child
