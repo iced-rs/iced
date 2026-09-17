@@ -806,14 +806,14 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.palette();
 
     let active = Style {
-        background: Background::Color(palette.background.base.color),
+        background: Background::Color(palette.background.weakest.color),
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
             color: palette.background.strong.color,
         },
         placeholder: palette.secondary.base.color,
-        value: palette.background.base.text,
+        value: palette.background.weakest.text,
         selection: palette.primary.weak.color,
     };
 
@@ -834,7 +834,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             ..active
         },
         Status::Disabled => Style {
-            background: Background::Color(palette.background.weak.color),
+            background: Background::Color(palette.background.base.color),
             value: active.placeholder,
             placeholder: palette.background.strongest.color,
             ..active
