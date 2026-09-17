@@ -18,7 +18,7 @@ impl Point {
     pub const ORIGIN: Self = Self::new(0.0, 0.0);
 }
 
-impl<T: Num> Point<T> {
+impl<T> Point<T> {
     /// Creates a new [`Point`] with the given coordinates.
     pub const fn new(x: T, y: T) -> Self {
         Self { x, y }

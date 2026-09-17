@@ -601,7 +601,8 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
-        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
+        let translation = state.translation(self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
 
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
@@ -769,8 +770,6 @@ where
             if state.last_scrolled.is_none()
                 || !matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
             {
-                let translation = state.translation(self.direction, bounds, content_bounds);
-
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
                         if !(mouse_over_x_scrollbar
@@ -1072,21 +1071,19 @@ where
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
-
         let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
 
         let Some(viewport) = viewport.intersection(&bounds) else {
             return;
         };
 
-        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
-
-        let cursor_over_scrollable = cursor.position_over(bounds);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
 
         let translation = state.translation(self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let cursor_over_scrollable = cursor.position_over(bounds);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
@@ -1107,12 +1104,9 @@ where
 
         // Draw inner content
         if scrollbars.active() {
-            let scale_factor = renderer.hint_factor().unwrap_or(1.0);
-            let hinted_translation = (translation * scale_factor).round() / scale_factor;
-
             renderer.with_layer(viewport, |renderer| {
                 renderer.with_translation(
-                    Vector::new(-hinted_translation.x, -hinted_translation.y),
+                    -translation.hint(renderer.hint_factor().unwrap_or(1.0)),
                     |renderer| {
                         self.content.as_widget().draw(
                             &tree.children[0],
@@ -1222,16 +1216,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let cursor_over_scrollable = cursor.position_over(bounds);
-
-        let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
-
-        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
-
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let state = tree.state.downcast_ref::<State>();
 
         if state.scrollers_grabbed() {
             return mouse::Interaction::Idle;
@@ -1241,7 +1227,13 @@ where
             return mouse::Interaction::None;
         };
 
+        let cursor_over_scrollable = cursor.position_over(bounds);
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
+
         let translation = state.translation(self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
@@ -1272,6 +1264,7 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
         let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
+
         let offset = state.translation(self.direction, bounds, content_bounds);
 
         let overlay = self.content.as_widget_mut().overlay(
@@ -1283,7 +1276,7 @@ where
         );
 
         let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
-            let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
+            let scrollbars = Scrollbars::new(offset, self.direction, bounds, content_bounds);
 
             Some(overlay::Element::new(Box::new(AutoScrollIcon {
                 origin,
@@ -1370,7 +1363,7 @@ where
                 content: String::new(),
                 bounds: bounds.size(),
                 size: Pixels::from(12),
-                line_height: text::LineHeight::Relative(1.0),
+                line_height: text::LineHeight::from(1.0),
                 font: Renderer::ICON_FONT,
                 align_x: text::Alignment::Center,
                 align_y: alignment::Vertical::Center,
@@ -1782,13 +1775,11 @@ struct Scrollbars {
 impl Scrollbars {
     /// Create y and/or x scrollbar(s) if content is overflowing the [`Scrollable`] bounds.
     fn new(
-        state: &State,
+        translation: Vector,
         direction: Direction,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) -> Self {
-        let translation = state.translation(direction, bounds, content_bounds);
-
         let show_scrollbar_x = direction
             .horizontal()
             .filter(|_scrollbar| content_bounds.width > bounds.width);

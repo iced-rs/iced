@@ -267,6 +267,12 @@ impl Rectangle<f32> {
         })
     }
 
+    /// Computes the logical [`Rectangle`] that ends up rounded
+    /// after the given `scale_factor` is applied to it.
+    pub fn hint(self, scale_factor: f32) -> Self {
+        (self * scale_factor).round() / scale_factor
+    }
+
     /// Expands the [`Rectangle`] a given amount.
     pub fn expand(self, padding: impl Into<Padding>) -> Self {
         let padding = padding.into();
@@ -372,6 +378,19 @@ impl std::ops::Mul<f32> for Rectangle<f32> {
             y: self.y * scale,
             width: self.width * scale,
             height: self.height * scale,
+        }
+    }
+}
+
+impl std::ops::Div<f32> for Rectangle<f32> {
+    type Output = Self;
+
+    fn div(self, scale: f32) -> Self {
+        Self {
+            x: self.x / scale,
+            y: self.y / scale,
+            width: self.width / scale,
+            height: self.height / scale,
         }
     }
 }
