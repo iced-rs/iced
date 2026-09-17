@@ -32,6 +32,7 @@ use std::ops::RangeInclusive;
 
 pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn, default};
 
+use crate::cloneable::Emit;
 use crate::core::border::Border;
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -93,7 +94,7 @@ where
     value: T,
     default: Option<T>,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
-    on_release: Option<Message>,
+    on_release: Option<Emit<'a, Message>>,
     width: f32,
     height: Length,
     class: Theme::Class<'a>,
@@ -103,7 +104,6 @@ where
 impl<'a, T, Message, Theme> VerticalSlider<'a, T, Message, Theme>
 where
     T: Copy + std::cmp::PartialOrd,
-    Message: Clone,
     Theme: Catalog,
 {
     /// The default width of a [`VerticalSlider`].
@@ -162,8 +162,20 @@ where
     /// Typically, the user's interaction with the slider is finished when this message is produced.
     /// This is useful if you need to spawn a long-running task from the slider's result, where
     /// the default on_change message could create too many events.
-    pub fn on_release(mut self, on_release: Message) -> Self {
-        self.on_release = Some(on_release);
+    pub fn on_release(mut self, on_release: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_release = Some(Emit::direct(on_release));
+        self
+    }
+
+    /// Sets the release message of the [`VerticalSlider`].
+    ///
+    /// This is analogous to [`VerticalSlider::on_release`], but using a closure to produce
+    /// the message, bypassing the need for `Message: Clone`.
+    pub fn on_release_with(mut self, on_release: impl Fn() -> Message + 'a) -> Self {
+        self.on_release = Some(Emit::closure(on_release));
         self
     }
 
@@ -216,7 +228,6 @@ impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for VerticalSlider<'_, T, Message, Theme>
 where
     T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
-    Message: Clone,
     Theme: Catalog,
     Renderer: core::Renderer,
 {
@@ -347,8 +358,8 @@ where
             | Event::Touch(touch::Event::FingerLost { .. })
                 if is_dragging =>
             {
-                if let Some(on_release) = self.on_release.clone() {
-                    shell.publish(on_release);
+                if let Some(on_release) = &self.on_release {
+                    shell.publish(on_release.get());
                 }
                 state.is_dragging = false;
             }
@@ -530,7 +541,7 @@ impl<'a, T, Message, Theme, Renderer> From<VerticalSlider<'a, T, Message, Theme>
     for Element<'a, Message, Theme, Renderer>
 where
     T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive + 'a,
-    Message: Clone + 'a,
+    Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::Renderer + 'a,
 {
