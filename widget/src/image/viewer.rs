@@ -6,8 +6,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    ContentFit, Element, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell,
-    Size, Vector, Widget,
+    ContentFit, Direction, Element, Event, Image, Layout, Length, Pixels, Point, Radians,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -120,6 +120,7 @@ where
         _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         // The raw w/h of the underlying image
         let image_size = renderer.measure_image(&self.handle).unwrap_or_default();

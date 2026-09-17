@@ -17,6 +17,7 @@
 //! }
 //! ```
 use crate::core;
+use crate::core::Direction;
 use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
@@ -122,6 +123,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         let size = <Self as Widget<(), Theme, Renderer>>::size(self);
 

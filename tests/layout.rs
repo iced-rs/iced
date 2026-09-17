@@ -2,7 +2,7 @@
 use iced::advanced::layout;
 use iced::advanced::widget;
 use iced::widget::{column, row, space};
-use iced::{Element, Fill, FillPortion, Never, Pixels, Size, Theme};
+use iced::{Direction, Element, Fill, FillPortion, Never, Pixels, Size, Theme};
 
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
     Size::ZERO,
@@ -391,9 +391,10 @@ fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expec
     let mut tree = widget::Tree::new(&element);
     element.as_widget_mut().diff(&mut tree);
 
-    let layout = element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    let layout =
+        element
+            .as_widget_mut()
+            .layout(&mut tree, &(), &DEFAULT_LIMITS, Direction::default());
 
     assert_eq!(layout, expect);
 }

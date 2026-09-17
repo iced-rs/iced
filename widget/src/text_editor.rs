@@ -44,8 +44,8 @@ use crate::core::theme;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell,
-    Size, Theme,
+    Background, Border, Color, Direction, Element, Event, Font, Length, Padding, Pixels, Point,
+    Rectangle, Shell, Size, Theme,
 };
 
 use std::borrow::Cow;
@@ -313,8 +313,22 @@ where
     }
 }
 
+/// Resolves the text [`Alignment`] of an editor laid out in the given [`Direction`].
+///
+/// An unaligned editor belongs to its container, not to its contents: an empty
+/// or Latin-only editor in an RTL layout must still start at the right.
+///
+/// [`Alignment`]: text::Alignment
+fn alignment(direction: Direction) -> text::Alignment {
+    match direction {
+        Direction::LeftToRight => text::Alignment::Default,
+        Direction::RightToLeft => text::Alignment::Right,
+    }
+}
+
 struct State<Parser: text::Parser> {
     editor: editor::State,
+    direction: Direction,
     parser: RefCell<Parser>,
     parser_settings: Parser::Settings,
     last_theme: RefCell<Option<String>>,
@@ -334,6 +348,7 @@ where
     fn state(&self) -> widget::tree::State {
         widget::tree::State::new(State {
             editor: editor::State::new(),
+            direction: Direction::default(),
             parser: RefCell::new(Parser::new(&self.parser_settings)),
             parser_settings: self.parser_settings.clone(),
             last_theme: RefCell::new(None),
@@ -352,9 +367,12 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> iced_renderer::core::layout::Node {
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_mut::<State<Parser>>();
+
+        state.direction = direction;
 
         if state.parser_settings != self.parser_settings {
             state.parser.borrow_mut().update(&self.parser_settings);
@@ -373,7 +391,7 @@ where
             self.text_size.unwrap_or_else(|| renderer.text_size()),
             self.line_height.unwrap_or_else(|| renderer.line_height()),
             self.wrapping,
-            text::Alignment::Default,
+            alignment(direction),
             renderer.hint_factor(),
             state.parser.borrow_mut().deref_mut(),
         );
@@ -541,14 +559,21 @@ where
                     size: self.text_size.unwrap_or_else(|| renderer.text_size()),
                     line_height: self.line_height.unwrap_or_else(|| renderer.line_height()),
                     font,
-                    align_x: text::Alignment::Default,
+                    align_x: alignment(state.direction),
                     align_y: alignment::Vertical::Top,
                     shaping: text::Shaping::Advanced,
                     wrapping: self.wrapping,
                     ellipsis: text::Ellipsis::None,
                     hint_factor: renderer.hint_factor(),
                 },
-                text_bounds.position(),
+                // `align_x` picks which edge the anchor is: `Right` measures
+                // leftwards from it, so RTL must anchor at the right edge.
+                match state.direction {
+                    Direction::LeftToRight => text_bounds.position(),
+                    Direction::RightToLeft => {
+                        Point::new(text_bounds.x + text_bounds.width, text_bounds.y)
+                    }
+                },
                 style.placeholder,
                 text_bounds,
             );

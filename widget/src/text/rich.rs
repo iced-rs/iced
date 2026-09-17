@@ -9,8 +9,8 @@ use crate::core::widget::text::{
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    self, Border, Color, Direction, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 /// A bunch of [`Rich`] text.
@@ -221,6 +221,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout(
             tree.state

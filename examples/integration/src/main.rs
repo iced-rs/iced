@@ -12,7 +12,7 @@ use iced_winit::core::renderer;
 use iced_winit::core::shell;
 use iced_winit::core::time::Instant;
 use iced_winit::core::window;
-use iced_winit::core::{Event, Size, Theme};
+use iced_winit::core::{Direction, Event, Size, Theme};
 use iced_winit::futures;
 use iced_winit::runtime::user_interface::{self, UserInterface};
 use iced_winit::winit;
@@ -263,6 +263,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 viewport.logical_size(),
                                 std::mem::take(cache),
                                 renderer,
+                                Direction::LeftToRight,
                             );
 
                             let (state, _) = interface.update(
@@ -345,6 +346,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     viewport.logical_size(),
                     std::mem::take(cache),
                     renderer,
+                    Direction::LeftToRight,
                 );
 
                 let mut messages = shell::Bus::new();

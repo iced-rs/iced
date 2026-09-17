@@ -60,6 +60,7 @@ pub use crate::graphics::geometry::{
     path, stroke,
 };
 
+use crate::core::Direction;
 use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -208,6 +209,7 @@ where
         _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::atomic(limits, self.width, self.height)
     }

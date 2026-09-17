@@ -41,8 +41,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell,
-    Size, Theme, Widget,
+    Background, Border, Color, Direction, Element, Event, Font, Layout, Length, Pixels, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 /// A toggler widget.
@@ -255,6 +255,7 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: Direction,
     ) -> layout::Node {
         let limits = limits.width(self.width);
 
@@ -265,6 +266,7 @@ where
             } else {
                 0.0
             },
+            direction,
             |_| {
                 let size = if renderer::CRISP {
                     let scale_factor = renderer.hint_factor().unwrap_or(1.0);
@@ -389,6 +391,11 @@ where
     ) {
         let mut children = layout.children();
         let toggler_layout = children.next().unwrap();
+        let label_layout = self.label.is_some().then(|| children.next().unwrap());
+
+        let is_rtl = label_layout
+            .map(|label| label.bounds().x < toggler_layout.bounds().x)
+            .unwrap_or(false);
 
         let style = theme.style(
             &self.class,
@@ -397,8 +404,7 @@ where
             }),
         );
 
-        if self.label.is_some() {
-            let label_layout = children.next().unwrap();
+        if let Some(label_layout) = label_layout {
             let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
 
             crate::text::draw(
@@ -443,9 +449,15 @@ where
 
             let padding = (style.padding_ratio * bounds.height).round();
 
+            let toggled_right = if is_rtl {
+                !self.is_toggled
+            } else {
+                self.is_toggled
+            };
+
             Rectangle {
                 x: bounds.x
-                    + if self.is_toggled {
+                    + if toggled_right {
                         bounds.width - bounds.height + padding
                     } else {
                         padding

@@ -129,8 +129,11 @@ where
         tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: core::Direction,
     ) -> layout::Node {
-        self.content.as_widget_mut().layout(tree, renderer, limits)
+        self.content
+            .as_widget_mut()
+            .layout(tree, renderer, limits, direction)
     }
 
     fn operate(
@@ -319,7 +322,12 @@ impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: core::Direction,
+    ) -> layout::Node {
         layout::Node::new(self.viewport.size()).move_to(self.viewport.position())
     }
 

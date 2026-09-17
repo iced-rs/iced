@@ -123,6 +123,7 @@ where
         component,
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
+        direction: core::Direction::default(),
         layout: layout::Node::new(Size::ZERO),
         is_outdated: Cell::new(true),
         has_overlay: false,
@@ -136,6 +137,7 @@ where
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
+    direction: core::Direction,
     layout: layout::Node,
     is_outdated: Cell<bool>,
     has_overlay: bool,
@@ -190,13 +192,17 @@ where
         tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
+        direction: core::Direction,
     ) -> layout::Node {
-        if &self.limits != limits {
+        if &self.limits != limits || self.direction != direction {
             self.limits = *limits;
-            self.layout = self
-                .view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            self.direction = direction;
+            self.layout = self.view.as_widget_mut().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+                direction,
+            );
         }
 
         layout::Node::new(self.layout.size())
@@ -283,10 +289,12 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.view));
 
         let previous_size = self.layout.size();
-        self.layout =
-            self.view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, &self.limits);
+        self.layout = self.view.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            &self.limits,
+            self.direction,
+        );
 
         let new_sizing = self.view.as_widget().size();
 
@@ -481,8 +489,15 @@ where
     C: Component<'a, Message, Theme, Renderer>,
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.raw.as_overlay_mut().layout(renderer, bounds)
+    fn layout(
+        &mut self,
+        renderer: &Renderer,
+        bounds: Size,
+        direction: core::Direction,
+    ) -> layout::Node {
+        self.raw
+            .as_overlay_mut()
+            .layout(renderer, bounds, direction)
     }
 
     fn update(

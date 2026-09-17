@@ -6,7 +6,7 @@ use iced_runtime::core::renderer;
 use iced_runtime::core::shell;
 use iced_runtime::core::widget;
 use iced_runtime::core::window;
-use iced_runtime::core::{Element, Event, Length, Rectangle, Shell, Size};
+use iced_runtime::core::{Direction, Element, Event, Length, Rectangle, Shell, Size};
 use iced_runtime::user_interface::{Cache, UserInterface};
 
 type Renderer = ();
@@ -25,6 +25,7 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         _tree: &mut widget::Tree,
         _renderer: &Renderer,
         _limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::Node::new(Size::ZERO)
     }
@@ -79,7 +80,12 @@ struct HidingOverlay<'a> {
 }
 
 impl<'a> overlay::Overlay<(), core::Theme, Renderer> for HidingOverlay<'a> {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: Direction,
+    ) -> layout::Node {
         layout::Node::new(Size::new(1.0, 1.0))
     }
 
@@ -119,6 +125,7 @@ fn events_after_an_overlay_disappears_reach_the_base_widget() {
         window::Settings::default().size,
         Cache::default(),
         &mut renderer,
+        Direction::default(),
     );
 
     let mut messages = shell::Bus::new();
@@ -162,6 +169,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         _tree: &mut widget::Tree,
         _renderer: &Renderer,
         _limits: &layout::Limits,
+        _direction: Direction,
     ) -> layout::Node {
         layout::Node::new(Size::new(100.0, 100.0))
     }
@@ -209,7 +217,12 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
 struct TopOverlay;
 
 impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for TopOverlay {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: Direction,
+    ) -> layout::Node {
         layout::Node::new(Size::new(20.0, 20.0)).translate(core::Vector::new(60.0, 0.0))
     }
 
@@ -249,7 +262,12 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for TopOverlay {
 struct BottomOverlay;
 
 impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for BottomOverlay {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: Direction,
+    ) -> layout::Node {
         layout::Node::new(Size::new(40.0, 40.0))
     }
 
@@ -296,7 +314,12 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for BottomOverlay {
 struct NestedOverlay;
 
 impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for NestedOverlay {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
+    fn layout(
+        &mut self,
+        _renderer: &Renderer,
+        _bounds: Size,
+        _direction: Direction,
+    ) -> layout::Node {
         layout::Node::new(Size::new(20.0, 20.0))
     }
 
@@ -336,6 +359,7 @@ fn multiple_overlays_are_handled_by_index_order_and_nested_overlays_capture_even
         Size::new(100.0, 100.0),
         Cache::default(),
         &mut renderer,
+        Direction::default(),
     );
 
     let mut messages = shell::Bus::new();

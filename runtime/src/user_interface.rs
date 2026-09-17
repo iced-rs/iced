@@ -8,7 +8,8 @@ use crate::core::shell;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector, Window,
+    Clipboard, Direction, Element, InputMethod, Layout, Point, Rectangle, Shell, Size, Vector,
+    Window,
 };
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -29,6 +30,7 @@ pub struct UserInterface<'a, Message, Theme, Renderer> {
     state: widget::Tree,
     overlay: Option<Overlay>,
     bounds: Size,
+    direction: Direction,
 }
 
 struct Overlay {
@@ -64,7 +66,7 @@ where
     /// # }
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;
-    /// use iced_runtime::core::Size;
+    /// use iced_runtime::core::{Direction, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
@@ -86,6 +88,7 @@ where
     ///         window_size,
     ///         cache,
     ///         &mut renderer,
+    ///         Direction::default(),
     ///     );
     ///
     ///     // Update and draw the user interface here...
@@ -100,17 +103,23 @@ where
         bounds: Size,
         cache: Cache,
         renderer: &mut Renderer,
+        direction: Direction,
     ) -> Self {
         let mut root = root.into();
 
         let Cache { mut state } = cache;
         state.diff(root.as_widget_mut());
 
-        let base = root.as_widget_mut().layout(
+        let mut base = root.as_widget_mut().layout(
             &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
+            direction,
         );
+
+        if matches!(direction, Direction::RightToLeft) {
+            base.move_to_mut(Point::new(bounds.width - base.size().width, 0.0));
+        }
 
         UserInterface {
             root,
@@ -118,6 +127,7 @@ where
             state,
             overlay: None,
             bounds,
+            direction,
         }
     }
 
@@ -145,7 +155,7 @@ where
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;
-    /// use iced_runtime::core::Size;
+    /// use iced_runtime::core::{Direction, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
@@ -169,6 +179,7 @@ where
     ///         window_size,
     ///         cache,
     ///         &mut renderer,
+    ///         Direction::default(),
     ///     );
     ///
     ///     // Update the user interface
@@ -219,7 +230,7 @@ where
             let bounds = self.bounds;
 
             let mut overlay = maybe_overlay.as_mut().unwrap();
-            let mut layout = overlay.layout(renderer, bounds);
+            let mut layout = overlay.layout(renderer, bounds, self.direction);
             let mut event_statuses = Vec::new();
 
             for event in events {
@@ -246,7 +257,15 @@ where
                         &mut self.state,
                         renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
+                        self.direction,
                     );
+
+                    if matches!(self.direction, Direction::RightToLeft) {
+                        self.base.move_to_mut(Point::new(
+                            self.bounds.width - self.base.size().width,
+                            0.0,
+                        ));
+                    }
 
                     maybe_overlay = {
                         let overlay = self.root.as_widget_mut().overlay(
@@ -268,7 +287,7 @@ where
                     overlay = maybe_overlay.as_mut().unwrap();
 
                     shell.revalidate_layout(|_diff| {
-                        layout = overlay.layout(renderer, bounds);
+                        layout = overlay.layout(renderer, bounds, self.direction);
                         has_layout_changed = true;
                     });
                 }
@@ -359,7 +378,15 @@ where
                         &mut self.state,
                         renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
+                        self.direction,
                     );
+
+                    if matches!(self.direction, Direction::RightToLeft) {
+                        self.base.move_to_mut(Point::new(
+                            self.bounds.width - self.base.size().width,
+                            0.0,
+                        ));
+                    }
 
                     let overlay = self.root.as_widget_mut().overlay(
                         &mut self.state,
@@ -372,7 +399,7 @@ where
                     if !overlay.is_empty() {
                         let mut overlay = overlay::Nested::new(overlay);
 
-                        let layout = overlay.layout(renderer, self.bounds);
+                        let layout = overlay.layout(renderer, self.bounds, self.direction);
                         let interaction =
                             overlay.mouse_interaction(Layout::new(&layout), cursor, renderer);
 
@@ -447,7 +474,7 @@ where
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::shell;
     /// use iced_runtime::core::window;
-    /// use iced_runtime::core::{Element, Size};
+    /// use iced_runtime::core::{Direction, Element, Size};
     /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::{Renderer, Theme};
     ///
@@ -470,6 +497,7 @@ where
     ///         window_size,
     ///         cache,
     ///         &mut renderer,
+    ///         Direction::default(),
     ///     );
     ///
     ///     // Update the user interface
@@ -575,7 +603,7 @@ where
         if !overlay.is_empty() {
             let mut overlay = overlay::Nested::new(overlay);
 
-            let layout = overlay.layout(renderer, self.bounds);
+            let layout = overlay.layout(renderer, self.bounds, self.direction);
             let interaction = self
                 .overlay
                 .as_ref()
@@ -598,7 +626,13 @@ where
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, bounds, Cache { state: self.state }, renderer)
+        Self::build(
+            self.root,
+            bounds,
+            Cache { state: self.state },
+            renderer,
+            self.direction,
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
