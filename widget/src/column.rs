@@ -392,7 +392,7 @@ where
         let child_limits = limits.loose();
         let spacing = self.column.spacing;
         let horizontal_spacing = self.horizontal_spacing.unwrap_or(spacing);
-        let max_height = limits.max().height;
+        let max_height = limits.bounds().height;
 
         let mut children: Vec<layout::Node> = Vec::new();
         let mut intrinsic_size = Size::ZERO;

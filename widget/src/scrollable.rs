@@ -440,13 +440,8 @@ where
 
         let size = self.content.as_widget().size();
 
-        if self.direction.horizontal().is_none() {
-            self.width = self.width.stack(size.width);
-        }
-
-        if self.direction.vertical().is_none() {
-            self.height = self.height.stack(size.height);
-        }
+        self.width = self.width.stack(size.width);
+        self.height = self.height.stack(size.height);
     }
 
     fn size(&self) -> Size<Length> {
@@ -463,6 +458,9 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let mut layout = |right_padding, bottom_padding| {
+            let is_horizontal = self.direction.horizontal().is_some();
+            let is_vertical = self.direction.vertical().is_some();
+
             layout::padded(
                 limits,
                 self.width,
@@ -473,24 +471,14 @@ where
                     ..Padding::ZERO
                 },
                 |limits| {
-                    let is_horizontal = self.direction.horizontal().is_some();
-                    let is_vertical = self.direction.vertical().is_some();
-
-                    let child_limits = layout::Limits::with_compression(
-                        limits.min(),
+                    let child_limits = layout::Limits::with_flags(
+                        limits.min,
+                        limits.max,
+                        limits.compression,
                         Size::new(
-                            if is_horizontal {
-                                f32::INFINITY
-                            } else {
-                                limits.max().width
-                            },
-                            if is_vertical {
-                                f32::INFINITY
-                            } else {
-                                limits.max().height
-                            },
+                            limits.infinite.width || is_horizontal,
+                            limits.infinite.height || is_vertical,
                         ),
-                        Size::new(is_horizontal, is_vertical),
                     );
 
                     self.content.as_widget_mut().layout(

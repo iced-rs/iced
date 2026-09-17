@@ -30,7 +30,7 @@ mod rainbow {
             _renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            let width = limits.max().width;
+            let width = limits.max.width;
 
             layout::Node::new(Size::new(width, width))
         }

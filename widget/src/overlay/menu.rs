@@ -388,7 +388,7 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Fill,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
@@ -411,7 +411,7 @@ where
                 (f32::from(text_line_height) + self.padding.y()) * self.options.len() as f32,
             );
 
-            limits.resolve(Length::Fill, Length::Shrink, intrinsic)
+            limits.resolve(Length::Fill, Length::Fit, intrinsic)
         };
 
         layout::Node::new(size)

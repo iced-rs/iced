@@ -45,8 +45,8 @@ where
             spans: Box::new([]),
             size: None,
             line_height: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             font: None,
             align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
@@ -470,7 +470,7 @@ where
     Renderer: core::text::Renderer,
 {
     layout::sized(limits, width, height, |limits| {
-        let bounds = limits.max();
+        let bounds = limits.bounds();
 
         let size = size.unwrap_or_else(|| renderer.text_size());
         let font = font.unwrap_or_else(|| renderer.font());

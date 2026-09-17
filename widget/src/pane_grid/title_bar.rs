@@ -259,7 +259,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.shrink(self.padding);
-        let max_size = limits.max();
+        let max_size = limits.max;
 
         let title_layout = self.content.as_widget_mut().layout(
             &mut tree.children[0],

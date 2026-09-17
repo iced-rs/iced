@@ -34,7 +34,6 @@
 use crate::core::alignment;
 use crate::core::clipboard;
 use crate::core::layout::{self, Layout};
-use crate::core::length;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{self, Editor as _};
@@ -363,10 +362,13 @@ where
             state.parser_settings = self.parser_settings.clone();
         }
 
-        let limits = limits.width(self.width).height(self.height);
+        let limits = limits
+            .width(self.width)
+            .height(self.height)
+            .shrink(self.padding);
 
         internal.editor.update(
-            limits.shrink(self.padding).max(),
+            limits.bounds(),
             self.font.unwrap_or_else(|| renderer.font()),
             self.text_size.unwrap_or_else(|| renderer.text_size()),
             self.line_height.unwrap_or_else(|| renderer.line_height()),
@@ -376,28 +378,9 @@ where
             state.parser.borrow_mut().deref_mut(),
         );
 
-        match self.height {
-            Length::Shrink
-            | Length::Fit
-            | Length::Bounded {
-                sizing: length::Sizing::Fit | length::Sizing::Shrink,
-                ..
-            } => {
-                let min_bounds = internal.editor.min_bounds();
+        let bounds = limits.resolve(self.width, self.height, internal.editor.min_bounds());
 
-                layout::Node::new(
-                    limits
-                        .height(min_bounds.height)
-                        .max()
-                        .expand(Size::new(0.0, self.padding.y())),
-                )
-            }
-            Length::Fill
-            | Length::FillPortion(_)
-            | Length::Fixed(_)
-            | Length::Bounded { .. }
-            | Length::Fluid(_) => layout::Node::new(limits.max()),
-        }
+        layout::Node::new(bounds.expand(self.padding))
     }
 
     fn update(
@@ -823,14 +806,14 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.palette();
 
     let active = Style {
-        background: Background::Color(palette.background.base.color),
+        background: Background::Color(palette.background.weakest.color),
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
             color: palette.background.strong.color,
         },
         placeholder: palette.secondary.base.color,
-        value: palette.background.base.text,
+        value: palette.background.weakest.text,
         selection: palette.primary.weak.color,
     };
 
@@ -851,7 +834,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
             ..active
         },
         Status::Disabled => Style {
-            background: Background::Color(palette.background.weak.color),
+            background: Background::Color(palette.background.base.color),
             value: active.placeholder,
             placeholder: palette.background.strongest.color,
             ..active
