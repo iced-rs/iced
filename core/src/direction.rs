@@ -1,6 +1,6 @@
 //! The reading/layout direction.
 
-/// The reading/layout direction of a widget or appplication.
+/// The reading/layout direction of a widget or application.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Direction {
     /// Left-to-right layout.
