@@ -69,7 +69,12 @@ impl Limits {
                 self.compression.width = false;
             }
             Length::Fixed(amount) => {
-                let new_width = amount.min(self.max.width).max(self.min.width);
+                let new_width = if self.infinite.width {
+                    amount
+                } else {
+                    amount.min(self.max.width)
+                }
+                .max(self.min.width);
 
                 self.min.width = new_width;
                 self.max.width = new_width;
@@ -81,7 +86,14 @@ impl Limits {
                         self.min.width = min.min(self.max.width).max(self.min.width);
                     }
                     length::Bounds::Max(max) => {
-                        self.max.width = max.min(self.max.width).max(self.min.width);
+                        self.max.width = if self.infinite.width {
+                            max
+                        } else {
+                            max.min(self.max.width)
+                        }
+                        .max(self.min.width);
+
+                        self.infinite.width = false;
                     }
                     length::Bounds::Both { min, max } => {
                         self.min.width = min.min(self.max.width).max(self.min.width);
@@ -115,7 +127,12 @@ impl Limits {
                 self.compression.height = false;
             }
             Length::Fixed(amount) => {
-                let new_height = amount.min(self.max.height).max(self.min.height);
+                let new_height = if self.infinite.height {
+                    amount
+                } else {
+                    amount.min(self.max.height)
+                }
+                .max(self.min.height);
 
                 self.min.height = new_height;
                 self.max.height = new_height;
@@ -127,7 +144,14 @@ impl Limits {
                         self.min.height = min.min(self.max.height).max(self.min.height);
                     }
                     length::Bounds::Max(max) => {
-                        self.max.height = max.min(self.max.height).max(self.min.height);
+                        self.max.height = if self.infinite.height {
+                            max
+                        } else {
+                            max.min(self.max.height)
+                        }
+                        .max(self.min.height);
+
+                        self.infinite.height = false;
                     }
                     length::Bounds::Both { min, max } => {
                         self.min.height = min.min(self.max.height).max(self.min.height);
