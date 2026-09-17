@@ -12,7 +12,6 @@ use crate::{Rectangle, Vector};
 
 use std::any::Any;
 use std::fmt;
-use std::marker::PhantomData;
 use std::sync::Arc;
 
 /// A piece of logic that can traverse the widget tree of an application in
@@ -327,25 +326,20 @@ pub fn then<A, B, O>(
 ) -> impl Operation<B>
 where
     A: 'static,
-    B: Send + 'static,
+    B: 'static,
     O: Operation<B> + 'static,
 {
-    struct Chain<T, O, A, B>
-    where
-        T: Operation<A>,
-        O: Operation<B>,
-    {
+    struct Chain<T, O, A> {
         operation: T,
         f: Arc<dyn Fn(A) -> O + Send + Sync>,
-        _result: PhantomData<B>,
     }
 
-    impl<T, O, A, B> Operation<B> for Chain<T, O, A, B>
+    impl<T, O, A, B> Operation<B> for Chain<T, O, A>
     where
         T: Operation<A> + 'static,
         O: Operation<B> + 'static,
         A: 'static,
-        B: Send + 'static,
+        B: 'static,
     {
         fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<B>)) {
             self.operation.traverse(&mut |operation| {
@@ -392,7 +386,6 @@ where
                 Outcome::Chain(next) => Outcome::Chain(Box::new(Chain {
                     operation: next,
                     f: self.f.clone(),
-                    _result: PhantomData,
                 })),
             }
         }
@@ -401,7 +394,6 @@ where
     Chain {
         operation,
         f: Arc::new(f),
-        _result: PhantomData,
     }
 }
 
