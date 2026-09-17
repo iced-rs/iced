@@ -41,7 +41,7 @@ where
     Column {
         header: header.into(),
         view: Box::new(move |data| view(data).into()),
-        width: Length::Shrink,
+        width: Length::Fit,
         align_x: alignment::Horizontal::Left,
         align_y: alignment::Vertical::Top,
     }
@@ -108,7 +108,7 @@ where
             })
             .collect();
 
-        if width == Length::Shrink
+        if width == Length::Fit
             && let Some(first) = columns.first_mut()
         {
             first.width = Length::Fill;
@@ -231,7 +231,7 @@ where
         let limits = limits.width(self.width).height(self.height);
         let available = limits.max;
         let table_fluid = if self.width.fill_factor() == 0 {
-            Length::Shrink
+            Length::Fit
         } else {
             Length::Fill
         };
@@ -295,7 +295,7 @@ where
             .width(width);
 
             let layout = cell.as_widget_mut().layout(state, renderer, &limits);
-            let size = limits.resolve(width, Length::Shrink, layout.size());
+            let size = limits.resolve(width, Length::Fit, layout.size());
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
             metrics.rows[row] = metrics.rows[row].max(size.height);
@@ -383,7 +383,7 @@ where
                 } else {
                     table_fluid
                 },
-                Length::Shrink,
+                Length::Fit,
                 layout.size(),
             );
 

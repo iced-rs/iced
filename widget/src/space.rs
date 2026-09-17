@@ -35,8 +35,8 @@ impl Space {
     /// Creates some empty [`Space`] with no size.
     pub fn new() -> Self {
         Space {
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
         }
     }
 

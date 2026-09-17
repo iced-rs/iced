@@ -200,61 +200,50 @@ impl Limits {
 
     /// [Resolves](Self::resolve) only the width of the [`Limits`].
     pub fn resolve_width(&self, width: impl Into<Length>, intrinsic_width: f32) -> f32 {
-        match width.into() {
-            Length::Fill
-            | Length::FillPortion(_)
-            | Length::Bounded {
-                sizing: length::Sizing::Fill(_),
-                ..
-            } if !self.compression.width => {
-                if self.infinite.width {
-                    self.max.width.max(intrinsic_width)
-                } else {
-                    self.max.width
-                }
-            }
-            Length::Fixed(amount) => if self.infinite.width {
-                amount
-            } else {
-                amount.min(self.max.width)
-            }
-            .max(self.min.width),
-            _ => if self.infinite.width {
-                intrinsic_width
-            } else {
-                intrinsic_width.min(self.max.width)
-            }
-            .max(self.min.width),
-        }
+        resolve(
+            self.min.width,
+            self.max.width,
+            self.compression.width,
+            self.infinite.width,
+            width.into(),
+            intrinsic_width,
+        )
     }
 
     /// [Resolves](Self::resolve) only the height of the [`Limits`].
     pub fn resolve_height(&self, height: impl Into<Length>, intrinsic_height: f32) -> f32 {
-        match height.into() {
-            Length::Fill
-            | Length::FillPortion(_)
-            | Length::Bounded {
-                sizing: length::Sizing::Fill(_),
-                ..
-            } if !self.compression.height => {
-                if self.infinite.height {
-                    self.max.height.max(intrinsic_height)
-                } else {
-                    self.max.height
-                }
-            }
-            Length::Fixed(amount) => if self.infinite.height {
-                amount
-            } else {
-                amount.min(self.max.height)
-            }
-            .max(self.min.height),
-            _ => if self.infinite.height {
-                intrinsic_height
-            } else {
-                intrinsic_height.min(self.max.height)
-            }
-            .max(self.min.height),
+        resolve(
+            self.min.height,
+            self.max.height,
+            self.compression.height,
+            self.infinite.height,
+            height.into(),
+            intrinsic_height,
+        )
+    }
+}
+
+fn resolve(
+    min: f32,
+    max: f32,
+    compression: bool,
+    infinite: bool,
+    length: Length,
+    intrinsic: f32,
+) -> f32 {
+    match length {
+        Length::Fill
+        | Length::FillPortion(_)
+        | Length::Bounded {
+            sizing: length::Sizing::Fill(_),
+            ..
+        } if !compression => if infinite { max.max(intrinsic) } else { max }.max(min),
+        Length::Fixed(amount) => if infinite { amount } else { amount.min(max) }.max(min),
+        _ => if infinite {
+            intrinsic
+        } else {
+            intrinsic.min(max)
         }
+        .max(min),
     }
 }

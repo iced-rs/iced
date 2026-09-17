@@ -399,13 +399,8 @@ where
 
         let size = self.content.as_widget().size();
 
-        if self.direction.horizontal().is_none() {
-            self.width = self.width.stack(size.width);
-        }
-
-        if self.direction.vertical().is_none() {
-            self.height = self.height.stack(size.height);
-        }
+        self.width = self.width.stack(size.width);
+        self.height = self.height.stack(size.height);
     }
 
     fn size(&self) -> Size<Length> {
@@ -422,6 +417,9 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let mut layout = |right_padding, bottom_padding| {
+            let is_horizontal = self.direction.horizontal().is_some();
+            let is_vertical = self.direction.vertical().is_some();
+
             layout::padded(
                 limits,
                 self.width,
@@ -432,8 +430,6 @@ where
                     ..Padding::ZERO
                 },
                 |limits| {
-                    let is_horizontal = self.direction.horizontal().is_some();
-                    let is_vertical = self.direction.vertical().is_some();
                     let child_limits = layout::Limits::with_flags(
                         limits.min,
                         limits.max,

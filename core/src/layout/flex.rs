@@ -34,14 +34,14 @@ pub enum Axis {
 }
 
 impl Axis {
-    fn main(&self, size: Size) -> f32 {
+    fn main<T>(&self, size: Size<T>) -> T {
         match self {
             Axis::Horizontal => size.width,
             Axis::Vertical => size.height,
         }
     }
 
-    fn cross(&self, size: Size) -> f32 {
+    fn cross<T>(&self, size: Size<T>) -> T {
         match self {
             Axis::Horizontal => size.height,
             Axis::Vertical => size.width,
@@ -79,17 +79,22 @@ where
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;
     let max_cross = axis.cross(limits.max);
 
-    let (main_compress, cross_compress) = {
-        let compression = limits.compression;
-        axis.pack(compression.width, compression.height)
-    };
+    let compression = limits.compression;
+    let infinite = limits.infinite;
+
+    let (main_compress, cross_compress) = axis.pack(compression.width, compression.height);
 
     let compression = {
         let (compress_x, compress_y) = axis.pack(main_compress, false);
         Size::new(compress_x, compress_y)
     };
 
-    let infinite = limits.infinite;
+    let cross_infinite = {
+        let (infinite_x, infinite_y) = axis.pack(axis.main(infinite), false);
+        Size::new(infinite_x, infinite_y)
+    };
+
+    let cross_dynamic = cross_compress || axis.cross(infinite);
 
     let mut fill_main_sum = 0;
     let mut some_fill_cross = false;
@@ -97,7 +102,7 @@ where
     let mut some_fill_min = false;
     let mut min_total = 0.0;
     let mut min_factors = 0;
-    let mut cross = 0.0;
+    let mut cross = 0.0f32;
     let mut available = axis.main(limits.max) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
@@ -133,7 +138,7 @@ where
         let fill_cross_factor = size_cross.fill_factor();
         let main_is_static = main_compress || fill_main_factor == 0;
 
-        let category = match (main_is_static, cross_compress, fill_cross_factor == 0) {
+        let category = match (main_is_static, cross_dynamic, fill_cross_factor == 0) {
             (true, false, _) | (true, _, true) => Category::Static,
             (true, true, false) => {
                 if let Length::Fixed(main) = size_main {
@@ -188,14 +193,7 @@ where
             continue;
         };
 
-        let (max_width, max_height) = axis.pack(
-            available,
-            if !cross_compress || fill_cross_factor == 0 {
-                max_cross
-            } else {
-                cross
-            },
-        );
+        let (max_width, max_height) = axis.pack(available, max_cross);
 
         let child_limits = Limits::with_flags(
             Size::ZERO,
@@ -225,7 +223,7 @@ where
     //
     // We can defer the layout of any elements that have a fixed size in the main axis,
     // allowing them to use the cross calculations of the next pass.
-    if cross_compress && some_fill_cross {
+    if cross_dynamic && some_fill_cross {
         for (i, child) in items.iter_mut().enumerate() {
             let meta = metas[i];
 
@@ -234,13 +232,13 @@ where
             };
 
             let (max_width, max_height) =
-                axis.pack(available, if cross_compress { cross } else { max_cross });
+                axis.pack(available, if cross_dynamic { cross } else { max_cross });
 
             let child_limits = Limits::with_flags(
                 Size::ZERO,
                 Size::new(max_width, max_height),
                 compression,
-                infinite,
+                cross_infinite,
             );
 
             let layout = child
@@ -344,15 +342,14 @@ where
             let min = min.min(remaining);
             let max = max.min(max_available).max(min);
 
+            let (max_cross, infinite) = if !cross_dynamic || meta.cross.fill_factor() == 0 {
+                (max_cross, infinite)
+            } else {
+                (cross, cross_infinite)
+            };
+
             let (min_width, min_height) = axis.pack(min, 0.0);
-            let (max_width, max_height) = axis.pack(
-                max,
-                if !cross_compress || meta.cross.fill_factor() == 0 {
-                    max_cross
-                } else {
-                    cross
-                },
-            );
+            let (max_width, max_height) = axis.pack(max, max_cross);
 
             let child_limits = Limits::with_flags(
                 Size::new(min_width, min_height),
@@ -409,15 +406,14 @@ where
                 max_main
             };
 
+            let (max_cross, infinite) = if !cross_dynamic || meta.cross.fill_factor() == 0 {
+                (max_cross, infinite)
+            } else {
+                (cross, cross_infinite)
+            };
+
             let (min_width, min_height) = axis.pack(min_main, 0.0);
-            let (max_width, max_height) = axis.pack(
-                max_main,
-                if !cross_compress || meta.cross.fill_factor() == 0 {
-                    max_cross
-                } else {
-                    cross
-                },
-            );
+            let (max_width, max_height) = axis.pack(max_main, max_cross);
 
             let child_limits = Limits::with_flags(
                 Size::new(min_width, min_height),
@@ -439,7 +435,7 @@ where
     // We lay out any elements that were deferred in the second pass.
     // These are elements that must be compressed in their cross axis and have
     // a fixed length in the main axis.
-    if cross_compress && some_fill_cross {
+    if cross_dynamic && some_fill_cross {
         for (i, child) in items.iter_mut().enumerate() {
             let meta = metas[i];
 
@@ -448,7 +444,13 @@ where
             };
 
             let (max_width, max_height) = axis.pack(main, cross);
-            let child_limits = Limits::new(Size::ZERO, Size::new(max_width, max_height));
+
+            let child_limits = Limits::with_flags(
+                Size::ZERO,
+                Size::new(max_width, max_height),
+                Size::new(false, false),
+                cross_infinite,
+            );
 
             let layout = child
                 .as_widget_mut()
