@@ -18,7 +18,7 @@ default = ["x11", "wayland"]
 debug = ["iced_debug/enable"]
 sysinfo = ["dep:sysinfo"]
 unconditional-rendering = []
-linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme", "mundy/accent-color"]
+system-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme", "mundy/accent-color"]
 image = ["iced_runtime/image", "arboard/image-data"]
 x11 = ["winit/x11"]
 wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita", "arboard/wayland-data-control"]
@@ -37,6 +37,9 @@ winit.workspace = true
 sysinfo.workspace = true
 sysinfo.optional = true
 
+mundy.workspace = true
+mundy.optional = true
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 arboard.workspace = true
 
@@ -44,10 +47,6 @@ arboard.workspace = true
 web-sys.workspace = true
 web-sys.features = ["Document", "Window", "HtmlCanvasElement"]
 wasm-bindgen-futures.workspace = true
-
-[target.'cfg(target_os = "linux")'.dependencies]
-mundy.workspace = true
-mundy.optional = true
 
 # Delete once we update to `winit 0.31`
 [target.'cfg(target_os = "macos")'.dependencies]

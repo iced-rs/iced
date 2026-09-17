@@ -418,16 +418,6 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
     }
 }
 
-/// Converts a [`winit`] window theme into a [`theme::Mode`].
-///
-/// [`winit`]: https://github.com/rust-windowing/winit
-pub fn theme_mode(theme: winit::window::Theme) -> theme::Mode {
-    match theme {
-        winit::window::Theme::Light => theme::Mode::Light,
-        winit::window::Theme::Dark => theme::Mode::Dark,
-    }
-}
-
 /// Converts a [`theme::Mode`] into a window theme.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit

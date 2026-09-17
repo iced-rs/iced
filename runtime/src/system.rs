@@ -60,6 +60,8 @@ pub fn information() -> Task<Information> {
 }
 
 /// Returns the current system theme.
+///
+/// System theme detection requires the `system-theme-detection` feature.
 pub fn theme() -> Task<theme::Mode> {
     task::oneshot(|sender| crate::Action::System(Action::GetTheme(sender)))
 }
@@ -84,8 +86,7 @@ pub fn theme_changes() -> Subscription<theme::Mode> {
 /// preference or when accent color detection is unsupported on the
 /// current platform.
 ///
-/// Accent color detection is currently only available on Linux with
-/// the `linux-theme-detection` feature enabled.
+/// Accent color detection requires the `system-theme-detection` feature.
 pub fn accent_color() -> Task<Option<Color>> {
     task::oneshot(|sender| crate::Action::System(Action::GetAccentColor(sender)))
 }
