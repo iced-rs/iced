@@ -434,7 +434,10 @@ where
                         limits.min,
                         limits.max,
                         limits.compression,
-                        Size::new(is_horizontal, is_vertical),
+                        Size::new(
+                            limits.infinite.width || is_horizontal,
+                            limits.infinite.height || is_vertical,
+                        ),
                     );
 
                     self.content.as_widget_mut().layout(
