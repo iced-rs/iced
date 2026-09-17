@@ -2079,6 +2079,7 @@ where
                     text("").into()
                 }
             })
+            .width(Length::Fit.max(300))
             .align_x(match column.alignment {
                 pulldown_cmark::Alignment::None | pulldown_cmark::Alignment::Left => {
                     alignment::Horizontal::Left

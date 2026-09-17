@@ -91,7 +91,7 @@ where
         let mut width = Length::Fit;
         let mut cells = Vec::with_capacity(columns.size_hint().0 * (1 + rows.size_hint().0));
 
-        let (mut columns, views): (Vec<_>, Vec<_>) = columns
+        let (columns, views): (Vec<_>, Vec<_>) = columns
             .map(|column| {
                 width = width.stack(column.width);
 
@@ -107,12 +107,6 @@ where
                 )
             })
             .collect();
-
-        if width == Length::Fit
-            && let Some(first) = columns.first_mut()
-        {
-            first.width = Length::Fill;
-        }
 
         for row in rows {
             for view in &views {
@@ -288,9 +282,11 @@ where
                 continue;
             }
 
-            let limits = layout::Limits::new(
+            let limits = layout::Limits::with_flags(
                 Size::ZERO,
                 Size::new(available.width - x, available.height - y),
+                limits.compression,
+                limits.infinite,
             )
             .width(width);
 
@@ -373,8 +369,13 @@ where
                 height_unit * height_factor as f32
             };
 
-            let limits =
-                layout::Limits::new(Size::ZERO, Size::new(max_width, max_height)).width(width);
+            let limits = layout::Limits::with_flags(
+                Size::ZERO,
+                Size::new(max_width, max_height),
+                limits.compression,
+                limits.infinite,
+            )
+            .width(width);
 
             let layout = cell.as_widget_mut().layout(state, renderer, &limits);
             let size = limits.resolve(
