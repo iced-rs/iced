@@ -79,6 +79,7 @@ impl Limits {
                 self.min.width = new_width;
                 self.max.width = new_width;
                 self.compression.width = false;
+                self.infinite.width = false;
             }
             Length::Bounded { bounds, sizing } => {
                 match bounds {
@@ -137,6 +138,7 @@ impl Limits {
                 self.min.height = new_height;
                 self.max.height = new_height;
                 self.compression.height = false;
+                self.infinite.height = false;
             }
             Length::Bounded { bounds, sizing } => {
                 match bounds {
