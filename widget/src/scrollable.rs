@@ -998,7 +998,9 @@ where
                     {
                         let _ =
                             notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                    }
 
+                    if state.target.is_some() {
                         shell.request_redraw();
                         return;
                     }
