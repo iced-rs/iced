@@ -22,6 +22,11 @@ pub struct Svg<H = Handle> {
     /// (e.g. with a theme).
     pub color: Option<Color>,
 
+    /// The default color used when the [`Svg`] references `currentColor`.
+    ///
+    /// Overrides the `color` field of the SVG.
+    pub current_color: Option<Color>,
+
     /// The rotation to be applied to the image; on its center.
     pub rotation: Radians,
 
@@ -37,6 +42,7 @@ impl Svg<Handle> {
         Self {
             handle: handle.into(),
             color: None,
+            current_color: None,
             rotation: Radians(0.0),
             opacity: 1.0,
         }
@@ -45,6 +51,12 @@ impl Svg<Handle> {
     /// Sets the [`Color`] filter of the [`Svg`].
     pub fn color(mut self, color: impl Into<Color>) -> Self {
         self.color = Some(color.into());
+        self
+    }
+
+    /// Sets the current renderer color of the [`Svg`].
+    pub fn current_color(mut self, current_color: impl Into<Color>) -> Self {
+        self.current_color = Some(current_color.into());
         self
     }
 
@@ -156,4 +168,13 @@ pub trait Renderer: crate::Renderer {
 
     /// Draws an SVG with the given [`Handle`], an optional [`Color`] filter, and inside the provided `bounds`.
     fn draw_svg(&mut self, svg: Svg, bounds: Rectangle, clip_bounds: Rectangle);
+}
+
+/// Gets the style sheet to apply to an SVG to override the `color` attribute.
+pub fn color_style_sheet(color: Color) -> String {
+    let color = color.into_rgba8();
+    format!(
+        "svg {{ color: rgba({}, {}, {}, {}); }}",
+        color[0], color[1], color[2], color[3]
+    )
 }
