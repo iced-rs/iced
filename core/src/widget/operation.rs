@@ -12,7 +12,6 @@ use crate::{Rectangle, Vector};
 
 use std::any::Any;
 use std::fmt;
-use std::marker::PhantomData;
 use std::sync::Arc;
 
 /// A piece of logic that can traverse the widget tree of an application in
@@ -321,28 +320,26 @@ where
 
 /// Chains the output of an [`Operation`] with the provided function to
 /// build a new [`Operation`].
-pub fn then<A, B, O>(operation: impl Operation<A> + 'static, f: fn(A) -> O) -> impl Operation<B>
+pub fn then<A, B, O>(
+    operation: impl Operation<A> + 'static,
+    f: impl Fn(A) -> O + Send + Sync + 'static,
+) -> impl Operation<B>
 where
     A: 'static,
-    B: Send + 'static,
+    B: 'static,
     O: Operation<B> + 'static,
 {
-    struct Chain<T, O, A, B>
-    where
-        T: Operation<A>,
-        O: Operation<B>,
-    {
+    struct Chain<T, O, A> {
         operation: T,
-        next: fn(A) -> O,
-        _result: PhantomData<B>,
+        f: Arc<dyn Fn(A) -> O + Send + Sync>,
     }
 
-    impl<T, O, A, B> Operation<B> for Chain<T, O, A, B>
+    impl<T, O, A, B> Operation<B> for Chain<T, O, A>
     where
         T: Operation<A> + 'static,
         O: Operation<B> + 'static,
         A: 'static,
-        B: Send + 'static,
+        B: 'static,
     {
         fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<B>)) {
             self.operation.traverse(&mut |operation| {
@@ -385,16 +382,18 @@ where
         fn finish(&self) -> Outcome<B> {
             match self.operation.finish() {
                 Outcome::None => Outcome::None,
-                Outcome::Some(value) => Outcome::Chain(Box::new((self.next)(value))),
-                Outcome::Chain(operation) => Outcome::Chain(Box::new(then(operation, self.next))),
+                Outcome::Some(value) => Outcome::Chain(Box::new((self.f)(value))),
+                Outcome::Chain(next) => Outcome::Chain(Box::new(Chain {
+                    operation: next,
+                    f: self.f.clone(),
+                })),
             }
         }
     }
 
     Chain {
         operation,
-        next: f,
-        _result: PhantomData,
+        f: Arc::new(f),
     }
 }
 
