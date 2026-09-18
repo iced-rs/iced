@@ -450,7 +450,7 @@ mod grid {
                             _ => action.and_capture(),
                         })
                     }
-                    mouse::Event::WheelScrolled { delta } => match *delta {
+                    mouse::Event::WheelScrolled { delta, .. } => match *delta {
                         mouse::ScrollDelta::Lines { y, .. }
                         | mouse::ScrollDelta::Pixels { y, .. } => {
                             if y < 0.0 && self.scaling > Self::MIN_SCALING

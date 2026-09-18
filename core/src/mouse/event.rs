@@ -28,10 +28,12 @@ pub enum Event {
     /// A mouse button was released.
     ButtonReleased(Button),
 
-    /// The mouse wheel was scrolled.
+    /// The mouse wheel or touchpad was scrolled
     WheelScrolled {
         /// The scroll movement.
         delta: ScrollDelta,
+        /// The scroll phase (for mouse - only Move)
+        phase: ScrollPhase,
     },
 }
 
@@ -53,4 +55,17 @@ pub enum ScrollDelta {
         /// The number of vertical pixels scrolled
         y: f32,
     },
+}
+
+/// A scrolling phase (for mouses it would be only Moved)
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ScrollPhase {
+    /// Start scrolling with touchpad
+    Started,
+    /// Scrolling with mouse or continue scrolling with touchpad
+    Moved,
+    /// End of scrolling with touchpad
+    Ended,
+    /// System cancel process of srcolling (window lost focus, compositor interruption etc)
+    Cancelled,
 }
