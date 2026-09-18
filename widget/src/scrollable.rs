@@ -73,6 +73,7 @@ where
     height: Length,
     direction: Direction,
     auto_scroll: bool,
+    smooth_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Option<Message> + 'a>>,
     class: Theme::Class<'a>,
@@ -99,6 +100,7 @@ where
             height: Length::Fit,
             direction: direction.into(),
             auto_scroll: false,
+            smooth_scroll: true,
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
@@ -238,6 +240,20 @@ where
     /// By default, it is disabled.
     pub fn auto_scroll(mut self, auto_scroll: bool) -> Self {
         self.auto_scroll = auto_scroll;
+        self
+    }
+
+    /// Sets whether wheel scrolling should be smoothed out over time, instead of
+    /// moving the [`Scrollable`] immediately.
+    ///
+    /// When enabled, discrete scrolls (e.g. from a mouse wheel) move a target
+    /// scroll offset, and the [`Scrollable`] eases towards it over a few
+    /// frames. High-precision scrolls (e.g. from a touchpad), which are already
+    /// smooth, are always applied immediately.
+    ///
+    /// By default, it is enabled.
+    pub fn smooth_scroll(mut self, smooth_scroll: bool) -> Self {
+        self.smooth_scroll = smooth_scroll;
         self
     }
 
@@ -825,7 +841,7 @@ where
                         return;
                     }
 
-                    let delta = match *delta {
+                    let (delta, is_lines) = match *delta {
                         mouse::ScrollDelta::Lines { x, y } => {
                             let is_shift_pressed = state.keyboard_modifiers.shift();
 
@@ -842,21 +858,40 @@ where
                                 Vector::new(y, x)
                             };
 
-                            // TODO: Configurable speed/friction (?)
-                            -movement * 60.0
+                            (
+                                -movement
+                                    * 4.0
+                                    * renderer.line_height().to_absolute(renderer.text_size()).0,
+                                true,
+                            )
                         }
-                        mouse::ScrollDelta::Pixels { x, y } => -Vector::new(x, y),
+                        // Pixel deltas (e.g. from high-precision touchpads) are
+                        // already smooth, so scrolling them immediately avoids
+                        // double-smoothing them
+                        mouse::ScrollDelta::Pixels { x, y } => (-Vector::new(x, y), false),
                     };
 
-                    state.scroll(self.direction.align(delta), bounds, content_bounds);
+                    let delta = self.direction.align(delta);
+
+                    if self.smooth_scroll && is_lines {
+                        state.scroll_smoothly(delta, bounds, content_bounds);
+                    } else {
+                        state.scroll(delta, bounds, content_bounds);
+                    }
 
                     let has_scrolled =
                         notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
 
-                    let in_transaction = state.last_scrolled.is_some();
+                    let in_transaction = state.last_scrolled.is_some() || state.target.is_some();
 
                     if has_scrolled || in_transaction {
                         shell.capture_event();
+                    }
+
+                    // The offsets only move on subsequent frames, so we must
+                    // schedule a redraw even though nothing changed yet
+                    if state.target.is_some() {
+                        shell.request_redraw();
                     }
                 }
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))
@@ -947,6 +982,20 @@ where
                     state.keyboard_modifiers = *modifiers;
                 }
                 Event::Window(window::Event::RedrawRequested(now)) => {
+                    // Step the smooth scrolling animation, if any;
+                    // `last_frame` guards against stepping twice for the
+                    // same instant
+                    if state.target.is_some()
+                        && state.last_frame != Some(*now)
+                        && state.step(*now, bounds, content_bounds)
+                    {
+                        let _ =
+                            notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+
+                        shell.request_redraw();
+                        return;
+                    }
+
                     if let Interaction::AutoScrolling {
                         origin,
                         current,
@@ -1519,6 +1568,8 @@ fn notify_viewport<Message>(
 struct State {
     offset_y: Offset,
     offset_x: Offset,
+    target: Option<Vector>,
+    last_frame: Option<Instant>,
     interaction: Interaction,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
@@ -1546,6 +1597,8 @@ impl Default for State {
         Self {
             offset_y: Offset::Absolute(0.0),
             offset_x: Offset::Absolute(0.0),
+            target: None,
+            last_frame: None,
             interaction: Interaction::None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
@@ -1653,11 +1706,31 @@ impl Viewport {
 }
 
 impl State {
+    /// The time constant of the smooth scrolling animation, in seconds.
+    ///
+    /// The exponential approach covers ~95% of the distance to the target
+    /// after `3 * SMOOTH_SCROLL_TIME_CONSTANT` seconds; the final stretch is
+    /// then covered at [`Self::SMOOTH_SCROLL_MIN_SPEED`].
+    const SMOOTH_SCROLL_TIME_CONSTANT: f32 = 0.05;
+
+    /// The minimum speed of the smooth scrolling animation, in pixels per
+    /// second.
+    ///
+    /// The final stretch of the scroll glides at this constant speed, so the
+    /// animation stops abruptly instead of creeping towards the target.
+    const SMOOTH_SCROLL_MIN_SPEED: f32 = 400.0;
+
+    /// The distance (in pixels) from the target at which smooth scrolling is
+    /// considered settled.
+    const SMOOTH_SCROLL_EPSILON: f32 = 0.2;
+
     fn new() -> Self {
         State::default()
     }
 
     fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content_bounds: Rectangle) {
+        self.cancel();
+
         if bounds.height < content_bounds.height {
             self.offset_y = Offset::Absolute(
                 (self.offset_y.absolute(bounds.height, content_bounds.height) + delta.y)
@@ -1673,17 +1746,146 @@ impl State {
         }
     }
 
+    /// Moves the *target* scroll offset by `delta`, for smooth scrolling.
+    ///
+    /// The actual offsets are eased towards the target on each frame, via
+    /// [`State::step`].
+    fn scroll_smoothly(
+        &mut self,
+        delta: Vector<f32>,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        // Materialize any snapped (relative) offsets before animating from them
+        self.unsnap(bounds, content_bounds);
+
+        let current_x = self.offset_x.absolute(bounds.width, content_bounds.width);
+        let current_y = self.offset_y.absolute(bounds.height, content_bounds.height);
+
+        // Accumulate onto the pending target, if any, so that quick wheel
+        // movements do not lose their (not yet scrolled) distance
+        let (x, y) = match self.target {
+            Some(target) => (
+                Self::clamp_offset(target.x + delta.x, bounds.width, content_bounds.width),
+                Self::clamp_offset(target.y + delta.y, bounds.height, content_bounds.height),
+            ),
+            None => (
+                Self::clamp_offset(current_x + delta.x, bounds.width, content_bounds.width),
+                Self::clamp_offset(current_y + delta.y, bounds.height, content_bounds.height),
+            ),
+        };
+
+        // Nothing to animate: the content fits, or we're already at the target
+        if x == current_x && y == current_y {
+            self.target = None;
+            self.last_frame = None;
+        } else {
+            if self.target.is_none() {
+                self.last_frame = Some(Instant::now());
+            }
+
+            self.target = Some(Vector::new(x, y));
+        }
+    }
+
+    /// Steps the smooth scrolling animation forward, towards the target offset.
+    ///
+    /// Returns `true` if the animation is still in progress.
+    fn step(&mut self, now: Instant, bounds: Rectangle, content_bounds: Rectangle) -> bool {
+        let Some(target) = self.target else {
+            return false;
+        };
+
+        let dt = (now - self.last_frame.unwrap_or(now)).as_secs_f32();
+        self.last_frame = Some(now);
+
+        let x_target = Self::clamp_offset(target.x, bounds.width, content_bounds.width);
+        let y_target = Self::clamp_offset(target.y, bounds.height, content_bounds.height);
+
+        let x = self.offset_x.absolute(bounds.width, content_bounds.width);
+        let y = self.offset_y.absolute(bounds.height, content_bounds.height);
+
+        let (x, x_settled) = Self::approach(x, x_target, dt);
+        let (y, y_settled) = Self::approach(y, y_target, dt);
+
+        self.offset_x = Offset::Absolute(x);
+        self.offset_y = Offset::Absolute(y);
+
+        if x_settled && y_settled {
+            self.target = None;
+            self.last_frame = None;
+
+            false
+        } else {
+            true
+        }
+    }
+
+    /// Cancels any in-progress smooth scrolling animation, keeping the current
+    /// offsets.
+    ///
+    /// This ensures that direct manipulation (scrollbar drags, touch scrolling,
+    /// auto-scrolling, programmatic scrolling) always takes priority over a
+    /// pending wheel animation.
+    fn cancel(&mut self) {
+        self.target = None;
+        self.last_frame = None;
+    }
+
+    /// Clamps an absolute scroll offset to the range in which the given content
+    /// can be scrolled inside the given viewport.
+    fn clamp_offset(offset: f32, viewport: f32, content: f32) -> f32 {
+        if content > viewport {
+            offset.clamp(0.0, content - viewport)
+        } else {
+            0.0
+        }
+    }
+
+    /// Moves `current` towards `target` over the given time step.
+    ///
+    /// This uses an exponential approach, floored at a minimum speed so that
+    /// the final stretch glides into the target at a constant speed instead
+    /// of creeping towards it.
+    ///
+    /// Returns the new position and whether it has settled on the target.
+    fn approach(current: f32, target: f32, dt: f32) -> (f32, bool) {
+        let remaining = target - current;
+
+        // Exponential speed, floored at a minimum: the glide starts at a
+        // distance of `SMOOTH_SCROLL_TIME_CONSTANT * SMOOTH_SCROLL_MIN_SPEED`
+        // from the target
+        let speed = remaining.signum()
+            * (remaining.abs() / Self::SMOOTH_SCROLL_TIME_CONSTANT)
+                .max(Self::SMOOTH_SCROLL_MIN_SPEED);
+
+        dbg!(speed);
+
+        // Monotonic: never overshoot the target
+        let next = (current + speed * dt).clamp(current.min(target), current.max(target));
+
+        if (target - next).abs() < Self::SMOOTH_SCROLL_EPSILON {
+            (target, true)
+        } else {
+            (next, false)
+        }
+    }
+
     fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
+        self.cancel();
         self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
         self.unsnap(bounds, content_bounds);
     }
 
     fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
+        self.cancel();
         self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
         self.unsnap(bounds, content_bounds);
     }
 
     fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
+        self.cancel();
+
         if let Some(x) = offset.x {
             self.offset_x = Offset::Relative(x.clamp(0.0, 1.0));
         }
@@ -1694,6 +1896,8 @@ impl State {
     }
 
     fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
+        self.cancel();
+
         if let Some(x) = offset.x {
             self.offset_x = Offset::Absolute(x.max(0.0));
         }
@@ -2265,5 +2469,308 @@ pub fn default(theme: &Theme, status: Status) -> Style {
                 auto_scroll,
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::space::Space;
+    use iced_test::simulator::Simulator;
+
+    fn bounds() -> (Rectangle, Rectangle) {
+        (
+            Rectangle::new(Point::ORIGIN, Size::new(100.0, 100.0)),
+            Rectangle::new(Point::ORIGIN, Size::new(100.0, 1000.0)),
+        )
+    }
+
+    #[test]
+    fn smooth_scroll_settles_on_target() {
+        let mut state = State::new();
+        let (bounds, content_bounds) = bounds();
+
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+
+        let Some(last_frame) = state.last_frame else {
+            panic!("smooth scroll must be scheduled");
+        };
+
+        let mut now = last_frame;
+        let mut offset = 0.0;
+        let mut frames = 0;
+
+        loop {
+            now += Duration::from_millis(16);
+
+            let settling = state.step(now, bounds, content_bounds);
+
+            let new_offset = state
+                .offset_y
+                .absolute(bounds.height, content_bounds.height);
+
+            assert!(
+                new_offset > offset,
+                "offset must approach the target monotonically"
+            );
+
+            offset = new_offset;
+            frames += 1;
+
+            assert!(
+                frames < 100,
+                "smooth scroll must settle within a reasonable number of frames"
+            );
+
+            if !settling {
+                break;
+            }
+        }
+
+        assert_eq!(offset, 120.0);
+        assert!(frames > 1, "smooth scroll must take more than one frame");
+        assert!(state.target.is_none());
+        assert!(state.last_frame.is_none());
+    }
+
+    #[test]
+    fn smooth_scroll_accumulates_pending_delta() {
+        let mut state = State::new();
+        let (bounds, content_bounds) = bounds();
+
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+
+        // A few frames in...
+        let mut now = state.last_frame.unwrap();
+
+        for _ in 0..3 {
+            now += Duration::from_millis(16);
+            let _ = state.step(now, bounds, content_bounds);
+        }
+
+        // ...a new wheel movement must add to the pending target, not replace it
+        state.scroll_smoothly(Vector::new(0.0, 60.0), bounds, content_bounds);
+
+        let mut now = state.last_frame.unwrap();
+        let mut offset = state
+            .offset_y
+            .absolute(bounds.height, content_bounds.height);
+
+        loop {
+            now += Duration::from_millis(16);
+
+            let settling = state.step(now, bounds, content_bounds);
+
+            let new_offset = state
+                .offset_y
+                .absolute(bounds.height, content_bounds.height);
+
+            assert!(new_offset >= offset, "offset must not scroll backwards");
+
+            offset = new_offset;
+
+            if !settling {
+                break;
+            }
+        }
+
+        // The full distance of both movements was scrolled
+        assert_eq!(offset, 180.0);
+    }
+
+    #[test]
+    fn smooth_scroll_glide_keeps_constant_speed_near_target() {
+        let mut state = State::new();
+        let (bounds, content_bounds) = bounds();
+
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+
+        let mut now = state.last_frame.unwrap();
+
+        // Advance until the scroll is within the constant-speed glide region
+        loop {
+            now += Duration::from_millis(16);
+
+            let settling = state.step(now, bounds, content_bounds);
+            let offset = state
+                .offset_y
+                .absolute(bounds.height, content_bounds.height);
+
+            if settling
+                || offset
+                    > 120.0 - State::SMOOTH_SCROLL_TIME_CONSTANT * State::SMOOTH_SCROLL_MIN_SPEED
+            {
+                break;
+            }
+        }
+
+        // The animation must not have settled before the glide
+        assert!(state.target.is_some());
+
+        // Each subsequent frame covers the same distance...
+        let mut distances = Vec::new();
+        let mut offset = state
+            .offset_y
+            .absolute(bounds.height, content_bounds.height);
+
+        loop {
+            now += Duration::from_millis(16);
+
+            let settling = state.step(now, bounds, content_bounds);
+            let new_offset = state
+                .offset_y
+                .absolute(bounds.height, content_bounds.height);
+
+            distances.push(new_offset - offset);
+            offset = new_offset;
+
+            if settling {
+                break;
+            }
+        }
+
+        // ...except for the final snap to the exact target
+        let expected = State::SMOOTH_SCROLL_MIN_SPEED * Duration::from_millis(16).as_secs_f32();
+
+        for distance in &distances[..distances.len() - 1] {
+            assert!(
+                (*distance - expected).abs() < 0.1,
+                "expected a constant glide of ~{expected}px per frame, got {distance}"
+            );
+        }
+    }
+
+    #[test]
+    fn direct_manipulation_cancels_smooth_scroll() {
+        let mut state = State::new();
+        let (bounds, content_bounds) = bounds();
+
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+        assert!(state.target.is_some());
+
+        state.scroll(Vector::new(0.0, 50.0), bounds, content_bounds);
+
+        assert!(state.target.is_none());
+        assert!(state.last_frame.is_none());
+        assert_eq!(state.offset_y, Offset::Absolute(50.0));
+
+        // No animation frames are left to step
+        assert!(!state.step(Instant::now(), bounds, content_bounds));
+    }
+
+    #[test]
+    fn smooth_scroll_is_noop_without_overflow() {
+        let mut state = State::new();
+        let bounds = Rectangle::new(Point::ORIGIN, Size::new(1000.0, 1000.0));
+        let content_bounds = Rectangle::new(Point::ORIGIN, Size::new(100.0, 100.0));
+
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+
+        assert!(state.target.is_none());
+        assert!(state.last_frame.is_none());
+        assert_eq!(state.offset_y, Offset::Absolute(0.0));
+    }
+
+    #[test]
+    fn wheel_scrolling_is_smooth() {
+        let element: Scrollable<'_, Viewport, Theme, crate::renderer::Renderer> =
+            Scrollable::new(Space::new().height(3000))
+                .width(Length::Fill)
+                .height(200)
+                .on_scroll(Some);
+
+        let mut simulator = Simulator::new(element);
+        simulator.point_at(Point::new(500.0, 100.0));
+
+        // Scroll down two lines
+        let _ = simulator.scroll(mouse::ScrollDelta::Lines { x: 0.0, y: -2.0 });
+
+        // Settle the animation, frame by frame
+        let mut instant = Instant::now();
+
+        for _ in 0..60 {
+            instant += Duration::from_millis(16);
+
+            let _ = simulator.simulate([Event::Window(window::Event::RedrawRequested(instant))]);
+        }
+
+        let offsets: Vec<f32> = simulator
+            .into_messages()
+            .map(|viewport| viewport.absolute_offset().y)
+            .collect();
+
+        // The wheel event must not have moved the offset: the first
+        // notification still reports the original position
+        assert!(
+            !offsets.is_empty(),
+            "expected on_scroll notifications, got: {offsets:?}"
+        );
+        assert_eq!(
+            offsets.first(),
+            Some(&0.0),
+            "offset moved before the first frame: {offsets:?}"
+        );
+
+        // The scroll must have been gradual: it took several frames to settle
+        assert!(
+            offsets.len() > 2,
+            "expected multiple intermediate offsets, got: {offsets:?}"
+        );
+        assert!(
+            *offsets.get(1).unwrap() < 60.0,
+            "scrolling should not jump instantly: {offsets:?}"
+        );
+
+        // ... and it must have settled exactly on the target (2 lines * 60px)
+        assert_eq!(offsets.last(), Some(&120.0));
+    }
+
+    #[test]
+    fn wheel_scrolling_is_immediate_when_smooth_scroll_disabled() {
+        let element: Scrollable<'_, Viewport, Theme, crate::renderer::Renderer> =
+            Scrollable::new(Space::new().height(3000))
+                .width(Length::Fill)
+                .height(200)
+                .smooth_scroll(false)
+                .on_scroll(Some);
+
+        let mut simulator = Simulator::new(element);
+        simulator.point_at(Point::new(500.0, 100.0));
+
+        // Scroll down two lines
+        let _ = simulator.scroll(mouse::ScrollDelta::Lines { x: 0.0, y: -2.0 });
+
+        // No frames needed: a single notification, fully scrolled,
+        // on the wheel event itself
+        let offsets: Vec<f32> = simulator
+            .into_messages()
+            .map(|viewport| viewport.absolute_offset().y)
+            .collect();
+
+        assert_eq!(offsets, [120.0]);
+    }
+
+    #[test]
+    fn pixel_scrolling_is_immediate_even_when_smooth_scroll_enabled() {
+        let element: Scrollable<'_, Viewport, Theme, crate::renderer::Renderer> =
+            Scrollable::new(Space::new().height(3000))
+                .width(Length::Fill)
+                .height(200)
+                .on_scroll(Some);
+
+        let mut simulator = Simulator::new(element);
+        simulator.point_at(Point::new(500.0, 100.0));
+
+        // Scroll down 120 pixels
+        let _ = simulator.scroll(mouse::ScrollDelta::Pixels { x: 0.0, y: -120.0 });
+
+        // High-precision scrolls are applied immediately, even though
+        // smooth scrolling is enabled by default
+        let offsets: Vec<f32> = simulator
+            .into_messages()
+            .map(|viewport| viewport.absolute_offset().y)
+            .collect();
+
+        assert_eq!(offsets, [120.0]);
     }
 }
