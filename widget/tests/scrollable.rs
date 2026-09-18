@@ -75,10 +75,10 @@ fn wheel_scrolling_is_smooth() {
         let _ = simulator.simulate([Event::Window(window::Event::RedrawRequested(instant))]);
     }
 
-    let offsets: Vec<f32> = simulator
+    let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
-        .collect();
+        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .unzip();
 
     // The wheel event must not have moved the offset: the first
     // notification still reports the original position
@@ -104,6 +104,19 @@ fn wheel_scrolling_is_smooth() {
 
     // ... and it must have settled exactly on the target (two lines)
     assert_eq!(offsets.last(), Some(&px(2.0)));
+
+    // The notifications report the animation as in progress until the
+    // scroll settles
+    assert!(
+        animating[..animating.len() - 1]
+            .iter()
+            .all(|&is_animating| is_animating),
+        "expected the scroll to be animating until it settles: {offsets:?} {animating:?}"
+    );
+    assert!(
+        !animating.last().unwrap(),
+        "expected the scroll to have settled: {offsets:?} {animating:?}"
+    );
 }
 
 #[test]
@@ -115,13 +128,13 @@ fn wheel_scrolling_is_immediate_when_smooth_scroll_disabled() {
     let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -2.0 });
 
     // No frames needed: a single notification, fully scrolled,
-    // on the wheel event itself
-    let offsets: Vec<f32> = simulator
+    // on the wheel event itself — and no animation
+    let notifications: Vec<(f32, bool)> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
         .collect();
 
-    assert_eq!(offsets, [px(2.0)]);
+    assert_eq!(notifications, [(px(2.0), false)]);
 }
 
 #[test]
@@ -133,13 +146,13 @@ fn pixel_scrolling_is_immediate_even_when_smooth_scroll_enabled() {
     let _ = simulator.scroll(ScrollDelta::Pixels { x: 0.0, y: -120.0 });
 
     // High-precision scrolls are applied immediately, even though
-    // smooth scrolling is enabled by default
-    let offsets: Vec<f32> = simulator
+    // smooth scrolling is enabled by default — and there is no animation
+    let notifications: Vec<(f32, bool)> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
         .collect();
 
-    assert_eq!(offsets, [120.0]);
+    assert_eq!(notifications, [(120.0, false)]);
 }
 
 #[test]
@@ -398,10 +411,10 @@ fn high_precision_scrolling_cancels_smooth_scroll() {
         let _ = simulator.simulate([Event::Window(window::Event::RedrawRequested(instant))]);
     }
 
-    let offsets: Vec<f32> = simulator
+    let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
-        .collect();
+        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .unzip();
 
     // Exactly four notifications: the wheel event (at the original
     // position), the two frames of the smooth scroll, and the immediate
@@ -410,6 +423,10 @@ fn high_precision_scrolling_cancels_smooth_scroll() {
 
     // The high-precision scroll moved the offset by exactly its delta
     assert!((offsets[3] - (offsets[2] + 10.0)).abs() < 1e-3);
+
+    // The notifications report the smooth scroll as in progress until the
+    // high-precision scroll cancels it
+    assert_eq!(&animating[..], &[true, true, true, false]);
 }
 
 #[test]

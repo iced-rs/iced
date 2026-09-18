@@ -1538,6 +1538,7 @@ fn notify_viewport<Message>(
         offset_y: state.offset_y,
         bounds,
         content_bounds,
+        is_animating: state.target.is_some(),
     };
 
     // Don't publish redundant viewports to shell
@@ -1672,6 +1673,7 @@ pub struct Viewport {
     offset_y: Offset,
     bounds: Rectangle,
     content_bounds: Rectangle,
+    is_animating: bool,
 }
 
 impl Viewport {
@@ -1719,6 +1721,11 @@ impl Viewport {
     /// Returns the content bounds of the current [`Viewport`].
     pub fn content_bounds(&self) -> Rectangle {
         self.content_bounds
+    }
+
+    /// Returns whether a smooth scrolling animation is in progress.
+    pub fn is_animating(&self) -> bool {
+        self.is_animating
     }
 }
 
