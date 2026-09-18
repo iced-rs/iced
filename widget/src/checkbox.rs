@@ -31,6 +31,8 @@
 //! }
 //! ```
 //! ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
+use std::marker::PhantomData;
+
 use crate::core::alignment;
 use crate::core::layout;
 use crate::core::mouse;
@@ -42,7 +44,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
+    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell,
     Size, Theme, Widget,
 };
 
@@ -81,8 +83,8 @@ use crate::core::{
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 pub struct Checkbox<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
-    Renderer: text::Renderer,
     Theme: Catalog,
+    Renderer: text::Renderer,
 {
     is_checked: bool,
     on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
@@ -91,13 +93,14 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
-    text_wrapping: text::Wrapping,
-    font: Option<Renderer::Font>,
-    icon: Icon<Renderer::Font>,
+    line_height: Option<text::LineHeight>,
+    shaping: text::Shaping,
+    wrapping: text::Wrapping,
+    font: Option<Font>,
+    icon: Icon,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
+    renderer_: PhantomData<Renderer>,
 }
 
 impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
@@ -117,23 +120,24 @@ where
             is_checked,
             on_toggle: None,
             label: None,
-            width: Length::Shrink,
+            width: Length::Fit,
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SIZE / 2.0,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::default(),
-            text_wrapping: text::Wrapping::default(),
+            line_height: None,
+            shaping: text::Shaping::default(),
+            wrapping: text::Wrapping::default(),
             font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
                 code_point: Renderer::CHECKMARK_ICON,
                 size: None,
-                line_height: text::LineHeight::default(),
+                line_height: None,
                 shaping: text::Shaping::Basic,
             },
             class: Theme::default(),
             last_status: None,
+            renderer_: PhantomData,
         }
     }
 
@@ -193,33 +197,33 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Checkbox`].
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = Some(line_height.into());
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`Checkbox`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
         self
     }
 
     /// Sets the [`text::Wrapping`] strategy of the [`Checkbox`].
-    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
-        self.text_wrapping = wrapping;
+    pub fn wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
-    /// Sets the [`Renderer::Font`] of the text of the [`Checkbox`].
+    /// Sets the [`Font`] of the text of the [`Checkbox`].
     ///
-    /// [`Renderer::Font`]: crate::core::text::Renderer
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+    /// [`Font`]: crate::core::Font
+    pub fn font(mut self, font: impl Into<Font>) -> Self {
         self.font = Some(font.into());
         self
     }
 
     /// Sets the [`Icon`] of the [`Checkbox`].
-    pub fn icon(mut self, icon: Icon<Renderer::Font>) -> Self {
+    pub fn icon(mut self, icon: Icon) -> Self {
         self.icon = icon;
         self
     }
@@ -260,7 +264,7 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
@@ -291,14 +295,15 @@ where
                         label,
                         widget::text::Format {
                             width: self.width,
-                            height: Length::Shrink,
-                            line_height: self.text_line_height,
+                            height: Length::Fit,
+                            line_height: self.line_height,
                             size: self.text_size,
                             font: self.font,
                             align_x: text::Alignment::Default,
                             align_y: alignment::Vertical::Top,
-                            shaping: self.text_shaping,
-                            wrapping: self.text_wrapping,
+                            shaping: self.shaping,
+                            wrapping: self.wrapping,
+                            ellipsis: text::Ellipsis::None,
                         },
                     )
                 } else {
@@ -315,7 +320,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -411,6 +415,7 @@ where
                 shaping,
             } = &self.icon;
             let size = size.unwrap_or(Pixels(bounds.height * 0.7));
+            let line_height = line_height.unwrap_or_else(|| renderer.line_height());
 
             if self.is_checked {
                 renderer.fill_text(
@@ -418,12 +423,13 @@ where
                         content: code_point.to_string(),
                         font: *font,
                         size,
-                        line_height: *line_height,
+                        line_height,
                         bounds: bounds.size(),
                         align_x: text::Alignment::Center,
                         align_y: alignment::Vertical::Center,
                         shaping: *shaping,
                         wrapping: text::Wrapping::default(),
+                        ellipsis: text::Ellipsis::default(),
                         hint_factor: None,
                     },
                     bounds.center(),
@@ -458,6 +464,7 @@ where
         &mut self,
         _tree: &mut Tree,
         layout: Layout<'_>,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -483,7 +490,7 @@ where
 
 /// The icon in a [`Checkbox`].
 #[derive(Debug, Clone, PartialEq)]
-pub struct Icon<Font> {
+pub struct Icon {
     /// Font that will be used to display the `code_point`,
     pub font: Font,
     /// The unicode code point that will be used as the icon.
@@ -491,7 +498,7 @@ pub struct Icon<Font> {
     /// Font size of the content.
     pub size: Option<Pixels>,
     /// The line height of the icon.
-    pub line_height: text::LineHeight,
+    pub line_height: Option<text::LineHeight>,
     /// The shaping strategy of the icon.
     pub shaping: text::Shaping,
 }
@@ -560,7 +567,7 @@ impl Catalog for Theme {
 
 /// A primary checkbox; denoting a main toggle.
 pub fn primary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     match status {
         Status::Active { is_checked } => styled(
@@ -589,7 +596,7 @@ pub fn primary(theme: &Theme, status: Status) -> Style {
 
 /// A secondary checkbox; denoting a complementary toggle.
 pub fn secondary(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     match status {
         Status::Active { is_checked } => styled(
@@ -618,7 +625,7 @@ pub fn secondary(theme: &Theme, status: Status) -> Style {
 
 /// A success checkbox; denoting a positive toggle.
 pub fn success(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     match status {
         Status::Active { is_checked } => styled(
@@ -647,7 +654,7 @@ pub fn success(theme: &Theme, status: Status) -> Style {
 
 /// A danger checkbox; denoting a negative toggle.
 pub fn danger(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     match status {
         Status::Active { is_checked } => styled(

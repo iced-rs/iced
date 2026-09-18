@@ -2,7 +2,7 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{button, center, column, operation, pick_list, row, slider, text, text_input};
-use iced::{Center, Element, Fill, Subscription, Task};
+use iced::{Center, Element, Fill, Fit, Subscription, Task};
 
 use toast::{Status, Toast};
 
@@ -89,9 +89,14 @@ impl App {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let subtitle = |title, content: Element<'static, Message>| {
-            column![text(title).size(14), content].spacing(5)
-        };
+        fn subtitle<'a>(
+            title: &'a str,
+            content: impl Into<Element<'a, Message>>,
+        ) -> Element<'a, Message> {
+            column![text(title).size(14), content.into()]
+                .spacing(5)
+                .into()
+        }
 
         let add_toast = button("Add Toast").on_press_maybe(
             (!self.editing.body.is_empty() && !self.editing.title.is_empty())
@@ -105,24 +110,22 @@ impl App {
                     text_input("", &self.editing.title)
                         .on_input(Message::Title)
                         .on_submit(Message::Add)
-                        .into()
                 ),
                 subtitle(
                     "Message",
                     text_input("", &self.editing.body)
                         .on_input(Message::Body)
                         .on_submit(Message::Add)
-                        .into()
                 ),
                 subtitle(
                     "Status",
                     pick_list(
-                        toast::Status::ALL,
                         Some(self.editing.status),
-                        Message::Status
+                        toast::Status::ALL,
+                        toast::Status::to_string
                     )
+                    .on_select(Message::Status)
                     .width(Fill)
-                    .into()
                 ),
                 subtitle(
                     "Timeout",
@@ -131,12 +134,11 @@ impl App {
                         slider(1.0..=30.0, self.timeout_secs as f64, Message::Timeout).step(1.0)
                     ]
                     .spacing(5)
-                    .into()
                 ),
                 column![add_toast].align_x(Center)
             ]
             .spacing(10)
-            .max_width(200),
+            .width(Fit.max(200)),
         );
 
         toast::Manager::new(content, &self.toasts, Message::Close)
@@ -157,15 +159,16 @@ mod toast {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::overlay;
     use iced::advanced::renderer;
+    use iced::advanced::shell;
     use iced::advanced::widget::{self, Operation, Tree};
-    use iced::advanced::{Clipboard, Shell, Widget};
+    use iced::advanced::{Shell, Widget};
     use iced::mouse;
     use iced::time::{self, Duration, Instant};
     use iced::widget::{button, column, container, row, rule, space, text};
     use iced::window;
     use iced::{
-        Alignment, Center, Element, Event, Fill, Length, Point, Rectangle, Renderer, Size, Theme,
-        Vector,
+        Alignment, Center, Element, Event, Fill, Fit, Length, Point, Rectangle, Renderer, Size,
+        Theme, Vector,
     };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -254,7 +257,7 @@ mod toast {
                             .padding(5)
                             .style(container::rounded_box),
                     ])
-                    .max_width(200)
+                    .width(Fit.max(200))
                     .into()
                 })
                 .collect();
@@ -300,13 +303,7 @@ mod toast {
             widget::tree::State::new(Vec::<Option<Instant>>::new())
         }
 
-        fn children(&self) -> Vec<Tree> {
-            std::iter::once(Tree::new(&self.content))
-                .chain(self.toasts.iter().map(Tree::new))
-                .collect()
-        }
-
-        fn diff(&self, tree: &mut Tree) {
+        fn diff(&mut self, tree: &mut Tree) {
             let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
             // Invalidating removed instants to None allows us to remove
@@ -325,8 +322,8 @@ mod toast {
             }
 
             tree.diff_children(
-                &std::iter::once(&self.content)
-                    .chain(self.toasts.iter())
+                &mut std::iter::once(&mut self.content)
+                    .chain(&mut self.toasts)
                     .collect::<Vec<_>>(),
             );
         }
@@ -335,14 +332,16 @@ mod toast {
             &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn Operation,
         ) {
-            operation.container(None, layout.bounds());
+            operation.container(None, layout.bounds(), viewport);
             operation.traverse(&mut |operation| {
                 self.content.as_widget_mut().operate(
                     &mut tree.children[0],
                     layout,
+                    viewport,
                     renderer,
                     operation,
                 );
@@ -356,7 +355,6 @@ mod toast {
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
@@ -366,7 +364,6 @@ mod toast {
                 layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );
@@ -417,7 +414,7 @@ mod toast {
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: Vector,
-        ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
             let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
 
             let (content_state, toasts_state) = tree.children.split_at_mut(1);
@@ -433,7 +430,7 @@ mod toast {
             let toasts = (!self.toasts.is_empty()).then(|| {
                 overlay::Element::new(Box::new(Overlay {
                     position: layout.bounds().position() + translation,
-                    viewport: *viewport,
+                    viewport: *viewport + translation,
                     toasts: &mut self.toasts,
                     trees: toasts_state,
                     instants,
@@ -441,9 +438,8 @@ mod toast {
                     timeout_secs: self.timeout_secs,
                 }))
             });
-            let overlays = content.into_iter().chain(toasts).collect::<Vec<_>>();
 
-            (!overlays.is_empty()).then(|| overlay::Group::with_children(overlays).overlay())
+            content.into_iter().chain(toasts).collect()
         }
     }
 
@@ -482,7 +478,6 @@ mod toast {
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
         ) {
             if let Event::Window(window::Event::RedrawRequested(now)) = &event {
@@ -513,8 +508,8 @@ mod toast {
                 .zip(layout.children())
                 .zip(self.instants.iter_mut())
             {
-                let mut local_messages = vec![];
-                let mut local_shell = Shell::new(&mut local_messages);
+                let mut local_messages = shell::Bus::new();
+                let mut local_shell = shell.local(&mut local_messages);
 
                 child.as_widget_mut().update(
                     state,
@@ -522,7 +517,6 @@ mod toast {
                     layout,
                     cursor,
                     renderer,
-                    clipboard,
                     &mut local_shell,
                     &viewport,
                 );
@@ -563,16 +557,20 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn widget::Operation,
         ) {
-            operation.container(None, layout.bounds());
+            operation.container(None, layout.bounds(), &self.viewport);
             operation.traverse(&mut |operation| {
                 self.toasts
                     .iter_mut()
                     .zip(self.trees.iter_mut())
                     .zip(layout.children())
                     .for_each(|((child, state), layout)| {
-                        child
-                            .as_widget_mut()
-                            .operate(state, layout, renderer, operation);
+                        child.as_widget_mut().operate(
+                            state,
+                            layout,
+                            &self.viewport,
+                            renderer,
+                            operation,
+                        );
                     });
             });
         }

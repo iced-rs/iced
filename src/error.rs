@@ -1,5 +1,5 @@
+use crate::backend;
 use crate::futures;
-use crate::graphics;
 use crate::shell;
 
 /// An error that occurred while running an application.
@@ -15,7 +15,7 @@ pub enum Error {
 
     /// The application graphics context could not be created.
     #[error("the application graphics context could not be created")]
-    GraphicsCreationFailed(graphics::Error),
+    GraphicsCreationFailed(backend::Error),
 }
 
 impl From<shell::Error> for Error {

@@ -7,7 +7,7 @@ pub use iced_renderer as renderer;
 pub use iced_renderer::core;
 pub use iced_renderer::graphics;
 
-pub use core::widget::Id;
+pub use core::widget::{Id, Void};
 
 mod action;
 mod column;
@@ -20,10 +20,12 @@ mod themer;
 pub mod button;
 pub mod checkbox;
 pub mod combo_box;
+pub mod component;
 pub mod container;
 pub mod float;
 pub mod grid;
 pub mod keyed;
+pub mod lazy;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
@@ -35,23 +37,19 @@ pub mod scrollable;
 pub mod sensor;
 pub mod slider;
 pub mod space;
+pub mod sticky;
 pub mod table;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
+pub mod transition;
 pub mod vertical_slider;
 
 mod helpers;
 
 pub use helpers::*;
-
-#[cfg(feature = "lazy")]
-mod lazy;
-
-#[cfg(feature = "lazy")]
-pub use crate::lazy::helpers::*;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -62,11 +60,15 @@ pub use column::Column;
 #[doc(no_inline)]
 pub use combo_box::ComboBox;
 #[doc(no_inline)]
+pub use component::Component;
+#[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]
 pub use float::Float;
 #[doc(no_inline)]
 pub use grid::Grid;
+#[doc(no_inline)]
+pub use lazy::Lazy;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
 #[doc(no_inline)]
@@ -95,6 +97,8 @@ pub use slider::Slider;
 pub use space::Space;
 #[doc(no_inline)]
 pub use stack::Stack;
+#[doc(no_inline)]
+pub use sticky::Sticky;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]

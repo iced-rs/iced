@@ -41,7 +41,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell,
+    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell,
     Size, Theme, Widget,
 };
 
@@ -77,10 +77,9 @@ use crate::core::{
 ///     }
 /// }
 /// ```
-pub struct Toggler<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Toggler<'a, Message, Theme = crate::Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     is_toggled: bool,
     on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
@@ -88,20 +87,19 @@ where
     width: Length,
     size: f32,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_alignment: text::Alignment,
+    line_height: Option<text::LineHeight>,
+    alignment: text::Alignment,
     text_shaping: text::Shaping,
-    text_wrapping: text::Wrapping,
+    wrapping: text::Wrapping,
     spacing: f32,
-    font: Option<Renderer::Font>,
+    font: Option<Font>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
 }
 
-impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme> Toggler<'a, Message, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 16.0;
@@ -119,13 +117,13 @@ where
             is_toggled,
             on_toggle: None,
             label: None,
-            width: Length::Shrink,
+            width: Length::Fit,
             size: Self::DEFAULT_SIZE,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_alignment: text::Alignment::Default,
+            line_height: None,
+            alignment: text::Alignment::Default,
             text_shaping: text::Shaping::default(),
-            text_wrapping: text::Wrapping::default(),
+            wrapping: text::Wrapping::default(),
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             class: Theme::default(),
@@ -176,26 +174,26 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Toggler`].
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = Some(line_height.into());
         self
     }
 
     /// Sets the horizontal alignment of the text of the [`Toggler`]
-    pub fn text_alignment(mut self, alignment: impl Into<text::Alignment>) -> Self {
-        self.text_alignment = alignment.into();
+    pub fn alignment(mut self, alignment: impl Into<text::Alignment>) -> Self {
+        self.alignment = alignment.into();
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`Toggler`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
         self.text_shaping = shaping;
         self
     }
 
     /// Sets the [`text::Wrapping`] strategy of the [`Toggler`].
-    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
-        self.text_wrapping = wrapping;
+    pub fn wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
@@ -205,10 +203,10 @@ where
         self
     }
 
-    /// Sets the [`Renderer::Font`] of the text of the [`Toggler`]
+    /// Sets the [`Font`] of the text of the [`Toggler`]
     ///
-    /// [`Renderer::Font`]: crate::core::text::Renderer
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+    /// [`Font`]: crate::core::Font
+    pub fn font(mut self, font: impl Into<Font>) -> Self {
         self.font = Some(font.into());
         self
     }
@@ -232,8 +230,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Toggler<'_, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Toggler<'_, Message, Theme>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
@@ -249,7 +246,7 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
@@ -270,7 +267,7 @@ where
             },
             |_| {
                 let size = if renderer::CRISP {
-                    let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+                    let scale_factor = renderer.hint_factor().unwrap_or(1.0);
 
                     (self.size * scale_factor).round() / scale_factor
                 } else {
@@ -292,14 +289,15 @@ where
                         label,
                         widget::text::Format {
                             width: self.width,
-                            height: Length::Shrink,
-                            line_height: self.text_line_height,
+                            height: Length::Fit,
+                            line_height: self.line_height,
                             size: self.text_size,
                             font: self.font,
-                            align_x: self.text_alignment,
+                            align_x: self.alignment,
                             align_y: alignment::Vertical::Top,
                             shaping: self.text_shaping,
-                            wrapping: self.text_wrapping,
+                            wrapping: self.wrapping,
+                            ellipsis: text::Ellipsis::None,
                         },
                     )
                 } else {
@@ -316,7 +314,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -416,7 +413,7 @@ where
             );
         }
 
-        let scale_factor = renderer.scale_factor().unwrap_or(1.0);
+        let scale_factor = renderer.hint_factor().unwrap_or(1.0);
         let bounds = toggler_layout.bounds();
 
         let border_radius = style
@@ -439,7 +436,7 @@ where
         let toggle_bounds = {
             // Try to align toggle to the pixel grid
             let bounds = if renderer::CRISP {
-                (bounds * scale_factor).round()
+                (bounds * scale_factor).round() * (1.0 / scale_factor)
             } else {
                 bounds
             };
@@ -456,7 +453,7 @@ where
                 y: bounds.y + padding,
                 width: bounds.height - (2.0 * padding),
                 height: bounds.height - (2.0 * padding),
-            } * (1.0 / scale_factor)
+            }
         };
 
         renderer.fill_quad(
@@ -474,16 +471,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
-    fn from(
-        toggler: Toggler<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(toggler: Toggler<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(toggler)
     }
 }
@@ -564,7 +559,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Toggler`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let background = match status {
         Status::Active { is_toggled } | Status::Hovered { is_toggled } => {

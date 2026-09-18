@@ -33,9 +33,7 @@ use crate::core::text;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{
-    Clipboard, Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::core::{Element, Event, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector};
 
 /// An element to display a widget over another.
 ///
@@ -154,15 +152,8 @@ where
     Theme: container::Catalog,
     Renderer: text::Renderer,
 {
-    fn children(&self) -> Vec<widget::Tree> {
-        vec![
-            widget::Tree::new(&self.content),
-            widget::Tree::new(&self.tooltip),
-        ]
-    }
-
-    fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(&[self.content.as_widget(), self.tooltip.as_widget()]);
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        tree.diff_children(&mut [self.content.as_widget_mut(), self.tooltip.as_widget_mut()]);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -175,10 +166,6 @@ where
 
     fn size(&self) -> Size<Length> {
         self.content.as_widget().size()
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.content.as_widget().size_hint()
     }
 
     fn layout(
@@ -199,7 +186,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -258,7 +244,6 @@ where
             layout,
             cursor,
             renderer,
-            clipboard,
             shell,
             viewport,
         );
@@ -309,7 +294,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
 
         let mut children = tree.children.iter_mut();
@@ -339,28 +324,23 @@ where
             None
         };
 
-        if content.is_some() || tooltip.is_some() {
-            Some(
-                overlay::Group::with_children(content.into_iter().chain(tooltip).collect())
-                    .overlay(),
-            )
-        } else {
-            None
-        }
+        content.into_iter().chain(tooltip).collect()
     }
 
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
                 layout,
+                viewport,
                 renderer,
                 operation,
             );
@@ -509,6 +489,25 @@ where
             vec![tooltip_layout.translate(Vector::new(self.padding, self.padding))],
         )
         .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
+    }
+
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        operation.container(None, layout.bounds(), &layout.bounds());
+
+        operation.traverse(&mut |operation| {
+            self.tooltip.as_widget_mut().operate(
+                self.tree,
+                layout.children().next().unwrap(),
+                &layout.bounds(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn draw(

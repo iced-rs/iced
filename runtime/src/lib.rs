@@ -9,6 +9,7 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub mod backend;
 pub mod clipboard;
 pub mod font;
 pub mod image;
@@ -24,25 +25,15 @@ pub use iced_futures as futures;
 
 pub use task::Task;
 pub use user_interface::UserInterface;
-pub use window::Window;
 
-use crate::futures::futures::channel::oneshot;
+use crate::core::Event;
 
-use std::borrow::Cow;
 use std::fmt;
 
 /// An action that the iced runtime can perform.
 pub enum Action<T> {
     /// Output some value.
     Output(T),
-
-    /// Load a font from its bytes.
-    LoadFont {
-        /// The bytes of the font to load.
-        bytes: Cow<'static, [u8]>,
-        /// The channel to send back the load result.
-        channel: oneshot::Sender<Result<(), font::Error>>,
-    },
 
     /// Run a widget operation.
     Widget(Box<dyn core::widget::Operation>),
@@ -56,8 +47,22 @@ pub enum Action<T> {
     /// Run a system action.
     System(system::Action),
 
+    /// Run a font action.
+    Font(font::Action),
+
     /// Run an image action.
     Image(image::Action),
+
+    /// Run a backend action.
+    Backend(backend::Action),
+
+    /// Produce an event.
+    Event {
+        /// The [`window::Id`](core::window::Id) of the event.
+        window: core::window::Id,
+        /// The [`Event`] to be produced.
+        event: Event,
+    },
 
     /// Poll any resources that may have pending computations.
     Tick,
@@ -81,12 +86,14 @@ impl<T> Action<T> {
     fn output<O>(self) -> Result<T, Action<O>> {
         match self {
             Action::Output(output) => Ok(output),
-            Action::LoadFont { bytes, channel } => Err(Action::LoadFont { bytes, channel }),
             Action::Widget(operation) => Err(Action::Widget(operation)),
             Action::Clipboard(action) => Err(Action::Clipboard(action)),
             Action::Window(action) => Err(Action::Window(action)),
             Action::System(action) => Err(Action::System(action)),
+            Action::Font(action) => Err(Action::Font(action)),
             Action::Image(action) => Err(Action::Image(action)),
+            Action::Backend(action) => Err(Action::Backend(action)),
+            Action::Event { window, event } => Err(Action::Event { window, event }),
             Action::Tick => Err(Action::Tick),
             Action::Reload => Err(Action::Reload),
             Action::Exit => Err(Action::Exit),
@@ -101,9 +108,6 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Action::Output(output) => write!(f, "Action::Output({output:?})"),
-            Action::LoadFont { .. } => {
-                write!(f, "Action::LoadFont")
-            }
             Action::Widget { .. } => {
                 write!(f, "Action::Widget")
             }
@@ -112,7 +116,15 @@ where
             }
             Action::Window(_) => write!(f, "Action::Window"),
             Action::System(action) => write!(f, "Action::System({action:?})"),
-            Action::Image(_) => write!(f, "Action::Image"),
+            Action::Font(action) => {
+                write!(f, "Action::Font({action:?})")
+            }
+            Action::Image(action) => write!(f, "Action::Image({action:?})"),
+            Action::Backend(action) => write!(f, "Action::Backend({action:?})"),
+            Action::Event { window, event } => write!(
+                f,
+                "Action::Event {{ window: {window:?}, event: {event:?} }}"
+            ),
             Action::Tick => write!(f, "Action::Tick"),
             Action::Reload => write!(f, "Action::Reload"),
             Action::Exit => write!(f, "Action::Exit"),

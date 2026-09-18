@@ -2,7 +2,7 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+//! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 //! #            pub use iced_core::color; }
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
@@ -27,15 +27,15 @@ use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::{Color, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
-pub use text::{Alignment, LineHeight, Shaping, Wrapping};
+pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 
 /// A bunch of text.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme, ()> { unimplemented!() } }
+/// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 /// #            pub use iced_core::color; }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
@@ -53,20 +53,19 @@ pub use text::{Alignment, LineHeight, Shaping, Wrapping};
 ///         .into()
 /// }
 /// ```
-pub struct Text<'a, Theme, Renderer>
+#[must_use]
+pub struct Text<'a, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     fragment: text::Fragment<'a>,
-    format: Format<Renderer::Font>,
+    format: Format,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
+impl<'a, Theme> Text<'a, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new(fragment: impl text::IntoFragment<'a>) -> Self {
@@ -85,22 +84,18 @@ where
 
     /// Sets the [`LineHeight`] of the [`Text`].
     pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
-        self.format.line_height = line_height.into();
+        self.format.line_height = Some(line_height.into());
         self
     }
 
     /// Sets the [`Font`] of the [`Text`].
-    ///
-    /// [`Font`]: crate::text::Renderer::Font
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+    pub fn font(mut self, font: impl Into<Font>) -> Self {
         self.format.font = Some(font.into());
         self
     }
 
     /// Sets the [`Font`] of the [`Text`], if `Some`.
-    ///
-    /// [`Font`]: crate::text::Renderer::Font
-    pub fn font_maybe(mut self, font: Option<impl Into<Renderer::Font>>) -> Self {
+    pub fn font_maybe(mut self, font: Option<impl Into<Font>>) -> Self {
         self.format.font = font.map(Into::into);
         self
     }
@@ -147,8 +142,13 @@ where
         self
     }
 
+    /// Sets the [`Ellipsis`] strategy of the [`Text`].
+    pub fn ellipsis(mut self, ellipsis: Ellipsis) -> Self {
+        self.format.ellipsis = ellipsis;
+        self
+    }
+
     /// Sets the style of the [`Text`].
-    #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
     where
         Theme::Class<'a>: From<StyleFn<'a, Theme>>,
@@ -177,7 +177,6 @@ where
 
     /// Sets the style class of the [`Text`].
     #[cfg(feature = "advanced")]
-    #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
         self.class = class.into();
         self
@@ -187,7 +186,7 @@ where
 /// The internal state of a [`Text`] widget.
 pub type State<P> = paragraph::Plain<P>;
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
@@ -249,6 +248,7 @@ where
         &mut self,
         _tree: &mut Tree,
         layout: Layout<'_>,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
@@ -262,30 +262,32 @@ where
 /// to learn more about each field.
 #[derive(Debug, Clone, Copy)]
 #[allow(missing_docs)]
-pub struct Format<Font> {
+pub struct Format {
     pub width: Length,
     pub height: Length,
     pub size: Option<Pixels>,
     pub font: Option<Font>,
-    pub line_height: LineHeight,
+    pub line_height: Option<LineHeight>,
     pub align_x: text::Alignment,
     pub align_y: alignment::Vertical,
     pub shaping: Shaping,
     pub wrapping: Wrapping,
+    pub ellipsis: Ellipsis,
 }
 
-impl<Font> Default for Format<Font> {
+impl Default for Format {
     fn default() -> Self {
         Self {
             size: None,
-            line_height: LineHeight::default(),
+            line_height: None,
             font: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             align_x: text::Alignment::Default,
             align_y: alignment::Vertical::Top,
             shaping: Shaping::default(),
             wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
         }
     }
 }
@@ -296,28 +298,30 @@ pub fn layout<Renderer>(
     renderer: &Renderer,
     limits: &layout::Limits,
     content: &str,
-    format: Format<Renderer::Font>,
+    format: Format,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
 {
     layout::sized(limits, format.width, format.height, |limits| {
-        let bounds = limits.max();
+        let bounds = limits.bounds();
 
-        let size = format.size.unwrap_or_else(|| renderer.default_size());
-        let font = format.font.unwrap_or_else(|| renderer.default_font());
+        let size = format.size.unwrap_or_else(|| renderer.text_size());
+        let font = format.font.unwrap_or_else(|| renderer.font());
+        let line_height = format.line_height.unwrap_or_else(|| renderer.line_height());
 
         let _ = paragraph.update(text::Text {
             content,
             bounds,
             size,
-            line_height: format.line_height,
+            line_height,
             font,
             align_x: format.align_x,
             align_y: format.align_y,
             shaping: format.shaping,
             wrapping: format.wrapping,
-            hint_factor: renderer.scale_factor(),
+            ellipsis: format.ellipsis,
+            hint_factor: renderer.hint_factor(),
         });
 
         paragraph.min_bounds()
@@ -349,21 +353,19 @@ pub fn draw<Renderer>(
     );
 }
 
-impl<'a, Message, Theme, Renderer> From<Text<'a, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> From<Text<'a, Theme>> for Element<'a, Message, Theme, Renderer>
 where
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
-    fn from(text: Text<'a, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(text: Text<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }
 }
 
-impl<'a, Theme, Renderer> From<&'a str> for Text<'a, Theme, Renderer>
+impl<'a, Theme> From<&'a str> for Text<'a, Theme>
 where
     Theme: Catalog + 'a,
-    Renderer: text::Renderer,
 {
     fn from(content: &'a str) -> Self {
         Self::new(content)
@@ -426,41 +428,41 @@ pub fn default(_theme: &Theme) -> Style {
 /// Text with the default base color.
 pub fn base(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().text),
+        color: Some(theme.seed().text),
     }
 }
 
 /// Text conveying some important information, like an action.
 pub fn primary(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().primary),
+        color: Some(theme.seed().primary),
     }
 }
 
 /// Text conveying some secondary information, like a footnote.
 pub fn secondary(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.extended_palette().secondary.base.color),
+        color: Some(theme.palette().secondary.base.color),
     }
 }
 
 /// Text conveying some positive information, like a successful event.
 pub fn success(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().success),
+        color: Some(theme.seed().success),
     }
 }
 
 /// Text conveying some mildly negative information, like a warning.
 pub fn warning(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().warning),
+        color: Some(theme.seed().warning),
     }
 }
 
 /// Text conveying some negative information, like an error.
 pub fn danger(theme: &Theme) -> Style {
     Style {
-        color: Some(theme.palette().danger),
+        color: Some(theme.seed().danger),
     }
 }

@@ -4,9 +4,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::Tree;
-use crate::core::{
-    self, Clipboard, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::space;
 
 /// A widget that is aware of its dimensions.
@@ -30,9 +28,12 @@ where
     /// The `view` closure will receive the maximum available space for
     /// the [`Responsive`] during layout. You can use this [`Size`] to
     /// conditionally build the contents.
-    pub fn new(view: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a) -> Self {
+    pub fn new<E>(view: impl Fn(Size) -> E + 'a) -> Self
+    where
+        E: Into<Element<'a, Message, Theme, Renderer>>,
+    {
         Self {
-            view: Box::new(view),
+            view: Box::new(move |size| view(size).into()),
             width: Length::Fill,
             height: Length::Fill,
             content: Element::new(space()),
@@ -57,7 +58,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn diff(&self, _tree: &mut Tree) {
+    fn diff(&mut self, _tree: &mut Tree) {
         // Diff is deferred to layout
     }
 
@@ -75,10 +76,10 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
-        let size = limits.max();
+        let size = limits.bounds();
 
         self.content = (self.view)(size);
-        tree.diff_children(std::slice::from_ref(&self.content));
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
         let node =
             self.content
@@ -97,7 +98,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -107,7 +107,6 @@ where
             layout.children().next().unwrap(),
             cursor,
             renderer,
-            clipboard,
             shell,
             viewport,
         );
@@ -155,12 +154,14 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         self.content.as_widget_mut().operate(
             &mut tree.children[0],
             layout.children().next().unwrap(),
+            viewport,
             renderer,
             operation,
         );
@@ -173,7 +174,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),

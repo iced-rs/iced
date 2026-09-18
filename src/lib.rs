@@ -254,7 +254,7 @@
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     button("I am a styled button!").style(|theme: &Theme, status| {
-//!         let palette = theme.extended_palette();
+//!         let palette = theme.palette();
 //!
 //!         match status {
 //!             button::Status::Active => {
@@ -271,15 +271,13 @@
 //! Widgets that can be in multiple different states will also provide the closure
 //! with some [`Status`], allowing you to use a different style for each state.
 //!
-//! You can extract the [`Palette`] colors of a [`Theme`] with the [`palette`] or
-//! [`extended_palette`] methods.
+//! You can extract the [`Palette`] colors of a [`Theme`] with the [`palette`] method.
 //!
 //! Most widgets provide styling functions for your convenience in their respective modules;
 //! like [`container::rounded_box`], [`button::primary`], or [`text::danger`].
 //!
 //! [`Status`]: widget::button::Status
 //! [`palette`]: Theme::palette
-//! [`extended_palette`]: Theme::extended_palette
 //! [`container::rounded_box`]: widget::container::rounded_box
 //! [`button::primary`]: widget::button::primary
 //! [`text::danger`]: widget::text::danger
@@ -474,7 +472,6 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/bdf0430880f5c29443f5f0a0ae4895866dfef4c6/docs/logo.svg"
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-use iced_widget::graphics;
 use iced_widget::renderer;
 use iced_winit as shell;
 use iced_winit::core;
@@ -511,10 +508,13 @@ compile_error!(
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
-#[cfg(feature = "wgpu")]
+#[cfg(feature = "wgpu-bare")]
 pub use iced_renderer::wgpu::wgpu;
 
 mod error;
+
+#[cfg(feature = "hot")]
+mod hot;
 
 pub mod application;
 pub mod daemon;
@@ -532,7 +532,7 @@ pub use crate::core::gradient;
 pub use crate::core::padding;
 pub use crate::core::theme;
 pub use crate::core::{
-    Alignment, Animation, Background, Border, Color, ContentFit, Degrees, Function, Gradient,
+    Alignment, Animation, Background, Border, Code, Color, ContentFit, Degrees, Function, Gradient,
     Length, Never, Padding, Pixels, Point, Radians, Rectangle, Rotation, Settings, Shadow, Size,
     Theme, Transformation, Vector, never,
 };
@@ -542,7 +542,7 @@ pub use crate::runtime::exit;
 pub use iced_futures::Subscription;
 
 pub use Alignment::Center;
-pub use Length::{Fill, FillPortion, Shrink};
+pub use Length::{Fill, FillPortion, Fit, Shrink};
 pub use alignment::Horizontal::{Left, Right};
 pub use alignment::Vertical::{Bottom, Top};
 
@@ -561,7 +561,14 @@ pub mod task {
 
 pub mod clipboard {
     //! Access the clipboard.
-    pub use crate::runtime::clipboard::{read, read_primary, write, write_primary};
+    pub use crate::core::clipboard::{Content, Error, Kind};
+    pub use crate::runtime::clipboard::{read, read_files, read_html, read_text, write};
+
+    #[cfg(feature = "image-without-codecs")]
+    pub use crate::core::clipboard::Image;
+
+    #[cfg(feature = "image-without-codecs")]
+    pub use crate::runtime::clipboard::read_image;
 }
 
 pub mod executor {
@@ -610,7 +617,7 @@ pub mod overlay {
     /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
     ///
     /// [`overlay::Element`]: crate::core::overlay::Element
-    pub type Element<'a, Message, Theme = crate::Renderer, Renderer = crate::Renderer> =
+    pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
         crate::core::overlay::Element<'a, Message, Theme, Renderer>;
 
     pub use iced_widget::overlay::*;
@@ -627,7 +634,7 @@ pub mod widget {
     pub use iced_runtime::widget::*;
     pub use iced_widget::*;
 
-    #[cfg(feature = "image")]
+    #[cfg(feature = "image-without-codecs")]
     pub mod image {
         //! Images display raster graphics in different formats (PNG, JPG, etc.).
         pub use iced_runtime::image::{Allocation, Error, allocate};
@@ -640,7 +647,15 @@ pub mod widget {
     mod renderer {}
 }
 
+pub mod backend {
+    //! Graphical backends are designed to aid in rendering computer graphics to a monitor.
+    pub use iced_core::backend::*;
+    pub use iced_runtime::backend::*;
+}
+
 pub use application::Application;
+pub use backend::Backend;
+pub use backend::PowerPreference;
 pub use daemon::Daemon;
 pub use error::Error;
 pub use event::Event;

@@ -1,14 +1,15 @@
 //! Run a simulation of your application without side effects.
 use crate::core;
-use crate::core::clipboard;
 use crate::core::event;
+use crate::core::font;
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::shell;
 use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Font, Point, Settings, Size, SmolStr};
+use crate::core::{Element, Event, Point, Settings, Size, SmolStr};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -28,7 +29,7 @@ pub struct Simulator<'a, Message, Theme = core::Theme, Renderer = renderer::Rend
     renderer: Renderer,
     size: Size,
     cursor: mouse::Cursor,
-    messages: Vec<Message>,
+    messages: shell::Bus<Message>,
 }
 
 impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
@@ -57,11 +58,6 @@ where
     ) -> Self {
         let size = size.into();
 
-        let default_font = match settings.default_font {
-            Font::DEFAULT => Font::with_name("Fira Sans"),
-            _ => settings.default_font,
-        };
-
         for font in settings.fonts {
             load_font(font).expect("Font must be valid");
         }
@@ -70,8 +66,12 @@ where
             let backend = env::var("ICED_TEST_BACKEND").ok();
 
             crate::futures::futures::executor::block_on(Renderer::new(
-                default_font,
-                settings.default_text_size,
+                core::renderer::Settings {
+                    font: settings.font,
+                    text_size: settings.text_size,
+                    line_height: settings.line_height,
+                    metrics_hinting: settings.metrics_hinting,
+                },
                 backend.as_deref(),
             ))
             .expect("Create new headless renderer")
@@ -89,7 +89,7 @@ where
             renderer,
             size,
             cursor: mouse::Cursor::Unavailable,
-            messages: Vec::new(),
+            messages: shell::Bus::new(),
         }
     }
 
@@ -168,15 +168,30 @@ where
             .fold(event::Status::Ignored, event::Status::merge)
     }
 
+    /// Scrolls with the given [`delta`] in the [`Simulator`].
+    ///
+    /// The mouse cursor must be over the content being scrolled for the
+    /// scroll to be applied, e.g. via [`Self::point_at`].
+    ///
+    /// [`delta`]: crate::core::mouse::ScrollDelta
+    pub fn scroll(&mut self, delta: mouse::ScrollDelta) -> event::Status {
+        let statuses = self.simulate(scroll(delta));
+
+        statuses
+            .into_iter()
+            .fold(event::Status::Ignored, event::Status::merge)
+    }
+
     /// Simulates the given raw sequence of events in the [`Simulator`].
     pub fn simulate(&mut self, events: impl IntoIterator<Item = Event>) -> Vec<event::Status> {
         let events: Vec<Event> = events.into_iter().collect();
 
         let (_state, statuses) = self.raw.update(
+            &window::Headless,
+            &shell::Waker::noop(),
             &events,
             self.cursor,
             &mut self.renderer,
-            &mut clipboard::Null,
             &mut self.messages,
         );
 
@@ -188,12 +203,13 @@ where
         let base = theme.base();
 
         let _ = self.raw.update(
+            &window::Headless,
+            &shell::Waker::noop(),
             &[Event::Window(window::Event::RedrawRequested(
                 time::Instant::now(),
             ))],
             self.cursor,
             &mut self.renderer,
-            &mut clipboard::Null,
             &mut self.messages,
         );
 
@@ -346,6 +362,13 @@ pub fn click() -> impl Iterator<Item = Event> {
     .into_iter()
 }
 
+/// Returns the sequence of events of a scroll, with the given [`delta`].
+///
+/// [`delta`]: crate::core::mouse::ScrollDelta
+pub fn scroll(delta: mouse::ScrollDelta) -> impl Iterator<Item = Event> {
+    std::iter::once(Event::Mouse(mouse::Event::WheelScrolled { delta }))
+}
+
 /// Returns the sequence of events of a key press.
 pub fn press_key(key: impl Into<keyboard::Key>, text: Option<SmolStr>) -> Event {
     let key = key.into();
@@ -395,11 +418,11 @@ pub fn typewrite(text: &str) -> impl Iterator<Item = Event> + '_ {
         .flat_map(|c| tap_key(keyboard::Key::Character(c.clone()), Some(c)))
 }
 
-fn load_font(font: impl Into<Cow<'static, [u8]>>) -> Result<(), Error> {
+fn load_font(font: Cow<'static, [u8]>) -> Result<(), font::Error> {
     renderer::graphics::text::font_system()
         .write()
         .expect("Write to font system")
-        .load_font(font.into());
+        .load_font(font);
 
     Ok(())
 }

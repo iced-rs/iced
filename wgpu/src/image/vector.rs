@@ -7,6 +7,7 @@ use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 use std::panic;
+#[cfg(feature = "svg-text")]
 use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
@@ -39,6 +40,7 @@ pub struct Cache {
     svg_hits: FxHashSet<u64>,
     rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
     should_trim: bool,
+    #[cfg(feature = "svg-text")]
     fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
@@ -52,6 +54,7 @@ impl Cache {
         }
 
         // TODO: Reuse `cosmic-text` font database
+        #[cfg(feature = "svg-text")]
         if self.fontdb.is_none() {
             let mut fontdb = usvg::fontdb::Database::new();
             fontdb.load_system_fonts();
@@ -60,6 +63,7 @@ impl Cache {
         }
 
         let options = usvg::Options {
+            #[cfg(feature = "svg-text")]
             fontdb: self
                 .fontdb
                 .as_ref()
@@ -94,19 +98,13 @@ impl Cache {
         belt: &mut wgpu::util::StagingBelt,
         handle: &svg::Handle,
         color: Option<Color>,
-        size: Size,
-        scale: f32,
+        size: Size<u32>,
         atlas: &mut Atlas,
     ) -> Option<&atlas::Entry> {
         let id = handle.id();
 
-        let (width, height) = (
-            (scale * size.width).ceil() as u32,
-            (scale * size.height).ceil() as u32,
-        );
-
         let color = color.map(Color::into_rgba8);
-        let key = (id, width, height, color);
+        let key = (id, size.width, size.height, color);
 
         // TODO: Optimize!
         // We currently rerasterize the SVG when its size changes. This is slow
@@ -121,22 +119,18 @@ impl Cache {
 
         match self.load(handle) {
             Svg::Loaded(tree) => {
-                if width == 0 || height == 0 {
-                    return None;
-                }
-
                 // TODO: Optimize!
                 // We currently rerasterize the SVG when its size changes. This is slow
                 // as heck. A GPU rasterizer like `pathfinder` may perform better.
                 // It would be cool to be able to smooth resize the `svg` example.
-                let mut img = tiny_skia::Pixmap::new(width, height)?;
+                let mut img = tiny_skia::Pixmap::new(size.width, size.height)?;
 
                 let tree_size = tree.size().to_int_size();
 
-                let target_size = if width > height {
-                    tree_size.scale_to_width(width)
+                let target_size = if size.width > size.height {
+                    tree_size.scale_to_height(size.height)
                 } else {
-                    tree_size.scale_to_height(height)
+                    tree_size.scale_to_width(size.width)
                 };
 
                 let transform = if let Some(target_size) = target_size {
@@ -164,18 +158,21 @@ impl Cache {
                 let mut rgba = img.take();
 
                 if let Some(color) = color {
-                    rgba.chunks_exact_mut(4).for_each(|rgba| {
-                        if rgba[3] > 0 {
-                            rgba[0] = color[0];
-                            rgba[1] = color[1];
-                            rgba[2] = color[2];
+                    let (chunks, _) = rgba.as_chunks_mut::<4>();
+
+                    for [r, g, b, a] in chunks {
+                        if *a > 0 {
+                            *r = color[0];
+                            *g = color[1];
+                            *b = color[2];
                         }
-                    });
+                    }
                 }
 
-                let allocation = atlas.upload(device, encoder, belt, width, height, &rgba)?;
+                let allocation =
+                    atlas.upload(device, encoder, belt, size.width, size.height, &rgba)?;
 
-                log::debug!("allocating {id} {width}x{height}");
+                log::debug!("allocating {id} {}x{}", size.width, size.height);
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert(key);

@@ -63,7 +63,6 @@ impl<T: bytemuck::Pod> Buffer<T> {
     /// Returns the size of the written bytes.
     pub fn write(
         &mut self,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
         offset: usize,
@@ -79,7 +78,6 @@ impl<T: bytemuck::Pod> Buffer<T> {
                 &self.raw,
                 (offset + bytes_written) as u64,
                 MAX_WRITE_SIZE_U64,
-                device,
             )
             .copy_from_slice(&bytes[bytes_written..bytes_written + MAX_WRITE_SIZE]);
 
@@ -98,7 +96,6 @@ impl<T: bytemuck::Pod> Buffer<T> {
             &self.raw,
             (offset + bytes_written) as u64,
             bytes_left,
-            device,
         )
         .copy_from_slice(&bytes[bytes_written..]);
 

@@ -7,8 +7,7 @@ use crate::core::theme;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector,
-    Widget,
+    Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that applies any `Theme` to its contents.
@@ -71,12 +70,8 @@ where
         self.content.as_widget().state()
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.content.as_widget().children()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        self.content.as_widget().diff(tree);
+    fn diff(&mut self, tree: &mut Tree) {
+        self.content.as_widget_mut().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
@@ -96,12 +91,13 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
         self.content
             .as_widget_mut()
-            .operate(tree, layout, renderer, operation);
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
@@ -111,13 +107,12 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
+        self.content
+            .as_widget_mut()
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
@@ -177,7 +172,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, AnyTheme, Renderer>> {
         struct Overlay<'a, Message, Theme, Renderer> {
             theme: &'a Option<Theme>,
             content: overlay::Element<'a, Message, Theme, Renderer>,
@@ -216,12 +211,11 @@ where
                 layout: Layout<'_>,
                 cursor: mouse::Cursor,
                 renderer: &Renderer,
-                clipboard: &mut dyn Clipboard,
                 shell: &mut Shell<'_, Message>,
             ) {
                 self.content
                     .as_overlay_mut()
-                    .update(event, layout, cursor, renderer, clipboard, shell);
+                    .update(event, layout, cursor, renderer, shell);
             }
 
             fn operate(
@@ -246,30 +240,37 @@ where
                     .mouse_interaction(layout, cursor, renderer)
             }
 
-            fn overlay<'b>(
-                &'b mut self,
-                layout: Layout<'b>,
+            fn index(&self) -> f32 {
+                self.content.as_overlay().index()
+            }
+
+            fn overlay<'c>(
+                &'c mut self,
+                layout: Layout<'c>,
                 renderer: &Renderer,
-            ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
+            ) -> Vec<overlay::Element<'c, Message, AnyTheme, Renderer>> {
+                let theme = self.theme;
+
                 self.content
                     .as_overlay_mut()
                     .overlay(layout, renderer)
-                    .map(|content| Overlay {
-                        theme: self.theme,
-                        content,
-                    })
-                    .map(|overlay| overlay::Element::new(Box::new(overlay)))
+                    .into_iter()
+                    .map(|content| overlay::Element::new(Box::new(Overlay { theme, content })))
+                    .collect()
             }
         }
 
         self.content
             .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation)
-            .map(|content| Overlay {
-                theme: &self.theme,
-                content,
+            .into_iter()
+            .map(|content| {
+                overlay::Element::new(Box::new(Overlay {
+                    theme: &self.theme,
+                    content,
+                }))
             })
-            .map(|overlay| overlay::Element::new(Box::new(overlay)))
+            .collect()
     }
 }
 

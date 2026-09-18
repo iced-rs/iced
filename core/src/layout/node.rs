@@ -1,7 +1,7 @@
 use crate::{Alignment, Padding, Point, Rectangle, Size, Vector};
 
 /// The bounds of an element and its children.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Node {
     bounds: Rectangle,
     children: Vec<Node>,
@@ -37,6 +37,11 @@ impl Node {
     /// Returns the [`Size`] of the [`Node`].
     pub fn size(&self) -> Size {
         Size::new(self.bounds.width, self.bounds.height)
+    }
+
+    /// Returns the position of the [`Node`].
+    pub fn position(&self) -> Point {
+        self.bounds.position()
     }
 
     /// Returns the bounds of the [`Node`].
@@ -100,6 +105,6 @@ impl Node {
 
     /// Translates the [`Node`] by the given translation.
     pub fn translate_mut(&mut self, translation: impl Into<Vector>) {
-        self.bounds = self.bounds + translation.into();
+        self.bounds += translation.into();
     }
 }

@@ -40,7 +40,12 @@ impl<T> Task<T> {
     where
         T: MaybeSend + 'static,
     {
-        Self::future(future::ready(value))
+        Self {
+            stream: Some(boxed_stream(stream::once(future::ready(Action::Output(
+                value,
+            ))))),
+            units: 0,
+        }
     }
 
     /// Creates a [`Task`] that runs the given [`Future`] to completion and maps its
@@ -73,7 +78,7 @@ impl<T> Task<T> {
     #[cfg(feature = "sipper")]
     pub fn sip<S>(
         sipper: S,
-        on_progress: impl FnMut(S::Progress) -> T + MaybeSend + 'static,
+        on_progress: impl FnMut(S::Item) -> T + MaybeSend + 'static,
         on_output: impl FnOnce(<S as Future>::Output) -> T + MaybeSend + 'static,
     ) -> Self
     where

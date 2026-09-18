@@ -1,5 +1,5 @@
 use crate::core::alignment;
-use crate::core::text::{Alignment, Shaping};
+use crate::core::text::{Alignment, Ellipsis, Shaping, Wrapping};
 use crate::core::{Color, Font, Pixels, Point, Rectangle, Transformation};
 use crate::graphics::text::cache::{self, Cache};
 use crate::graphics::text::editor;
@@ -101,6 +101,8 @@ impl Pipeline {
         align_x: Alignment,
         align_y: alignment::Vertical,
         shaping: Shaping,
+        wrapping: Wrapping,
+        ellipsis: Ellipsis,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
         transformation: Transformation,
@@ -117,6 +119,8 @@ impl Pipeline {
             size: size.into(),
             line_height,
             shaping,
+            wrapping,
+            ellipsis,
             align_x,
         };
 
@@ -191,11 +195,14 @@ fn draw(
     let position = position * transformation;
 
     let mut swash = cosmic_text::SwashCache::new();
+    let scroll = buffer.scroll();
 
     for run in buffer.layout_runs() {
         for glyph in run.glyphs {
-            let physical_glyph =
-                glyph.physical((position.x, position.y), transformation.scale_factor());
+            let physical_glyph = glyph.physical(
+                (position.x - scroll.horizontal, position.y),
+                transformation.scale_factor(),
+            );
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,

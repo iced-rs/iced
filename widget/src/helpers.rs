@@ -5,11 +5,13 @@ use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
 use crate::core::theme;
+use crate::core::time::Instant;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
+use crate::lazy::Lazy;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
@@ -17,17 +19,20 @@ use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
+use crate::sticky::Sticky;
 use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
+use crate::transition::{self, Transition};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
 
+pub use crate::component::component;
 pub use crate::table::table;
 
 /// Creates a [`Column`] with the given children.
@@ -603,20 +608,12 @@ where
             self.content.as_widget().state()
         }
 
-        fn children(&self) -> Vec<Tree> {
-            self.content.as_widget().children()
-        }
-
-        fn diff(&self, tree: &mut Tree) {
-            self.content.as_widget().diff(tree);
+        fn diff(&mut self, tree: &mut Tree) {
+            self.content.as_widget_mut().diff(tree);
         }
 
         fn size(&self) -> Size<Length> {
             self.content.as_widget().size()
-        }
-
-        fn size_hint(&self) -> Size<Length> {
-            self.content.as_widget().size_hint()
         }
 
         fn layout(
@@ -647,12 +644,13 @@ where
             &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
             self.content
                 .as_widget_mut()
-                .operate(tree, layout, renderer, operation);
+                .operate(tree, layout, viewport, renderer, operation);
         }
 
         fn update(
@@ -662,16 +660,15 @@ where
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
             let is_mouse_press =
                 matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
 
-            self.content.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            self.content
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
                 shell.capture_event();
@@ -705,7 +702,7 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             self.content
                 .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, translation)
@@ -756,20 +753,12 @@ where
             tree::Tag::of::<Tag>()
         }
 
-        fn children(&self) -> Vec<Tree> {
-            vec![Tree::new(&self.base), Tree::new(&self.top)]
-        }
-
-        fn diff(&self, tree: &mut Tree) {
-            tree.diff_children(&[&self.base, &self.top]);
+        fn diff(&mut self, tree: &mut Tree) {
+            tree.diff_children(&mut [&mut self.base, &mut self.top]);
         }
 
         fn size(&self) -> Size<Length> {
             self.base.as_widget().size()
-        }
-
-        fn size_hint(&self) -> Size<Length> {
-            self.base.as_widget().size_hint()
         }
 
         fn layout(
@@ -836,6 +825,7 @@ where
             &mut self,
             tree: &mut Tree,
             layout: Layout<'_>,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
@@ -846,7 +836,7 @@ where
             for (child, (layout, tree)) in children {
                 child
                     .as_widget_mut()
-                    .operate(tree, layout, renderer, operation);
+                    .operate(tree, layout, viewport, renderer, operation);
             }
         }
 
@@ -857,7 +847,6 @@ where
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             renderer: &Renderer,
-            clipboard: &mut dyn core::Clipboard,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
@@ -873,6 +862,7 @@ where
                 self.top.as_widget_mut().operate(
                     top_tree,
                     top_layout,
+                    viewport,
                     renderer,
                     &mut operation::black_box(&mut count_focused),
                 );
@@ -897,7 +887,7 @@ where
                 let redraw_request = shell.redraw_request();
 
                 self.top.as_widget_mut().update(
-                    top_tree, event, top_layout, cursor, renderer, clipboard, shell, viewport,
+                    top_tree, event, top_layout, cursor, renderer, shell, viewport,
                 );
 
                 // Ignore redraw requests of invisible content
@@ -916,7 +906,6 @@ where
                 base_layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );
@@ -950,7 +939,7 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
-        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             let mut overlays = [&mut self.base, &mut self.top]
                 .into_iter()
                 .zip(layout.children().zip(tree.children.iter_mut()))
@@ -960,14 +949,12 @@ where
                         .overlay(tree, layout, renderer, viewport, translation)
                 });
 
-            if let Some(base_overlay) = overlays.next()? {
-                return Some(base_overlay);
-            }
+            let base_overlays = overlays.next().unwrap();
+            let top_overlays = overlays.next().unwrap();
 
-            let top_overlay = overlays.next()?;
-            self.is_top_overlay_active = top_overlay.is_some();
+            self.is_top_overlay_active = !top_overlays.is_empty();
 
-            top_overlay
+            base_overlays.into_iter().chain(top_overlays).collect()
         }
     }
 
@@ -1026,6 +1013,40 @@ where
     Renderer: core::text::Renderer,
 {
     Scrollable::new(content)
+}
+
+/// Creates a new [`Sticky`] for the provided content.
+///
+/// The contents of a [`Sticky`] will be displayed on an overlay, inside the
+/// visible bounds, whenever they would otherwise go out of view.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, container, scrollable, sticky, space};
+/// use iced::Fill;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     scrollable(column![
+///         sticky(container("I always stay in view!").width(Fill).padding(10)),
+///         space().height(3000),
+///     ]).into()
+/// }
+/// ```
+pub fn sticky<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Sticky<'a, Message, Theme, Renderer>
+where
+    Theme: 'a,
+    Renderer: core::Renderer + 'a,
+{
+    Sticky::new(content)
 }
 
 /// Creates a new [`Button`] with the provided content.
@@ -1115,19 +1136,17 @@ where
 ///         .into()
 /// }
 /// ```
-pub fn text<'a, Theme, Renderer>(text: impl text::IntoFragment<'a>) -> Text<'a, Theme, Renderer>
+pub fn text<'a, Theme>(text: impl text::IntoFragment<'a>) -> Text<'a, Theme>
 where
     Theme: text::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Text::new(text)
 }
 
 /// Creates a new [`Text`] widget that displays the provided value.
-pub fn value<'a, Theme, Renderer>(value: impl ToString) -> Text<'a, Theme, Renderer>
+pub fn value<'a, Theme>(value: impl ToString) -> Text<'a, Theme>
 where
     Theme: text::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Text::new(value.to_string())
 }
@@ -1162,14 +1181,12 @@ where
 ///     .into()
 /// }
 /// ```
-pub fn rich_text<'a, Link, Message, Theme, Renderer>(
-    spans: impl AsRef<[text::Span<'a, Link, Renderer::Font>]> + 'a,
-) -> text::Rich<'a, Link, Message, Theme, Renderer>
+pub fn rich_text<'a, Link, Message, Theme>(
+    spans: impl AsRef<[text::Span<'a, Link>]> + 'a,
+) -> text::Rich<'a, Link, Message, Theme>
 where
     Link: Clone + 'static,
     Theme: text::Catalog + 'a,
-    Renderer: core::text::Renderer,
-    Renderer::Font: 'a,
 {
     text::Rich::with_spans(spans)
 }
@@ -1206,7 +1223,7 @@ where
 ///     .into()
 /// }
 /// ```
-pub fn span<'a, Link, Font>(text: impl text::IntoFragment<'a>) -> text::Span<'a, Link, Font> {
+pub fn span<'a, Link>(text: impl text::IntoFragment<'a>) -> text::Span<'a, Link> {
     text::Span::new(text)
 }
 
@@ -1317,16 +1334,15 @@ where
 ///     column![a, b, c, all].into()
 /// }
 /// ```
-pub fn radio<'a, Message, Theme, Renderer, V>(
+pub fn radio<'a, Message, Theme, V>(
     label: impl Into<String>,
     value: V,
     selected: Option<V>,
     on_click: impl FnOnce(V) -> Message,
-) -> Radio<'a, Message, Theme, Renderer>
+) -> Radio<'a, Message, Theme>
 where
     Message: Clone,
     Theme: radio::Catalog + 'a,
-    Renderer: core::text::Renderer,
     V: Copy + Eq,
 {
     Radio::new(label, value, selected, on_click)
@@ -1366,12 +1382,9 @@ where
 ///     }
 /// }
 /// ```
-pub fn toggler<'a, Message, Theme, Renderer>(
-    is_checked: bool,
-) -> Toggler<'a, Message, Theme, Renderer>
+pub fn toggler<'a, Message, Theme>(is_checked: bool) -> Toggler<'a, Message, Theme>
 where
     Theme: toggler::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Toggler::new(is_checked)
 }
@@ -1410,14 +1423,13 @@ where
 ///     }
 /// }
 /// ```
-pub fn text_input<'a, Message, Theme, Renderer>(
-    placeholder: &str,
-    value: &str,
-) -> TextInput<'a, Message, Theme, Renderer>
+pub fn text_input<'a, Message, Theme>(
+    placeholder: impl text::IntoFragment<'a>,
+    value: impl text::IntoFragment<'a>,
+) -> TextInput<'a, Message, Theme>
 where
     Message: Clone,
     Theme: text_input::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     TextInput::new(placeholder, value)
 }
@@ -1459,7 +1471,7 @@ where
 /// ```
 pub fn text_editor<'a, Message, Theme, Renderer>(
     content: &'a text_editor::Content<Renderer>,
-) -> TextEditor<'a, core::text::highlighter::PlainText, Message, Theme, Renderer>
+) -> TextEditor<'a, core::text::parser::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
     Theme: text_editor::Catalog + 'a,
@@ -1506,7 +1518,7 @@ pub fn slider<'a, T, Message, Theme>(
     on_change: impl Fn(T) -> Message + 'a,
 ) -> Slider<'a, T, Message, Theme>
 where
-    T: Copy + From<u8> + std::cmp::PartialOrd,
+    T: Copy + std::cmp::PartialOrd,
     Message: Clone,
     Theme: slider::Catalog + 'a,
 {
@@ -1551,7 +1563,7 @@ pub fn vertical_slider<'a, T, Message, Theme>(
     on_change: impl Fn(T) -> Message + 'a,
 ) -> VerticalSlider<'a, T, Message, Theme>
 where
-    T: Copy + From<u8> + std::cmp::PartialOrd,
+    T: Copy + std::cmp::PartialOrd,
     Message: Clone,
     Theme: vertical_slider::Catalog + 'a,
 {
@@ -1595,10 +1607,11 @@ where
 ///     ];
 ///
 ///     pick_list(
-///         fruits,
 ///         state.favorite,
-///         Message::FruitSelected,
+///         fruits,
+///         Fruit::to_string,
 ///     )
+///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
 ///     .into()
 /// }
@@ -1622,20 +1635,19 @@ where
 ///     }
 /// }
 /// ```
-pub fn pick_list<'a, T, L, V, Message, Theme, Renderer>(
-    options: L,
+pub fn pick_list<'a, T, L, V, Message, Theme>(
     selected: Option<V>,
-    on_selected: impl Fn(T) -> Message + 'a,
-) -> PickList<'a, T, L, V, Message, Theme, Renderer>
+    options: L,
+    to_string: impl Fn(&T) -> String + 'a,
+) -> PickList<'a, T, L, V, Message, Theme>
 where
-    T: ToString + PartialEq + Clone + 'a,
+    T: PartialEq + Clone + 'a,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
     Theme: pick_list::Catalog + overlay::menu::Catalog,
-    Renderer: core::text::Renderer,
 {
-    PickList::new(options, selected, on_selected)
+    PickList::new(selected, options, to_string)
 }
 
 /// Creates a new [`ComboBox`].
@@ -1696,16 +1708,15 @@ where
 ///     }
 /// }
 /// ```
-pub fn combo_box<'a, T, Message, Theme, Renderer>(
+pub fn combo_box<'a, T, Message, Theme>(
     state: &'a combo_box::State<T>,
-    placeholder: &str,
+    placeholder: impl text::IntoFragment<'a>,
     selection: Option<&T>,
-    on_selected: impl Fn(T) -> Message + 'static,
-) -> ComboBox<'a, T, Message, Theme, Renderer>
+    on_selected: impl Fn(T) -> Message + 'a,
+) -> ComboBox<'a, T, Message, Theme>
 where
     T: std::fmt::Display + Clone,
     Theme: combo_box::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
 }
@@ -1818,7 +1829,7 @@ pub fn iced<'a, Message, Theme, Renderer>(
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: core::Renderer + core::text::Renderer<Font = core::Font> + 'a,
+    Renderer: core::text::Renderer + 'a,
     Theme: text::Catalog + container::Catalog + 'a,
     <Theme as container::Catalog>::Class<'a>: From<container::StyleFn<'a, Theme>>,
     <Theme as text::Catalog>::Class<'a>: From<text::StyleFn<'a, Theme>>,
@@ -2052,11 +2063,71 @@ where
 /// The `view` closure will receive the maximum available space for
 /// the [`Responsive`] during layout. You can use this [`Size`] to
 /// conditionally build the contents.
-pub fn responsive<'a, Message, Theme, Renderer>(
-    f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
+pub fn responsive<'a, Message, Theme, Renderer, E>(
+    f: impl Fn(Size) -> E + 'a,
 ) -> Responsive<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
+    E: Into<Element<'a, Message, Theme, Renderer>>,
 {
     Responsive::new(f)
+}
+
+/// Creates a new [`Transition`].
+///
+/// The `init` closure will be used to initialize an implementor of [`Program`]. This is normally
+/// an [`Animation`](crate::core::Animation), but you can implement [`Program`] on your own types
+/// as well.
+///
+/// The `view` closure will receive the [`Program`] and the current [`Instant`], which can be used for interpolating values.
+/// When the `value` changes, this will be called every frame, until the [`Program`] stops animating.
+///
+/// [`Program`]: transition::Program
+///
+/// # Example
+///
+/// Here is how you could implement a smooth progress bar:
+///
+/// ```
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Animation; }
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{transition, progress_bar};
+/// use iced::Animation;
+///
+/// fn smooth_progress_bar<'a, Message: 'a>(progress: f32) -> Element<'a, Message> {
+///     transition(progress, || Animation::new(0.).quick(), |animation, now| {
+///         progress_bar(0.0..=1.0, animation.interpolate_with(std::convert::identity, now))
+///     }).into()
+/// }
+/// ```
+pub fn transition<'a, Message, Theme, Renderer, P, E>(
+    value: P::Value,
+    init: impl Fn() -> P + 'a,
+    view: impl Fn(&P, Instant) -> E + 'a,
+) -> Transition<'a, Message, Theme, Renderer, P>
+where
+    Renderer: core::Renderer,
+    P: transition::Program,
+    E: Into<Element<'a, Message, Theme, Renderer>>,
+{
+    Transition::new(init, value, view)
+}
+
+/// Creates a zero-sized [`Widget`] that does nothing and will be filtered out by
+/// containers.
+pub fn void() -> core::widget::Void {
+    core::widget::Void
+}
+
+/// Creates a new [`Lazy`] widget with the given data `Dependency` and a
+/// closure that can turn this data into a widget tree.
+pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
+    dependency: Dependency,
+    view: impl Fn(&Dependency) -> View + 'a,
+) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
+where
+    Dependency: std::hash::Hash + 'a,
+    View: Into<Element<'static, Message, Theme, Renderer>>,
+{
+    Lazy::new(dependency, view)
 }

@@ -114,7 +114,7 @@ where
     <Renderer::Geometry as Cached>::Cache: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", &self.raw)
+        write!(f, "{:?}", self.raw)
     }
 }
 

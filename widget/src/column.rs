@@ -6,8 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
-    Widget,
+    Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -37,7 +36,6 @@ pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: f32,
     align: Alignment,
     clip: bool,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
@@ -67,19 +65,12 @@ where
     }
 
     /// Creates a [`Column`] from an already allocated [`Vec`].
-    ///
-    /// Keep in mind that the [`Column`] will not inspect the [`Vec`], which means
-    /// it won't automatically adapt to the sizing strategy of its contents.
-    ///
-    /// If any of the children have a [`Length::Fill`] strategy, you will need to
-    /// call [`Column::width`] or [`Column::height`] accordingly.
     pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
-            max_width: f32::INFINITY,
+            width: Length::Fit,
+            height: Length::Fit,
             align: Alignment::Start,
             clip: false,
             children,
@@ -114,12 +105,6 @@ where
         self
     }
 
-    /// Sets the maximum width of the [`Column`].
-    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
-        self.max_width = max_width.into().0;
-        self
-    }
-
     /// Sets the horizontal alignment of the contents of the [`Column`] .
     pub fn align_x(mut self, align: impl Into<alignment::Horizontal>) -> Self {
         self.align = Alignment::from(align.into());
@@ -136,11 +121,8 @@ where
     /// Adds an element to the [`Column`].
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size_hint();
 
-        if !child_size.is_void() {
-            self.width = self.width.enclose(child_size.width);
-            self.height = self.height.enclose(child_size.height);
+        if !child.as_widget().is_void() {
             self.children.push(child);
         }
 
@@ -189,12 +171,17 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(&mut self.children);
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children);
+        if self.width.is_fit() || self.height.is_fit() {
+            for child in &self.children {
+                let size = child.as_widget().size();
+
+                self.width = self.width.cross(size.width);
+                self.height = self.height.stack(size.height);
+            }
+        }
     }
 
     fn size(&self) -> Size<Length> {
@@ -210,12 +197,10 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.max_width(self.max_width);
-
         layout::flex::resolve(
             layout::flex::Axis::Vertical,
             renderer,
-            &limits,
+            limits,
             self.width,
             self.height,
             self.padding,
@@ -230,10 +215,11 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
@@ -242,7 +228,7 @@ where
                 .for_each(|((child, state), layout)| {
                     child
                         .as_widget_mut()
-                        .operate(state, layout, renderer, operation);
+                        .operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -254,7 +240,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -264,9 +249,9 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            child.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            child
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -329,7 +314,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
             tree,
@@ -374,7 +359,7 @@ impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
     }
 
     /// Sets the vertical alignment of the wrapping [`Column`].
-    pub fn align_x(mut self, align_y: impl Into<alignment::Vertical>) -> Self {
+    pub fn align_y(mut self, align_y: impl Into<alignment::Vertical>) -> Self {
         self.align_y = align_y.into();
         self
     }
@@ -385,11 +370,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.column.children()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         self.column.diff(tree);
     }
 
@@ -411,7 +392,7 @@ where
         let child_limits = limits.loose();
         let spacing = self.column.spacing;
         let horizontal_spacing = self.horizontal_spacing.unwrap_or(spacing);
-        let max_height = limits.max().height;
+        let max_height = limits.bounds().height;
 
         let mut children: Vec<layout::Node> = Vec::new();
         let mut intrinsic_size = Size::ZERO;
@@ -513,10 +494,12 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        self.column.operate(tree, layout, renderer, operation);
+        self.column
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
@@ -526,13 +509,11 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.column.update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
+        self.column
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
@@ -568,7 +549,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.column
             .overlay(tree, layout, renderer, viewport, translation)
     }

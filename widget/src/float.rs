@@ -8,8 +8,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation,
-    Vector, Widget,
+    Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -94,20 +93,12 @@ where
         self.content.as_widget().state()
     }
 
-    fn children(&self) -> Vec<tree::Tree> {
-        self.content.as_widget().children()
-    }
-
-    fn diff(&self, tree: &mut widget::Tree) {
-        self.content.as_widget().diff(tree);
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        self.content.as_widget_mut().diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
         self.content.as_widget().size()
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.content.as_widget().size_hint()
     }
 
     fn layout(
@@ -126,7 +117,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -134,9 +124,9 @@ where
             return;
         }
 
-        self.content.as_widget_mut().update(
-            tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-        );
+        self.content
+            .as_widget_mut()
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn draw(
@@ -195,12 +185,13 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         self.content
             .as_widget_mut()
-            .operate(tree, layout, renderer, operation);
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn overlay<'a>(
@@ -210,13 +201,13 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         offset: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
 
         let translation = self
             .translate
             .as_ref()
-            .map(|translate| translate(bounds + offset, *viewport))
+            .map(|translate| translate(bounds + offset, *viewport + offset))
             .unwrap_or(Vector::ZERO);
 
         if self.scale > 1.0 || translation != Vector::ZERO {
@@ -231,13 +222,13 @@ where
                     -bounds.y - bounds.height / 2.0,
                 );
 
-            Some(overlay::Element::new(Box::new(Overlay {
+            vec![overlay::Element::new(Box::new(Overlay {
                 float: self,
                 state,
                 layout,
-                viewport: *viewport,
+                viewport: *viewport + offset,
                 transformation,
-            })))
+            }))]
         } else {
             self.content
                 .as_widget_mut()
@@ -287,7 +278,6 @@ where
         _layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) {
         let inverse = self.transformation.inverse();
@@ -298,7 +288,6 @@ where
             self.layout,
             cursor * inverse,
             renderer,
-            clipboard,
             shell,
             &(self.viewport * inverse),
         );
@@ -375,7 +364,7 @@ where
         &'a mut self,
         _layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.float.content.as_widget_mut().overlay(
             self.state,
             self.layout,

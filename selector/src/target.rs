@@ -115,7 +115,7 @@ impl From<Candidate<'_>> for Target {
                 id: id.cloned(),
                 bounds,
                 visible_bounds,
-                content: state.text().to_owned(),
+                content: state.text().into_owned(),
             },
             Candidate::Text {
                 id,

@@ -168,7 +168,7 @@ where
         };
 
         if style.snap {
-            let unit = 1.0 / renderer.scale_factor().unwrap_or(1.0);
+            let unit = 1.0 / renderer.hint_factor().unwrap_or(1.0);
 
             bounds.width = bounds.width.max(unit);
             bounds.height = bounds.height.max(unit);
@@ -305,7 +305,7 @@ impl Catalog for Theme {
 
 /// The default styling of a [`Rule`].
 pub fn default(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         color: palette.background.strong.color,
@@ -317,7 +317,7 @@ pub fn default(theme: &Theme) -> Style {
 
 /// A [`Rule`] styling using the weak background color.
 pub fn weak(theme: &Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     Style {
         color: palette.background.weak.color,

@@ -1,14 +1,15 @@
 //! Operate on widgets that have text input.
 use crate::Rectangle;
+use crate::text;
 use crate::widget::Id;
 use crate::widget::operation::Operation;
 
 /// The internal state of a widget that has text input.
 pub trait TextInput {
-    /// Returns the current _visible_ text of the text input
+    /// Returns the current _visible_ text of the text input.
     ///
     /// Normally, this is either its value or its placeholder.
-    fn text(&self) -> &str;
+    fn text(&self) -> text::Fragment<'_>;
 
     /// Moves the cursor of the text input to the front of the input text.
     fn move_cursor_to_front(&mut self);
@@ -17,12 +18,13 @@ pub trait TextInput {
     fn move_cursor_to_end(&mut self);
 
     /// Moves the cursor of the text input to an arbitrary location.
-    fn move_cursor_to(&mut self, position: usize);
+    fn move_cursor_to(&mut self, location: text::Position);
 
     /// Selects all the content of the text input.
     fn select_all(&mut self);
+
     /// Selects the given content range of the text input.
-    fn select_range(&mut self, start: usize, end: usize);
+    fn select_range(&mut self, start: text::Position, end: text::Position);
 }
 
 /// Produces an [`Operation`] that moves the cursor of the widget with the given [`Id`] to the
@@ -77,10 +79,10 @@ pub fn move_cursor_to_end<T>(target: Id) -> impl Operation<T> {
 
 /// Produces an [`Operation`] that moves the cursor of the widget with the given [`Id`] to the
 /// provided position.
-pub fn move_cursor_to<T>(target: Id, position: usize) -> impl Operation<T> {
+pub fn move_cursor_to<T>(target: Id, position: text::Position) -> impl Operation<T> {
     struct MoveCursor {
         target: Id,
-        position: usize,
+        position: text::Position,
     }
 
     impl<T> Operation<T> for MoveCursor {
@@ -126,11 +128,15 @@ pub fn select_all<T>(target: Id) -> impl Operation<T> {
 }
 
 /// Produces an [`Operation`] that selects the given content range of the widget with the given [`Id`].
-pub fn select_range<T>(target: Id, start: usize, end: usize) -> impl Operation<T> {
+pub fn select_range<T>(
+    target: Id,
+    start: text::Position,
+    end: text::Position,
+) -> impl Operation<T> {
     struct SelectRange {
         target: Id,
-        start: usize,
-        end: usize,
+        start: text::Position,
+        end: text::Position,
     }
 
     impl<T> Operation<T> for SelectRange {

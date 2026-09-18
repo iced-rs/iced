@@ -1,3 +1,6 @@
+//! Manage colors in different color spaces.
+use crate::animation::Interpolable;
+
 /// A color in the `sRGB` color space.
 ///
 /// # String Representation
@@ -13,6 +16,7 @@
 /// [`color!`]: crate::color!
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[must_use]
 pub struct Color {
     /// Red component, 0.0 - 1.0
     pub r: f32,
@@ -67,27 +71,42 @@ impl Color {
             "Blue component must be in [0, 1] range."
         );
 
-        Color { r, g, b, a }
+        Self { r, g, b, a }
     }
 
     /// Creates a [`Color`] from its RGB components.
-    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Color {
-        Color::from_rgba(r, g, b, 1.0f32)
+    pub const fn from_rgb(r: f32, g: f32, b: f32) -> Self {
+        Self::from_rgba(r, g, b, 1.0f32)
     }
 
     /// Creates a [`Color`] from its RGBA components.
-    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Color {
-        Color::new(r, g, b, a)
+    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self::new(r, g, b, a)
     }
 
     /// Creates a [`Color`] from its RGB8 components.
-    pub const fn from_rgb8(r: u8, g: u8, b: u8) -> Color {
-        Color::from_rgba8(r, g, b, 1.0)
+    pub const fn from_rgb8(r: u8, g: u8, b: u8) -> Self {
+        Self::from_rgba8(r, g, b, 1.0)
     }
 
     /// Creates a [`Color`] from its RGB8 components and an alpha value.
-    pub const fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Color {
-        Color::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
+    pub const fn from_rgba8(r: u8, g: u8, b: u8, a: f32) -> Self {
+        Self::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0, a)
+    }
+
+    /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`.
+    pub const fn from_packed_rgb8(rgb: u32) -> Self {
+        Self::from_packed_rgba8(rgb, 1.0)
+    }
+
+    /// Creates a [`Color`] from its RGB8 components packed in the lower bits of a `u32`
+    /// and an alpha value.
+    pub const fn from_packed_rgba8(rgb: u32, a: f32) -> Self {
+        let r = (rgb & 0xff0000) >> 16;
+        let g = (rgb & 0xff00) >> 8;
+        let b = rgb & 0xff;
+
+        Self::from_rgba8(r as u8, g as u8, b as u8, a)
     }
 
     /// Creates a [`Color`] from its linear RGBA components.
@@ -110,9 +129,101 @@ impl Color {
         )
     }
 
+    /// Creates the most approximate [`Color`] from its [`Oklch`] representation.
+    pub fn from_oklch(oklch: Oklch) -> Color {
+        // https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
+        let Oklch { l, c, h, a: alpha } = oklch;
+
+        let a = c * h.cos();
+        let b = c * h.sin();
+
+        // Oklab → LMS (nonlinear)
+        let l_ = l + 0.39633778 * a + 0.21580376 * b;
+        let m_ = l - 0.105561346 * a - 0.06385417 * b;
+        let s_ = l - 0.08948418 * a - 1.2914855 * b;
+
+        // Cubing back
+        let l = l_ * l_ * l_;
+        let m = m_ * m_ * m_;
+        let s = s_ * s_ * s_;
+
+        let r = 4.0767417 * l - 3.3077116 * m + 0.23096994 * s;
+        let g = -1.268438 * l + 2.6097574 * m - 0.34131938 * s;
+        let b = -0.0041960863 * l - 0.7034186 * m + 1.7076147 * s;
+
+        Color::from_linear_rgba(
+            r.clamp(0.0, 1.0),
+            g.clamp(0.0, 1.0),
+            b.clamp(0.0, 1.0),
+            alpha,
+        )
+    }
+
+    /// Inverts the [`Color`] in-place.
+    pub const fn invert(&mut self) {
+        self.r = 1.0f32 - self.r;
+        self.g = 1.0f32 - self.g;
+        self.b = 1.0f32 - self.b;
+    }
+
+    /// Returns the inverted [`Color`].
+    pub const fn inverse(self) -> Self {
+        Self::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
+    }
+
+    /// Scales the alpha channel of the [`Color`] by the given factor.
+    pub const fn scale_alpha(self, factor: f32) -> Self {
+        Self {
+            a: self.a * factor,
+            ..self
+        }
+    }
+
+    /// Mixes the current [`Color`] with another one by the given factor.
+    pub fn mix(self, b: Color, factor: f32) -> Color {
+        let b_amount = factor.clamp(0.0, 1.0);
+        let a_amount = 1.0 - b_amount;
+
+        let a_linear = self.into_linear().map(|c| c * a_amount);
+        let b_linear = b.into_linear().map(|c| c * b_amount);
+
+        Color::from_linear_rgba(
+            a_linear[0] + b_linear[0],
+            a_linear[1] + b_linear[1],
+            a_linear[2] + b_linear[2],
+            a_linear[3] + b_linear[3],
+        )
+    }
+
+    /// Returns the relative luminance of the [`Color`].
+    /// <https://www.w3.org/TR/WCAG21/#dfn-relative-luminance>
+    #[must_use]
+    pub fn relative_luminance(self) -> f32 {
+        let linear = self.into_linear();
+        0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+    }
+
+    /// Returns the [relative contrast ratio] of the [`Color`] against another one.
+    ///
+    /// [relative contrast ratio]: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
+    #[must_use]
+    pub fn relative_contrast(self, b: Self) -> f32 {
+        let lum_a = self.relative_luminance();
+        let lum_b = b.relative_luminance();
+
+        (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
+    }
+
+    /// Returns true if the current [`Color`] is readable on top
+    /// of the given background [`Color`].
+    #[must_use]
+    pub fn is_readable_on(self, background: Self) -> bool {
+        background.relative_contrast(self) >= 6.0
+    }
+
     /// Converts the [`Color`] into its RGBA8 equivalent.
     #[must_use]
-    pub fn into_rgba8(self) -> [u8; 4] {
+    pub const fn into_rgba8(self) -> [u8; 4] {
         [
             (self.r * 255.0).round() as u8,
             (self.g * 255.0).round() as u8,
@@ -122,6 +233,7 @@ impl Color {
     }
 
     /// Converts the [`Color`] into its linear values.
+    #[must_use]
     pub fn into_linear(self) -> [f32; 4] {
         // As described in:
         // https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation
@@ -141,47 +253,31 @@ impl Color {
         ]
     }
 
-    /// Inverts the [`Color`] in-place.
-    pub fn invert(&mut self) {
-        self.r = 1.0f32 - self.r;
-        self.b = 1.0f32 - self.g;
-        self.g = 1.0f32 - self.b;
-    }
+    /// Converts the [`Color`] into its [`Oklch`] representation.
+    pub fn into_oklch(self) -> Oklch {
+        // https://en.wikipedia.org/wiki/Oklab_color_space#Conversions_between_color_spaces
+        let [r, g, b, alpha] = self.into_linear();
 
-    /// Returns the inverted [`Color`].
-    pub fn inverse(self) -> Color {
-        Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
-    }
+        // linear RGB → LMS
+        let l = 0.41222146 * r + 0.53633255 * g + 0.051445995 * b;
+        let m = 0.2119035 * r + 0.6806995 * g + 0.10739696 * b;
+        let s = 0.08830246 * r + 0.28171885 * g + 0.6299787 * b;
 
-    /// Scales the alpha channel of the [`Color`] by the given factor.
-    pub fn scale_alpha(self, factor: f32) -> Color {
-        Self {
-            a: self.a * factor,
-            ..self
-        }
-    }
+        // Nonlinear transform (cube root)
+        let l_ = l.cbrt();
+        let m_ = m.cbrt();
+        let s_ = s.cbrt();
 
-    /// Returns the relative luminance of the [`Color`].
-    /// <https://www.w3.org/TR/WCAG21/#dfn-relative-luminance>
-    pub fn relative_luminance(self) -> f32 {
-        let linear = self.into_linear();
-        0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
-    }
+        // LMS → Oklab
+        let l = 0.21045426 * l_ + 0.7936178 * m_ - 0.004072047 * s_;
+        let a = 1.9779985 * l_ - 2.4285922 * m_ + 0.4505937 * s_;
+        let b = 0.025904037 * l_ + 0.78277177 * m_ - 0.80867577 * s_;
 
-    /// Returns the [relative contrast ratio] of the [`Color`] against another one.
-    ///
-    /// [relative contrast ratio]: https://www.w3.org/TR/WCAG21/#dfn-contrast-ratio
-    pub fn relative_contrast(self, b: Color) -> f32 {
-        let lum_a = self.relative_luminance();
-        let lum_b = b.relative_luminance();
+        // Oklab → Oklch
+        let c = (a * a + b * b).sqrt();
+        let h = b.atan2(a); // radians
 
-        (lum_a.max(lum_b) + 0.05) / (lum_a.min(lum_b) + 0.05)
-    }
-
-    /// Returns true if the current [`Color`] is readable on top
-    /// of the given background [`Color`].
-    pub fn is_readable_on(self, background: Color) -> bool {
-        background.relative_contrast(self) >= 6.0
+        Oklch { l, c, h, a: alpha }
     }
 }
 
@@ -194,6 +290,18 @@ impl From<[f32; 3]> for Color {
 impl From<[f32; 4]> for Color {
     fn from([r, g, b, a]: [f32; 4]) -> Self {
         Color::new(r, g, b, a)
+    }
+}
+
+impl From<Oklch> for Color {
+    fn from(oklch: Oklch) -> Self {
+        Self::from_oklch(oklch)
+    }
+}
+
+impl From<Color> for Oklch {
+    fn from(color: Color) -> Self {
+        color.into_oklch()
     }
 }
 
@@ -265,6 +373,26 @@ impl std::fmt::Display for Color {
     }
 }
 
+impl Interpolable for Color {
+    /// Interpolates the color. Equivalent to [`Color::mix`].
+    fn interpolated(&self, other: Self, ratio: f32) -> Self {
+        self.mix(other, ratio)
+    }
+}
+
+/// A color in the [Oklab color space](https://en.wikipedia.org/wiki/Oklab_color_space),
+/// represented as Oklch.
+pub struct Oklch {
+    /// Perceptual lightness: 0 is pure black, 1 is pure white.
+    pub l: f32,
+    /// Chromatic intensity: 0 is achromatic, +0.5 is usually the upper limit.
+    pub c: f32,
+    /// Hue angle, in radians.
+    pub h: f32,
+    /// Alpha channel.
+    pub a: f32,
+}
+
 /// Creates a [`Color`] with shorter and cleaner syntax.
 ///
 /// # Examples
@@ -298,11 +426,7 @@ macro_rules! color {
 
         debug_assert!(hex <= 0xffffff, "color! value must not exceed 0xffffff");
 
-        let r = (hex & 0xff0000) >> 16;
-        let g = (hex & 0xff00) >> 8;
-        let b = (hex & 0xff);
-
-        $crate::color!(r as u8, g as u8, b as u8, $a)
+        $crate::Color::from_packed_rgba8(hex, $a)
     }};
 }
 

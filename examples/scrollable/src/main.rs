@@ -17,6 +17,7 @@ struct ScrollableDemo {
     scrollable_direction: Direction,
     scrollbar_width: u32,
     scrollbar_margin: u32,
+    scrollbar_padding: u32,
     scroller_width: u32,
     current_scroll_offset: scrollable::RelativeOffset,
     anchor: scrollable::Anchor,
@@ -35,6 +36,7 @@ enum Message {
     AlignmentChanged(scrollable::Anchor),
     ScrollbarWidthChanged(u32),
     ScrollbarMarginChanged(u32),
+    ScrollbarPaddingChanged(u32),
     ScrollerWidthChanged(u32),
     ScrollToBeginning,
     ScrollToEnd,
@@ -47,6 +49,7 @@ impl ScrollableDemo {
             scrollable_direction: Direction::Vertical,
             scrollbar_width: 10,
             scrollbar_margin: 0,
+            scrollbar_padding: 0,
             scroller_width: 10,
             current_scroll_offset: scrollable::RelativeOffset::START,
             anchor: scrollable::Anchor::Start,
@@ -74,6 +77,11 @@ impl ScrollableDemo {
             }
             Message::ScrollbarMarginChanged(margin) => {
                 self.scrollbar_margin = margin;
+
+                Task::none()
+            }
+            Message::ScrollbarPaddingChanged(padding) => {
+                self.scrollbar_padding = padding;
 
                 Task::none()
             }
@@ -108,6 +116,11 @@ impl ScrollableDemo {
             self.scrollbar_margin,
             Message::ScrollbarMarginChanged,
         );
+        let scrollbar_padding_slider = slider(
+            0..=15,
+            self.scrollbar_padding,
+            Message::ScrollbarPaddingChanged,
+        );
         let scroller_width_slider =
             slider(0..=15, self.scroller_width, Message::ScrollerWidthChanged);
 
@@ -116,6 +129,8 @@ impl ScrollableDemo {
             scrollbar_width_slider,
             text("Scrollbar margin:"),
             scrollbar_margin_slider,
+            text("Scrollbar padding:"),
+            scrollbar_padding_slider,
             text("Scroller width:"),
             scroller_width_slider,
         ]
@@ -199,6 +214,7 @@ impl ScrollableDemo {
                 scrollable::Scrollbar::new()
                     .width(self.scrollbar_width)
                     .margin(self.scrollbar_margin)
+                    .padding(self.scrollbar_padding)
                     .scroller_width(self.scroller_width)
                     .anchor(self.anchor),
             ))
@@ -226,6 +242,7 @@ impl ScrollableDemo {
                 scrollable::Scrollbar::new()
                     .width(self.scrollbar_width)
                     .margin(self.scrollbar_margin)
+                    .padding(self.scrollbar_padding)
                     .scroller_width(self.scroller_width)
                     .anchor(self.anchor),
             ))
@@ -266,6 +283,7 @@ impl ScrollableDemo {
                 let scrollbar = scrollable::Scrollbar::new()
                     .width(self.scrollbar_width)
                     .margin(self.scrollbar_margin)
+                    .padding(self.scrollbar_padding)
                     .scroller_width(self.scroller_width)
                     .anchor(self.anchor);
 
@@ -316,7 +334,7 @@ impl Default for ScrollableDemo {
 
 fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Style {
     progress_bar::Style {
-        background: theme.extended_palette().background.strong.color.into(),
+        background: theme.palette().background.strong.color.into(),
         bar: Color::from_rgb8(250, 85, 134).into(),
         border: Border::default(),
     }

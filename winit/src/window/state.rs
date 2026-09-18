@@ -1,4 +1,5 @@
 use crate::conversion;
+use crate::core::renderer;
 use crate::core::{Color, Size};
 use crate::core::{mouse, theme, window};
 use crate::graphics::Viewport;
@@ -15,7 +16,6 @@ where
     P::Theme: theme::Base,
 {
     title: String,
-    scale_factor: f32,
     viewport: Viewport,
     surface_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
@@ -33,7 +33,6 @@ where
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("window::State")
             .field("title", &self.title)
-            .field("scale_factor", &self.scale_factor)
             .field("viewport", &self.viewport)
             .field("cursor_position", &self.cursor_position)
             .field("style", &self.style)
@@ -64,13 +63,15 @@ where
 
             Viewport::with_physical_size(
                 Size::new(physical_size.width, physical_size.height),
-                window.scale_factor() as f32 * scale_factor,
+                renderer::Scale {
+                    window: window.scale_factor() as f32,
+                    application: scale_factor,
+                },
             )
         };
 
         Self {
             title,
-            scale_factor,
             viewport,
             surface_version: 0,
             cursor_position: None,
@@ -96,6 +97,10 @@ where
 
     pub fn logical_size(&self) -> Size<f32> {
         self.viewport.logical_size()
+    }
+
+    pub fn scale(&self) -> renderer::Scale {
+        self.viewport.scale()
     }
 
     pub fn scale_factor(&self) -> f32 {
@@ -138,7 +143,10 @@ where
 
                 self.viewport = Viewport::with_physical_size(
                     size,
-                    window.scale_factor() as f32 * self.scale_factor,
+                    renderer::Scale {
+                        window: window.scale_factor() as f32,
+                        application: self.viewport.scale().application,
+                    },
                 );
                 self.surface_version += 1;
             }
@@ -150,7 +158,10 @@ where
 
                 self.viewport = Viewport::with_physical_size(
                     size,
-                    *new_scale_factor as f32 * self.scale_factor,
+                    renderer::Scale {
+                        window: *new_scale_factor as f32,
+                        application: self.viewport.scale().application,
+                    },
                 );
                 self.surface_version += 1;
             }
@@ -196,13 +207,14 @@ where
         // Update scale factor
         let new_scale_factor = program.scale_factor(window_id);
 
-        if self.scale_factor != new_scale_factor {
+        if self.viewport.scale().application != new_scale_factor {
             self.viewport = Viewport::with_physical_size(
                 self.viewport.physical_size(),
-                window.scale_factor() as f32 * new_scale_factor,
+                renderer::Scale {
+                    window: window.scale_factor() as f32,
+                    application: new_scale_factor,
+                },
             );
-
-            self.scale_factor = new_scale_factor;
         }
 
         // Update theme and appearance

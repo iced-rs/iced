@@ -41,7 +41,7 @@ where
     Column {
         header: header.into(),
         view: Box::new(move |data| view(data).into()),
-        width: Length::Shrink,
+        width: Length::Fit,
         align_x: alignment::Horizontal::Left,
         align_y: alignment::Vertical::Top,
     }
@@ -88,14 +88,12 @@ where
         let columns = columns.into_iter();
         let rows = rows.into_iter();
 
-        let mut width = Length::Shrink;
-        let mut height = Length::Shrink;
-
+        let mut width = Length::Fit;
         let mut cells = Vec::with_capacity(columns.size_hint().0 * (1 + rows.size_hint().0));
 
-        let (mut columns, views): (Vec<_>, Vec<_>) = columns
+        let (columns, views): (Vec<_>, Vec<_>) = columns
             .map(|column| {
-                width = width.enclose(column.width);
+                width = width.stack(column.width);
 
                 cells.push(column.header);
 
@@ -113,25 +111,15 @@ where
         for row in rows {
             for view in &views {
                 let cell = view(row.clone());
-                let size_hint = cell.as_widget().size_hint();
-
-                height = height.enclose(size_hint.height);
-
                 cells.push(cell);
             }
-        }
-
-        if width == Length::Shrink
-            && let Some(first) = columns.first_mut()
-        {
-            first.width = Length::Fill;
         }
 
         Self {
             columns,
             cells,
             width,
-            height,
+            height: Length::Fit,
             padding_x: 10.0,
             padding_y: 5.0,
             separator_x: 1.0,
@@ -214,15 +202,14 @@ where
         })
     }
 
-    fn children(&self) -> Vec<widget::Tree> {
-        self.cells
-            .iter()
-            .map(|cell| widget::Tree::new(cell.as_widget()))
-            .collect()
-    }
+    fn diff(&mut self, tree: &mut widget::Tree) {
+        tree.diff_children(&mut self.cells);
 
-    fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(&self.cells);
+        for cell in &self.cells {
+            let size = cell.as_widget().size();
+
+            self.height = self.height.stack(size.height);
+        }
     }
 
     fn layout(
@@ -236,8 +223,12 @@ where
         let rows = self.cells.len() / columns;
 
         let limits = limits.width(self.width).height(self.height);
-        let available = limits.max();
-        let table_fluid = self.width.fluid();
+        let available = limits.max;
+        let table_fluid = if self.width.fill_factor() == 0 {
+            Length::Fit
+        } else {
+            Length::Fill
+        };
 
         let mut cells = Vec::with_capacity(self.cells.len());
         cells.resize(self.cells.len(), layout::Node::default());
@@ -291,14 +282,16 @@ where
                 continue;
             }
 
-            let limits = layout::Limits::new(
+            let limits = layout::Limits::with_flags(
                 Size::ZERO,
                 Size::new(available.width - x, available.height - y),
+                limits.compression,
+                limits.infinite,
             )
             .width(width);
 
             let layout = cell.as_widget_mut().layout(state, renderer, &limits);
-            let size = limits.resolve(width, Length::Shrink, layout.size());
+            let size = limits.resolve(width, Length::Fit, layout.size());
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
             metrics.rows[row] = metrics.rows[row].max(size.height);
@@ -376,8 +369,13 @@ where
                 height_unit * height_factor as f32
             };
 
-            let limits =
-                layout::Limits::new(Size::ZERO, Size::new(max_width, max_height)).width(width);
+            let limits = layout::Limits::with_flags(
+                Size::ZERO,
+                Size::new(max_width, max_height),
+                limits.compression,
+                limits.infinite,
+            )
+            .width(width);
 
             let layout = cell.as_widget_mut().layout(state, renderer, &limits);
             let size = limits.resolve(
@@ -386,7 +384,7 @@ where
                 } else {
                     table_fluid
                 },
-                Length::Shrink,
+                Length::Fit,
                 layout.size(),
             );
 
@@ -452,7 +450,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn core::Clipboard,
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -462,9 +459,8 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            cell.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            cell.as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -561,6 +557,7 @@ where
         &mut self,
         tree: &mut widget::Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -571,7 +568,7 @@ where
             .zip(layout.children())
         {
             cell.as_widget_mut()
-                .operate(state, layout, renderer, operation);
+                .operate(state, layout, viewport, renderer, operation);
         }
     }
 
@@ -582,7 +579,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: core::Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.cells,
             tree,
@@ -679,7 +676,7 @@ impl Catalog for crate::Theme {
 
 /// The default style of a [`Table`].
 pub fn default(theme: &crate::Theme) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
     let separator = palette.background.strong.color.into();
 
     Style {

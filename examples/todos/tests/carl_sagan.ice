@@ -2,7 +2,7 @@ viewport: 500x800
 mode: Immediate
 preset: Empty
 -----
-click "What needs to be done?"
+click #new-task
 type "Create the universe"
 type enter
 type "Make an apple pie"

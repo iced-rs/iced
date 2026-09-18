@@ -9,14 +9,12 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
-mod settings;
 mod viewport;
 
 pub mod cache;
 pub mod color;
 pub mod compositor;
 pub mod damage;
-pub mod error;
 pub mod gradient;
 pub mod image;
 pub mod layer;
@@ -30,12 +28,10 @@ pub mod geometry;
 pub use antialiasing::Antialiasing;
 pub use cache::Cache;
 pub use compositor::Compositor;
-pub use error::Error;
 pub use gradient::Gradient;
 pub use image::Image;
 pub use layer::Layer;
 pub use mesh::Mesh;
-pub use settings::Settings;
 pub use shell::Shell;
 pub use text::Text;
 pub use viewport::Viewport;

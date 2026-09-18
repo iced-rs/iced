@@ -14,7 +14,7 @@ use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Event, Length, Rectangle, Shell, Size, Vector};
+use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
 ///
@@ -40,14 +40,6 @@ where
 {
     /// Returns the [`Size`] of the [`Widget`] in lengths.
     fn size(&self) -> Size<Length>;
-
-    /// Returns a [`Size`] hint for laying out the [`Widget`].
-    ///
-    /// This hint may be used by some widget containers to adjust their sizing strategy
-    /// during construction.
-    fn size_hint(&self) -> Size<Length> {
-        self.size()
-    }
 
     /// Returns the [`layout::Node`] of the [`Widget`].
     ///
@@ -86,13 +78,8 @@ where
         tree::State::None
     }
 
-    /// Returns the state [`Tree`] of the children of the [`Widget`].
-    fn children(&self) -> Vec<Tree> {
-        Vec::new()
-    }
-
     /// Reconciles the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         tree.children.clear();
     }
 
@@ -101,6 +88,7 @@ where
         &mut self,
         _tree: &mut Tree,
         _layout: Layout<'_>,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         _operation: &mut dyn Operation,
     ) {
@@ -116,7 +104,6 @@ where
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -136,7 +123,7 @@ where
         mouse::Interaction::None
     }
 
-    /// Returns the overlay of the [`Widget`], if there is any.
+    /// Returns the overlays of the [`Widget`].
     fn overlay<'a>(
         &'a mut self,
         _tree: &'a mut Tree,
@@ -144,7 +131,52 @@ where
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: Vector,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        None
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
+        Vec::new()
+    }
+
+    /// Returns whether the [`Widget`] is [`Void`].
+    fn is_void(&self) -> bool {
+        false
+    }
+}
+
+/// A zero-sized [`Widget`] that does nothing and will be filtered out by containers.
+pub struct Void;
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void
+where
+    Renderer: crate::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Shrink,
+            height: Length::Shrink,
+        }
+    }
+
+    fn layout(
+        &mut self,
+        _tree: &mut Tree,
+        _renderer: &Renderer,
+        _limits: &layout::Limits,
+    ) -> layout::Node {
+        layout::Node::new(Size::ZERO)
+    }
+
+    fn draw(
+        &self,
+        _tree: &Tree,
+        _renderer: &mut Renderer,
+        _theme: &Theme,
+        _style: &renderer::Style,
+        _layout: Layout<'_>,
+        _cursor: mouse::Cursor,
+        _viewport: &Rectangle,
+    ) {
+    }
+
+    fn is_void(&self) -> bool {
+        true
     }
 }

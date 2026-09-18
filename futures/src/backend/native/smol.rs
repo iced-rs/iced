@@ -20,36 +20,44 @@ impl crate::Executor for Executor {
 
 pub mod time {
     //! Listen and react to time.
-    use crate::subscription::{self, Hasher, Subscription};
+    use crate::MaybeSend;
+    use crate::core::time::{Duration, Instant};
+    use crate::subscription::Subscription;
+
+    use futures::stream;
 
     /// Returns a [`Subscription`] that produces messages at a set interval.
     ///
     /// The first message is produced after a `duration`, and then continues to
     /// produce more messages every `duration` after that.
-    pub fn every(duration: std::time::Duration) -> Subscription<std::time::Instant> {
-        subscription::from_recipe(Every(duration))
-    }
-
-    #[derive(Debug)]
-    struct Every(std::time::Duration);
-
-    impl subscription::Recipe for Every {
-        type Output = std::time::Instant;
-
-        fn hash(&self, state: &mut Hasher) {
-            use std::hash::Hash;
-
-            std::any::TypeId::of::<Self>().hash(state);
-            self.0.hash(state);
-        }
-
-        fn stream(
-            self: Box<Self>,
-            _input: subscription::EventStream,
-        ) -> futures::stream::BoxStream<'static, Self::Output> {
+    pub fn every(duration: Duration) -> Subscription<Instant> {
+        Subscription::run_with(duration, |duration| {
             use futures::stream::StreamExt;
 
-            smol::Timer::interval(self.0).boxed()
-        }
+            let start = Instant::now() + *duration;
+
+            smol::Timer::interval_at(start, *duration).boxed()
+        })
+    }
+
+    /// Returns a [`Subscription`] that runs the given async function at a
+    /// set interval; producing the result of the function as output.
+    pub fn repeat<F, T>(f: fn() -> F, interval: Duration) -> Subscription<T>
+    where
+        F: Future<Output = T> + MaybeSend + 'static,
+        T: MaybeSend + 'static,
+    {
+        Subscription::run_with((f, interval), |(f, interval)| {
+            let f = *f;
+            let interval = *interval;
+
+            stream::unfold(0, move |i| async move {
+                if i > 0 {
+                    _ = smol::Timer::after(interval).await;
+                }
+
+                Some((f().await, i + 1))
+            })
+        })
     }
 }

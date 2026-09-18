@@ -3,8 +3,9 @@ pub use crate::Overlay;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::shell;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Shell, Size};
+use crate::{Event, Layout, Shell, Size};
 
 /// A generic [`Overlay`].
 pub struct Element<'a, Message, Theme, Renderer> {
@@ -81,14 +82,13 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
     ) {
-        let mut local_messages = Vec::new();
-        let mut local_shell = Shell::new(&mut local_messages);
+        let mut local_messages = shell::Bus::new();
+        let mut local_shell = shell.local(&mut local_messages);
 
         self.content
-            .update(event, layout, cursor, renderer, clipboard, &mut local_shell);
+            .update(event, layout, cursor, renderer, &mut local_shell);
 
         shell.merge(local_shell, self.mapper);
     }
@@ -117,9 +117,15 @@ where
         &'a mut self,
         layout: Layout<'a>,
         renderer: &Renderer,
-    ) -> Option<Element<'a, B, Theme, Renderer>> {
+    ) -> Vec<Element<'a, B, Theme, Renderer>> {
         self.content
             .overlay(layout, renderer)
+            .into_iter()
             .map(|overlay| overlay.map(self.mapper))
+            .collect()
+    }
+
+    fn index(&self) -> f32 {
+        self.content.index()
     }
 }

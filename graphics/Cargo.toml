@@ -36,7 +36,6 @@ log.workspace = true
 raw-window-handle.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
-unicode-segmentation.workspace = true
 
 image.workspace = true
 image.optional = true

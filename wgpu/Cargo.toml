@@ -20,8 +20,10 @@ all-features = true
 [features]
 default = ["wgpu/default"]
 geometry = ["iced_graphics/geometry", "lyon"]
-image = ["iced_graphics/image"]
-svg = ["iced_graphics/svg", "resvg/text"]
+image = ["iced_graphics/image", "guillotiere"]
+svg = ["iced_graphics/svg", "resvg", "guillotiere"]
+svg-text = ["svg", "resvg/text", "resvg/system-fonts", "resvg/memmap-fonts"]
+svg-raster-images = ["svg", "resvg/raster-images"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]
 strict-assertions = []
@@ -33,9 +35,7 @@ iced_graphics.workspace = true
 bitflags.workspace = true
 bytemuck.workspace = true
 futures.workspace = true
-glam.workspace = true
 cryoglyph.workspace = true
-guillotiere.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
@@ -43,6 +43,9 @@ wgpu.workspace = true
 
 lyon.workspace = true
 lyon.optional = true
+
+guillotiere.workspace = true
+guillotiere.optional = true
 
 resvg.workspace = true
 resvg.optional = true

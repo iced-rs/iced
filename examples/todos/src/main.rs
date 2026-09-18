@@ -1,11 +1,11 @@
 use iced::keyboard;
 use iced::widget::{
-    self, Text, button, center, center_x, checkbox, column, keyed_column, operation, row,
-    scrollable, text, text_input,
+    self, Text, button, center, center_x, checkbox, column, container, keyed_column, operation,
+    row, scrollable, sticky, text, text_input,
 };
 use iced::window;
 use iced::{
-    Application, Center, Element, Fill, Font, Function, Preset, Program, Subscription,
+    Application, Center, Element, Fill, Fit, Function, Preset, Program, Subscription,
     Task as Command, Theme,
 };
 
@@ -23,7 +23,7 @@ fn application() -> Application<impl Program<Message = Message, Theme = Theme>> 
     iced::application(Todos::new, Todos::update, Todos::view)
         .subscription(Todos::subscription)
         .title(Todos::title)
-        .font(Todos::ICON_FONT)
+        .fonts([Todos::ICON_FONT])
         .window_size((500.0, 800.0))
         .presets(presets())
 }
@@ -92,7 +92,10 @@ impl Todos {
                     _ => {}
                 }
 
-                operation::focus("new-task")
+                Command::batch([
+                    operation::focus("new-task"),
+                    operation::move_cursor_to_end("new-task"),
+                ])
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
@@ -194,21 +197,26 @@ impl Todos {
                 tasks,
                 ..
             }) => {
-                let title = text("todos")
-                    .width(Fill)
-                    .size(100)
-                    .style(subtle)
-                    .align_x(Center);
+                let header = {
+                    let title = text("todos")
+                        .width(Fill)
+                        .size(100)
+                        .style(subtle)
+                        .align_x(Center);
 
-                let input = text_input("What needs to be done?", input_value)
-                    .id("new-task")
-                    .on_input(Message::InputChanged)
-                    .on_submit(Message::CreateTask)
-                    .padding(15)
-                    .size(30)
-                    .align_x(Center);
+                    let input = text_input("What needs to be done?", input_value)
+                        .id("new-task")
+                        .on_input(Message::InputChanged)
+                        .on_submit(Message::CreateTask)
+                        .padding(15)
+                        .size(30)
+                        .align_x(Center);
 
-                let controls = view_controls(tasks, *filter);
+                    let controls = view_controls(tasks, *filter);
+
+                    column![title, input, controls].spacing(20)
+                };
+
                 let filtered_tasks = tasks.iter().filter(|task| filter.matches(task));
 
                 let tasks: Element<_> = if filtered_tasks.count() > 0 {
@@ -231,11 +239,18 @@ impl Todos {
                     })
                 };
 
-                let content = column![title, input, controls, tasks]
-                    .spacing(20)
-                    .max_width(800);
+                let content = column![
+                    sticky(container(header).style(|theme| {
+                        container::Style::default().background(theme.seed().background)
+                    })),
+                    tasks
+                ]
+                .spacing(20)
+                .width(Fit.max(400));
 
-                scrollable(center_x(content).padding(40)).into()
+                container(scrollable(center_x(content)).spacing(10))
+                    .padding(10)
+                    .into()
             }
         }
     }
@@ -334,7 +349,7 @@ impl Task {
                     .on_toggle(TaskMessage::Completed)
                     .width(Fill)
                     .size(17)
-                    .text_shaping(text::Shaping::Advanced);
+                    .shaping(text::Shaping::Advanced);
 
                 row![
                     checkbox,
@@ -440,7 +455,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
-        .font(Font::with_name("Iced-Todos-Icons"))
+        .font("Iced-Todos-Icons")
         .width(20)
         .align_x(Center)
         .shaping(text::Shaping::Basic)
@@ -456,7 +471,7 @@ fn delete_icon() -> Text<'static> {
 
 fn subtle(theme: &Theme) -> text::Style {
     text::Style {
-        color: Some(theme.extended_palette().background.strongest.color),
+        color: Some(theme.palette().background.strongest.color),
     }
 }
 

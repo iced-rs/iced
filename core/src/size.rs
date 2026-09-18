@@ -1,4 +1,4 @@
-use crate::{Length, Radians, Vector};
+use crate::{Radians, Vector};
 
 /// An amount of space in 2 dimensions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -70,14 +70,6 @@ impl Size {
             width: (self.height * aspect_ratio).min(self.width),
             height: (self.width / aspect_ratio).min(self.height),
         }
-    }
-}
-
-impl Size<Length> {
-    /// Returns true if either `width` or `height` are 0-sized.
-    #[inline]
-    pub fn is_void(&self) -> bool {
-        matches!(self.width, Length::Fixed(0.0)) || matches!(self.height, Length::Fixed(0.0))
     }
 }
 

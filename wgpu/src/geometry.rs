@@ -312,6 +312,8 @@ impl geometry::frame::Backend for Frame {
                 align_x: text.align_x,
                 align_y: text.align_y,
                 shaping: text.shaping,
+                wrapping: text.wrapping,
+                ellipsis: text.ellipsis,
                 clip_bounds: self.clip_bounds,
             });
         } else {
@@ -338,9 +340,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     #[inline]
-    fn scale(&mut self, scale: impl Into<f32>) {
-        let scale = scale.into();
-
+    fn scale(&mut self, scale: f32) {
         self.scale_nonuniform(Vector { x: scale, y: scale });
     }
 

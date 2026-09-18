@@ -45,7 +45,7 @@ impl Layer {
         instances: &[Solid],
     ) {
         let _ = self.instances.resize(device, instances.len());
-        let _ = self.instances.write(device, encoder, belt, 0, instances);
+        let _ = self.instances.write(encoder, belt, 0, instances);
 
         self.instance_count = instances.len();
     }
@@ -64,18 +64,22 @@ impl Pipeline {
     ) -> Self {
         let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("iced_wgpu.quad.solid.pipeline"),
-            push_constant_ranges: &[],
-            bind_group_layouts: &[constants_layout],
+            bind_group_layouts: &[Some(constants_layout)],
+            immediate_size: 0,
         });
 
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("iced_wgpu.quad.solid.shader"),
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(concat!(
+                include_str!("../shader/quad/snap.wgsl"),
+                "\n",
                 include_str!("../shader/color.wgsl"),
                 "\n",
                 include_str!("../shader/quad.wgsl"),
                 "\n",
                 include_str!("../shader/vertex.wgsl"),
+                "\n",
+                include_str!("../shader/quad/shadow.wgsl"),
                 "\n",
                 include_str!("../shader/quad/solid.wgsl"),
             ))),
@@ -132,7 +136,7 @@ impl Pipeline {
                 mask: !0,
                 alpha_to_coverage_enabled: false,
             },
-            multiview: None,
+            multiview_mask: None,
             cache: None,
         });
 

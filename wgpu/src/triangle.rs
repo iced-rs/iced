@@ -5,10 +5,11 @@ use crate::Buffer;
 use crate::core::{Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::Antialiasing;
 use crate::graphics::mesh::{self, Mesh};
+use crate::nudge;
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
-use std::sync::Weak;
+use std::sync::Arc;
 
 const INITIAL_INDEX_COUNT: usize = 1_000;
 const INITIAL_VERTEX_COUNT: usize = 1_000;
@@ -32,7 +33,7 @@ struct Upload {
     layer: Layer,
     transformation: Transformation,
     version: usize,
-    batch: Weak<[Mesh]>,
+    batch: Arc<[Mesh]>,
 }
 
 #[derive(Debug, Default)]
@@ -67,21 +68,21 @@ impl Storage {
             hash_map::Entry::Occupied(entry) => {
                 let upload = entry.into_mut();
 
-                if !cache.is_empty()
-                    && (upload.version != cache.version()
-                        || upload.transformation != new_transformation)
+                if upload.version != cache.version() || upload.transformation != new_transformation
                 {
-                    upload.layer.prepare(
-                        device,
-                        encoder,
-                        belt,
-                        solid,
-                        gradient,
-                        cache.batch(),
-                        new_transformation,
-                    );
+                    if !cache.is_empty() {
+                        upload.layer.prepare(
+                            device,
+                            encoder,
+                            belt,
+                            solid,
+                            gradient,
+                            cache.batch(),
+                            new_transformation,
+                        );
+                    }
 
-                    upload.batch = cache.downgrade();
+                    upload.batch = cache.batch().clone();
                     upload.version = cache.version();
                     upload.transformation = new_transformation;
                 }
@@ -103,7 +104,7 @@ impl Storage {
                     layer,
                     transformation: new_transformation,
                     version: 0,
-                    batch: cache.downgrade(),
+                    batch: cache.batch().clone(),
                 });
 
                 log::debug!(
@@ -117,7 +118,7 @@ impl Storage {
 
     pub fn trim(&mut self) {
         self.uploads
-            .retain(|_id, upload| upload.batch.strong_count() > 0);
+            .retain(|_id, upload| Arc::strong_count(&upload.batch) > 1);
     }
 }
 
@@ -241,7 +242,7 @@ impl State {
 
                 Some((
                     &upload.layer,
-                    cache.batch(),
+                    &upload.batch,
                     screen_transformation * *transformation,
                 ))
             }
@@ -308,6 +309,7 @@ fn render<'a>(
                 depth_stencil_attachment: None,
                 timestamp_writes: None,
                 occlusion_query_set: None,
+                multiview_mask: None,
             })
         };
 
@@ -394,8 +396,7 @@ impl Layer {
 
         for mesh in meshes {
             let clip_bounds = mesh.clip_bounds() * transformation;
-            let snap_distance = clip_bounds
-                .snap()
+            let snap_distance = nudge::snap(clip_bounds)
                 .map(|snapped_bounds| {
                     Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
                         - clip_bounds.position()
@@ -412,29 +413,24 @@ impl Layer {
 
             index_offset += self
                 .index_buffer
-                .write(device, encoder, belt, index_offset, indices);
+                .write(encoder, belt, index_offset, indices);
 
             match mesh {
                 Mesh::Solid { buffers, .. } => {
                     solid_vertex_offset += self.solid.vertices.write(
-                        device,
                         encoder,
                         belt,
                         solid_vertex_offset,
                         &buffers.vertices,
                     );
 
-                    solid_uniform_offset += self.solid.uniforms.write(
-                        device,
-                        encoder,
-                        belt,
-                        solid_uniform_offset,
-                        &[uniforms],
-                    );
+                    solid_uniform_offset +=
+                        self.solid
+                            .uniforms
+                            .write(encoder, belt, solid_uniform_offset, &[uniforms]);
                 }
                 Mesh::Gradient { buffers, .. } => {
                     gradient_vertex_offset += self.gradient.vertices.write(
-                        device,
                         encoder,
                         belt,
                         gradient_vertex_offset,
@@ -442,7 +438,6 @@ impl Layer {
                     );
 
                     gradient_uniform_offset += self.gradient.uniforms.write(
-                        device,
                         encoder,
                         belt,
                         gradient_uniform_offset,
@@ -472,7 +467,7 @@ impl Layer {
         for mesh in meshes {
             let Some(clip_bounds) = bounds
                 .intersection(&(mesh.clip_bounds() * transformation))
-                .and_then(Rectangle::snap)
+                .and_then(nudge::snap)
             else {
                 match mesh {
                     Mesh::Solid { buffers, .. } => {
@@ -693,8 +688,8 @@ mod solid {
 
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("iced_wgpu.triangle.solid.pipeline_layout"),
-                bind_group_layouts: &[&constants_layout],
-                push_constant_ranges: &[],
+                bind_group_layouts: &[Some(&constants_layout)],
+                immediate_size: 0,
             });
 
             let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -735,7 +730,7 @@ mod solid {
                 primitive: triangle::primitive_state(),
                 depth_stencil: None,
                 multisample: triangle::multisample_state(antialiasing),
-                multiview: None,
+                multiview_mask: None,
                 cache: None,
             });
 
@@ -825,8 +820,8 @@ mod gradient {
 
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("iced_wgpu.triangle.gradient.pipeline_layout"),
-                bind_group_layouts: &[&constants_layout],
-                push_constant_ranges: &[],
+                bind_group_layouts: &[Some(&constants_layout)],
+                immediate_size: 0,
             });
 
             let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -879,7 +874,7 @@ mod gradient {
                 primitive: triangle::primitive_state(),
                 depth_stencil: None,
                 multisample: triangle::multisample_state(antialiasing),
-                multiview: None,
+                multiview_mask: None,
                 cache: None,
             });
 

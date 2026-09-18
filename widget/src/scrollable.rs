@@ -35,8 +35,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Clipboard, Color, Element, Event, InputMethod, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    self, Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
@@ -74,9 +74,8 @@ where
     direction: Direction,
     auto_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Viewport) -> Option<Message> + 'a>>,
     class: Theme::Class<'a>,
-    last_status: Option<Status>,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -96,30 +95,14 @@ where
     ) -> Self {
         Scrollable {
             id: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             direction: direction.into(),
             auto_scroll: false,
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
-            last_status: None,
         }
-        .enclose()
-    }
-
-    fn enclose(mut self) -> Self {
-        let size_hint = self.content.as_widget().size_hint();
-
-        if self.direction.horizontal().is_none() {
-            self.width = self.width.enclose(size_hint.width);
-        }
-
-        if self.direction.vertical().is_none() {
-            self.height = self.height.enclose(size_hint.height);
-        }
-
-        self
     }
 
     /// Makes the [`Scrollable`] scroll horizontally, with default [`Scrollbar`] settings.
@@ -130,7 +113,7 @@ where
     /// Sets the [`Direction`] of the [`Scrollable`].
     pub fn direction(mut self, direction: impl Into<Direction>) -> Self {
         self.direction = direction.into();
-        self.enclose()
+        self
     }
 
     /// Sets the [`widget::Id`] of the [`Scrollable`].
@@ -151,11 +134,14 @@ where
         self
     }
 
-    /// Sets a function to call when the [`Scrollable`] is scrolled.
+    /// Sets a handler to call when the [`Scrollable`] is scrolled.
     ///
     /// The function takes the [`Viewport`] of the [`Scrollable`]
-    pub fn on_scroll(mut self, f: impl Fn(Viewport) -> Message + 'a) -> Self {
-        self.on_scroll = Some(Box::new(f));
+    pub fn on_scroll<T>(mut self, f: impl Fn(Viewport) -> T + 'a) -> Self
+    where
+        T: Into<Option<Message>>,
+    {
+        self.on_scroll = Some(Box::new(move |viewport| f(viewport).into()));
         self
     }
 
@@ -214,6 +200,33 @@ where
                 scrollbar.spacing = Some(new_spacing.into().0);
             }
             Direction::Both { .. } => {}
+        }
+
+        self
+    }
+
+    /// Adds padding at the ends of the [`Scrollbar`]s of the [`Scrollable`].
+    ///
+    /// The `padding` provided will be used as space at the top and bottom of a
+    /// vertical [`Scrollbar`], and at the left and right ends of a horizontal
+    /// [`Scrollbar`], when they are visible.
+    ///
+    /// Unlike [`Self::spacing`], the padding does not affect the layout of the
+    /// [`Scrollable`].
+    pub fn padding(mut self, new_padding: impl Into<Pixels>) -> Self {
+        let padding = new_padding.into().0;
+
+        match &mut self.direction {
+            Direction::Horizontal(scrollbar) | Direction::Vertical(scrollbar) => {
+                scrollbar.padding = padding;
+            }
+            Direction::Both {
+                horizontal,
+                vertical,
+            } => {
+                horizontal.padding = padding;
+                vertical.padding = padding;
+            }
         }
 
         self
@@ -313,6 +326,7 @@ pub struct Scrollbar {
     scroller_width: f32,
     alignment: Anchor,
     spacing: Option<f32>,
+    padding: f32,
 }
 
 impl Default for Scrollbar {
@@ -323,6 +337,7 @@ impl Default for Scrollbar {
             scroller_width: 10.0,
             alignment: Anchor::Start,
             spacing: None,
+            padding: 0.0,
         }
     }
 }
@@ -372,13 +387,25 @@ impl Scrollbar {
         self.spacing = Some(spacing.into().0);
         self
     }
+
+    /// Sets the padding of the [`Scrollbar`].
+    ///
+    /// The padding is added at the top and bottom of the scrollbar (or at the
+    /// left and right ends for a horizontal [`Scrollbar`]) when it is visible.
+    ///
+    /// Unlike [`Self::margin`] and [`Self::spacing`], the padding does not
+    /// affect the layout of the [`Scrollable`].
+    pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
+        self.padding = padding.into().0;
+        self
+    }
 }
 
 /// The anchor of the scroller of the [`Scrollable`] relative to its [`Viewport`]
 /// on a given axis.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Anchor {
-    /// Scroller is anchoer to the start of the [`Viewport`].
+    /// Scroller is anchored to the start of the [`Viewport`].
     #[default]
     Start,
     /// Content is aligned to the end of the [`Viewport`].
@@ -399,12 +426,22 @@ where
         tree::State::new(State::new())
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+        let state = tree.state.downcast_mut::<State>();
+
+        if state.last_id != self.id {
+            *state = State {
+                last_id: self.id.clone(),
+                ..State::default()
+            };
+        }
+
+        let size = self.content.as_widget().size();
+
+        self.width = self.width.stack(size.width);
+        self.height = self.height.stack(size.height);
     }
 
     fn size(&self) -> Size<Length> {
@@ -421,6 +458,9 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let mut layout = |right_padding, bottom_padding| {
+            let is_horizontal = self.direction.horizontal().is_some();
+            let is_vertical = self.direction.vertical().is_some();
+
             layout::padded(
                 limits,
                 self.width,
@@ -431,24 +471,14 @@ where
                     ..Padding::ZERO
                 },
                 |limits| {
-                    let is_horizontal = self.direction.horizontal().is_some();
-                    let is_vertical = self.direction.vertical().is_some();
-
-                    let child_limits = layout::Limits::with_compression(
-                        limits.min(),
+                    let child_limits = layout::Limits::with_flags(
+                        limits.min,
+                        limits.max,
+                        limits.compression,
                         Size::new(
-                            if is_horizontal {
-                                f32::INFINITY
-                            } else {
-                                limits.max().width
-                            },
-                            if is_vertical {
-                                f32::INFINITY
-                            } else {
-                                limits.max().height
-                            },
+                            limits.infinite.width || is_horizontal,
+                            limits.infinite.height || is_vertical,
                         ),
-                        Size::new(is_horizontal, is_vertical),
                     );
 
                     self.content.as_widget_mut().layout(
@@ -525,6 +555,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
@@ -534,13 +565,16 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
         let translation = state.translation(self.direction, bounds, content_bounds);
+        let viewport = viewport.intersection(&bounds).unwrap_or_default() + translation;
 
         operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
+        operation.container(self.id.as_ref(), content_bounds, &viewport);
 
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
-                layout.children().next().unwrap(),
+                content_layout,
+                &viewport,
                 renderer,
                 operation,
             );
@@ -554,7 +588,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
@@ -568,7 +601,8 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
-        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
+        let translation = state.translation(self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
 
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
@@ -736,11 +770,11 @@ where
             if state.last_scrolled.is_none()
                 || !matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
             {
-                let translation = state.translation(self.direction, bounds, content_bounds);
-
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
-                        if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
+                        if !(mouse_over_x_scrollbar
+                            || mouse_over_y_scrollbar
+                            || state.scrollers_grabbed()) =>
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
@@ -755,7 +789,6 @@ where
                     content,
                     cursor,
                     renderer,
-                    clipboard,
                     shell,
                     &Rectangle {
                         y: bounds.y + translation.y,
@@ -767,7 +800,7 @@ where
                 if !had_input_method
                     && let InputMethod::Enabled { cursor, .. } = shell.input_method_mut()
                 {
-                    *cursor = *cursor - translation;
+                    *cursor -= translation;
                 }
             };
 
@@ -1015,11 +1048,11 @@ where
         };
 
         if let Event::Window(window::Event::RedrawRequested(_now)) = event {
-            self.last_status = Some(status);
+            state.last_status = Some(status);
         }
 
         if last_offsets != (state.offset_x, state.offset_y)
-            || self
+            || state
                 .last_status
                 .is_some_and(|last_status| last_status != status)
         {
@@ -1038,32 +1071,30 @@ where
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
-
         let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
 
-        let Some(visible_bounds) = bounds.intersection(viewport) else {
+        let Some(viewport) = viewport.intersection(&bounds) else {
             return;
         };
 
-        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
-
-        let cursor_over_scrollable = cursor.position_over(bounds);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
 
         let translation = state.translation(self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let cursor_over_scrollable = cursor.position_over(bounds);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => mouse::Cursor::Unavailable,
+            _ => cursor.levitate() + translation,
         };
 
         let style = theme.style(
             &self.class,
-            self.last_status.unwrap_or(Status::Active {
+            state.last_status.unwrap_or(Status::Active {
                 is_horizontal_scrollbar_disabled: false,
                 is_vertical_scrollbar_disabled: false,
             }),
@@ -1073,12 +1104,9 @@ where
 
         // Draw inner content
         if scrollbars.active() {
-            let scale_factor = renderer.scale_factor().unwrap_or(1.0);
-            let translation = (translation * scale_factor).round() / scale_factor;
-
-            renderer.with_layer(visible_bounds, |renderer| {
+            renderer.with_layer(viewport, |renderer| {
                 renderer.with_translation(
-                    Vector::new(-translation.x, -translation.y),
+                    -translation.hint(renderer.hint_factor().unwrap_or(1.0)),
                     |renderer| {
                         self.content.as_widget().draw(
                             &tree.children[0],
@@ -1087,11 +1115,7 @@ where
                             defaults,
                             content_layout,
                             cursor,
-                            &Rectangle {
-                                y: visible_bounds.y + translation.y,
-                                x: visible_bounds.x + translation.x,
-                                ..visible_bounds
-                            },
+                            &(viewport + translation),
                         );
                     },
                 );
@@ -1135,41 +1159,42 @@ where
                     }
                 };
 
-            renderer.with_layer(
-                Rectangle {
-                    width: (visible_bounds.width + 2.0).min(viewport.width),
-                    height: (visible_bounds.height + 2.0).min(viewport.height),
-                    ..visible_bounds
-                },
-                |renderer| {
-                    if let Some(scrollbar) = scrollbars.y {
-                        draw_scrollbar(renderer, style.vertical_rail, &scrollbar);
-                    }
+            let has_floating_scrollbar = scrollbars.is_any_floating();
 
-                    if let Some(scrollbar) = scrollbars.x {
-                        draw_scrollbar(renderer, style.horizontal_rail, &scrollbar);
-                    }
+            if has_floating_scrollbar {
+                renderer.start_layer(viewport);
+            }
 
-                    if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
-                        let background = style.gap.or(style.container.background);
+            if let Some(scrollbar) = scrollbars.y {
+                draw_scrollbar(renderer, style.vertical_rail, &scrollbar);
+            }
 
-                        if let Some(background) = background {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: Rectangle {
-                                        x: y.bounds.x,
-                                        y: x.bounds.y,
-                                        width: y.bounds.width,
-                                        height: x.bounds.height,
-                                    },
-                                    ..renderer::Quad::default()
-                                },
-                                background,
-                            );
-                        }
-                    }
-                },
-            );
+            if let Some(scrollbar) = scrollbars.x {
+                draw_scrollbar(renderer, style.horizontal_rail, &scrollbar);
+            }
+
+            if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
+                let background = style.gap.or(style.container.background);
+
+                if let Some(background) = background {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: y.bounds.x,
+                                y: x.bounds.y,
+                                width: y.bounds.width,
+                                height: x.bounds.height,
+                            },
+                            ..renderer::Quad::default()
+                        },
+                        background,
+                    );
+                }
+            }
+
+            if has_floating_scrollbar {
+                renderer.end_layer();
+            }
         } else {
             self.content.as_widget().draw(
                 &tree.children[0],
@@ -1178,11 +1203,7 @@ where
                 defaults,
                 content_layout,
                 cursor,
-                &Rectangle {
-                    x: visible_bounds.x + translation.x,
-                    y: visible_bounds.y + translation.y,
-                    ..visible_bounds
-                },
+                &(viewport + translation),
             );
         }
     }
@@ -1192,25 +1213,27 @@ where
         tree: &Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let cursor_over_scrollable = cursor.position_over(bounds);
+        let state = tree.state.downcast_ref::<State>();
 
+        if state.scrollers_grabbed() {
+            return mouse::Interaction::Idle;
+        }
+
+        let Some(viewport) = viewport.intersection(&bounds) else {
+            return mouse::Interaction::None;
+        };
+
+        let cursor_over_scrollable = cursor.position_over(bounds);
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
 
-        let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
-
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
-
-        if state.scrollers_grabbed() {
-            return mouse::Interaction::None;
-        }
-
         let translation = state.translation(self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
@@ -1223,11 +1246,7 @@ where
             &tree.children[0],
             content_layout,
             cursor,
-            &Rectangle {
-                y: bounds.y + translation.y,
-                x: bounds.x + translation.x,
-                ..bounds
-            },
+            &(viewport + translation),
             renderer,
         )
     }
@@ -1239,24 +1258,25 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
-        let visible_bounds = bounds.intersection(viewport).unwrap_or(*viewport);
+        let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
+
         let offset = state.translation(self.direction, bounds, content_bounds);
 
         let overlay = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
-            &visible_bounds,
+            &(viewport + offset),
             translation - offset,
         );
 
         let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
-            let scrollbars = Scrollbars::new(state, self.direction, bounds, content_bounds);
+            let scrollbars = Scrollbars::new(offset, self.direction, bounds, content_bounds);
 
             Some(overlay::Element::new(Box::new(AutoScrollIcon {
                 origin,
@@ -1268,14 +1288,7 @@ where
             None
         };
 
-        match (overlay, icon) {
-            (None, None) => None,
-            (None, Some(icon)) => Some(icon),
-            (Some(overlay), None) => Some(overlay),
-            (Some(overlay), Some(icon)) => Some(overlay::Element::new(Box::new(
-                overlay::Group::with_children(vec![overlay, icon]),
-            ))),
-        }
+        overlay.into_iter().chain(icon).collect()
     }
 }
 
@@ -1350,12 +1363,13 @@ where
                 content: String::new(),
                 bounds: bounds.size(),
                 size: Pixels::from(12),
-                line_height: text::LineHeight::Relative(1.0),
+                line_height: text::LineHeight::from(1.0),
                 font: Renderer::ICON_FONT,
                 align_x: text::Alignment::Center,
                 align_y: alignment::Vertical::Center,
                 shaping: text::Shaping::Basic,
                 wrapping: text::Wrapping::None,
+                ellipsis: text::Ellipsis::None,
                 hint_factor: None,
             };
 
@@ -1436,7 +1450,7 @@ where
 
 fn notify_scroll<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -1452,7 +1466,7 @@ fn notify_scroll<Message>(
 
 fn notify_viewport<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -1492,14 +1506,16 @@ fn notify_viewport<Message>(
 
     state.last_notified = Some(viewport);
 
-    if let Some(on_scroll) = on_scroll {
-        shell.publish(on_scroll(viewport));
+    if let Some(on_scroll) = on_scroll
+        && let Some(message) = on_scroll(viewport)
+    {
+        shell.publish(message);
     }
 
     true
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct State {
     offset_y: Offset,
     offset_x: Offset,
@@ -1508,6 +1524,8 @@ struct State {
     last_notified: Option<Viewport>,
     last_scrolled: Option<Instant>,
     is_scrollbar_visible: bool,
+    last_status: Option<Status>,
+    last_id: Option<widget::Id>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1533,6 +1551,8 @@ impl Default for State {
             last_notified: None,
             last_scrolled: None,
             is_scrollbar_visible: true,
+            last_status: None,
+            last_id: None,
         }
     }
 }
@@ -1709,14 +1729,12 @@ impl State {
             if let Some(horizontal) = direction.horizontal() {
                 self.offset_x
                     .translation(bounds.width, content_bounds.width, horizontal.alignment)
-                    .round()
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
                 self.offset_y
                     .translation(bounds.height, content_bounds.height, vertical.alignment)
-                    .round()
             } else {
                 0.0
             },
@@ -1757,13 +1775,11 @@ struct Scrollbars {
 impl Scrollbars {
     /// Create y and/or x scrollbar(s) if content is overflowing the [`Scrollable`] bounds.
     fn new(
-        state: &State,
+        translation: Vector,
         direction: Direction,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) -> Self {
-        let translation = state.translation(direction, bounds, content_bounds);
-
         let show_scrollbar_x = direction
             .horizontal()
             .filter(|_scrollbar| content_bounds.width > bounds.width);
@@ -1777,6 +1793,8 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                spacing,
+                padding,
                 ..
             } = *vertical;
 
@@ -1787,20 +1805,24 @@ impl Scrollbars {
 
             let total_scrollbar_width = width.max(scroller_width) + 2.0 * margin;
 
+            // The padding is purely visual: it shrinks the top and bottom of the
+            // scrollbar without affecting the layout
+            let scrollbar_height = (bounds.height - x_scrollbar_height - 2.0 * padding).max(0.0);
+
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
                 x: bounds.x + bounds.width - total_scrollbar_width,
-                y: bounds.y,
+                y: bounds.y + padding,
                 width: total_scrollbar_width,
-                height: (bounds.height - x_scrollbar_height).max(0.0),
+                height: scrollbar_height,
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
                 x: bounds.x + bounds.width - total_scrollbar_width / 2.0 - width / 2.0,
-                y: bounds.y,
+                y: bounds.y + padding,
                 width,
-                height: (bounds.height - x_scrollbar_height).max(0.0),
+                height: scrollbar_height,
             };
 
             let ratio = bounds.height / content_bounds.height;
@@ -1831,6 +1853,7 @@ impl Scrollbars {
                 scroller,
                 alignment: vertical.alignment,
                 disabled: content_bounds.height <= bounds.height,
+                floating: spacing.is_none(),
             })
         } else {
             None
@@ -1841,6 +1864,8 @@ impl Scrollbars {
                 width,
                 margin,
                 scroller_width,
+                spacing,
+                padding,
                 ..
             } = *horizontal;
 
@@ -1851,19 +1876,23 @@ impl Scrollbars {
 
             let total_scrollbar_height = width.max(scroller_width) + 2.0 * margin;
 
+            // The padding is purely visual: it shrinks the left and right ends of
+            // the scrollbar without affecting the layout
+            let scrollbar_width = (bounds.width - scrollbar_y_width - 2.0 * padding).max(0.0);
+
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
-                x: bounds.x,
+                x: bounds.x + padding,
                 y: bounds.y + bounds.height - total_scrollbar_height,
-                width: (bounds.width - scrollbar_y_width).max(0.0),
+                width: scrollbar_width,
                 height: total_scrollbar_height,
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
-                x: bounds.x,
+                x: bounds.x + padding,
                 y: bounds.y + bounds.height - total_scrollbar_height / 2.0 - width / 2.0,
-                width: (bounds.width - scrollbar_y_width).max(0.0),
+                width: scrollbar_width,
                 height: width,
             };
 
@@ -1896,6 +1925,7 @@ impl Scrollbars {
                 scroller,
                 alignment: horizontal.alignment,
                 disabled: content_bounds.width <= bounds.width,
+                floating: spacing.is_none(),
             })
         } else {
             None
@@ -1962,6 +1992,11 @@ impl Scrollbars {
         }
     }
 
+    fn is_any_floating(&self) -> bool {
+        self.y.is_some_and(|scrollbar| scrollbar.floating)
+            || self.x.is_some_and(|scrollbar| scrollbar.floating)
+    }
+
     fn active(&self) -> bool {
         self.y.is_some() || self.x.is_some()
     }
@@ -1979,6 +2014,7 @@ pub(super) mod internals {
         pub scroller: Option<Scroller>,
         pub alignment: Anchor,
         pub disabled: bool,
+        pub floating: bool,
     }
 
     impl Scrollbar {
@@ -2139,7 +2175,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Scrollable`].
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let scrollbar = Rail {
         background: Some(palette.background.weak.color.into()),

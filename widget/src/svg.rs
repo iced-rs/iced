@@ -22,8 +22,8 @@ use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::window;
 use crate::core::{
-    Clipboard, Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation,
-    Shell, Size, Theme, Vector, Widget,
+    Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size,
+    Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -75,7 +75,7 @@ where
         Svg {
             handle: handle.into(),
             width: Length::Fill,
-            height: Length::Shrink,
+            height: Length::Fit,
             content_fit: ContentFit::Contain,
             class: Theme::default(),
             rotation: Rotation::default(),
@@ -184,11 +184,11 @@ where
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
             width: match self.width {
-                Length::Shrink => f32::min(raw_size.width, full_size.width),
+                Length::Fit | Length::Shrink => f32::min(raw_size.width, full_size.width),
                 _ => raw_size.width,
             },
             height: match self.height {
-                Length::Shrink => f32::min(raw_size.height, full_size.height),
+                Length::Fit | Length::Shrink => f32::min(raw_size.height, full_size.height),
                 _ => raw_size.height,
             },
         };
@@ -203,7 +203,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {

@@ -40,8 +40,6 @@ impl Engine {
             return;
         }
 
-        let clip_mask = (!physical_bounds.is_within(&clip_bounds)).then_some(clip_mask as &_);
-
         let transform = into_transform(transformation);
 
         // Make sure the border radius is not larger than the bounds
@@ -125,10 +123,12 @@ impl Engine {
                     pixmap.as_ref(),
                     &tiny_skia::PixmapPaint::default(),
                     tiny_skia::Transform::default(),
-                    None,
+                    Some(clip_mask),
                 );
             }
         }
+
+        let clip_mask = (!physical_bounds.is_within(&clip_bounds)).then_some(clip_mask as &_);
 
         pixels.fill_path(
             &path,
@@ -136,7 +136,7 @@ impl Engine {
                 shader: match background {
                     Background::Color(color) => tiny_skia::Shader::SolidColor(into_color(*color)),
                     Background::Gradient(Gradient::Linear(linear)) => {
-                        let (start, end) = linear.angle.to_distance(&quad.bounds);
+                        let (start, end) = quad.bounds.chord(linear.angle);
 
                         let stops: Vec<tiny_skia::GradientStop> = linear
                             .stops
@@ -337,32 +337,21 @@ impl Engine {
                 transformation: local_transformation,
             } => {
                 let transformation = transformation * *local_transformation;
+
                 let Some(clip_bounds) =
                     clip_bounds.intersection(&(*local_clip_bounds * transformation))
                 else {
                     return;
                 };
 
-                let physical_bounds = Rectangle::new(*position, editor.bounds) * transformation;
-
-                if !clip_bounds.intersects(&physical_bounds) {
-                    return;
-                }
-
-                let clip_mask = match physical_bounds.is_within(&clip_bounds) {
-                    true => None,
-                    false => {
-                        adjust_clip_mask(clip_mask, clip_bounds);
-                        Some(clip_mask as &_)
-                    }
-                };
+                adjust_clip_mask(clip_mask, clip_bounds);
 
                 self.text_pipeline.draw_editor(
                     editor,
                     *position,
                     *color,
                     pixels,
-                    clip_mask,
+                    Some(clip_mask),
                     transformation,
                 );
             }
@@ -376,6 +365,8 @@ impl Engine {
                 align_x,
                 align_y,
                 shaping,
+                wrapping,
+                ellipsis,
                 clip_bounds: local_clip_bounds,
             } => {
                 let physical_bounds = *local_clip_bounds * transformation;
@@ -402,6 +393,8 @@ impl Engine {
                     *align_x,
                     *align_y,
                     *shaping,
+                    *wrapping,
+                    *ellipsis,
                     pixels,
                     clip_mask,
                     transformation,
@@ -525,20 +518,24 @@ impl Engine {
     ) {
         match image {
             #[cfg(feature = "image")]
-            Image::Raster { image, bounds, .. } => {
-                let physical_bounds = *bounds * _transformation;
+            Image::Raster {
+                image,
+                bounds,
+                clip_bounds: local_clip_bounds,
+            } => {
+                let physical_bounds = *local_clip_bounds * _transformation;
 
-                if !_clip_bounds.intersects(&physical_bounds) {
+                let Some(clip_bounds) = physical_bounds.intersection(&_clip_bounds) else {
                     return;
-                }
+                };
 
-                let clip_mask =
-                    (!physical_bounds.is_within(&_clip_bounds)).then_some(_clip_mask as &_);
+                // TODO: Border radius
+                adjust_clip_mask(_clip_mask, clip_bounds);
 
-                let center = physical_bounds.center();
+                let center = bounds.center();
                 let radians = f32::from(image.rotation);
 
-                let transform = into_transform(_transformation).post_rotate_at(
+                let transform = into_transform(_transformation).pre_rotate_at(
                     radians.to_degrees(),
                     center.x,
                     center.y,
@@ -551,7 +548,7 @@ impl Engine {
                     image.opacity,
                     _pixels,
                     transform,
-                    clip_mask,
+                    Some(_clip_mask),
                 );
             }
             #[cfg(feature = "svg")]
@@ -779,14 +776,10 @@ fn rounded_box_sdf(to_center: Vector, size: tiny_skia::Size, radii: &[f32]) -> f
 pub fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
     clip_mask.clear();
 
-    let path = {
-        let mut builder = tiny_skia::PathBuilder::new();
-        builder.push_rect(
-            tiny_skia::Rect::from_xywh(bounds.x, bounds.y, bounds.width, bounds.height).unwrap(),
-        );
-
-        builder.finish().unwrap()
-    };
+    let path = tiny_skia::PathBuilder::from_rect(
+        tiny_skia::Rect::from_xywh(bounds.x, bounds.y, bounds.width, bounds.height)
+            .expect("Create clip rectangle"),
+    );
 
     clip_mask.fill_path(
         &path,

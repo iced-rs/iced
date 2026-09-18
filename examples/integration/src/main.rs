@@ -6,13 +6,13 @@ use scene::Scene;
 
 use iced_wgpu::graphics::{Shell, Viewport};
 use iced_wgpu::{Engine, Renderer, wgpu};
-use iced_winit::Clipboard;
 use iced_winit::conversion;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
+use iced_winit::core::shell;
 use iced_winit::core::time::Instant;
 use iced_winit::core::window;
-use iced_winit::core::{Event, Font, Pixels, Size, Theme};
+use iced_winit::core::{Event, Size, Theme};
 use iced_winit::futures;
 use iced_winit::runtime::user_interface::{self, UserInterface};
 use iced_winit::winit;
@@ -46,7 +46,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
             events: Vec<Event>,
             cursor: mouse::Cursor,
             cache: user_interface::Cache,
-            clipboard: Clipboard,
             viewport: Viewport,
             modifiers: ModifiersState,
             resized: bool,
@@ -65,15 +64,17 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let physical_size = window.inner_size();
                 let viewport = Viewport::with_physical_size(
                     Size::new(physical_size.width, physical_size.height),
-                    window.scale_factor() as f32,
+                    renderer::Scale {
+                        window: window.scale_factor() as f32,
+                        application: 1.0,
+                    },
                 );
-                let clipboard = Clipboard::connect(window.clone());
 
                 let backend = wgpu::Backends::from_env().unwrap_or_default();
 
-                let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+                let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
                     backends: backend,
-                    ..Default::default()
+                    ..wgpu::InstanceDescriptor::new_without_display_handle()
                 });
                 let surface = instance
                     .create_surface(window.clone())
@@ -148,7 +149,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                         Shell::headless(),
                     );
 
-                    Renderer::new(engine, Font::default(), Pixels::from(16))
+                    Renderer::new(engine, renderer::Settings::default())
                 };
 
                 // You should change this if you want to render continuously
@@ -167,7 +168,6 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     cursor: mouse::Cursor::Unavailable,
                     modifiers: ModifiersState::default(),
                     cache: user_interface::Cache::new(),
-                    clipboard,
                     viewport,
                     resized: false,
                 };
@@ -193,13 +193,16 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 viewport,
                 cursor,
                 modifiers,
-                clipboard,
                 cache,
                 resized,
             } = self
             else {
                 return;
             };
+
+            // You should wire your own ticker logic if you will use widgets that must
+            // notify the runtime concurrently.
+            let waker = shell::Waker::noop();
 
             match event {
                 WindowEvent::RedrawRequested => {
@@ -208,7 +211,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                         *viewport = Viewport::with_physical_size(
                             Size::new(size.width, size.height),
-                            window.scale_factor() as f32,
+                            renderer::Scale {
+                                window: window.scale_factor() as f32,
+                                application: 1.0,
+                            },
                         );
 
                         surface.configure(
@@ -229,7 +235,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     }
 
                     match surface.get_current_texture() {
-                        Ok(frame) => {
+                        wgpu::CurrentSurfaceTexture::Success(frame) => {
                             let view = frame
                                 .texture
                                 .create_view(&wgpu::TextureViewDescriptor::default());
@@ -260,13 +266,14 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             );
 
                             let (state, _) = interface.update(
+                                window,
+                                &waker,
                                 &[Event::Window(
                                     window::Event::RedrawRequested(Instant::now()),
                                 )],
                                 *cursor,
                                 renderer,
-                                clipboard,
-                                &mut Vec::new(),
+                                &mut shell::Bus::new(),
                             );
 
                             // Update the mouse cursor
@@ -299,18 +306,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             // Present the frame
                             frame.present();
                         }
-                        Err(error) => match error {
-                            wgpu::SurfaceError::OutOfMemory => {
-                                panic!(
-                                    "Swapchain error: {error}. \
-                                        Rendering cannot continue."
-                                )
-                            }
-                            _ => {
-                                // Try rendering again next frame.
-                                window.request_redraw();
-                            }
-                        },
+                        _ => {
+                            // Try rendering again next frame.
+                            window.request_redraw();
+                        }
                     }
                 }
                 WindowEvent::CursorMoved { position, .. } => {
@@ -348,9 +347,9 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     renderer,
                 );
 
-                let mut messages = Vec::new();
+                let mut messages = shell::Bus::new();
 
-                let _ = interface.update(events, *cursor, renderer, clipboard, &mut messages);
+                let _ = interface.update(window, &waker, events, *cursor, renderer, &mut messages);
 
                 events.clear();
                 *cache = interface.into_cache();

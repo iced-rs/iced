@@ -8,7 +8,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
+    self, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that can generate messages when its content pops in and out of view.
@@ -18,7 +18,7 @@ pub struct Sensor<'a, Key, Message, Theme = crate::Theme, Renderer = crate::Rend
     content: Element<'a, Message, Theme, Renderer>,
     key: Key,
     on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
-    on_resize: Option<Box<dyn Fn(Size) -> Message + 'a>>,
+    on_resize: Option<Box<dyn Fn(Size) -> Option<Message> + 'a>>,
     on_hide: Option<Message>,
     anticipate: Pixels,
     delay: Duration,
@@ -58,8 +58,11 @@ where
     /// Sets the message to be produced when the content changes [`Size`] once its in view.
     ///
     /// The closure will receive the new [`Size`] of the content.
-    pub fn on_resize(mut self, on_resize: impl Fn(Size) -> Message + 'a) -> Self {
-        self.on_resize = Some(Box::new(on_resize));
+    pub fn on_resize<T>(mut self, on_resize: impl Fn(Size) -> T + 'a) -> Self
+    where
+        T: Into<Option<Message>>,
+    {
+        self.on_resize = Some(Box::new(move |size| on_resize(size).into()));
         self
     }
 
@@ -157,12 +160,8 @@ where
         })
     }
 
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&[&self.content]);
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
     }
 
     fn update(
@@ -172,7 +171,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -197,9 +195,11 @@ where
                 if let Some(on_resize) = &self.on_resize {
                     let size = bounds.size();
 
-                    if Some(size) != state.last_size {
+                    if Some(size) != state.last_size
+                        && let Some(message) = on_resize(size)
+                    {
                         state.last_size = Some(size);
-                        shell.publish(on_resize(size));
+                        shell.publish(message);
                     }
                 }
             } else if state.has_popped_in {
@@ -207,9 +207,11 @@ where
                     if let Some(on_resize) = &self.on_resize {
                         let size = bounds.size();
 
-                        if Some(size) != state.last_size {
+                        if Some(size) != state.last_size
+                            && let Some(message) = on_resize(size)
+                        {
                             state.last_size = Some(size);
-                            shell.publish(on_resize(size));
+                            shell.publish(message);
                         }
                     }
                 } else if self.on_hide.is_some() {
@@ -249,7 +251,6 @@ where
             layout,
             cursor,
             renderer,
-            clipboard,
             shell,
             viewport,
         );
@@ -257,10 +258,6 @@ where
 
     fn size(&self) -> Size<Length> {
         self.content.as_widget().size()
-    }
-
-    fn size_hint(&self) -> Size<Length> {
-        self.content.as_widget().size_hint()
     }
 
     fn layout(
@@ -299,12 +296,17 @@ where
         &mut self,
         tree: &mut Tree,
         layout: core::Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        self.content.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn mouse_interaction(
@@ -331,7 +333,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: core::Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,

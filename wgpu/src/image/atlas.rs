@@ -133,7 +133,7 @@ impl Atlas {
 
         match &entry {
             Entry::Contiguous(allocation) => {
-                self.upload_allocation(pixels, width, 0, allocation, device, encoder, belt);
+                self.upload_allocation(pixels, width, 0, allocation, encoder, belt);
             }
             Entry::Fragmented { fragments, .. } => {
                 for fragment in fragments {
@@ -145,7 +145,6 @@ impl Atlas {
                         width,
                         offset,
                         &fragment.allocation,
-                        device,
                         encoder,
                         belt,
                     );
@@ -312,7 +311,6 @@ impl Atlas {
         image_width: u32,
         offset: usize,
         allocation: &Allocation,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
     ) {
@@ -333,7 +331,6 @@ impl Atlas {
         let buffer_slice = belt.allocate(
             wgpu::BufferSize::new(total_bytes as u64).unwrap(),
             wgpu::BufferSize::new(8 * 4).unwrap(),
-            device,
         );
 
         const PIXEL: usize = 4;
@@ -350,16 +347,20 @@ impl Atlas {
             let src = offset + row * PIXEL * image_width as usize;
             let dst = (row + pad_h) * bytes_per_row;
 
-            fragment[dst + PIXEL * pad_w..dst + PIXEL * pad_w + stride]
+            fragment
+                .slice(dst + PIXEL * pad_w..dst + PIXEL * pad_w + stride)
                 .copy_from_slice(&pixels[src..src + stride]);
 
             // Add padding to the sides, if needed
             for i in 0..pad_w {
-                fragment[dst + PIXEL * i..dst + PIXEL * (i + 1)]
+                fragment
+                    .slice(dst + PIXEL * i..dst + PIXEL * (i + 1))
                     .copy_from_slice(&pixels[src..src + PIXEL]);
 
                 fragment
-                    [dst + stride + PIXEL * (pad_w + i)..dst + stride + PIXEL * (pad_w + i + 1)]
+                    .slice(
+                        dst + stride + PIXEL * (pad_w + i)..dst + stride + PIXEL * (pad_w + i + 1),
+                    )
                     .copy_from_slice(&pixels[src + stride - PIXEL..src + stride]);
             }
         }
@@ -372,30 +373,38 @@ impl Atlas {
             let src_bottom = offset + (h - 1) * PIXEL * image_width as usize;
 
             // Top
-            fragment[dst_top + PIXEL * pad_w..dst_top + PIXEL * (pad_w + w)]
+            fragment
+                .slice(dst_top + PIXEL * pad_w..dst_top + PIXEL * (pad_w + w))
                 .copy_from_slice(&pixels[src_top..src_top + PIXEL * w]);
 
             // Bottom
-            fragment[dst_bottom + PIXEL * pad_w..dst_bottom + PIXEL * (pad_w + w)]
+            fragment
+                .slice(dst_bottom + PIXEL * pad_w..dst_bottom + PIXEL * (pad_w + w))
                 .copy_from_slice(&pixels[src_bottom..src_bottom + PIXEL * w]);
 
             // Corners
             for i in 0..pad_w {
                 // Top left
-                fragment[dst_top + PIXEL * i..dst_top + PIXEL * (i + 1)]
+                fragment
+                    .slice(dst_top + PIXEL * i..dst_top + PIXEL * (i + 1))
                     .copy_from_slice(&pixels[offset..offset + PIXEL]);
 
                 // Top right
-                fragment[dst_top + PIXEL * (w + pad_w + i)..dst_top + PIXEL * (w + pad_w + i + 1)]
+                fragment
+                    .slice(dst_top + PIXEL * (w + pad_w + i)..dst_top + PIXEL * (w + pad_w + i + 1))
                     .copy_from_slice(&pixels[offset + PIXEL * (w - 1)..offset + PIXEL * w]);
 
                 // Bottom left
-                fragment[dst_bottom + PIXEL * i..dst_bottom + PIXEL * (i + 1)]
+                fragment
+                    .slice(dst_bottom + PIXEL * i..dst_bottom + PIXEL * (i + 1))
                     .copy_from_slice(&pixels[src_bottom..src_bottom + PIXEL]);
 
                 // Bottom right
-                fragment[dst_bottom + PIXEL * (w + pad_w + i)
-                    ..dst_bottom + PIXEL * (w + pad_w + i + 1)]
+                fragment
+                    .slice(
+                        dst_bottom + PIXEL * (w + pad_w + i)
+                            ..dst_bottom + PIXEL * (w + pad_w + i + 1),
+                    )
                     .copy_from_slice(&pixels[src_bottom + PIXEL * (w - 1)..src_bottom + PIXEL * w]);
             }
         }

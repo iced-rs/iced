@@ -4,9 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that displays children on top of each other.
 ///
@@ -51,16 +49,10 @@ where
     }
 
     /// Creates a [`Stack`] from an already allocated [`Vec`].
-    ///
-    /// Keep in mind that the [`Stack`] will not inspect the [`Vec`], which means
-    /// it won't automatically adapt to the sizing strategy of its contents.
-    ///
-    /// If any of the children have a [`Length::Fill`] strategy, you will need to
-    /// call [`Stack::width`] or [`Stack::height`] accordingly.
     pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             children,
             clip: false,
             base_layer: 0,
@@ -82,14 +74,8 @@ where
     /// Adds an element on top of the [`Stack`].
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size_hint();
 
-        if !child_size.is_void() {
-            if self.children.is_empty() {
-                self.width = self.width.enclose(child_size.width);
-                self.height = self.height.enclose(child_size.height);
-            }
-
+        if !child.as_widget().is_void() {
             self.children.push(child);
         }
 
@@ -136,12 +122,15 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(&mut self.children);
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children);
+        if let Some(base) = self.children.get(self.base_layer) {
+            let size = base.as_widget().size();
+
+            self.width = self.width.cross(size.width);
+            self.height = self.height.cross(size.height);
+        }
     }
 
     fn size(&self) -> Size<Length> {
@@ -195,10 +184,11 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
@@ -207,7 +197,7 @@ where
                 .for_each(|((child, state), layout)| {
                     child
                         .as_widget_mut()
-                        .operate(state, layout, renderer, operation);
+                        .operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -219,7 +209,6 @@ where
         layout: Layout<'_>,
         mut cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -238,9 +227,9 @@ where
             .zip(layout.children().rev())
             .enumerate()
         {
-            child.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            child
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if shell.is_event_captured() {
                 return;
@@ -357,7 +346,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
             tree,

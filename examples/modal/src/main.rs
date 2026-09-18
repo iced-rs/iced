@@ -133,7 +133,9 @@ impl App {
                         .spacing(5),
                         column![
                             text("Plan").size(12),
-                            pick_list(Plan::ALL, Some(self.plan), Message::Plan).padding(5),
+                            pick_list(Some(self.plan), Plan::ALL, Plan::to_string)
+                                .on_select(Message::Plan)
+                                .padding(5),
                         ]
                         .spacing(5),
                         button(text("Submit")).on_press(Message::HideModal),

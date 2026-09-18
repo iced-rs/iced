@@ -1,4 +1,5 @@
 //! Change internal widget state.
+use crate::core::text;
 use crate::core::widget::Id;
 use crate::core::widget::operation;
 use crate::task;
@@ -73,7 +74,7 @@ pub fn move_cursor_to_front<T>(id: impl Into<Id>) -> Task<T> {
 }
 
 /// Moves the cursor of the widget with the given [`Id`] to the provided position.
-pub fn move_cursor_to<T>(id: impl Into<Id>, position: usize) -> Task<T> {
+pub fn move_cursor_to<T>(id: impl Into<Id>, position: text::Position) -> Task<T> {
     task::effect(Action::widget(operation::text_input::move_cursor_to(
         id.into(),
         position,
@@ -86,7 +87,7 @@ pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
 }
 
 /// Selects the given content range of the widget with the given [`Id`].
-pub fn select_range<T>(id: impl Into<Id>, start: usize, end: usize) -> Task<T> {
+pub fn select_range<T>(id: impl Into<Id>, start: text::Position, end: text::Position) -> Task<T> {
     task::effect(Action::widget(operation::text_input::select_range(
         id.into(),
         start,

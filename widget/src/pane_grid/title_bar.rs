@@ -4,9 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{
-    self, Clipboard, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::core::{self, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector};
 use crate::pane_grid::controls::Controls;
 
 /// The title bar of a [`Pane`].
@@ -114,20 +112,20 @@ where
         }
     }
 
-    pub(super) fn diff(&self, tree: &mut Tree) {
-        if tree.children.len() == 3 {
-            if let Some(controls) = self.controls.as_ref() {
-                if let Some(compact) = controls.compact.as_ref() {
-                    tree.children[2].diff(compact);
-                }
-
-                tree.children[1].diff(&controls.full);
-            }
-
-            tree.children[0].diff(&self.content);
-        } else {
+    pub(super) fn diff(&mut self, tree: &mut Tree) {
+        if tree.children.len() != 3 {
             *tree = self.state();
         }
+
+        if let Some(controls) = &mut self.controls {
+            if let Some(compact) = &mut controls.compact {
+                tree.children[2].diff(compact);
+            }
+
+            tree.children[1].diff(&mut controls.full);
+        }
+
+        tree.children[0].diff(&mut self.content);
     }
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
@@ -261,7 +259,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.shrink(self.padding);
-        let max_size = limits.max();
+        let max_size = limits.max;
 
         let title_layout = self.content.as_widget_mut().layout(
             &mut tree.children[0],
@@ -341,6 +339,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -362,6 +361,7 @@ where
                     compact.as_widget_mut().operate(
                         &mut tree.children[2],
                         compact_layout,
+                        viewport,
                         renderer,
                         operation,
                     );
@@ -371,6 +371,7 @@ where
                     controls.full.as_widget_mut().operate(
                         &mut tree.children[1],
                         controls_layout,
+                        viewport,
                         renderer,
                         operation,
                     );
@@ -379,6 +380,7 @@ where
                 controls.full.as_widget_mut().operate(
                     &mut tree.children[1],
                     controls_layout,
+                    viewport,
                     renderer,
                     operation,
                 );
@@ -389,6 +391,7 @@ where
             self.content.as_widget_mut().operate(
                 &mut tree.children[0],
                 title_layout,
+                viewport,
                 renderer,
                 operation,
             );
@@ -402,7 +405,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -427,7 +429,6 @@ where
                         compact_layout,
                         cursor,
                         renderer,
-                        clipboard,
                         shell,
                         viewport,
                     );
@@ -440,7 +441,6 @@ where
                         controls_layout,
                         cursor,
                         renderer,
-                        clipboard,
                         shell,
                         viewport,
                     );
@@ -452,7 +452,6 @@ where
                     controls_layout,
                     cursor,
                     renderer,
-                    clipboard,
                     shell,
                     viewport,
                 );
@@ -466,7 +465,6 @@ where
                 title_layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );
@@ -536,12 +534,16 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.children();
-        let padded = children.next()?;
+        let Some(padded) = children.next() else {
+            return Vec::new();
+        };
 
         let mut children = padded.children();
-        let title_layout = children.next()?;
+        let Some(title_layout) = children.next() else {
+            return Vec::new();
+        };
 
         let Self {
             content, controls, ..
@@ -551,46 +553,54 @@ where
         let title_state = states.next().unwrap();
         let controls_state = states.next().unwrap();
 
-        content
-            .as_widget_mut()
-            .overlay(title_state, title_layout, renderer, viewport, translation)
-            .or_else(move || {
-                controls.as_mut().and_then(|controls| {
-                    let controls_layout = children.next()?;
+        let mut overlays = content.as_widget_mut().overlay(
+            title_state,
+            title_layout,
+            renderer,
+            viewport,
+            translation,
+        );
 
-                    if title_layout.bounds().width + controls_layout.bounds().width
-                        > padded.bounds().width
-                    {
-                        if let Some(compact) = controls.compact.as_mut() {
-                            let compact_state = states.next().unwrap();
-                            let compact_layout = children.next()?;
+        if let Some(controls) = controls {
+            let Some(controls_layout) = children.next() else {
+                return overlays;
+            };
 
-                            compact.as_widget_mut().overlay(
-                                compact_state,
-                                compact_layout,
-                                renderer,
-                                viewport,
-                                translation,
-                            )
-                        } else {
-                            controls.full.as_widget_mut().overlay(
-                                controls_state,
-                                controls_layout,
-                                renderer,
-                                viewport,
-                                translation,
-                            )
-                        }
-                    } else {
-                        controls.full.as_widget_mut().overlay(
-                            controls_state,
-                            controls_layout,
-                            renderer,
-                            viewport,
-                            translation,
-                        )
-                    }
-                })
-            })
+            if title_layout.bounds().width + controls_layout.bounds().width > padded.bounds().width
+            {
+                if let Some(compact) = &mut controls.compact {
+                    let compact_state = states.next().unwrap();
+                    let Some(compact_layout) = children.next() else {
+                        return overlays;
+                    };
+
+                    overlays.extend(compact.as_widget_mut().overlay(
+                        compact_state,
+                        compact_layout,
+                        renderer,
+                        viewport,
+                        translation,
+                    ));
+                } else {
+                    overlays.extend(controls.full.as_widget_mut().overlay(
+                        controls_state,
+                        controls_layout,
+                        renderer,
+                        viewport,
+                        translation,
+                    ));
+                }
+            } else {
+                overlays.extend(controls.full.as_widget_mut().overlay(
+                    controls_state,
+                    controls_layout,
+                    renderer,
+                    viewport,
+                    translation,
+                ));
+            }
+        }
+
+        overlays
     }
 }

@@ -5,7 +5,6 @@ pub mod window;
 mod engine;
 mod layer;
 mod primitive;
-mod settings;
 mod text;
 
 #[cfg(feature = "image")]
@@ -23,13 +22,12 @@ pub use iced_graphics::core;
 
 pub use layer::Layer;
 pub use primitive::Primitive;
-pub use settings::Settings;
 
 #[cfg(feature = "geometry")]
 pub use geometry::Geometry;
 
 use crate::core::renderer;
-use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
+use crate::core::{Background, Color, Font, Point, Rectangle, Size, Transformation};
 use crate::engine::Engine;
 use crate::graphics::Viewport;
 use crate::graphics::compositor;
@@ -41,17 +39,15 @@ use crate::graphics::text::{Editor, Paragraph};
 /// [`iced`]: https://github.com/iced-rs/iced
 #[derive(Debug)]
 pub struct Renderer {
-    default_font: Font,
-    default_text_size: Pixels,
+    settings: renderer::Settings,
     layers: layer::Stack,
     engine: Engine, // TODO: Shared engine
 }
 
 impl Renderer {
-    pub fn new(default_font: Font, default_text_size: Pixels) -> Self {
+    pub fn new(settings: renderer::Settings) -> Self {
         Self {
-            default_font,
-            default_text_size,
+            settings,
             layers: layer::Stack::new(),
             engine: Engine::new(),
         }
@@ -127,8 +123,7 @@ impl Renderer {
 
                     for group in &layer.primitives {
                         let Some(group_bounds) =
-                            (group.clip_bounds() * group.transformation() * scale_factor)
-                                .intersection(&layer_bounds)
+                            (group.clip_bounds() * scale_factor).intersection(&layer_bounds)
                         else {
                             continue;
                         };
@@ -138,7 +133,7 @@ impl Renderer {
                         for primitive in group.as_slice() {
                             self.engine.draw_primitive(
                                 primitive,
-                                group.transformation() * Transformation::scale(scale_factor),
+                                Transformation::scale(scale_factor) * group.transformation(),
                                 pixels,
                                 clip_mask,
                                 group_bounds,
@@ -174,7 +169,7 @@ impl Renderer {
                         for text in group.as_slice() {
                             self.engine.draw_text(
                                 text,
-                                group.transformation() * Transformation::scale(scale_factor),
+                                Transformation::scale(scale_factor) * group.transformation(),
                                 pixels,
                                 clip_mask,
                                 layer_bounds,
@@ -214,7 +209,7 @@ impl core::Renderer for Renderer {
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         _handle: &core::image::Handle,
         callback: impl FnOnce(Result<core::image::Allocation, core::image::Error>) + Send + 'static,
     ) {
@@ -227,26 +222,29 @@ impl core::Renderer for Renderer {
         callback(Err(core::image::Error::Unsupported));
     }
 
-    fn hint(&mut self, _scale_factor: f32) {
+    fn hint(&mut self, _scale: renderer::Scale) {
         // TODO: No hinting supported
         // We'll replace `tiny-skia` with `vello_cpu` soon
     }
 
-    fn scale_factor(&self) -> Option<f32> {
+    fn scale(&self) -> Option<renderer::Scale> {
         None
     }
 
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
     }
+
+    fn settings(&self) -> renderer::Settings {
+        self.settings
+    }
 }
 
 impl core::text::Renderer for Renderer {
-    type Font = Font;
     type Paragraph = Paragraph;
     type Editor = Editor;
 
-    const ICON_FONT: Font = Font::with_name("Iced-Icons");
+    const ICON_FONT: Font = Font::new("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
     const ICED_LOGO: char = '\u{e801}';
@@ -254,14 +252,6 @@ impl core::text::Renderer for Renderer {
     const SCROLL_DOWN_ICON: char = '\u{e803}';
     const SCROLL_LEFT_ICON: char = '\u{e804}';
     const SCROLL_RIGHT_ICON: char = '\u{e805}';
-
-    fn default_font(&self) -> Self::Font {
-        self.default_font
-    }
-
-    fn default_size(&self) -> Pixels {
-        self.default_text_size
-    }
 
     fn fill_paragraph(
         &mut self,
@@ -393,16 +383,13 @@ impl compositor::Default for Renderer {
 }
 
 impl renderer::Headless for Renderer {
-    async fn new(
-        default_font: Font,
-        default_text_size: Pixels,
-        backend: Option<&str>,
-    ) -> Option<Self> {
-        if backend.is_some_and(|backend| !["tiny-skia", "tiny_skia"].contains(&backend)) {
+    async fn new(settings: renderer::Settings, backend: Option<&str>) -> Option<Self> {
+        if backend.is_some_and(|backend| !["tiny-skia", "tiny_skia", "software"].contains(&backend))
+        {
             return None;
         }
 
-        Some(Self::new(default_font, default_text_size))
+        Some(Self::new(settings))
     }
 
     fn name(&self) -> String {
@@ -415,7 +402,13 @@ impl renderer::Headless for Renderer {
         scale_factor: f32,
         background_color: Color,
     ) -> Vec<u8> {
-        let viewport = Viewport::with_physical_size(size, scale_factor);
+        let viewport = Viewport::with_physical_size(
+            size,
+            renderer::Scale {
+                window: 1.0,
+                application: scale_factor,
+            },
+        );
 
         window::compositor::screenshot(self, &viewport, background_color)
     }

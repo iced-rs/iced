@@ -1,13 +1,17 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
 use crate::core::Color;
+use crate::core::backend;
+use crate::core::font;
+use crate::core::renderer;
 use crate::futures::{MaybeSend, MaybeSync};
-use crate::{Error, Settings, Shell, Viewport};
+use crate::{Shell, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 
 use std::borrow::Cow;
+use std::fmt::Debug;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
@@ -17,37 +21,23 @@ pub trait Compositor: Sized {
     /// The surface of the backend.
     type Surface;
 
-    /// Creates a new [`Compositor`].
+    /// Creates a new [`Compositor`] with the given [`backend::Settings`].
     fn new(
-        settings: Settings,
+        settings: backend::Settings,
         display: impl Display + Clone,
         compatible_window: impl Window + Clone,
         shell: Shell,
-    ) -> impl Future<Output = Result<Self, Error>> {
-        Self::with_backend(settings, display, compatible_window, shell, None)
-    }
-
-    /// Creates a new [`Compositor`] with a backend preference.
-    ///
-    /// If the backend does not match the preference, it will return
-    /// [`Error::GraphicsAdapterNotFound`].
-    fn with_backend(
-        settings: Settings,
-        display: impl Display + Clone,
-        compatible_window: impl Window + Clone,
-        shell: Shell,
-        backend: Option<&str>,
-    ) -> impl Future<Output = Result<Self, Error>>;
+    ) -> impl Future<Output = Result<Self, backend::Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
-    fn create_renderer(&self) -> Self::Renderer;
+    fn create_renderer(&self, settings: renderer::Settings) -> Self::Renderer;
 
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface<W: Window + Clone>(
+    fn create_surface(
         &mut self,
-        window: W,
+        window: impl Window + Clone,
         width: u32,
         height: u32,
     ) -> Self::Surface;
@@ -61,11 +51,27 @@ pub trait Compositor: Sized {
     fn information(&self) -> Information;
 
     /// Loads a font from its bytes.
-    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+    fn load_font(&mut self, font: Cow<'static, [u8]>) -> Result<(), font::Error> {
         crate::text::font_system()
             .write()
             .expect("Write to font system")
             .load_font(font);
+
+        // TODO: Error handling
+        Ok(())
+    }
+
+    /// Lists all the available font families.
+    fn list_fonts(&mut self) -> Result<Vec<font::Family>, font::Error> {
+        use std::collections::BTreeSet;
+
+        let font_system = crate::text::font_system()
+            .read()
+            .expect("Read from font system");
+
+        let families = BTreeSet::from_iter(font_system.families());
+
+        Ok(families.into_iter().map(font::Family::name).collect())
     }
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
@@ -97,17 +103,17 @@ pub trait Compositor: Sized {
 ///
 /// This is just a convenient super trait of the `raw-window-handle`
 /// traits.
-pub trait Window: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+pub trait Window: HasWindowHandle + Debug + MaybeSend + MaybeSync + 'static {}
 
-impl<T> Window for T where T: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+impl<T> Window for T where T: HasWindowHandle + Debug + MaybeSend + MaybeSync + 'static {}
 
 /// An owned display handle that can be used in a [`Compositor`].
 ///
 /// This is just a convenient super trait of the `raw-window-handle`
 /// trait.
-pub trait Display: HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+pub trait Display: HasDisplayHandle + Debug + Send + Sync + 'static {}
 
-impl<T> Display for T where T: HasDisplayHandle + MaybeSend + MaybeSync + 'static {}
+impl<T> Display for T where T: HasDisplayHandle + Debug + Send + Sync + 'static {}
 
 /// Defines the default compositor of a renderer.
 pub trait Default {
@@ -130,6 +136,9 @@ pub enum SurfaceError {
     /// There is no more memory left to allocate a new frame.
     #[error("There is no more memory left to allocate a new frame")]
     OutOfMemory,
+    /// The surface is occluded and must not be drawn to.
+    #[error("The surface is occluded and must not be drawn to")]
+    Occluded,
     /// Acquiring a texture failed with a generic error.
     #[error("Acquiring a texture failed with a generic error")]
     Other,
@@ -149,21 +158,20 @@ impl Compositor for () {
     type Renderer = ();
     type Surface = ();
 
-    async fn with_backend(
-        _settings: Settings,
+    async fn new(
+        _settings: backend::Settings,
         _display: impl Display,
         _compatible_window: impl Window + Clone,
         _shell: Shell,
-        _preferred_backend: Option<&str>,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, backend::Error> {
         Ok(())
     }
 
-    fn create_renderer(&self) -> Self::Renderer {}
+    fn create_renderer(&self, _settings: renderer::Settings) -> Self::Renderer {}
 
-    fn create_surface<W: Window + Clone>(
+    fn create_surface(
         &mut self,
-        _window: W,
+        _window: impl Window + Clone,
         _width: u32,
         _height: u32,
     ) -> Self::Surface {
@@ -171,7 +179,13 @@ impl Compositor for () {
 
     fn configure_surface(&mut self, _surface: &mut Self::Surface, _width: u32, _height: u32) {}
 
-    fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
+    fn load_font(&mut self, _font: Cow<'static, [u8]>) -> Result<(), font::Error> {
+        Ok(())
+    }
+
+    fn list_fonts(&mut self) -> Result<Vec<font::Family>, font::Error> {
+        Ok(Vec::new())
+    }
 
     fn information(&self) -> Information {
         Information {

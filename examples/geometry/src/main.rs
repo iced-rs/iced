@@ -1,11 +1,11 @@
 //! This example showcases a simple native custom widget that renders using
 //! arbitrary low-level geometry.
 mod rainbow {
+    use iced::advanced::Shell;
     use iced::advanced::graphics::color;
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::advanced::{Clipboard, Shell};
     use iced::mouse;
     use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
 
@@ -30,7 +30,7 @@ mod rainbow {
             _renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            let width = limits.max().width;
+            let width = limits.max.width;
 
             layout::Node::new(Size::new(width, width))
         }
@@ -42,7 +42,6 @@ mod rainbow {
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             _renderer: &Renderer,
-            _clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
             _viewport: &Rectangle,
         ) {
@@ -162,7 +161,7 @@ mod rainbow {
 }
 
 use iced::widget::{center_x, center_y, column, scrollable};
-use iced::{Element, Never};
+use iced::{Element, Fit, Never};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
@@ -183,7 +182,7 @@ fn view(_state: &()) -> Element<'_, Never> {
     ]
     .padding(20)
     .spacing(20)
-    .max_width(500);
+    .width(Fit.max(500));
 
     let scrollable = scrollable(center_x(content));
 

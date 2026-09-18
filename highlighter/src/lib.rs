@@ -1,69 +1,63 @@
 //! A syntax highlighter for iced.
 use iced_core as core;
 
-use crate::core::Color;
-use crate::core::font::{self, Font};
-use crate::core::text::highlighter::{self, Format};
+use crate::core::Code;
+use crate::core::text;
 
 use std::ops::Range;
 use std::sync::LazyLock;
 
-use syntect::highlighting;
 use syntect::parsing;
 use two_face::re_exports::syntect;
 
 static SYNTAXES: LazyLock<parsing::SyntaxSet> = LazyLock::new(two_face::syntax::extra_no_newlines);
 
-static THEMES: LazyLock<highlighting::ThemeSet> =
-    LazyLock::new(highlighting::ThemeSet::load_defaults);
-
 const LINES_PER_SNAPSHOT: usize = 50;
 
-/// A syntax highlighter.
+/// A syntax parser.
 #[derive(Debug)]
-pub struct Highlighter {
+pub struct Parser {
     syntax: &'static parsing::SyntaxReference,
-    highlighter: highlighting::Highlighter<'static>,
     caches: Vec<(parsing::ParseState, parsing::ScopeStack)>,
     current_line: usize,
 }
 
-impl highlighter::Highlighter for Highlighter {
-    type Settings = Settings;
-    type Highlight = Highlight;
+/// An iterator over the highlighted regions of a line.
+///
+/// Each item is a character range within the line, paired with
+/// the [`Code`] of the region.
+pub type CodeIterator<'a> = Box<dyn Iterator<Item = (Range<usize>, Code)> + 'a>;
 
-    type Iterator<'a> = Box<dyn Iterator<Item = (Range<usize>, Self::Highlight)> + 'a>;
-
-    fn new(settings: &Self::Settings) -> Self {
+impl Parser {
+    /// Creates a new [`Parser`] with the given [`Settings`].
+    pub fn new(settings: &Settings) -> Self {
         let syntax = SYNTAXES
             .find_syntax_by_token(&settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        let highlighter = highlighting::Highlighter::new(&THEMES.themes[settings.theme.key()]);
-
         let parser = parsing::ParseState::new(syntax);
         let stack = parsing::ScopeStack::new();
 
-        Highlighter {
+        Parser {
             syntax,
-            highlighter,
             caches: vec![(parser, stack)],
             current_line: 0,
         }
     }
 
-    fn update(&mut self, new_settings: &Self::Settings) {
+    /// Updates the parser with the given [`Settings`],
+    /// restarting it from the first line.
+    pub fn update(&mut self, new_settings: &Settings) {
         self.syntax = SYNTAXES
             .find_syntax_by_token(&new_settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        self.highlighter = highlighting::Highlighter::new(&THEMES.themes[new_settings.theme.key()]);
-
-        // Restart the highlighter
+        // Restart the parser
         self.change_line(0);
     }
 
-    fn change_line(&mut self, line: usize) {
+    /// Changes the line the parser is currently on.
+    pub fn change_line(&mut self, line: usize) {
         let snapshot = line / LINES_PER_SNAPSHOT;
 
         if snapshot <= self.caches.len() {
@@ -84,7 +78,8 @@ impl highlighter::Highlighter for Highlighter {
         self.caches.push((parser, stack));
     }
 
-    fn highlight_line(&mut self, line: &str) -> Self::Iterator<'_> {
+    /// Highlights the given line, returning a [`CodeIterator`].
+    pub fn parse_line(&mut self, line: &str) -> CodeIterator<'_> {
         if self.current_line / LINES_PER_SNAPSHOT >= self.caches.len() {
             let (parser, stack) = self.caches.last().expect("Caches must not be empty");
 
@@ -94,23 +89,48 @@ impl highlighter::Highlighter for Highlighter {
         self.current_line += 1;
 
         let (parser, stack) = self.caches.last_mut().expect("Caches must not be empty");
-
         let ops = parser.parse_line(line, &SYNTAXES).unwrap_or_default();
 
-        Box::new(scope_iterator(ops, line, stack, &self.highlighter))
+        Box::new(code_iterator(ops, line, stack))
     }
 
-    fn current_line(&self) -> usize {
+    /// Returns the line the parser is currently on.
+    pub fn current_line(&self) -> usize {
         self.current_line
     }
 }
 
-fn scope_iterator<'a>(
+impl text::Parser for Parser {
+    type Settings = Settings;
+    type Output = Code;
+    type Iterator<'a> = CodeIterator<'a>;
+
+    fn new(settings: &Self::Settings) -> Self {
+        Self::new(settings)
+    }
+
+    fn update(&mut self, new_settings: &Self::Settings) {
+        self.update(new_settings);
+    }
+
+    fn change_line(&mut self, line: usize) {
+        self.change_line(line);
+    }
+
+    fn parse_line(&mut self, line: &str) -> Self::Iterator<'_> {
+        self.parse_line(line)
+    }
+
+    fn current_line(&self) -> usize {
+        self.current_line()
+    }
+}
+
+fn code_iterator<'a>(
     ops: Vec<(usize, parsing::ScopeStackOp)>,
     line: &str,
     stack: &'a mut parsing::ScopeStack,
-    highlighter: &'a highlighting::Highlighter<'static>,
-) -> impl Iterator<Item = (Range<usize>, Highlight)> + 'a {
+) -> impl Iterator<Item = (Range<usize>, Code)> + 'a {
     ScopeRangeIterator {
         ops,
         line_length: line.len(),
@@ -123,41 +143,34 @@ fn scope_iterator<'a>(
         if range.is_empty() {
             None
         } else {
-            Some((
-                range,
-                Highlight(highlighter.style_mod_for_stack(&stack.scopes)),
-            ))
+            Some((range, scope_from_stack(&stack.scopes)))
         }
     })
 }
 
-/// A streaming syntax highlighter.
+/// A streaming syntax parser.
 ///
 /// It can efficiently highlight an immutable stream of tokens.
 #[derive(Debug)]
 pub struct Stream {
     syntax: &'static parsing::SyntaxReference,
-    highlighter: highlighting::Highlighter<'static>,
     commit: (parsing::ParseState, parsing::ScopeStack),
     state: parsing::ParseState,
     stack: parsing::ScopeStack,
 }
 
 impl Stream {
-    /// Creates a new [`Stream`] highlighter.
+    /// Creates a new [`Stream`] parser.
     pub fn new(settings: &Settings) -> Self {
         let syntax = SYNTAXES
             .find_syntax_by_token(&settings.token)
             .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
-
-        let highlighter = highlighting::Highlighter::new(&THEMES.themes[settings.theme.key()]);
 
         let state = parsing::ParseState::new(syntax);
         let stack = parsing::ScopeStack::new();
 
         Self {
             syntax,
-            highlighter,
             commit: (state.clone(), stack.clone()),
             state,
             stack,
@@ -165,15 +178,12 @@ impl Stream {
     }
 
     /// Highlights the given line from the last commit.
-    pub fn highlight_line(
-        &mut self,
-        line: &str,
-    ) -> impl Iterator<Item = (Range<usize>, Highlight)> + '_ {
+    pub fn parse_line(&mut self, line: &str) -> impl Iterator<Item = (Range<usize>, Code)> + '_ {
         self.state = self.commit.0.clone();
         self.stack = self.commit.1.clone();
 
         let ops = self.state.parse_line(line, &SYNTAXES).unwrap_or_default();
-        scope_iterator(ops, line, &mut self.stack, &self.highlighter)
+        code_iterator(ops, line, &mut self.stack)
     }
 
     /// Commits the last highlighted line.
@@ -181,7 +191,7 @@ impl Stream {
         self.commit = (self.state.clone(), self.stack.clone());
     }
 
-    /// Resets the [`Stream`] highlighter.
+    /// Resets the [`Stream`] parser.
     pub fn reset(&mut self) {
         self.state = parsing::ParseState::new(self.syntax);
         self.stack = parsing::ScopeStack::new();
@@ -189,128 +199,65 @@ impl Stream {
     }
 }
 
-/// The settings of a [`Highlighter`].
+/// The settings of a [`Parser`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
-    /// The [`Theme`] of the [`Highlighter`].
-    ///
-    /// It dictates the color scheme that will be used for highlighting.
-    pub theme: Theme,
     /// The extension of the file or the name of the language to highlight.
     ///
-    /// The [`Highlighter`] will use the token to automatically determine
+    /// The [`Parser`] will use the token to automatically determine
     /// the grammar to use for highlighting.
     pub token: String,
 }
 
-/// A highlight produced by a [`Highlighter`].
-#[derive(Debug)]
-pub struct Highlight(highlighting::StyleModifier);
+/// The scope families and their classes.
+///
+/// The families are listed most specific first, so that e.g.
+/// `entity.name.function` wins over `entity.name`.
+static FAMILIES: LazyLock<Vec<(parsing::Scope, Code)>> = LazyLock::new(|| {
+    [
+        ("meta.path", Code::Path),
+        ("invalid", Code::Invalid),
+        ("constant", Code::Constant),
+        ("string", Code::String),
+        ("comment", Code::Comment),
+        ("keyword", Code::Keyword),
+        ("storage.type.", Code::Keyword),
+        ("storage.type", Code::Type),
+        ("storage", Code::Keyword),
+        ("entity.name.function", Code::Function),
+        ("entity.name", Code::Type),
+        ("entity.other.inherited-class", Code::Type),
+        ("support", Code::Support),
+        ("variable.function", Code::Function),
+        ("variable", Code::Variable),
+        ("punctuation", Code::Punctuation),
+    ]
+    .into_iter()
+    .map(|(name, class)| {
+        (
+            parsing::Scope::new(name).expect("scope family is valid"),
+            class,
+        )
+    })
+    .collect()
+});
 
-impl Highlight {
-    /// Returns the color of this [`Highlight`].
-    ///
-    /// If `None`, the original text color should be unchanged.
-    pub fn color(&self) -> Option<Color> {
-        self.0
-            .foreground
-            .map(|color| Color::from_rgba8(color.r, color.g, color.b, color.a as f32 / 255.0))
-    }
-
-    /// Returns the font of this [`Highlight`].
-    ///
-    /// If `None`, the original font should be unchanged.
-    pub fn font(&self) -> Option<Font> {
-        self.0.font_style.and_then(|style| {
-            let bold = style.contains(highlighting::FontStyle::BOLD);
-            let italic = style.contains(highlighting::FontStyle::ITALIC);
-
-            if bold || italic {
-                Some(Font {
-                    weight: if bold {
-                        font::Weight::Bold
-                    } else {
-                        font::Weight::Normal
-                    },
-                    style: if italic {
-                        font::Style::Italic
-                    } else {
-                        font::Style::Normal
-                    },
-                    ..Font::MONOSPACE
-                })
-            } else {
-                None
+/// Classifies the scope stack of a highlighted region.
+///
+/// The stack is walked from the most specific scope (last) to the
+/// least specific (first); the first scope that matches a family
+/// determines the class. If no scope matches, the region is
+/// classified as [`Code::Other`].
+fn scope_from_stack(stack: &[parsing::Scope]) -> Code {
+    for scope in stack.iter().rev() {
+        for (family, class) in FAMILIES.iter() {
+            if family.is_prefix_of(*scope) {
+                return *class;
             }
-        })
-    }
-
-    /// Returns the [`Format`] of the [`Highlight`].
-    ///
-    /// It contains both the [`color`] and the [`font`].
-    ///
-    /// [`color`]: Self::color
-    /// [`font`]: Self::font
-    pub fn to_format(&self) -> Format<Font> {
-        Format {
-            color: self.color(),
-            font: self.font(),
-        }
-    }
-}
-
-/// A highlighting theme.
-#[allow(missing_docs)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Theme {
-    SolarizedDark,
-    Base16Mocha,
-    Base16Ocean,
-    Base16Eighties,
-    InspiredGitHub,
-}
-
-impl Theme {
-    /// A static slice containing all the available themes.
-    pub const ALL: &'static [Self] = &[
-        Self::SolarizedDark,
-        Self::Base16Mocha,
-        Self::Base16Ocean,
-        Self::Base16Eighties,
-        Self::InspiredGitHub,
-    ];
-
-    /// Returns `true` if the [`Theme`] is dark, and false otherwise.
-    pub fn is_dark(self) -> bool {
-        match self {
-            Self::SolarizedDark | Self::Base16Mocha | Self::Base16Ocean | Self::Base16Eighties => {
-                true
-            }
-            Self::InspiredGitHub => false,
         }
     }
 
-    fn key(self) -> &'static str {
-        match self {
-            Theme::SolarizedDark => "Solarized (dark)",
-            Theme::Base16Mocha => "base16-mocha.dark",
-            Theme::Base16Ocean => "base16-ocean.dark",
-            Theme::Base16Eighties => "base16-eighties.dark",
-            Theme::InspiredGitHub => "InspiredGitHub",
-        }
-    }
-}
-
-impl std::fmt::Display for Theme {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Theme::SolarizedDark => write!(f, "Solarized Dark"),
-            Theme::Base16Mocha => write!(f, "Mocha"),
-            Theme::Base16Ocean => write!(f, "Ocean"),
-            Theme::Base16Eighties => write!(f, "Eighties"),
-            Theme::InspiredGitHub => write!(f, "Inspired GitHub"),
-        }
-    }
+    Code::Other
 }
 
 struct ScopeRangeIterator {
@@ -345,5 +292,124 @@ impl Iterator for ScopeRangeIterator {
 
         self.index += 1;
         Some((range, op))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Builds a scope stack from dotted scope names.
+    fn stack(names: &[&str]) -> Vec<parsing::Scope> {
+        names
+            .iter()
+            .map(|name| parsing::Scope::new(name).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn scopes_are_classified_by_family() {
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "comment.line"])),
+            Code::Comment
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "comment.block"])),
+            Code::Comment
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "string.quoted.double"])),
+            Code::String
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "keyword.control"])),
+            Code::Keyword
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "keyword.operator"])),
+            Code::Keyword
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "storage.type"])),
+            Code::Keyword
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "constant.numeric"])),
+            Code::Constant
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "entity.name.function"])),
+            Code::Function
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "entity.name.type"])),
+            Code::Type
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "entity.other.inherited-class"])),
+            Code::Type
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "variable.parameter"])),
+            Code::Variable
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "support.function.builtin"])),
+            Code::Support
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "punctuation.definition"])),
+            Code::Punctuation
+        );
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "invalid.illegal"])),
+            Code::Invalid
+        );
+    }
+
+    #[test]
+    fn the_most_specific_scope_wins() {
+        // An escape sequence inside a string is a constant, not a string.
+        let names = [
+            "source.rust",
+            "string.quoted.double",
+            "constant.character.escape",
+        ];
+
+        assert_eq!(scope_from_stack(&stack(&names)), Code::Constant);
+
+        // A comment marker is punctuation, even inside a comment.
+        let names = [
+            "source.rust",
+            "comment.line",
+            "punctuation.definition.comment",
+        ];
+
+        assert_eq!(scope_from_stack(&stack(&names)), Code::Punctuation);
+    }
+
+    #[test]
+    fn the_walk_continues_to_shallower_scopes() {
+        // The leaf scope is unmatched, so the classification falls back
+        // to the next scope in the stack.
+        let names = ["source.rust", "string.quoted.double", "meta.embedded"];
+
+        assert_eq!(scope_from_stack(&stack(&names)), Code::String);
+    }
+
+    #[test]
+    fn unmatched_scopes_are_other() {
+        assert_eq!(scope_from_stack(&[]), Code::Other);
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "meta.function"])),
+            Code::Other
+        );
+
+        // A family must match whole scope atoms: `stringify` is not a
+        // `string`.
+        assert_eq!(
+            scope_from_stack(&stack(&["source.rust", "stringify.call"])),
+            Code::Other
+        );
     }
 }

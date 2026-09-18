@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{self, Clipboard, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
@@ -77,13 +77,13 @@ where
         }
     }
 
-    pub(super) fn diff(&self, tree: &mut Tree) {
+    pub(super) fn diff(&mut self, tree: &mut Tree) {
         if tree.children.len() == 2 {
-            if let Some(title_bar) = self.title_bar.as_ref() {
+            if let Some(title_bar) = &mut self.title_bar {
                 title_bar.diff(&mut tree.children[1]);
             }
 
-            tree.children[0].diff(&self.body);
+            tree.children[0].diff(&mut self.body);
         } else {
             *tree = self.state();
         }
@@ -157,7 +157,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         if let Some(title_bar) = &mut self.title_bar {
-            let max_size = limits.max();
+            let max_size = limits.max;
 
             let title_bar_layout = title_bar.layout(
                 &mut tree.children[1],
@@ -194,6 +194,7 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -203,6 +204,7 @@ where
             title_bar.operate(
                 &mut tree.children[1],
                 children.next().unwrap(),
+                viewport,
                 renderer,
                 operation,
             );
@@ -212,9 +214,13 @@ where
             layout
         };
 
-        self.body
-            .as_widget_mut()
-            .operate(&mut tree.children[0], body_layout, renderer, operation);
+        self.body.as_widget_mut().operate(
+            &mut tree.children[0],
+            body_layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     pub(crate) fn update(
@@ -224,7 +230,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
         is_picked: bool,
@@ -238,7 +243,6 @@ where
                 children.next().unwrap(),
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );
@@ -255,7 +259,6 @@ where
                 body_layout,
                 cursor,
                 renderer,
-                clipboard,
                 shell,
                 viewport,
             );
@@ -335,31 +338,40 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
-            let title_bar_layout = children.next()?;
+            let Some(title_bar_layout) = children.next() else {
+                return Vec::new();
+            };
+            let body_layout = children.next();
 
             let mut states = tree.children.iter_mut();
             let body_state = states.next().unwrap();
             let title_bar_state = states.next().unwrap();
 
-            match title_bar.overlay(
+            let title_bar_overlays = title_bar.overlay(
                 title_bar_state,
                 title_bar_layout,
                 renderer,
                 viewport,
                 translation,
-            ) {
-                Some(overlay) => Some(overlay),
-                None => self.body.as_widget_mut().overlay(
+            );
+
+            let body_overlays = body_layout.map(|body_layout| {
+                self.body.as_widget_mut().overlay(
                     body_state,
-                    children.next()?,
+                    body_layout,
                     renderer,
                     viewport,
                     translation,
-                ),
-            }
+                )
+            });
+
+            title_bar_overlays
+                .into_iter()
+                .chain(body_overlays.into_iter().flatten())
+                .collect()
         } else {
             self.body.as_widget_mut().overlay(
                 &mut tree.children[0],

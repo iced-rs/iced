@@ -97,7 +97,7 @@ impl Gradient {
         if self.transparent {
             theme::Style {
                 background_color: Color::TRANSPARENT,
-                text_color: theme.palette().text,
+                text_color: theme.seed().text,
             }
         } else {
             theme::default(theme)

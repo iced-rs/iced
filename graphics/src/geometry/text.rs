@@ -1,6 +1,6 @@
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Alignment, LineHeight, Paragraph, Shaping, Wrapping};
+use crate::core::text::{Alignment, Ellipsis, LineHeight, Paragraph, Shaping, Wrapping};
 use crate::core::{Color, Font, Pixels, Point, Size, Vector};
 use crate::geometry::Path;
 use crate::text;
@@ -40,6 +40,10 @@ pub struct Text {
     pub align_y: alignment::Vertical,
     /// The shaping strategy of the text.
     pub shaping: Shaping,
+    /// The wrapping strategy of the text.
+    pub wrapping: Wrapping,
+    /// The ellipsis strategy of the text.
+    pub ellipsis: Ellipsis,
 }
 
 impl Text {
@@ -56,6 +60,7 @@ impl Text {
             align_y: self.align_y,
             shaping: self.shaping,
             wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
             hint_factor: None,
         });
 
@@ -163,6 +168,8 @@ impl Default for Text {
             align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
             shaping: Shaping::default(),
+            wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
         }
     }
 }

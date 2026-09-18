@@ -115,6 +115,8 @@ impl Layer {
             align_x: text.align_x,
             align_y: text.align_y,
             shaping: text.shaping,
+            wrapping: text.wrapping,
+            ellipsis: text.ellipsis,
             clip_bounds: clip_bounds * transformation,
         };
 
@@ -249,6 +251,7 @@ impl Layer {
             .push(primitive::Instance::new(bounds, primitive));
     }
 
+    #[allow(clippy::drain_collect)] // We want to reuse `Layer` capacity
     fn flush_meshes(&mut self) {
         if !self.pending_meshes.is_empty() {
             self.triangles.push(triangle::Item::Group {
@@ -258,6 +261,7 @@ impl Layer {
         }
     }
 
+    #[allow(clippy::drain_collect)] // We want to reuse `Layer` capacity
     fn flush_text(&mut self) {
         if !self.pending_text.is_empty() {
             self.text.push(text::Item::Group {

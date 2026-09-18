@@ -1,6 +1,6 @@
 use iced::futures;
 use iced::widget::{self, center, column, image, row, text};
-use iced::{Center, Element, Fill, Right, Task};
+use iced::{Center, Element, Fill, Fit, Right, Task};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
@@ -70,7 +70,7 @@ impl Pokedex {
                 pokemon.view(),
                 button("Keep searching!").on_press(Message::Search)
             ]
-            .max_width(500)
+            .width(Fit.max(500))
             .spacing(20)
             .align_x(Right)
             .into(),

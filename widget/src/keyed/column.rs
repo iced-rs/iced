@@ -6,8 +6,8 @@ use crate::core::renderer;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size,
-    Vector, Widget,
+    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A container that distributes its contents vertically while keeping continuity.
@@ -37,7 +37,6 @@ where
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: f32,
     align_items: Alignment,
     keys: Vec<Key>,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
@@ -64,9 +63,8 @@ where
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
-            max_width: f32::INFINITY,
+            width: Length::Fit,
+            height: Length::Fit,
             align_items: Alignment::Start,
             keys,
             children,
@@ -115,12 +113,6 @@ where
         self
     }
 
-    /// Sets the maximum width of the [`Column`].
-    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
-        self.max_width = max_width.into().0;
-        self
-    }
-
     /// Sets the horizontal alignment of the contents of the [`Column`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
@@ -134,13 +126,12 @@ where
         child: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let child = child.into();
-        let child_size = child.as_widget().size_hint();
 
-        self.width = self.width.enclose(child_size.width);
-        self.height = self.height.enclose(child_size.height);
+        if !child.as_widget().is_void() {
+            self.keys.push(key);
+            self.children.push(child);
+        }
 
-        self.keys.push(key);
-        self.children.push(child);
         self
     }
 
@@ -201,11 +192,7 @@ where
         })
     }
 
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let Tree {
             state, children, ..
         } = tree;
@@ -214,8 +201,8 @@ where
 
         tree::diff_children_custom_with_search(
             children,
-            &self.children,
-            |tree, child| child.as_widget().diff(tree),
+            &mut self.children,
+            |tree, child| child.as_widget_mut().diff(tree),
             |index| {
                 self.keys.get(index).or_else(|| self.keys.last()).copied()
                     != Some(state.keys[index])
@@ -225,6 +212,15 @@ where
 
         if state.keys != self.keys {
             state.keys.clone_from(&self.keys);
+        }
+
+        if self.width.is_fit() || self.height.is_fit() {
+            for child in &self.children {
+                let size = child.as_widget().size();
+
+                self.width = self.width.cross(size.width);
+                self.height = self.height.stack(size.height);
+            }
         }
     }
 
@@ -241,15 +237,10 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .max_width(self.max_width)
-            .width(self.width)
-            .height(self.height);
-
         layout::flex::resolve(
             layout::flex::Axis::Vertical,
             renderer,
-            &limits,
+            limits,
             self.width,
             self.height,
             self.padding,
@@ -264,10 +255,11 @@ where
         &mut self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
@@ -276,7 +268,7 @@ where
                 .for_each(|((child, state), layout)| {
                     child
                         .as_widget_mut()
-                        .operate(state, layout, renderer, operation);
+                        .operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -288,7 +280,6 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
-        clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
@@ -298,9 +289,9 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
         {
-            child.as_widget_mut().update(
-                tree, event, layout, cursor, renderer, clipboard, shell, viewport,
-            );
+            child
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -354,7 +345,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
-    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
+    ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
             tree,

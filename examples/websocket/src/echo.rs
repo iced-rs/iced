@@ -37,7 +37,7 @@ pub fn connect() -> impl Sipper<Never, Event> {
                     received = websocket.select_next_some() => {
                         match received {
                             Ok(tungstenite::Message::Text(message)) => {
-                                output.send(Event::MessageReceived(Message::User(message))).await;
+                                output.send(Event::MessageReceived(Message::User(message.to_string()))).await;
                             }
                             Err(_) => {
                                 output.send(Event::Disconnected).await;
@@ -47,7 +47,7 @@ pub fn connect() -> impl Sipper<Never, Event> {
                         }
                     }
                     message = input.select_next_some() => {
-                        let result = websocket.send(tungstenite::Message::Text(message.to_string())).await;
+                        let result = websocket.send(tungstenite::Message::Text(message.to_string().into())).await;
 
                         if result.is_err() {
                             output.send(Event::Disconnected).await;

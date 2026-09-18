@@ -324,15 +324,18 @@ impl fmt::Display for Mouse {
 /// The target of an interaction.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Target {
-    /// A specific point of the viewport.
-    Point(Point),
+    /// A widget with the given identifier.
+    Id(String),
     /// A UI element containing the given text.
     Text(String),
+    /// A specific point of the viewport.
+    Point(Point),
 }
 
 impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Id(id) => f.write_str(&format::id(id)),
             Self::Point(point) => f.write_str(&format::point(*point)),
             Self::Text(text) => f.write_str(&format::string(text)),
         }
@@ -438,6 +441,10 @@ mod format {
     pub fn string(text: &str) -> String {
         format!("\"{}\"", text.escape_default())
     }
+
+    pub fn id(id: &str) -> String {
+        format!("#{id}")
+    }
 }
 
 /// A testing assertion.
@@ -468,10 +475,10 @@ mod parser {
     use nom::branch::alt;
     use nom::bytes::complete::tag;
     use nom::bytes::{is_not, take_while_m_n};
-    use nom::character::complete::{char, multispace0, multispace1};
-    use nom::combinator::{map, map_opt, map_res, opt, success, value, verify};
+    use nom::character::complete::{alphanumeric1, char, multispace0, multispace1};
+    use nom::combinator::{map, map_opt, map_res, opt, recognize, success, value, verify};
     use nom::error::ParseError;
-    use nom::multi::fold;
+    use nom::multi::{fold, many1_count};
     use nom::number::float;
     use nom::sequence::{delimited, preceded, separated_pair};
     use nom::{Finish, IResult, Parser};
@@ -539,7 +546,12 @@ mod parser {
     }
 
     fn target(input: &str) -> IResult<&str, Target> {
-        alt((string.map(Target::Text), point.map(Target::Point))).parse(input)
+        alt((
+            id.map(String::from).map(Target::Id),
+            string.map(Target::Text),
+            point.map(Target::Point),
+        ))
+        .parse(input)
     }
 
     fn mouse_button(input: &str) -> IResult<&str, mouse::Button> {
@@ -572,6 +584,14 @@ mod parser {
             map(tag("tab"), |_| Key::Tab),
             map(tag("backspace"), |_| Key::Backspace),
         ))
+        .parse(input)
+    }
+
+    fn id(input: &str) -> IResult<&str, &str> {
+        preceded(
+            char('#'),
+            recognize(many1_count(alt((alphanumeric1, tag("_"), tag("-"))))),
+        )
         .parse(input)
     }
 

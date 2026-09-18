@@ -49,7 +49,7 @@ impl Table {
             };
 
             let columns = [
-                table::column(bold("Name"), |event: &Event| text(&event.name)),
+                table::column(bold("Name"), |event: &Event| text(&event.name)).width(Fill.max(400)),
                 table::column(bold("Time"), |event: &Event| {
                     let minutes = event.duration.as_secs() / 60;
 

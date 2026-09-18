@@ -11,14 +11,13 @@ use iced_wgpu::wgpu;
 criterion_main!(benches);
 criterion_group!(benches, wgpu_benchmark);
 
-#[allow(unused_results)]
 pub fn wgpu_benchmark(c: &mut Criterion) {
     use iced_futures::futures::executor;
     use iced_wgpu::wgpu;
 
-    let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
         backends: wgpu::Backends::all(),
-        ..Default::default()
+        ..wgpu::InstanceDescriptor::new_without_display_handle()
     });
 
     let adapter = executor::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
@@ -38,35 +37,33 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
     }))
     .expect("request device");
 
-    c.bench_function("wgpu — canvas (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| scene(10));
-    });
-    c.bench_function("wgpu — canvas (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| scene(1_000));
-    });
-
-    c.bench_function("wgpu - layered text (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| layered_text(10));
-    });
-    c.bench_function("wgpu - layered text (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |_| layered_text(1_000));
-    });
-
-    c.bench_function("wgpu - dynamic text (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| dynamic_text(1_000, i));
-    });
-    c.bench_function("wgpu - dynamic text (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| dynamic_text(100_000, i));
-    });
-
-    c.bench_function("wgpu - advanced shaping (light)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| advanced_shaping(1_000, i));
-    });
-    c.bench_function("wgpu - advanced shaping (heavy)", |b| {
-        benchmark(b, &adapter, &device, &queue, |i| {
-            advanced_shaping(100_000, i)
+    let _ = c
+        .bench_function("wgpu — canvas (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| scene(10));
+        })
+        .bench_function("wgpu — canvas (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| scene(1_000));
+        })
+        .bench_function("wgpu - layered text (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| layered_text(10));
+        })
+        .bench_function("wgpu - layered text (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |_| layered_text(1_000));
+        })
+        .bench_function("wgpu - dynamic text (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| dynamic_text(1_000, i));
+        })
+        .bench_function("wgpu - dynamic text (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| dynamic_text(100_000, i));
+        })
+        .bench_function("wgpu - advanced shaping (light)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| advanced_shaping(1_000, i));
+        })
+        .bench_function("wgpu - advanced shaping (heavy)", |b| {
+            benchmark(b, &adapter, &device, &queue, |i| {
+                advanced_shaping(100_000, i)
+            });
         });
-    });
 }
 
 fn benchmark<'a>(
@@ -80,6 +77,7 @@ fn benchmark<'a>(
     use iced_wgpu::graphics::{Antialiasing, Shell};
     use iced_wgpu::wgpu;
     use iced_winit::core;
+    use iced_winit::core::renderer;
     use iced_winit::runtime;
 
     let format = wgpu::TextureFormat::Bgra8UnormSrgb;
@@ -93,9 +91,15 @@ fn benchmark<'a>(
         Shell::headless(),
     );
 
-    let mut renderer = Renderer::new(engine, Font::DEFAULT, Pixels::from(16));
+    let mut renderer = Renderer::new(engine, renderer::Settings::default());
 
-    let viewport = graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);
+    let viewport = graphics::Viewport::with_physical_size(
+        Size::new(3840, 2160),
+        renderer::Scale {
+            window: 2.0,
+            application: 1.0,
+        },
+    );
 
     let texture = device.create_texture(&wgpu::TextureDescriptor {
         label: None,
@@ -183,6 +187,8 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
                         align_x: text::Alignment::Left,
                         align_y: alignment::Vertical::Top,
                         shaping: text::Shaping::Basic,
+                        wrapping: text::Wrapping::default(),
+                        ellipsis: text::Ellipsis::default(),
                         max_width: f32::INFINITY,
                     });
                 }

@@ -416,6 +416,12 @@ impl<T> Subscription<T> {
     }
 }
 
+impl<T> Default for Subscription<T> {
+    fn default() -> Self {
+        Self::none()
+    }
+}
+
 /// Creates a [`Subscription`] from a [`Recipe`] describing it.
 pub fn from_recipe<T>(recipe: impl Recipe<Output = T> + 'static) -> Subscription<T> {
     Subscription {

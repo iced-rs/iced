@@ -67,8 +67,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Clipboard, Color, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size,
-    Theme, Widget,
+    Background, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
+    Widget,
 };
 
 /// A circular button representing a choice.
@@ -129,10 +129,9 @@ use crate::core::{
 ///     column![a, b, c, all].into()
 /// }
 /// ```
-pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Radio<'a, Message, Theme = crate::Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     is_selected: bool,
     on_click: Message,
@@ -141,19 +140,18 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
-    text_wrapping: text::Wrapping,
-    font: Option<Renderer::Font>,
+    line_height: Option<text::LineHeight>,
+    shaping: text::Shaping,
+    wrapping: text::Wrapping,
+    font: Option<Font>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
 }
 
-impl<'a, Message, Theme, Renderer> Radio<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme> Radio<'a, Message, Theme>
 where
     Message: Clone,
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// The default size of a [`Radio`] button.
     pub const DEFAULT_SIZE: f32 = 16.0;
@@ -182,9 +180,9 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
-            text_line_height: text::LineHeight::default(),
-            text_shaping: text::Shaping::default(),
-            text_wrapping: text::Wrapping::default(),
+            line_height: None,
+            shaping: text::Shaping::default(),
+            wrapping: text::Wrapping::default(),
             font: None,
             class: Theme::default(),
             last_status: None,
@@ -216,25 +214,25 @@ where
     }
 
     /// Sets the text [`text::LineHeight`] of the [`Radio`] button.
-    pub fn text_line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
-        self.text_line_height = line_height.into();
+    pub fn line_height(mut self, line_height: impl Into<text::LineHeight>) -> Self {
+        self.line_height = Some(line_height.into());
         self
     }
 
     /// Sets the [`text::Shaping`] strategy of the [`Radio`] button.
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.text_shaping = shaping;
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
         self
     }
 
     /// Sets the [`text::Wrapping`] strategy of the [`Radio`] button.
-    pub fn text_wrapping(mut self, wrapping: text::Wrapping) -> Self {
-        self.text_wrapping = wrapping;
+    pub fn wrapping(mut self, wrapping: text::Wrapping) -> Self {
+        self.wrapping = wrapping;
         self
     }
 
     /// Sets the text font of the [`Radio`] button.
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+    pub fn font(mut self, font: impl Into<Font>) -> Self {
         self.font = Some(font.into());
         self
     }
@@ -258,8 +256,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Radio<'_, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Radio<'_, Message, Theme>
 where
     Message: Clone,
     Theme: Catalog,
@@ -303,13 +300,14 @@ where
                     widget::text::Format {
                         width: self.width,
                         height: Length::Shrink,
-                        line_height: self.text_line_height,
+                        line_height: self.line_height,
                         size: self.text_size,
                         font: self.font,
                         align_x: text::Alignment::Default,
                         align_y: alignment::Vertical::Top,
-                        shaping: self.text_shaping,
-                        wrapping: self.text_wrapping,
+                        shaping: self.shaping,
+                        wrapping: self.wrapping,
+                        ellipsis: text::Ellipsis::default(),
                     },
                 )
             },
@@ -323,17 +321,16 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
-        _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if cursor.is_over(layout.bounds()) {
-                    shell.publish(self.on_click.clone());
-                    shell.capture_event();
-                }
+            | Event::Touch(touch::Event::FingerPressed { .. })
+                if cursor.is_over(layout.bounds()) =>
+            {
+                shell.publish(self.on_click.clone());
+                shell.capture_event();
             }
             _ => {}
         }
@@ -448,14 +445,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
     Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
 {
-    fn from(radio: Radio<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(radio: Radio<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(radio)
     }
 }
@@ -519,7 +516,7 @@ impl Catalog for Theme {
 
 /// The default style of a [`Radio`] button.
 pub fn default(theme: &Theme, status: Status) -> Style {
-    let palette = theme.extended_palette();
+    let palette = theme.palette();
 
     let active = Style {
         background: Color::TRANSPARENT.into(),
