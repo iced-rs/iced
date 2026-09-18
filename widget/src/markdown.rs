@@ -55,7 +55,7 @@ use crate::core::padding;
 use crate::core::text::LineHeight;
 use crate::core::theme;
 use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme};
-use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
+use crate::{center_x, checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
@@ -2094,12 +2094,14 @@ where
     .padding_y(settings.spacing.0 / 2.0)
     .separator_x(0);
 
-    scrollable(table)
-        .direction(scrollable::Direction::Horizontal(
-            scrollable::Scrollbar::default(),
-        ))
-        .spacing(settings.spacing.0 / 2.0)
-        .into()
+    center_x(
+        scrollable(table)
+            .direction(scrollable::Direction::Horizontal(
+                scrollable::Scrollbar::default(),
+            ))
+            .spacing(settings.spacing.0 / 2.0),
+    )
+    .into()
 }
 
 /// Displays a column of items with the default look.
