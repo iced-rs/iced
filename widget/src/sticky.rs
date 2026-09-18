@@ -220,13 +220,12 @@ where
             && !bounds.is_within(viewport)
             && parent.intersects(viewport)
         {
-            let viewport = *viewport + translation;
-
             let position = {
                 let scale_factor = renderer.hint_factor().unwrap_or(1.0);
                 let translation = translation.hint(scale_factor);
-                let bounds = bounds.hint(scale_factor) + translation;
-                let parent = parent.hint(scale_factor) + translation;
+                let viewport = (*viewport + translation).hint(scale_factor);
+                let bounds = (bounds + translation).hint(scale_factor);
+                let parent = (parent + translation).hint(scale_factor);
 
                 Point::new(
                     stuck_axis(
@@ -246,6 +245,7 @@ where
                 )
             };
 
+            let viewport = *viewport + translation;
             let bounds = Rectangle::new(position, bounds.size());
 
             vec![overlay::Element::new(Box::new(Overlay {
