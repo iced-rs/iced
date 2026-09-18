@@ -220,32 +220,39 @@ where
             && !bounds.is_within(viewport)
             && parent.intersects(viewport)
         {
-            let position = Point::new(
-                stuck_axis(
-                    bounds.x,
-                    bounds.width,
-                    viewport.x,
-                    viewport.width,
-                    (parent.x, parent.x + parent.width),
-                ),
-                stuck_axis(
-                    bounds.y,
-                    bounds.height,
-                    viewport.y,
-                    viewport.height,
-                    (parent.y, parent.y + parent.height),
-                ),
-            );
+            let viewport = *viewport + translation;
 
-            let layout = layout.move_to(position + translation);
+            let position = {
+                let scale_factor = renderer.hint_factor().unwrap_or(1.0);
+                let translation = translation.hint(scale_factor);
+                let bounds = bounds.hint(scale_factor) + translation;
+                let parent = parent.hint(scale_factor) + translation;
+
+                Point::new(
+                    stuck_axis(
+                        bounds.x,
+                        bounds.width,
+                        viewport.x,
+                        viewport.width,
+                        (parent.x, parent.x + parent.width),
+                    ),
+                    stuck_axis(
+                        bounds.y,
+                        bounds.height,
+                        viewport.y,
+                        viewport.height,
+                        (parent.y, parent.y + parent.height),
+                    ),
+                )
+            };
+
             let bounds = Rectangle::new(position, bounds.size());
-            let viewport = bounds.intersection(viewport).unwrap_or(bounds) + translation;
 
             vec![overlay::Element::new(Box::new(Overlay {
                 content: &mut self.content,
                 tree,
-                layout,
-                viewport,
+                layout: layout.move_to(position),
+                viewport: bounds.intersection(&viewport).unwrap_or(bounds),
             }))]
         } else {
             self.content
