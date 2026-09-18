@@ -44,7 +44,7 @@ use crate::core::shell;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
-use crate::core::{Point, Renderer, Size};
+use crate::core::{Color, Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
 use crate::futures::futures::task;
@@ -127,7 +127,6 @@ where
 
     let (event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, control_receiver) = mpsc::unbounded();
-    let (system_theme_sender, system_theme_receiver) = oneshot::channel();
 
     let instance: std::pin::Pin<Box<dyn Future<Output = ()>>> = Box::pin(run_instance::<P>(
         program,
@@ -140,7 +139,6 @@ where
         backend_settings,
         renderer_settings,
         settings.fonts,
-        system_theme_receiver,
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
@@ -152,7 +150,6 @@ where
         sender: mpsc::UnboundedSender<Event<Action<Message>>>,
         receiver: mpsc::UnboundedReceiver<Control>,
         error: Option<Error>,
-        system_theme: Option<oneshot::Sender<theme::Mode>>,
 
         #[cfg(target_arch = "wasm32")]
         canvas: Option<web_sys::HtmlCanvasElement>,
@@ -165,7 +162,6 @@ where
         sender: event_sender,
         receiver: control_receiver,
         error: None,
-        system_theme: Some(system_theme_sender),
 
         #[cfg(target_arch = "wasm32")]
         canvas: None,
@@ -174,16 +170,7 @@ where
     boot_span.finish();
 
     impl<Message> winit::application::ApplicationHandler<Action<Message>> for Runner<Message> {
-        fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-            if let Some(sender) = self.system_theme.take() {
-                let _ = sender.send(
-                    event_loop
-                        .system_theme()
-                        .map(conversion::theme_mode)
-                        .unwrap_or_default(),
-                );
-            }
-        }
+        fn resumed(&mut self, _event_loop: &winit::event_loop::ActiveEventLoop) {}
 
         fn new_events(
             &mut self,
@@ -474,7 +461,6 @@ async fn run_instance<P>(
     backend_settings: backend::Settings,
     mut renderer_settings: renderer::Settings,
     default_fonts: Vec<Cow<'static, [u8]>>,
-    mut _system_theme: oneshot::Receiver<theme::Mode>,
 ) where
     P: Program + 'static,
     P::Theme: theme::Base,
@@ -494,39 +480,61 @@ async fn run_instance<P>(
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::new();
 
-    #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
-    let mut system_theme = {
+    #[cfg(feature = "system-theme-detection")]
+    let (mut system_theme, mut system_accent_color) = {
         let to_mode = |color_scheme| match color_scheme {
             mundy::ColorScheme::NoPreference => theme::Mode::None,
             mundy::ColorScheme::Light => theme::Mode::Light,
             mundy::ColorScheme::Dark => theme::Mode::Dark,
         };
 
-        runtime.run(
-            mundy::Preferences::stream(mundy::Interest::ColorScheme)
-                .map(move |preferences| {
+        let to_color = |accent_color: mundy::AccentColor| {
+            accent_color.0.map(|color| {
+                Color::from_rgba(
+                    color.red as f32,
+                    color.green as f32,
+                    color.blue as f32,
+                    color.alpha as f32,
+                )
+            })
+        };
+
+        let interest = mundy::Interest::ColorScheme | mundy::Interest::AccentColor;
+
+        // `mundy` deduplicates its stream, but a single item may carry a
+        // change in either preference; we notify both and let the runtime
+        // discard the one that did not actually change.
+        runtime.run(crate::futures::boxed_stream(
+            mundy::Preferences::stream(interest).flat_map(move |preferences| {
+                crate::futures::futures::stream::iter([
                     Action::System(system::Action::NotifyTheme(to_mode(
                         preferences.color_scheme,
-                    )))
-                })
-                .boxed(),
-        );
+                    ))),
+                    Action::System(system::Action::NotifyAccentColor(to_color(
+                        preferences.accent_color,
+                    ))),
+                ])
+            }),
+        ));
 
         runtime
             .enter(|| {
-                mundy::Preferences::once_blocking(
-                    mundy::Interest::ColorScheme,
-                    core::time::Duration::from_millis(200),
+                mundy::Preferences::once_blocking(interest, core::time::Duration::from_millis(200))
+            })
+            .map(|preferences| {
+                (
+                    to_mode(preferences.color_scheme),
+                    to_color(preferences.accent_color),
                 )
             })
-            .map(|preferences| to_mode(preferences.color_scheme))
             .unwrap_or_default()
     };
 
-    #[cfg(not(all(feature = "linux-theme-detection", target_os = "linux")))]
-    let mut system_theme = _system_theme.try_recv().ok().flatten().unwrap_or_default();
+    #[cfg(not(feature = "system-theme-detection"))]
+    let (mut system_theme, mut system_accent_color) = (theme::Mode::None, None::<Color>);
 
     log::info!("System theme: {system_theme:?}");
+    log::info!("System accent color: {system_accent_color:?}");
 
     'next_event: loop {
         // Empty the queue if possible
@@ -609,17 +617,6 @@ async fn run_instance<P>(
                             continue;
                         }
                     }
-                }
-
-                let window_theme = window
-                    .theme()
-                    .map(conversion::theme_mode)
-                    .unwrap_or_default();
-
-                if system_theme != window_theme {
-                    system_theme = window_theme;
-
-                    runtime.broadcast(subscription::Event::SystemThemeChanged(window_theme));
                 }
 
                 let is_first = window_manager.is_empty();
@@ -730,6 +727,7 @@ async fn run_instance<P>(
                             &mut ui_caches,
                             &mut is_window_opening,
                             &mut system_theme,
+                            &mut system_accent_color,
                             &mut renderer_settings,
                         );
                         actions += 1;
@@ -852,6 +850,7 @@ async fn run_instance<P>(
                                         &mut ui_caches,
                                         &mut is_window_opening,
                                         &mut system_theme,
+                                        &mut system_accent_color,
                                         &mut renderer_settings,
                                     );
                                 }
@@ -1012,16 +1011,6 @@ async fn run_instance<P>(
                             | winit::event::WindowEvent::Occluded(false) => {
                                 window.raw.request_redraw();
                             }
-                            winit::event::WindowEvent::ThemeChanged(theme) => {
-                                let mode = conversion::theme_mode(theme);
-
-                                if mode != system_theme {
-                                    system_theme = mode;
-
-                                    runtime
-                                        .broadcast(subscription::Event::SystemThemeChanged(mode));
-                                }
-                            }
                             _ => {}
                         }
 
@@ -1043,10 +1032,11 @@ async fn run_instance<P>(
                                 &mut ui_caches,
                                 &mut is_window_opening,
                                 &mut system_theme,
+                                &mut system_accent_color,
                                 &mut renderer_settings,
                             );
                         } else {
-                            window.state.update(&program, &window.raw, &window_event);
+                            window.state.update(&window.raw, &window_event);
 
                             if let Some(event) = conversion::window_event(
                                 window_event,
@@ -1176,6 +1166,7 @@ async fn run_instance<P>(
                                     &mut ui_caches,
                                     &mut is_window_opening,
                                     &mut system_theme,
+                                    &mut system_accent_color,
                                     &mut renderer_settings,
                                 );
                             }
@@ -1295,6 +1286,7 @@ fn run_action<'a, P, C>(
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
     is_window_opening: &mut bool,
     system_theme: &mut theme::Mode,
+    system_accent_color: &mut Option<Color>,
     renderer_settings: &mut renderer::Settings,
 ) where
     P: Program,
@@ -1634,18 +1626,20 @@ fn run_action<'a, P, C>(
                     *system_theme = mode;
 
                     runtime.broadcast(subscription::Event::SystemThemeChanged(mode));
+
+                    for (_id, window) in window_manager.iter_mut() {
+                        window.state.update_system_theme(program, &window.raw, mode);
+                    }
                 }
+            }
+            system::Action::GetAccentColor(channel) => {
+                let _ = channel.send(*system_accent_color);
+            }
+            system::Action::NotifyAccentColor(color) => {
+                if color != *system_accent_color {
+                    *system_accent_color = color;
 
-                let Some(theme) = conversion::window_theme(mode) else {
-                    return;
-                };
-
-                for (_id, window) in window_manager.iter_mut() {
-                    window.state.update(
-                        program,
-                        &window.raw,
-                        &winit::event::WindowEvent::ThemeChanged(theme),
-                    );
+                    runtime.broadcast(subscription::Event::SystemAccentColorChanged(color));
                 }
             }
         },

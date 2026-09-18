@@ -38,6 +38,7 @@ where
             ..
         }
         | subscription::Event::SystemThemeChanged(_)
+        | subscription::Event::SystemAccentColorChanged(_)
         | subscription::Event::PlatformSpecific(_) => None,
         subscription::Event::Interaction {
             window,
@@ -67,9 +68,9 @@ where
             event,
             status,
         } => f(event, status, window),
-        subscription::Event::SystemThemeChanged(_) | subscription::Event::PlatformSpecific(_) => {
-            None
-        }
+        subscription::Event::SystemThemeChanged(_)
+        | subscription::Event::SystemAccentColorChanged(_)
+        | subscription::Event::PlatformSpecific(_) => None,
     })
 }
 

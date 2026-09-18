@@ -3,6 +3,7 @@ mod tracker;
 
 pub use tracker::Tracker;
 
+use crate::core::Color;
 use crate::core::event;
 use crate::core::theme;
 use crate::core::window;
@@ -30,6 +31,11 @@ pub enum Event {
 
     /// The system theme has changed.
     SystemThemeChanged(theme::Mode),
+
+    /// The system accent color has changed.
+    ///
+    /// `None` means the system has no accent color preference.
+    SystemAccentColorChanged(Option<Color>),
 
     /// A platform specific event.
     PlatformSpecific(PlatformSpecific),
