@@ -41,6 +41,17 @@ use crate::core::{
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
+/// The distance (in logical pixels) scrolled per wheel line.
+///
+/// Chromium scrolls a fixed 120 CSS pixels per classic wheel notch,
+/// independent of the page's line height: the OS delta is normalized to
+/// 120 units (`ui::MouseWheelEvent::kWheelDelta`) and passed through 1:1.
+///
+/// This value assumes the platform reports one line per notch (e.g. X11).
+/// On platforms that report three lines per notch, `40.0` (Chromium's
+/// `cc::kPixelsPerLineStep`) is the equivalent value.
+const WHEEL_PX_PER_LINE: f32 = 120.0;
+
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 ///
@@ -247,9 +258,10 @@ where
     /// moving the [`Scrollable`] immediately.
     ///
     /// When enabled, discrete scrolls (e.g. from a mouse wheel) move a target
-    /// scroll offset, and the [`Scrollable`] eases towards it over a few
-    /// frames. High-precision scrolls (e.g. from a touchpad), which are already
-    /// smooth, are always applied immediately.
+    /// scroll offset — carrying the momentum of the wheel notches — and the
+    /// [`Scrollable`] eases towards it over a few frames. High-precision
+    /// scrolls (e.g. from a touchpad), which are already smooth, are always
+    /// applied immediately.
     ///
     /// By default, it is enabled.
     pub fn smooth_scroll(mut self, smooth_scroll: bool) -> Self {
@@ -858,12 +870,7 @@ where
                                 Vector::new(y, x)
                             };
 
-                            (
-                                -movement
-                                    * 4.0
-                                    * renderer.line_height().to_absolute(renderer.text_size()).0,
-                                true,
-                            )
+                            (-movement * WHEEL_PX_PER_LINE, true)
                         }
                         // Pixel deltas (e.g. from high-precision touchpads) are
                         // already smooth, so scrolling them immediately avoids
@@ -874,7 +881,7 @@ where
                     let delta = self.direction.align(delta);
 
                     if self.smooth_scroll && is_lines {
-                        state.scroll_smoothly(delta, bounds, content_bounds);
+                        state.scroll_smoothly(delta, bounds, content_bounds, Instant::now());
                     } else {
                         state.scroll(delta, bounds, content_bounds);
                     }
@@ -1569,6 +1576,10 @@ struct State {
     offset_y: Offset,
     offset_x: Offset,
     target: Option<Vector>,
+    segment_start: Point,
+    segment_started: Option<Instant>,
+    segment_duration: f32,
+    segment_slope: f32,
     last_frame: Option<Instant>,
     interaction: Interaction,
     keyboard_modifiers: keyboard::Modifiers,
@@ -1598,6 +1609,10 @@ impl Default for State {
             offset_y: Offset::Absolute(0.0),
             offset_x: Offset::Absolute(0.0),
             target: None,
+            segment_start: Point::ORIGIN,
+            segment_started: None,
+            segment_duration: 0.0,
+            segment_slope: 0.0,
             last_frame: None,
             interaction: Interaction::None,
             keyboard_modifiers: keyboard::Modifiers::default(),
@@ -1706,23 +1721,55 @@ impl Viewport {
 }
 
 impl State {
-    /// The time constant of the smooth scrolling animation, in seconds.
-    ///
-    /// The exponential approach covers ~95% of the distance to the target
-    /// after `3 * SMOOTH_SCROLL_TIME_CONSTANT` seconds; the final stretch is
-    /// then covered at [`Self::SMOOTH_SCROLL_MIN_SPEED`].
-    const SMOOTH_SCROLL_TIME_CONSTANT: f32 = 0.05;
+    // The smooth scrolling behavior below (the easing curve, the animation
+    // durations, and the velocity-preserving retargeting) is derived from
+    // the Chromium project's wheel scroll animation
+    // (`cc/animation/scroll_offset_animation_curve.{h,cc}`), which is
+    // licensed under the BSD 3-Clause license:
+    // <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
 
-    /// The minimum speed of the smooth scrolling animation, in pixels per
-    /// second.
+    /// The control points of the smooth scrolling easing curve.
     ///
-    /// The final stretch of the scroll glides at this constant speed, so the
-    /// animation stops abruptly instead of creeping towards the target.
-    const SMOOTH_SCROLL_MIN_SPEED: f32 = 400.0;
+    /// This is the standard ease-in-out cubic bezier, as used by Chromium for
+    /// wheel scrolling: the scroll starts from rest, peaks mid-way, and
+    /// settles on the target at rest.
+    const SMOOTH_SCROLL_BEZIER_X1: f32 = 0.42;
+    const SMOOTH_SCROLL_BEZIER_X2: f32 = 0.58;
 
-    /// The distance (in pixels) from the target at which smooth scrolling is
-    /// considered settled.
-    const SMOOTH_SCROLL_EPSILON: f32 = 0.2;
+    /// The divisor of the smooth scrolling animation duration, matching
+    /// Chromium's.
+    const SMOOTH_SCROLL_DURATION_DIVISOR: f32 = 60.0;
+
+    /// The distances (in pixels) at which the smooth scrolling duration ramp
+    /// starts and ends.
+    ///
+    /// `SMOOTH_SCROLL_DURATION_RAMP_END` matches Chromium's.
+    /// `SMOOTH_SCROLL_DURATION_RAMP_START` is halved from Chromium's `120.0`
+    /// for a snappier feel: the full (soft) duration only applies to very
+    /// short scrolls, and the ramp down to the snappiest duration is steeper.
+    const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = 60.0;
+    const SMOOTH_SCROLL_DURATION_RAMP_END: f32 = 480.0;
+
+    /// The shortest and longest smooth scrolling animation durations, in
+    /// `SMOOTH_SCROLL_DURATION_DIVISOR` units, matching Chromium's.
+    ///
+    /// The duration is *inversely* proportional to the distance within these
+    /// bounds: short scrolls get a longer (softer) animation, while long
+    /// scrolls get a shorter (snappier) one.
+    const SMOOTH_SCROLL_DURATION_MIN: f32 = 6.0;
+    const SMOOTH_SCROLL_DURATION_MAX: f32 = 12.0;
+
+    /// The factor applied to the time it would take to cover the new distance
+    /// at the current velocity when retargeting a running animation, matching
+    /// Chromium's.
+    ///
+    /// Bounding the new duration by this keeps a fast scroll from "rubber
+    /// banding" when a small new delta is added at high velocity.
+    const SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND: f32 = 2.5;
+
+    /// The clamp for the initial slope of a retargeted animation, matching
+    /// Chromium's.
+    const SMOOTH_SCROLL_SLOPE_CLAMP: f32 = 1000.0;
 
     fn new() -> Self {
         State::default()
@@ -1748,77 +1795,157 @@ impl State {
 
     /// Moves the *target* scroll offset by `delta`, for smooth scrolling.
     ///
-    /// The actual offsets are eased towards the target on each frame, via
-    /// [`State::step`].
+    /// The target is then eased towards on each frame, via [`State::step`],
+    /// with an ease-in-out animation whose duration depends on the distance:
+    /// short scrolls get a longer (softer) animation, while long scrolls get a
+    /// shorter (snappier) one. When a new delta arrives while an animation is
+    /// running, the animation is retargeted from the current position and
+    /// velocity, so that continuous scrolling flows instead of restarting.
     fn scroll_smoothly(
         &mut self,
         delta: Vector<f32>,
         bounds: Rectangle,
         content_bounds: Rectangle,
+        now: Instant,
     ) {
         // Materialize any snapped (relative) offsets before animating from them
         self.unsnap(bounds, content_bounds);
 
-        let current_x = self.offset_x.absolute(bounds.width, content_bounds.width);
-        let current_y = self.offset_y.absolute(bounds.height, content_bounds.height);
+        let current = Point::new(
+            self.offset_x.absolute(bounds.width, content_bounds.width),
+            self.offset_y.absolute(bounds.height, content_bounds.height),
+        );
 
         // Accumulate onto the pending target, if any, so that quick wheel
         // movements do not lose their (not yet scrolled) distance
-        let (x, y) = match self.target {
-            Some(target) => (
+        let target = match self.target {
+            Some(target) => Vector::new(
                 Self::clamp_offset(target.x + delta.x, bounds.width, content_bounds.width),
                 Self::clamp_offset(target.y + delta.y, bounds.height, content_bounds.height),
             ),
-            None => (
-                Self::clamp_offset(current_x + delta.x, bounds.width, content_bounds.width),
-                Self::clamp_offset(current_y + delta.y, bounds.height, content_bounds.height),
+            None => Vector::new(
+                Self::clamp_offset(current.x + delta.x, bounds.width, content_bounds.width),
+                Self::clamp_offset(current.y + delta.y, bounds.height, content_bounds.height),
             ),
         };
 
         // Nothing to animate: the content fits, or we're already at the target
-        if x == current_x && y == current_y {
+        if target.x == current.x && target.y == current.y {
             self.target = None;
             self.last_frame = None;
-        } else {
-            if self.target.is_none() {
-                self.last_frame = Some(Instant::now());
-            }
-
-            self.target = Some(Vector::new(x, y));
+            return;
         }
+
+        let Some(ongoing) = self.target else {
+            // A new scroll run: start a fresh segment from rest at the
+            // current position
+            let distance = (target.x - current.x)
+                .abs()
+                .max((target.y - current.y).abs());
+
+            self.target = Some(target);
+            self.segment_start = current;
+            self.segment_started = Some(now);
+            self.segment_duration = Self::smooth_scroll_duration(distance);
+            self.segment_slope = 0.0;
+            self.last_frame = Some(now);
+            return;
+        };
+
+        // The delta was clamped away: the target is unchanged, so keep the
+        // running segment as is
+        if ongoing == target {
+            return;
+        }
+
+        // Retarget the running segment from the current position, preserving
+        // the current velocity
+        let start = self.animated_position(now);
+        let velocity = self.animated_velocity(now);
+        let new = Vector::new(target.x - start.x, target.y - start.y);
+
+        // The signed dimension with the largest magnitude, like Chromium's
+        let max_dimension = if new.x.abs() > new.y.abs() {
+            new.x
+        } else {
+            new.y
+        };
+
+        // The new duration, bounded so that a small delta added at high
+        // velocity does not "rubber band"; a bound with the wrong sign means
+        // the new delta is against the current motion, and does not apply
+        let mut duration = Self::smooth_scroll_duration(max_dimension.abs());
+        if velocity.abs() > 0.01 {
+            let bound = Self::SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND * max_dimension / velocity;
+
+            if bound > 0.0 {
+                duration = duration.min(bound);
+            }
+        }
+
+        if max_dimension.abs() < 0.01 || duration < 0.01 {
+            // The new target is right on top of us: end the animation now
+            self.offset_x = Offset::Absolute(target.x);
+            self.offset_y = Offset::Absolute(target.y);
+            self.target = None;
+            self.last_frame = None;
+            return;
+        }
+
+        // Adjust the initial slope of the new segment so that it starts with
+        // the current velocity
+        let slope = (velocity * (duration / max_dimension)).clamp(
+            -Self::SMOOTH_SCROLL_SLOPE_CLAMP,
+            Self::SMOOTH_SCROLL_SLOPE_CLAMP,
+        );
+
+        self.target = Some(target);
+        self.segment_start = start;
+        self.segment_started = Some(now);
+        self.segment_duration = duration;
+        self.segment_slope = slope;
+        self.last_frame = Some(now);
     }
 
-    /// Steps the smooth scrolling animation forward, towards the target offset.
+    /// Steps the smooth scrolling animation forward, towards the target
+    /// offset.
     ///
     /// Returns `true` if the animation is still in progress.
     fn step(&mut self, now: Instant, bounds: Rectangle, content_bounds: Rectangle) -> bool {
         let Some(target) = self.target else {
             return false;
         };
+        let Some(started) = self.segment_started else {
+            return false;
+        };
 
-        let dt = (now - self.last_frame.unwrap_or(now)).as_secs_f32();
-        self.last_frame = Some(now);
+        // Clamp the target in case the bounds changed while the animation is
+        // running
+        let target = Vector::new(
+            Self::clamp_offset(target.x, bounds.width, content_bounds.width),
+            Self::clamp_offset(target.y, bounds.height, content_bounds.height),
+        );
 
-        let x_target = Self::clamp_offset(target.x, bounds.width, content_bounds.width);
-        let y_target = Self::clamp_offset(target.y, bounds.height, content_bounds.height);
+        let t = (now - started).as_secs_f32();
+        let progress = (t / self.segment_duration).clamp(0.0, 1.0);
 
-        let x = self.offset_x.absolute(bounds.width, content_bounds.width);
-        let y = self.offset_y.absolute(bounds.height, content_bounds.height);
-
-        let (x, x_settled) = Self::approach(x, x_target, dt);
-        let (y, y_settled) = Self::approach(y, y_target, dt);
-
-        self.offset_x = Offset::Absolute(x);
-        self.offset_y = Offset::Absolute(y);
-
-        if x_settled && y_settled {
+        if progress >= 1.0 {
+            // Settled exactly on the target
+            self.offset_x = Offset::Absolute(target.x);
+            self.offset_y = Offset::Absolute(target.y);
             self.target = None;
             self.last_frame = None;
-
-            false
-        } else {
-            true
+            return false;
         }
+
+        let bez = Self::smooth_scroll_progress(progress, self.segment_slope);
+        self.offset_x =
+            Offset::Absolute(self.segment_start.x + (target.x - self.segment_start.x) * bez);
+        self.offset_y =
+            Offset::Absolute(self.segment_start.y + (target.y - self.segment_start.y) * bez);
+
+        self.last_frame = Some(now);
+        true
     }
 
     /// Cancels any in-progress smooth scrolling animation, keeping the current
@@ -1842,33 +1969,134 @@ impl State {
         }
     }
 
-    /// Moves `current` towards `target` over the given time step.
-    ///
-    /// This uses an exponential approach, floored at a minimum speed so that
-    /// the final stretch glides into the target at a constant speed instead
-    /// of creeping towards it.
-    ///
-    /// Returns the new position and whether it has settled on the target.
-    fn approach(current: f32, target: f32, dt: f32) -> (f32, bool) {
-        let remaining = target - current;
+    /// The animated position at `now`, while a segment is running.
+    fn animated_position(&self, now: Instant) -> Point {
+        let started = self.segment_started.expect("a segment is running");
+        let target = self.target.expect("a segment is running");
 
-        // Exponential speed, floored at a minimum: the glide starts at a
-        // distance of `SMOOTH_SCROLL_TIME_CONSTANT * SMOOTH_SCROLL_MIN_SPEED`
-        // from the target
-        let speed = remaining.signum()
-            * (remaining.abs() / Self::SMOOTH_SCROLL_TIME_CONSTANT)
-                .max(Self::SMOOTH_SCROLL_MIN_SPEED);
+        let t = (now - started).as_secs_f32();
+        let progress = (t / self.segment_duration).clamp(0.0, 1.0);
+        let bez = Self::smooth_scroll_progress(progress, self.segment_slope);
 
-        dbg!(speed);
+        Point::new(
+            self.segment_start.x + (target.x - self.segment_start.x) * bez,
+            self.segment_start.y + (target.y - self.segment_start.y) * bez,
+        )
+    }
 
-        // Monotonic: never overshoot the target
-        let next = (current + speed * dt).clamp(current.min(target), current.max(target));
+    /// The animated velocity at `now`, in pixels per second along the
+    /// segment's largest dimension, while a segment is running.
+    fn animated_velocity(&self, now: Instant) -> f32 {
+        let started = self.segment_started.expect("a segment is running");
+        let target = self.target.expect("a segment is running");
 
-        if (target - next).abs() < Self::SMOOTH_SCROLL_EPSILON {
-            (target, true)
-        } else {
-            (next, false)
+        let t = (now - started).as_secs_f32();
+        let progress = (t / self.segment_duration).clamp(0.0, 1.0);
+
+        if progress >= 1.0 {
+            return 0.0;
         }
+
+        let dx = target.x - self.segment_start.x;
+        let dy = target.y - self.segment_start.y;
+        let max_dimension = if dx.abs() > dy.abs() { dx } else { dy };
+
+        Self::smooth_scroll_curve_slope(progress, self.segment_slope) * max_dimension
+            / self.segment_duration
+    }
+
+    /// The duration (in seconds) of a smooth scrolling segment covering the
+    /// given distance (in pixels).
+    ///
+    /// The duration is inversely proportional to the distance within a ramp:
+    /// short scrolls get a longer (softer) animation, while long scrolls get a
+    /// shorter (snappier) one.
+    fn smooth_scroll_duration(distance: f32) -> f32 {
+        let slope = (Self::SMOOTH_SCROLL_DURATION_MIN - Self::SMOOTH_SCROLL_DURATION_MAX)
+            / (Self::SMOOTH_SCROLL_DURATION_RAMP_END - Self::SMOOTH_SCROLL_DURATION_RAMP_START);
+        let offset =
+            Self::SMOOTH_SCROLL_DURATION_MAX - Self::SMOOTH_SCROLL_DURATION_RAMP_START * slope;
+
+        (offset + distance * slope).clamp(
+            Self::SMOOTH_SCROLL_DURATION_MIN,
+            Self::SMOOTH_SCROLL_DURATION_MAX,
+        ) / Self::SMOOTH_SCROLL_DURATION_DIVISOR
+    }
+
+    /// The progress of the smooth scrolling easing curve at the given time
+    /// progress (in `[0, 1]`), with the given initial slope.
+    ///
+    /// The curve is an ease-in-out cubic bezier whose initial control point is
+    /// scaled by `slope` (a slope of `0.0` is the plain ease-in-out curve).
+    fn smooth_scroll_progress(time: f32, slope: f32) -> f32 {
+        if time <= 0.0 {
+            return 0.0;
+        }
+
+        if time >= 1.0 {
+            return 1.0;
+        }
+
+        let s = Self::bezier_solve(time);
+        let y1 = Self::SMOOTH_SCROLL_BEZIER_X1 * slope;
+        let os = 1.0 - s;
+
+        // y(s), with y2 = 1
+        3.0 * y1 * s * os * os + 3.0 * s * s * os + s * s * s
+    }
+
+    /// The slope of the smooth scrolling easing curve (dy/dx) at the given
+    /// time progress (in `[0, 1]`), with the given initial slope.
+    fn smooth_scroll_curve_slope(time: f32, slope: f32) -> f32 {
+        let s = if time <= 0.0 {
+            0.0
+        } else if time >= 1.0 {
+            1.0
+        } else {
+            Self::bezier_solve(time)
+        };
+
+        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+        let y1 = x1 * slope;
+        let os = 1.0 - s;
+
+        // x'(s) and y'(s), with y2 = 1
+        let x_prime =
+            3.0 * x1 * os * (1.0 - 3.0 * s) + 3.0 * x2 * s * (2.0 - 3.0 * s) + 3.0 * s * s;
+        let y_prime = 3.0 * y1 * os * (1.0 - 3.0 * s) + 3.0 * s * (2.0 - 3.0 * s) + 3.0 * s * s;
+
+        y_prime / x_prime
+    }
+
+    /// Solves `x(s) = time` for `s` in `[0, 1]`, for the smooth scrolling
+    /// bezier's x-axis.
+    ///
+    /// The x-axis is strictly increasing for the control points used here, so
+    /// bisection converges unconditionally.
+    fn bezier_solve(time: f32) -> f32 {
+        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+
+        let x = |s: f32| {
+            let os = 1.0 - s;
+            3.0 * x1 * s * os * os + 3.0 * x2 * s * s * os + s * s * s
+        };
+
+        let mut low = 0.0;
+        let mut high = 1.0;
+
+        for _ in 0..40 {
+            let mid = (low + high) / 2.0;
+
+            if x(mid) < time {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+
+        (low + high) / 2.0
     }
 
     fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
@@ -2485,12 +2713,24 @@ mod tests {
         )
     }
 
+    /// The total distance (in pixels) scrolled by a two-line wheel event.
+    ///
+    /// Each line moves [`WHEEL_PX_PER_LINE`] pixels.
+    fn two_lines() -> f32 {
+        2.0 * WHEEL_PX_PER_LINE
+    }
+
     #[test]
     fn smooth_scroll_settles_on_target() {
         let mut state = State::new();
         let (bounds, content_bounds) = bounds();
 
-        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+        state.scroll_smoothly(
+            Vector::new(0.0, 120.0),
+            bounds,
+            content_bounds,
+            Instant::now(),
+        );
 
         let Some(last_frame) = state.last_frame else {
             panic!("smooth scroll must be scheduled");
@@ -2538,20 +2778,18 @@ mod tests {
         let mut state = State::new();
         let (bounds, content_bounds) = bounds();
 
-        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+        let mut now = Instant::now();
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds, now);
 
         // A few frames in...
-        let mut now = state.last_frame.unwrap();
-
         for _ in 0..3 {
             now += Duration::from_millis(16);
             let _ = state.step(now, bounds, content_bounds);
         }
 
         // ...a new wheel movement must add to the pending target, not replace it
-        state.scroll_smoothly(Vector::new(0.0, 60.0), bounds, content_bounds);
+        state.scroll_smoothly(Vector::new(0.0, 60.0), bounds, content_bounds, now);
 
-        let mut now = state.last_frame.unwrap();
         let mut offset = state
             .offset_y
             .absolute(bounds.height, content_bounds.height);
@@ -2579,65 +2817,110 @@ mod tests {
     }
 
     #[test]
-    fn smooth_scroll_glide_keeps_constant_speed_near_target() {
+    fn smooth_scroll_duration_scales_inversely_with_distance() {
+        // The expected durations are derived from the current ramp constants
+        // (60px - 480px, 12 - 6 divisor units), with a small tolerance for
+        // floating point
+        fn approx(actual: f32, expected: f32) {
+            assert!(
+                (actual - expected).abs() < 1e-5,
+                "expected {expected}, got {actual}"
+            );
+        }
+
+        // Short scrolls get the longest (softer) animation
+        approx(State::smooth_scroll_duration(0.0), 0.2);
+        approx(State::smooth_scroll_duration(60.0), 0.2);
+
+        // ...the duration ramps down linearly...
+        approx(State::smooth_scroll_duration(300.0), 1.0 / 7.0);
+
+        // ...until it reaches the shortest (snappiest) animation
+        approx(State::smooth_scroll_duration(480.0), 0.1);
+        approx(State::smooth_scroll_duration(600.0), 0.1);
+    }
+
+    #[test]
+    fn smooth_scroll_retar_get_preserves_velocity() {
         let mut state = State::new();
         let (bounds, content_bounds) = bounds();
 
-        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+        let mut now = Instant::now();
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds, now);
 
-        let mut now = state.last_frame.unwrap();
-
-        // Advance until the scroll is within the constant-speed glide region
-        loop {
+        // A few frames in...
+        for _ in 0..3 {
             now += Duration::from_millis(16);
-
-            let settling = state.step(now, bounds, content_bounds);
-            let offset = state
-                .offset_y
-                .absolute(bounds.height, content_bounds.height);
-
-            if settling
-                || offset
-                    > 120.0 - State::SMOOTH_SCROLL_TIME_CONSTANT * State::SMOOTH_SCROLL_MIN_SPEED
-            {
-                break;
-            }
+            let _ = state.step(now, bounds, content_bounds);
         }
 
-        // The animation must not have settled before the glide
-        assert!(state.target.is_some());
+        let old_velocity = state.animated_velocity(now);
 
-        // Each subsequent frame covers the same distance...
-        let mut distances = Vec::new();
-        let mut offset = state
+        // ...a new wheel movement retargets the animation...
+        state.scroll_smoothly(Vector::new(0.0, 60.0), bounds, content_bounds, now);
+
+        // ...and the new segment must start with the old segment's velocity
+        let target = state.target.unwrap();
+        let dx = target.x - state.segment_start.x;
+        let dy = target.y - state.segment_start.y;
+        let max_dimension = if dx.abs() > dy.abs() { dx } else { dy };
+        let new_velocity = state.segment_slope * max_dimension / state.segment_duration;
+
+        assert!(
+            (new_velocity - old_velocity).abs() < 1.0,
+            "expected the retarget to preserve the velocity of ~{old_velocity}px/s, \
+             got ~{new_velocity}px/s"
+        );
+    }
+
+    #[test]
+    fn smooth_scroll_reversal_carries_momentum() {
+        let mut state = State::new();
+        let (bounds, content_bounds) = bounds();
+
+        // Scrolling down...
+        let mut now = Instant::now();
+        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds, now);
+
+        for _ in 0..3 {
+            now += Duration::from_millis(16);
+            let _ = state.step(now, bounds, content_bounds);
+        }
+
+        // ...and then the user scrolls back up past the current position
+        state.scroll_smoothly(Vector::new(0.0, -120.0), bounds, content_bounds, now);
+
+        let retarget = state
             .offset_y
             .absolute(bounds.height, content_bounds.height);
 
-        loop {
+        // The new segment must keep moving down (carrying the previous
+        // momentum) before it turns up
+        now += Duration::from_millis(16);
+        let _ = state.step(now, bounds, content_bounds);
+        let after = state
+            .offset_y
+            .absolute(bounds.height, content_bounds.height);
+
+        assert!(
+            after > retarget,
+            "expected the reversal to carry the previous momentum (from {retarget} \
+             to {after})"
+        );
+
+        // ...and it settles exactly on the new target
+        while state.target.is_some() {
             now += Duration::from_millis(16);
 
-            let settling = state.step(now, bounds, content_bounds);
-            let new_offset = state
+            let _ = state.step(now, bounds, content_bounds);
+        }
+
+        assert_eq!(
+            state
                 .offset_y
-                .absolute(bounds.height, content_bounds.height);
-
-            distances.push(new_offset - offset);
-            offset = new_offset;
-
-            if settling {
-                break;
-            }
-        }
-
-        // ...except for the final snap to the exact target
-        let expected = State::SMOOTH_SCROLL_MIN_SPEED * Duration::from_millis(16).as_secs_f32();
-
-        for distance in &distances[..distances.len() - 1] {
-            assert!(
-                (*distance - expected).abs() < 0.1,
-                "expected a constant glide of ~{expected}px per frame, got {distance}"
-            );
-        }
+                .absolute(bounds.height, content_bounds.height),
+            0.0
+        );
     }
 
     #[test]
@@ -2645,7 +2928,12 @@ mod tests {
         let mut state = State::new();
         let (bounds, content_bounds) = bounds();
 
-        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+        state.scroll_smoothly(
+            Vector::new(0.0, 120.0),
+            bounds,
+            content_bounds,
+            Instant::now(),
+        );
         assert!(state.target.is_some());
 
         state.scroll(Vector::new(0.0, 50.0), bounds, content_bounds);
@@ -2664,7 +2952,12 @@ mod tests {
         let bounds = Rectangle::new(Point::ORIGIN, Size::new(1000.0, 1000.0));
         let content_bounds = Rectangle::new(Point::ORIGIN, Size::new(100.0, 100.0));
 
-        state.scroll_smoothly(Vector::new(0.0, 120.0), bounds, content_bounds);
+        state.scroll_smoothly(
+            Vector::new(0.0, 120.0),
+            bounds,
+            content_bounds,
+            Instant::now(),
+        );
 
         assert!(state.target.is_none());
         assert!(state.last_frame.is_none());
@@ -2717,12 +3010,12 @@ mod tests {
             "expected multiple intermediate offsets, got: {offsets:?}"
         );
         assert!(
-            *offsets.get(1).unwrap() < 60.0,
+            *offsets.get(1).unwrap() < two_lines() / 2.0,
             "scrolling should not jump instantly: {offsets:?}"
         );
 
-        // ... and it must have settled exactly on the target (2 lines * 60px)
-        assert_eq!(offsets.last(), Some(&120.0));
+        // ... and it must have settled exactly on the target (two lines)
+        assert_eq!(offsets.last(), Some(&two_lines()));
     }
 
     #[test]
@@ -2747,7 +3040,7 @@ mod tests {
             .map(|viewport| viewport.absolute_offset().y)
             .collect();
 
-        assert_eq!(offsets, [120.0]);
+        assert_eq!(offsets, [two_lines()]);
     }
 
     #[test]
