@@ -61,6 +61,7 @@
 //!     }
 //! }
 //! ```
+use crate::cloneable::Emit;
 use crate::core::alignment;
 use crate::core::keyboard;
 use crate::core::layout;
@@ -154,8 +155,8 @@ where
     options: L,
     to_string: Box<dyn Fn(&T) -> String + 'a>,
     on_select: Option<Box<dyn Fn(T) -> Message + 'a>>,
-    on_open: Option<Message>,
-    on_close: Option<Message>,
+    on_open: Option<Emit<'a, Message>>,
+    on_close: Option<Emit<'a, Message>>,
     placeholder: Option<String>,
     selected: Option<V>,
     width: Length,
@@ -177,7 +178,6 @@ where
     T: PartialEq + Clone,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
-    Message: Clone,
     Theme: Catalog,
 {
     /// Creates a new [`PickList`] with the given list of options, the current
@@ -273,14 +273,38 @@ where
     }
 
     /// Sets the message that will be produced when the [`PickList`] is opened.
-    pub fn on_open(mut self, on_open: Message) -> Self {
-        self.on_open = Some(on_open);
+    pub fn on_open(mut self, on_open: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_open = Some(Emit::direct(on_open));
+        self
+    }
+
+    /// Sets the message that will be produced when the [`PickList`] is opened.
+    ///
+    /// This is analogous to [`PickList::on_open`], but using a closure to produce
+    /// the message, bypassing the need for `Message: Clone`.
+    pub fn on_open_with(mut self, on_open: impl Fn() -> Message + 'a) -> Self {
+        self.on_open = Some(Emit::closure(on_open));
         self
     }
 
     /// Sets the message that will be produced when the [`PickList`] is closed.
-    pub fn on_close(mut self, on_close: Message) -> Self {
-        self.on_close = Some(on_close);
+    pub fn on_close(mut self, on_close: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_close = Some(Emit::direct(on_close));
+        self
+    }
+
+    /// Sets the message that will be produced when the [`PickList`] is closed.
+    ///
+    /// This is analogous to [`PickList::on_close`], but using a closure to produce
+    /// the message, bypassing the need for `Message: Clone`.
+    pub fn on_close_with(mut self, on_close: impl Fn() -> Message + 'a) -> Self {
+        self.on_close = Some(Emit::closure(on_close));
         self
     }
 
@@ -327,7 +351,7 @@ where
     T: Clone + PartialEq + 'a,
     L: Borrow<[T]>,
     V: Borrow<T>,
-    Message: Clone + 'a,
+    Message: 'a,
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
@@ -447,7 +471,7 @@ where
                     state.is_open = false;
 
                     if let Some(on_close) = &self.on_close {
-                        shell.publish(on_close.clone());
+                        shell.publish(on_close.get());
                     }
 
                     shell.capture_event();
@@ -462,7 +486,7 @@ where
                         .position(|option| Some(option) == selected);
 
                     if let Some(on_open) = &self.on_open {
-                        shell.publish(on_open.clone());
+                        shell.publish(on_open.get());
                     }
 
                     shell.capture_event();
@@ -770,7 +794,7 @@ where
     T: Clone + PartialEq + 'a,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
-    Message: Clone + 'a,
+    Message: 'a,
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {

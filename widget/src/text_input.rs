@@ -30,6 +30,7 @@
 //!     }
 //! }
 //! ```
+use crate::cloneable::Emit;
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
@@ -97,7 +98,7 @@ where
     multiline: Option<text::Wrapping>,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
-    on_submit: Option<Message>,
+    on_submit: Option<Emit<'a, Message>>,
     class: Theme::Class<'a>,
     last_status: Option<Status>,
 }
@@ -107,7 +108,6 @@ pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
 
 impl<'a, Message, Theme> TextInput<'a, Message, Theme>
 where
-    Message: Clone,
     Theme: Catalog,
 {
     /// Creates a new [`TextInput`] with the given placeholder and
@@ -169,15 +169,31 @@ where
 
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed.
-    pub fn on_submit(mut self, message: Message) -> Self {
-        self.on_submit = Some(message);
+    pub fn on_submit(mut self, message: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_submit = Some(Emit::direct(message));
         self
     }
 
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed, if `Some`.
-    pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self {
-        self.on_submit = on_submit;
+    pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_submit = on_submit.map(Emit::direct);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// focused and the enter key is pressed.
+    ///
+    /// This is analogous to [`TextInput::on_submit`], but using a closure to produce
+    /// the message, bypassing the need for `Message: Clone`.
+    pub fn on_submit_with(mut self, on_submit: impl Fn() -> Message + 'a) -> Self {
+        self.on_submit = Some(Emit::closure(on_submit));
         self
     }
 
@@ -261,7 +277,6 @@ where
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TextInput<'_, Message, Theme>
 where
-    Message: Clone,
     Theme: Catalog,
     Renderer: text::Renderer + 'static,
 {
@@ -352,7 +367,7 @@ where
                         && key_press.modified_key
                             == keyboard::Key::Named(keyboard::key::Named::Enter)
                     {
-                        return Some(editor::Binding::Custom(on_submit.clone()));
+                        return Some(editor::Binding::Custom(on_submit.get()));
                     }
 
                     editor::Binding::from_key_press(key_press)
@@ -458,7 +473,7 @@ where
 impl<'a, Message, Theme, Renderer> From<TextInput<'a, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: Clone + 'a,
+    Message: 'a,
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'static,
 {

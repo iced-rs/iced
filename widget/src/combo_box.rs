@@ -54,6 +54,7 @@
 //!     }
 //! }
 //! ```
+use crate::cloneable::Emit;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -145,8 +146,8 @@ where
     font: Option<Font>,
     on_selected: Box<dyn Fn(T) -> Message + 'a>,
     on_option_hovered: Option<Box<dyn Fn(T) -> Message + 'a>>,
-    on_open: Option<Message>,
-    on_close: Option<Message>,
+    on_open: Option<Emit<'a, Message>>,
+    on_close: Option<Emit<'a, Message>>,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     padding: Padding,
     size: Option<Pixels>,
@@ -218,15 +219,41 @@ where
 
     /// Sets the message that will be produced when the  [`ComboBox`] is
     /// opened.
-    pub fn on_open(mut self, message: Message) -> Self {
-        self.on_open = Some(message);
+    pub fn on_open(mut self, message: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_open = Some(Emit::direct(message));
+        self
+    }
+
+    /// Sets the message that will be produced when the  [`ComboBox`] is
+    /// opened.
+    ///
+    /// This is analogous to [`ComboBox::on_open`], but using a closure to produce
+    /// the message, bypassing the need for `Message: Clone`.
+    pub fn on_open_with(mut self, message: impl Fn() -> Message + 'a) -> Self {
+        self.on_open = Some(Emit::closure(message));
         self
     }
 
     /// Sets the message that will be produced when the outside area
     /// of the [`ComboBox`] is pressed.
-    pub fn on_close(mut self, message: Message) -> Self {
-        self.on_close = Some(message);
+    pub fn on_close(mut self, message: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_close = Some(Emit::direct(message));
+        self
+    }
+
+    /// Sets the message that will be produced when the outside area
+    /// of the [`ComboBox`] is pressed.
+    ///
+    /// This is analogous to [`ComboBox::on_close`], but using a closure to produce
+    /// the message, bypassing the need for `Message: Clone`.
+    pub fn on_close_with(mut self, message: impl Fn() -> Message + 'a) -> Self {
+        self.on_close = Some(Emit::closure(message));
         self
     }
 
@@ -406,7 +433,6 @@ impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for ComboBox<'_, T, Message, Theme>
 where
     T: Display + Clone + 'static,
-    Message: Clone,
     Theme: Catalog,
     Renderer: text::Renderer + 'static,
 {
@@ -598,12 +624,12 @@ where
 
         if was_focused != is_focused {
             if is_focused {
-                if let Some(on_open) = self.on_open.take() {
-                    shell.publish(on_open);
+                if let Some(on_open) = &self.on_open {
+                    shell.publish(on_open.get());
                 }
-            } else if let Some(on_close) = self.on_close.take() {
+            } else if let Some(on_close) = &self.on_close {
                 internal.editor.input.overwrite(&self.selection);
-                shell.publish(on_close);
+                shell.publish(on_close.get());
             }
         }
 
@@ -774,7 +800,7 @@ impl<'a, T, Message, Theme, Renderer> From<ComboBox<'a, T, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
-    Message: Clone + 'a,
+    Message: 'a,
     Theme: Catalog + 'a,
     Renderer: text::Renderer + 'static,
 {
