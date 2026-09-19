@@ -2,6 +2,8 @@
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/master/runtime
+#[cfg(feature = "gamepad")]
+use crate::core::gamepad;
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
@@ -80,7 +82,7 @@ pub fn window_attributes(
         target_os = "openbsd"
     ))]
     {
-        use ::winit::platform::wayland::WindowAttributesExtWayland;
+        use winit::platform::wayland::WindowAttributesExtWayland;
 
         if let Some(id) = _id {
             attributes = attributes.with_name(id.clone(), id);
@@ -306,6 +308,78 @@ pub fn window_event(
             Some(Event::Window(window::Event::Rescaled(scale_factor as f32)))
         }
         _ => None,
+    }
+}
+
+/// Converts a [`gilrs`] gamepad event into an [`gamepad`] event.
+#[cfg(feature = "gamepad")]
+pub fn gamepad_event(event: gilrs::Event) -> Option<gamepad::Event> {
+    use gilrs::EventType;
+
+    match event.event {
+        EventType::Connected => Some(gamepad::Event::Connected(event.id)),
+        EventType::Disconnected => Some(gamepad::Event::Disconnected(event.id)),
+        EventType::ButtonPressed(button, _) => Some(gamepad::Event::ButtonPressed {
+            id: event.id,
+            button: gamepad_button(button),
+            repeat: false,
+        }),
+        EventType::ButtonRepeated(button, _) => Some(gamepad::Event::ButtonPressed {
+            id: event.id,
+            button: gamepad_button(button),
+            repeat: true,
+        }),
+        EventType::ButtonReleased(button, _) => Some(gamepad::Event::ButtonReleased {
+            id: event.id,
+            button: gamepad_button(button),
+        }),
+        EventType::ButtonChanged(button, value, _) => Some(gamepad::Event::ButtonChanged {
+            id: event.id,
+            button: gamepad_button(button),
+            value,
+        }),
+        EventType::AxisChanged(axis, value, _) => {
+            let (thumbstick, axis) = match axis {
+                gilrs::Axis::LeftStickX => (gamepad::Thumbstick::Left, gamepad::Axis::Horizontal),
+                gilrs::Axis::LeftStickY => (gamepad::Thumbstick::Left, gamepad::Axis::Vertical),
+                gilrs::Axis::RightStickX => (gamepad::Thumbstick::Right, gamepad::Axis::Horizontal),
+                gilrs::Axis::RightStickY => (gamepad::Thumbstick::Right, gamepad::Axis::Vertical),
+                _ => return None,
+            };
+
+            Some(gamepad::Event::AxisChanged {
+                id: event.id,
+                thumbstick,
+                axis,
+                value,
+            })
+        }
+        _ => None,
+    }
+}
+
+#[cfg(feature = "gamepad")]
+fn gamepad_button(value: gilrs::Button) -> gamepad::Button {
+    use gilrs::Button;
+
+    match value {
+        Button::South => gamepad::Button::South,
+        Button::East => gamepad::Button::East,
+        Button::North => gamepad::Button::North,
+        Button::West => gamepad::Button::West,
+        Button::LeftTrigger => gamepad::Button::LeftShoulder,
+        Button::LeftTrigger2 => gamepad::Button::LeftTrigger,
+        Button::RightTrigger => gamepad::Button::RightShoulder,
+        Button::RightTrigger2 => gamepad::Button::RightTrigger,
+        Button::LeftThumb => gamepad::Button::LeftThumb,
+        Button::RightThumb => gamepad::Button::RightThumb,
+        Button::DPadUp => gamepad::Button::DPadUp,
+        Button::DPadDown => gamepad::Button::DPadDown,
+        Button::DPadLeft => gamepad::Button::DPadLeft,
+        Button::DPadRight => gamepad::Button::DPadRight,
+        Button::Select => gamepad::Button::Select,
+        Button::Start => gamepad::Button::Start,
+        _ => gamepad::Button::Unknown,
     }
 }
 
