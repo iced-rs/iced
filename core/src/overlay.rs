@@ -1,9 +1,9 @@
 //! Display interactive elements on top of other widgets.
 mod element;
-mod nested;
+mod group;
 
 pub use element::Element;
-pub use nested::Nested;
+pub use group::Group;
 
 use crate::mouse;
 use crate::renderer;

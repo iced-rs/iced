@@ -208,7 +208,7 @@ where
             self.bounds,
         );
 
-        let mut maybe_overlay = (!overlay.is_empty()).then(|| overlay::Nested::new(overlay));
+        let mut maybe_overlay = (!overlay.is_empty()).then(|| overlay::Group::new(overlay));
 
         let (base_cursor, overlay_statuses, overlay_interaction) = if maybe_overlay.is_some() {
             let mut overlay = maybe_overlay.as_mut().unwrap();
@@ -256,7 +256,7 @@ where
                             self.bounds,
                         );
 
-                        (!overlay.is_empty()).then(|| overlay::Nested::new(overlay))
+                        (!overlay.is_empty()).then(|| overlay::Group::new(overlay))
                     };
 
                     if maybe_overlay.is_none() {
@@ -358,7 +358,7 @@ where
                     );
 
                     if !overlay.is_empty() {
-                        let mut overlay = overlay::Nested::new(overlay);
+                        let mut overlay = overlay::Group::new(overlay);
 
                         self.overlay = Some(overlay.mouse_interaction(cursor, renderer));
                     }
@@ -521,7 +521,7 @@ where
         );
 
         if !overlay.is_empty() {
-            let mut overlay = overlay::Nested::new(overlay);
+            let mut overlay = overlay::Group::new(overlay);
 
             overlay.draw(renderer, theme, style, cursor);
         }
@@ -551,7 +551,7 @@ where
         );
 
         if !overlay.is_empty() {
-            let mut overlay = overlay::Nested::new(overlay);
+            let mut overlay = overlay::Group::new(overlay);
 
             overlay.operate(renderer, operation);
         }

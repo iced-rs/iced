@@ -6,7 +6,7 @@ use crate::widget;
 use crate::{Event, Shell};
 
 /// A container of nested overlays.
-pub struct Nested<'a, Message, Theme, Renderer> {
+pub struct Group<'a, Message, Theme, Renderer> {
     children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
 }
 
@@ -25,11 +25,11 @@ fn sort_overlays<'a, Message, Theme, Renderer>(
     });
 }
 
-impl<'a, Message, Theme, Renderer> Nested<'a, Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Group<'a, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
 {
-    /// Creates a [`Nested`] container for the given overlays.
+    /// Creates a [`Group`] container for the given overlays.
     ///
     /// The overlays are sorted by their
     /// [`index`](crate::Overlay::index).
@@ -39,7 +39,7 @@ where
         Self { children }
     }
 
-    /// Draws the [`Nested`] overlay using the associated `Renderer`.
+    /// Draws the [`Group`] overlay using the associated `Renderer`.
     pub fn draw(
         &mut self,
         renderer: &mut Renderer,
@@ -62,7 +62,7 @@ where
                     let nested = element.as_overlay_mut().overlay(renderer);
 
                     !nested.is_empty()
-                        && Nested::new(nested)
+                        && Group::new(nested)
                             .mouse_interaction(mouse::Cursor::Available(cursor_position), renderer)
                             != mouse::Interaction::None
                 });
@@ -91,7 +91,7 @@ where
         recurse(&mut self.children, renderer, theme, style, cursor);
     }
 
-    /// Applies a [`widget::Operation`] to the [`Nested`] overlay.
+    /// Applies a [`widget::Operation`] to the [`Group`] overlay.
     pub fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         fn recurse<Message, Theme, Renderer>(
             children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
@@ -186,7 +186,7 @@ where
         let _ = recurse(&mut self.children, event, cursor, renderer, shell);
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`Nested`] overlay.
+    /// Returns the current [`mouse::Interaction`] of the [`Group`] overlay.
     pub fn mouse_interaction(
         &mut self,
         cursor: mouse::Cursor,
