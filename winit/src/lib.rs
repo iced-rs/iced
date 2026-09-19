@@ -974,13 +974,36 @@ async fn run_instance<P>(
 
                                     // Do nothing and wait for window to become visible again
                                 }
-                                _ => {
+                                compositor::SurfaceError::Timeout => {
                                     present_span.finish();
 
-                                    log::warn!("Error {error:?} when presenting surface.");
+                                    window.raw.request_redraw();
+                                }
+                                compositor::SurfaceError::Other => {
+                                    present_span.finish();
 
-                                    // Try rendering all windows again next frame.
-                                    for (_id, window) in window_manager.iter_mut() {
+                                    // Recreate at most once a second, and do not
+                                    // request a redraw in between, so a surface
+                                    // that keeps failing cannot spin the loop.
+                                    let due = window.last_surface_recreate.is_none_or(|at| {
+                                        at.elapsed() > core::time::Duration::from_secs(1)
+                                    });
+
+                                    if due {
+                                        window.last_surface_recreate = Some(Instant::now());
+
+                                        log::warn!(
+                                            "Error {error:?} when presenting surface. Recreating it."
+                                        );
+
+                                        let physical_size = window.state.physical_size();
+
+                                        window.surface = current_compositor.create_surface(
+                                            window.raw.clone(),
+                                            physical_size.width,
+                                            physical_size.height,
+                                        );
+
                                         window.raw.request_redraw();
                                     }
                                 }
