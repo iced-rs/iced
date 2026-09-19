@@ -356,7 +356,7 @@ where
                 | Event::Touch(touch::Event::FingerMoved { .. })
                     if state.is_dragging =>
                 {
-                    let _ = cursor.land().position().and_then(locate).map(change);
+                    let _ = cursor.observe().position().and_then(locate).map(change);
 
                     shell.capture_event();
                 }

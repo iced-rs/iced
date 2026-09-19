@@ -7,7 +7,15 @@ pub enum Cursor {
     Available(Point),
 
     /// The cursor has a defined position, but it's levitating over a layer above.
+    ///
+    /// You can [`land`](Self::land) and [`observe`](Self::observe) it safely,
+    /// and make it [`Available`](Self::Available) again.
     Levitating(Point),
+
+    /// The cursor has a defined position, but it's obstructed by a layer above.
+    ///
+    /// It cannot [`land`](Self::land), but you can [`observe`](Self::observe) it from below.
+    Obstructed(Point),
 
     /// The cursor is currently unavailable (i.e. out of bounds or busy).
     #[default]
@@ -19,7 +27,7 @@ impl Cursor {
     pub fn position(self) -> Option<Point> {
         match self {
             Cursor::Available(position) => Some(position),
-            Cursor::Levitating(_) | Cursor::Unavailable => None,
+            Cursor::Levitating(_) | Cursor::Obstructed(_) | Cursor::Unavailable => None,
         }
     }
 
@@ -66,10 +74,28 @@ impl Cursor {
         }
     }
 
-    /// Brings the [`Cursor`] back to the current layer.
+    /// Makes the [`Cursor`] obstructed over a layer above.
+    pub fn obstruct(self) -> Self {
+        match self {
+            Self::Available(position) => Self::Obstructed(position),
+            _ => self,
+        }
+    }
+
+    /// If the [`Cursor`] is levitating, it makes it available again.
     pub fn land(self) -> Self {
         match self {
             Cursor::Levitating(position) => Cursor::Available(position),
+            _ => self,
+        }
+    }
+
+    /// If the [`Cursor`] is either levitating or obstructed, it makes it available again.
+    pub fn observe(self) -> Self {
+        match self {
+            Cursor::Obstructed(position) | Cursor::Levitating(position) => {
+                Cursor::Available(position)
+            }
             _ => self,
         }
     }
@@ -82,6 +108,7 @@ impl std::ops::Add<Vector> for Cursor {
         match self {
             Cursor::Available(point) => Cursor::Available(point + translation),
             Cursor::Levitating(point) => Cursor::Levitating(point + translation),
+            Cursor::Obstructed(point) => Cursor::Obstructed(point + translation),
             Cursor::Unavailable => Cursor::Unavailable,
         }
     }
@@ -94,6 +121,7 @@ impl std::ops::Sub<Vector> for Cursor {
         match self {
             Cursor::Available(point) => Cursor::Available(point - translation),
             Cursor::Levitating(point) => Cursor::Levitating(point - translation),
+            Cursor::Obstructed(point) => Cursor::Obstructed(point - translation),
             Cursor::Unavailable => Cursor::Unavailable,
         }
     }
@@ -106,6 +134,7 @@ impl std::ops::Mul<Transformation> for Cursor {
         match self {
             Self::Available(position) => Self::Available(position * transformation),
             Self::Levitating(position) => Self::Levitating(position * transformation),
+            Self::Obstructed(position) => Self::Obstructed(position * transformation),
             Self::Unavailable => Self::Unavailable,
         }
     }

@@ -755,7 +755,7 @@ where
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) = cursor.land().position() else {
+                            let Some(cursor_position) = cursor.observe().position() else {
                                 return;
                             };
 
@@ -816,7 +816,7 @@ where
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.land().position() else {
+                        let Some(cursor_position) = cursor.observe().position() else {
                             return;
                         };
 
@@ -901,7 +901,7 @@ where
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
-                    _ => cursor.levitate() + translation,
+                    _ => cursor.obstruct() + translation,
                 };
 
                 let had_input_method = shell.input_method().is_enabled();
@@ -944,7 +944,7 @@ where
 
             match event {
                 Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                    if cursor_over_scrollable.is_none() {
+                    if !cursor.land().is_over(bounds) {
                         return;
                     }
 
@@ -1150,7 +1150,7 @@ where
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => cursor.levitate() + translation,
+            _ => cursor.obstruct() + translation,
         };
 
         let style = theme.style(
@@ -1300,7 +1300,7 @@ where
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => cursor.levitate() + translation,
+            _ => cursor.obstruct() + translation,
         };
 
         self.content.as_widget().mouse_interaction(

@@ -174,7 +174,14 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
-        let is_stuck = !layout.bounds().is_within(viewport);
+        let is_stuck = if let Some(parent) = layout.parent()
+            && parent.intersects(viewport)
+            && !layout.bounds().is_within(viewport)
+        {
+            true
+        } else {
+            false
+        };
 
         if is_stuck != state.is_stuck {
             state.is_stuck = is_stuck;
@@ -257,10 +264,10 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
         let parent = layout.parent();
+        let state = tree.state.downcast_ref::<State>();
 
         if let Some(parent) = parent
-            && !bounds.is_within(viewport)
-            && parent.intersects(viewport)
+            && state.is_stuck
         {
             let position = {
                 let scale_factor = renderer.hint_factor().unwrap_or(1.0);
