@@ -198,8 +198,10 @@ where
         statuses
     }
 
-    /// Draws and takes a [`Snapshot`] of the interface in the [`Simulator`].
-    pub fn snapshot(&mut self, theme: &Theme) -> Result<Snapshot, Error> {
+    /// Draws the interface in the [`Simulator`] with the given theme.
+    ///
+    /// A `RedrawRequested` event is processed before drawing.
+    pub fn draw(&mut self, theme: &Theme) {
         let base = theme.base();
 
         let _ = self.raw.update(
@@ -221,6 +223,13 @@ where
             },
             self.cursor,
         );
+    }
+
+    /// Draws and takes a [`Snapshot`] of the interface in the [`Simulator`].
+    pub fn snapshot(&mut self, theme: &Theme) -> Result<Snapshot, Error> {
+        let base = theme.base();
+
+        self.draw(theme);
 
         let scale_factor = 2.0;
 

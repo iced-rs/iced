@@ -592,7 +592,7 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
-        let translation = state.translation(self.direction, bounds, content_bounds);
+        let translation = state.last_translation;
         let viewport = viewport.intersection(&bounds).unwrap_or_default() + translation;
 
         operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
@@ -629,7 +629,7 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
-        let translation = state.translation(self.direction, bounds, content_bounds);
+        let mut translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
 
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
@@ -655,6 +655,101 @@ where
         }
 
         let mut update = || {
+            if let Event::Window(window::Event::RedrawRequested(now)) = event {
+                // Step the smooth scrolling animation, if any;
+                // `last_frame` guards against stepping twice for the
+                // same instant
+                if state.target.is_some()
+                    && state.last_frame != Some(*now)
+                    && state.step(*now, bounds, content_bounds)
+                {
+                    let _ = notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                }
+
+                if state.target.is_some() {
+                    shell.request_redraw();
+                } else if let Interaction::AutoScrolling {
+                    origin,
+                    current,
+                    last_frame,
+                } = state.interaction
+                {
+                    if last_frame == Some(*now) {
+                        shell.request_redraw();
+                    } else {
+                        state.interaction = Interaction::AutoScrolling {
+                            origin,
+                            current,
+                            last_frame: None,
+                        };
+
+                        let mut delta = current - origin;
+
+                        if delta.x.abs() < AUTOSCROLL_DEADZONE {
+                            delta.x = 0.0;
+                        }
+
+                        if delta.y.abs() < AUTOSCROLL_DEADZONE {
+                            delta.y = 0.0;
+                        }
+
+                        if delta.x != 0.0 || delta.y != 0.0 {
+                            let time_delta = if let Some(last_frame) = last_frame {
+                                *now - last_frame
+                            } else {
+                                Duration::ZERO
+                            };
+
+                            let scroll_factor = time_delta.as_secs_f32();
+
+                            state.scroll(
+                                self.direction.align(Vector::new(
+                                    delta.x.signum()
+                                        * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
+                                    delta.y.signum()
+                                        * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
+                                )),
+                                bounds,
+                                content_bounds,
+                            );
+
+                            let has_scrolled = notify_scroll(
+                                state,
+                                &self.on_scroll,
+                                bounds,
+                                content_bounds,
+                                shell,
+                            );
+
+                            if has_scrolled || time_delta.is_zero() {
+                                state.interaction = Interaction::AutoScrolling {
+                                    origin,
+                                    current,
+                                    last_frame: Some(*now),
+                                };
+
+                                shell.request_redraw();
+                            }
+                        } else {
+                            let _ = notify_viewport(
+                                state,
+                                &self.on_scroll,
+                                bounds,
+                                content_bounds,
+                                shell,
+                            );
+                        }
+                    }
+                } else {
+                    let _ = notify_viewport(state, &self.on_scroll, bounds, content_bounds, shell);
+                }
+
+                translation = state.translation(self.direction, bounds, content_bounds);
+                state.last_translation = translation;
+            }
+
             if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at() {
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
@@ -895,8 +990,6 @@ where
                         shell.capture_event();
                     }
 
-                    // The offsets only move on subsequent frames, so we must
-                    // schedule a redraw even though nothing changed yet
                     if state.target.is_some() {
                         shell.request_redraw();
                     }
@@ -988,96 +1081,6 @@ where
                 Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
                     state.keyboard_modifiers = *modifiers;
                 }
-                Event::Window(window::Event::RedrawRequested(now)) => {
-                    // Step the smooth scrolling animation, if any;
-                    // `last_frame` guards against stepping twice for the
-                    // same instant
-                    if state.target.is_some()
-                        && state.last_frame != Some(*now)
-                        && state.step(*now, bounds, content_bounds)
-                    {
-                        let _ =
-                            notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
-                    }
-
-                    if state.target.is_some() {
-                        shell.request_redraw();
-                        return;
-                    }
-
-                    if let Interaction::AutoScrolling {
-                        origin,
-                        current,
-                        last_frame,
-                    } = state.interaction
-                    {
-                        if last_frame == Some(*now) {
-                            shell.request_redraw();
-                            return;
-                        }
-
-                        state.interaction = Interaction::AutoScrolling {
-                            origin,
-                            current,
-                            last_frame: None,
-                        };
-
-                        let mut delta = current - origin;
-
-                        if delta.x.abs() < AUTOSCROLL_DEADZONE {
-                            delta.x = 0.0;
-                        }
-
-                        if delta.y.abs() < AUTOSCROLL_DEADZONE {
-                            delta.y = 0.0;
-                        }
-
-                        if delta.x != 0.0 || delta.y != 0.0 {
-                            let time_delta = if let Some(last_frame) = last_frame {
-                                *now - last_frame
-                            } else {
-                                Duration::ZERO
-                            };
-
-                            let scroll_factor = time_delta.as_secs_f32();
-
-                            state.scroll(
-                                self.direction.align(Vector::new(
-                                    delta.x.signum()
-                                        * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
-                                        * scroll_factor,
-                                    delta.y.signum()
-                                        * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
-                                        * scroll_factor,
-                                )),
-                                bounds,
-                                content_bounds,
-                            );
-
-                            let has_scrolled = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
-
-                            if has_scrolled || time_delta.is_zero() {
-                                state.interaction = Interaction::AutoScrolling {
-                                    origin,
-                                    current,
-                                    last_frame: Some(*now),
-                                };
-
-                                shell.request_redraw();
-                            }
-
-                            return;
-                        }
-                    }
-
-                    let _ = notify_viewport(state, &self.on_scroll, bounds, content_bounds, shell);
-                }
                 _ => {}
             }
         };
@@ -1138,7 +1141,7 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
 
-        let translation = state.translation(self.direction, bounds, content_bounds);
+        let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
         let cursor_over_scrollable = cursor.position_over(bounds);
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
@@ -1289,7 +1292,7 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
 
-        let translation = state.translation(self.direction, bounds, content_bounds);
+        let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
@@ -1323,7 +1326,7 @@ where
         let content_bounds = content_layout.bounds();
         let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
 
-        let offset = state.translation(self.direction, bounds, content_bounds);
+        let offset = state.last_translation;
 
         let overlay = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
@@ -1584,6 +1587,7 @@ struct State {
     segment_duration: f32,
     segment_slope: f32,
     last_frame: Option<Instant>,
+    last_translation: Vector,
     interaction: Interaction,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
@@ -1617,6 +1621,7 @@ impl Default for State {
             segment_duration: 0.0,
             segment_slope: 0.0,
             last_frame: None,
+            last_translation: Vector::ZERO,
             interaction: Interaction::None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,

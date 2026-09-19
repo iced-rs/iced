@@ -4,15 +4,18 @@
 //! behavior through the `on_scroll` notifications: no redundant viewports
 //! are published, so the number of messages also tells us how many frames
 //! the smooth scrolling animation took.
-
-use iced_test::simulator::Simulator;
-use iced_widget::Theme;
-use iced_widget::core::mouse::ScrollDelta;
+use iced_test::Simulator;
+use iced_widget::Renderer;
+use iced_widget::core::layout::{self, Layout};
+use iced_widget::core::mouse::{self, ScrollDelta};
+use iced_widget::core::widget::Tree;
 use iced_widget::core::window;
-use iced_widget::core::{Event, Length, Point};
-use iced_widget::renderer::Renderer;
+use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme};
 use iced_widget::scrollable::{Scrollable, Viewport};
 use iced_widget::space;
+
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 /// One frame of the simulated animation.
@@ -452,4 +455,138 @@ fn smooth_scroll_is_noop_without_overflow() {
         .collect();
 
     assert!(offsets.is_empty(), "unexpected notifications: {offsets:?}");
+}
+
+/// A single observation of the content's coordinates, as seen by one pass
+/// (`update` or `draw`) within a frame.
+#[derive(Debug)]
+struct Observation {
+    drawn: bool,
+    cursor: f32,
+    viewport: f32,
+}
+
+/// A child widget that records the `cursor` and `viewport` it receives in
+/// both `update` and `draw`, so we can assert that the two passes agree
+/// within a frame.
+struct Recorder {
+    observations: Rc<RefCell<Vec<Observation>>>,
+}
+
+impl Recorder {
+    fn observe(&self, drawn: bool, cursor: mouse::Cursor, viewport: &Rectangle) {
+        let mut observations = self.observations.borrow_mut();
+
+        observations.push(Observation {
+            drawn,
+            cursor: cursor
+                .position()
+                .map(|position| position.y)
+                .unwrap_or(f32::NAN),
+            viewport: viewport.y,
+        });
+    }
+}
+
+impl<Message, Theme, Renderer> core::Widget<Message, Theme, Renderer> for Recorder
+where
+    Renderer: core::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        Size::new(Length::Fill, Length::Fill)
+    }
+
+    fn layout(
+        &mut self,
+        _tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
+        layout::atomic(limits, Length::Fill, Length::Fixed(1000.0))
+    }
+
+    fn update(
+        &mut self,
+        _tree: &mut Tree,
+        _event: &Event,
+        _layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        _renderer: &Renderer,
+        _shell: &mut core::Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        self.observe(false, cursor, viewport);
+    }
+
+    fn draw(
+        &self,
+        _tree: &Tree,
+        _renderer: &mut Renderer,
+        _theme: &Theme,
+        _style: &core::renderer::Style,
+        _layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        self.observe(true, cursor, viewport);
+    }
+}
+
+impl<'a, Message, Theme, Renderer> From<Recorder> for core::Element<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+    Message: 'a,
+{
+    fn from(recorder: Recorder) -> core::Element<'a, Message, Theme, Renderer> {
+        core::Element::new(recorder)
+    }
+}
+
+#[test]
+fn content_update_and_draw_see_the_same_translation() {
+    let observations = Rc::new(RefCell::new(Vec::new()));
+
+    let element: Scrollable<'static, Viewport, Theme, Renderer> = Scrollable::new(Recorder {
+        observations: observations.clone(),
+    })
+    .width(Length::Fill)
+    .height(200);
+
+    let mut simulator = Simulator::new(element);
+    simulator.point_at(Point::new(500.0, 100.0));
+
+    // A smooth scroll moves the content on every redraw frame; within
+    // each frame the content's `update` and `draw` must observe the same
+    // translation
+    let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -5.0 });
+
+    for _ in 0..30 {
+        let before = observations.borrow().len();
+
+        // A frame: the `RedrawRequested` update pass and the draw pass
+        simulator.draw(&Theme::Dark);
+
+        let current = observations.borrow_mut().split_off(before);
+
+        let (Some(update), Some(draw)) = (
+            current.iter().find(|observation| !observation.drawn),
+            current.iter().find(|observation| observation.drawn),
+        ) else {
+            panic!("expected an `update` and a `draw` observation: {current:?}");
+        };
+
+        assert_eq!(
+            update.viewport, draw.viewport,
+            "content `update` and `draw` disagree on the viewport within a frame"
+        );
+
+        assert!(
+            update.cursor == draw.cursor || (update.cursor.is_nan() && draw.cursor.is_nan()),
+            "content `update` and `draw` disagree on the cursor within a frame: \
+             {update:?} vs {draw:?}"
+        );
+
+        // Give the animation a frame's worth of time before the next redraw
+        std::thread::sleep(FRAME);
+    }
 }
