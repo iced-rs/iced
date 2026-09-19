@@ -215,6 +215,7 @@ where
                         cursor_position,
                         layout: None,
                     };
+                    shell.invalidate_overlay();
                 }
                 (
                     &State::Open {
@@ -237,7 +238,7 @@ where
                 }
                 (State::Open { .. }, None) => {
                     *state = State::Idle;
-                    shell.invalidate_layout();
+                    shell.invalidate_overlay();
 
                     if !matches!(event, Event::Window(window::Event::RedrawRequested(_)),) {
                         shell.request_redraw();
@@ -352,31 +353,36 @@ where
 
             let position = layout.position() + translation;
             let content_bounds = layout.bounds();
-            let size = tooltip_layout.size();
+            let tooltip_size = tooltip_layout.size();
 
             let viewport = Rectangle::with_size(window);
 
-            let x_center = position.x + content_bounds.width / 2.0;
-            let y_center = position.y + content_bounds.height / 2.0;
+            let x_center = position.x + (content_bounds.width - tooltip_size.width) / 2.0;
+            let y_center = position.y + (content_bounds.height - tooltip_size.height) / 2.0;
 
             let mut tooltip_bounds = {
                 let position = match self.position {
-                    Position::Top => Point::new(x_center, position.y - self.gap),
+                    Position::Top => {
+                        Point::new(x_center, position.y - tooltip_size.height - self.gap)
+                    }
                     Position::Bottom => {
                         Point::new(x_center, position.y + content_bounds.height + self.gap)
                     }
-                    Position::Left => Point::new(position.x - self.gap, y_center),
+                    Position::Left => {
+                        Point::new(position.x - tooltip_size.width - self.gap, y_center)
+                    }
                     Position::Right => {
                         Point::new(position.x + content_bounds.width + self.gap, y_center)
                     }
                     Position::FollowCursor => {
                         let translation = position - content_bounds.position();
 
-                        Point::new(cursor_position.x, cursor_position.y) + translation
+                        Point::new(cursor_position.x, cursor_position.y - tooltip_size.height)
+                            + translation
                     }
                 };
 
-                Rectangle::new(position, size)
+                Rectangle::new(position, tooltip_size)
             };
 
             if self.snap_within_viewport {
