@@ -1,6 +1,7 @@
 //! Tests for the `sticky` widget.
 use iced_widget::core::{
-    Length::Fill, Never, Point, Rectangle, Settings, Size, Vector, layout, mouse, widget,
+    Event, Length::Fill, Never, Point, Rectangle, Settings, Size, Vector, layout, mouse, shell,
+    time, widget, window,
 };
 use iced_widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
 use iced_widget::{Renderer, Theme, column, container, pick_list, row, scrollable, space, sticky};
@@ -55,6 +56,24 @@ fn scroll(element: &mut Element, tree: &mut widget::Tree, node: &layout::Node, x
         &VIEWPORT,
         &(),
         &mut scroll_to,
+    );
+
+    frame(element, tree, node);
+}
+
+/// Processes a redraw frame, committing the scrollable's current offsets as
+/// the translation its contents are placed with.
+fn frame(element: &mut Element, tree: &mut widget::Tree, node: &layout::Node) {
+    let mut messages = shell::Bus::new();
+
+    element.as_widget_mut().update(
+        tree,
+        &Event::Window(window::Event::RedrawRequested(time::Instant::now())),
+        layout::Layout::new(node),
+        mouse::Cursor::Unavailable,
+        &(),
+        &mut shell::Shell::new(&window::Headless, shell::Waker::noop(), &mut messages),
+        &VIEWPORT,
     );
 }
 
@@ -307,6 +326,10 @@ fn sticky_pick_list_menu_opens_at_floating_position() -> Result<(), iced_test::E
         x: 0.0,
         y: -1_000.0,
     });
+
+    // Process a frame, so that the scroll is committed and the sticky
+    // contents float at the top of the visible bounds.
+    ui.draw(&Theme::Dark);
 
     // Click the pick_list at its floating position, at the top of the
     // visible bounds.
