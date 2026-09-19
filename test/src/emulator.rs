@@ -1,4 +1,6 @@
 //! Run your application in a headless runtime.
+use iced_futures::core::window::PositionOnMonitor;
+
 use crate::core;
 use crate::core::font;
 use crate::core::mouse;
@@ -229,8 +231,13 @@ impl<P: Program + 'static> Emulator<P> {
                         window::Action::GetMinimized(id, sender) if id == self.window => {
                             let _ = sender.send(None);
                         }
-                        window::Action::GetPosition(id, sender) if id == self.window => {
-                            let _ = sender.send(Some(Point::ORIGIN));
+                        window::Action::GetPosition(id, sender) => {
+                            if id == self.window {
+                                let _ = sender.send(Some(PositionOnMonitor {
+                                    position: Point::ORIGIN,
+                                    monitor_index: None,
+                                }));
+                            }
                         }
                         window::Action::GetScaleFactor(id, sender) if id == self.window => {
                             let _ = sender.send(1.0);
