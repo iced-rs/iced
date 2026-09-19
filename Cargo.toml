@@ -83,6 +83,8 @@ unconditional-rendering = ["iced_winit/unconditional-rendering"]
 sipper = ["iced_runtime/sipper"]
 # Enables Linux system theme detection
 linux-theme-detection = ["iced_winit/linux-theme-detection"]
+# Enables gamepad input through gilrs
+gamepad = ["iced_core/gamepad", "iced_futures/gamepad", "iced_winit/gamepad"]
 # Enables the Unix X11 backend
 x11 = ["iced_renderer/x11", "iced_winit/x11"]
 # Enables the Unix Wayland backend
@@ -204,6 +206,7 @@ cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "b4576782d
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.33.2"
 guillotiere = "0.6"
+gilrs = "0.11.2"
 half = "2.2"
 image = { version = "0.25", default-features = false }
 kamadak-exif = "0.6"
