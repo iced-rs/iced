@@ -26,16 +26,22 @@ pub struct Shell<'a, Message> {
     clipboard: Clipboard,
 }
 
+/// The most severe invalidation requested by a [`Shell`] while
+/// processing an event.
+///
+/// Variants are ordered by severity and [`Shell::invalidate`]
+/// accumulates the maximum: a higher variant subsumes the lower ones.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-/// TODO
 pub enum Invalidation {
-    /// TODO
+    /// Nothing needs to be rebuilt.
     None,
-    /// TODO
+    /// The application overlays need to be recreated.
     Overlay,
-    /// TODO
+    /// The application layout needs to be recomputed, following the
+    /// given [`Diff`] strategy.
     Layout(Diff),
-    /// TODO
+    /// The entire application widget tree needs to be rebuilt and
+    /// relaid out.
     Widgets,
 }
 

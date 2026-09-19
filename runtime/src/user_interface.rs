@@ -616,13 +616,14 @@ pub enum State {
     },
 }
 
+/// The change experienced by a [`UserInterface`] while being
+/// updated.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// TODO
 pub enum Change {
-    /// TODO
+    /// Nothing was invalidated: the [`UserInterface`] is unchanged.
     None,
-    /// TODO
+    /// Only the application overlays were recreated.
     Overlay,
-    /// TODO
+    /// The application layout was recomputed.
     Layout,
 }
