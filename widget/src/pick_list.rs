@@ -339,6 +339,11 @@ where
         tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
+    fn diff(&mut self, tree: &mut Tree) {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+        state.menu.invalidate_layout();
+    }
+
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
@@ -716,8 +721,9 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        viewport: &Rectangle,
+        _viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let Some(on_select) = &self.on_select else {
             return Vec::new();
@@ -728,6 +734,7 @@ where
 
         if state.is_open {
             let bounds = layout.bounds();
+            let position = layout.position() + translation;
 
             let mut menu = Menu::new(
                 &mut state.menu,
@@ -743,6 +750,7 @@ where
                 &self.menu_class,
             )
             .width(bounds.width)
+            .height(self.menu_height)
             .padding(self.padding)
             .font(font)
             .ellipsis(self.ellipsis)
@@ -752,12 +760,7 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            vec![menu.overlay(
-                layout.position() + translation,
-                *viewport + translation,
-                bounds.height,
-                self.menu_height,
-            )]
+            vec![menu.overlay(renderer, position, window, bounds.height)]
         } else {
             Vec::new()
         }

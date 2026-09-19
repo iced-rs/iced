@@ -338,6 +338,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
@@ -356,6 +357,7 @@ where
                 renderer,
                 viewport,
                 translation,
+                window,
             );
 
             let body_overlays = body_layout.map(|body_layout| {
@@ -365,6 +367,7 @@ where
                     renderer,
                     viewport,
                     translation,
+                    window,
                 )
             });
 
@@ -379,6 +382,7 @@ where
                 renderer,
                 viewport,
                 translation,
+                window,
             )
         }
     }

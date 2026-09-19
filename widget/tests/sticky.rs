@@ -77,27 +77,55 @@ fn frame(element: &mut Element, tree: &mut widget::Tree, node: &layout::Node) {
     );
 }
 
-fn overlay_bounds(
+/// Asserts that the sticky contents are displayed on an overlay with the
+/// expected bounds, or not displayed on an overlay at all.
+fn assert_overlay_bounds(
     element: &mut Element,
     tree: &mut widget::Tree,
     node: &layout::Node,
-) -> Option<Rectangle> {
+    expected: Option<Rectangle>,
+) {
     let mut overlays = element.as_widget_mut().overlay(
         tree,
         layout::Layout::new(node),
         &(),
         &VIEWPORT,
         Vector::ZERO,
+        VIEWPORT.size(),
     );
 
-    match overlays.len() {
-        0 => None,
-        1 => {
-            let node = overlays[0].as_overlay_mut().layout(&(), VIEWPORT.size());
+    let Some(bounds) = expected else {
+        assert!(
+            overlays.is_empty(),
+            "expected no overlay, found {}",
+            overlays.len()
+        );
+        return;
+    };
 
-            Some(node.bounds())
-        }
-        _ => panic!("expected at most one overlay, found {}", overlays.len()),
+    let [overlay] = overlays.as_mut_slice() else {
+        panic!("expected one overlay, found {}", overlays.len());
+    };
+
+    let overlay = &overlay.as_overlay();
+
+    // The overlay reacts to the cursor inside its bounds
+    assert_eq!(
+        overlay.mouse_interaction(mouse::Cursor::Available(bounds.center()), &()),
+        mouse::Interaction::Idle
+    );
+
+    // ...and not outside of them
+    for position in [
+        Point::new(bounds.x - 1.0, bounds.center_y()),
+        Point::new(bounds.x + bounds.width + 1.0, bounds.center_y()),
+        Point::new(bounds.center_x(), bounds.y - 1.0),
+        Point::new(bounds.center_x(), bounds.y + bounds.height + 1.0),
+    ] {
+        assert_eq!(
+            overlay.mouse_interaction(mouse::Cursor::Available(position), &()),
+            mouse::Interaction::None
+        );
     }
 }
 
@@ -112,7 +140,7 @@ fn sticky_in_view() {
 
     // The sticky contents are in view, so they are not displayed on an
     // overlay.
-    assert_eq!(overlay_bounds(&mut element, &mut tree, &node), None);
+    assert_overlay_bounds(&mut element, &mut tree, &node, None);
 }
 
 #[test]
@@ -127,9 +155,11 @@ fn sticky_partially_out_of_view() {
     // Scroll down a little: the sticky contents are partially out of the
     // visible bounds, so they are displayed on an overlay, inside them.
     scroll(&mut element, &mut tree, &node, 0.0, 30.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))),
     );
 }
 
@@ -145,9 +175,11 @@ fn sticky_out_of_view() {
     // Scroll down, so that the sticky contents go out of view: they are
     // displayed on an overlay, inside the visible bounds.
     scroll(&mut element, &mut tree, &node, 0.0, 100.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))),
     );
 }
 
@@ -171,20 +203,24 @@ fn sticky_pinned_to_nearest_edge() {
     // Scroll a little: the sticky contents are out of the visible bounds on
     // the bottom edge, so they are displayed on an overlay, pinned to it.
     scroll(&mut element, &mut tree, &node, 0.0, 30.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
         Some(Rectangle::new(
             Point::new(0.0, 718.0),
-            Size::new(1024.0, 50.0)
-        ))
+            Size::new(1024.0, 50.0),
+        )),
     );
 
     // Scroll past the sticky contents: they are displayed on an overlay,
     // pinned to the top edge.
     scroll(&mut element, &mut tree, &node, 0.0, 1060.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))),
     );
 }
 
@@ -217,9 +253,11 @@ fn sticky_clamped_to_visible_bounds() {
     // the overlay is clamped, and the 2000px-wide contents are displayed
     // with a width of 1024px.
     scroll(&mut element, &mut tree, &node, 0.0, 100.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))),
     );
 }
 
@@ -244,32 +282,38 @@ fn sticky_stays_attached_to_parent_bounds() {
     // their parent is still visible, so they are displayed on an overlay,
     // pinned to the top edge.
     scroll(&mut element, &mut tree, &node, 0.0, 600.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))),
     );
 
     // Scroll down until the bottom edge of the contents reaches the bottom
     // edge of their parent: the contents simply stay put.
     scroll(&mut element, &mut tree, &node, 0.0, 750.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 50.0))),
     );
 
     // Scroll down further: the contents are attached to the bottom edge of
     // their parent: they keep their original bounds, and are clipped to the
     // visible bounds instead.
     scroll(&mut element, &mut tree, &node, 0.0, 770.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 30.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(1024.0, 30.0))),
     );
 
     // Scroll down until the parent has gone out of the visible bounds: the
     // contents are released and scroll with it.
     scroll(&mut element, &mut tree, &node, 0.0, 900.0);
-    assert_eq!(overlay_bounds(&mut element, &mut tree, &node), None);
+    assert_overlay_bounds(&mut element, &mut tree, &node, None);
 }
 
 #[test]
@@ -284,9 +328,11 @@ fn sticky_out_of_view_horizontally() {
     // Scroll to the right, so that the sticky contents go out of view: they
     // are displayed on an overlay, inside the visible bounds.
     scroll(&mut element, &mut tree, &node, 100.0, 0.0);
-    assert_eq!(
-        overlay_bounds(&mut element, &mut tree, &node),
-        Some(Rectangle::new(Point::ORIGIN, Size::new(50.0, 100.0)))
+    assert_overlay_bounds(
+        &mut element,
+        &mut tree,
+        &node,
+        Some(Rectangle::new(Point::ORIGIN, Size::new(50.0, 100.0))),
     );
 }
 

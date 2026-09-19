@@ -1,19 +1,23 @@
 use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
-use iced::widget::{button, center, column, operation, pick_list, row, slider, text, text_input};
+use iced::time::seconds;
+use iced::widget::{
+    Id, button, center, column, container, operation, pick_list, right, row, rule, slider, space,
+    stack, text, text_input,
+};
 use iced::{Center, Element, Fill, Fit, Subscription, Task};
 
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    iced::application(App::default, App::update, App::view)
+    iced::application(App::new, App::update, App::view)
         .subscription(App::subscription)
         .run()
 }
 
 struct App {
-    toasts: Vec<Toast>,
+    toasts: Vec<(Id, Toast)>,
     editing: Toast,
     timeout_secs: u64,
 }
@@ -22,7 +26,7 @@ struct App {
 #[allow(clippy::enum_variant_names)]
 enum Message {
     Add,
-    Close(usize),
+    Close(Id),
     Title(String),
     Body(String),
     Status(Status),
@@ -31,16 +35,24 @@ enum Message {
 }
 
 impl App {
-    fn new() -> Self {
-        App {
-            toasts: vec![Toast {
-                title: "Example Toast".into(),
-                body: "Add more toasts in the form below!".into(),
-                status: Status::Primary,
-            }],
-            timeout_secs: toast::DEFAULT_TIMEOUT,
-            editing: Toast::default(),
-        }
+    fn new() -> (Self, Task<Message>) {
+        let toast = Toast {
+            title: "Example Toast".into(),
+            body: "Add more toasts in the form below!".into(),
+            status: Status::Primary,
+        };
+
+        let id = Id::unique();
+        let timeout_secs = toast::DEFAULT_TIMEOUT;
+
+        (
+            Self {
+                toasts: vec![(id.clone(), toast)],
+                editing: Toast::default(),
+                timeout_secs,
+            },
+            Self::expire(id, timeout_secs),
+        )
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -51,12 +63,18 @@ impl App {
         match message {
             Message::Add => {
                 if !self.editing.title.is_empty() && !self.editing.body.is_empty() {
-                    self.toasts.push(std::mem::take(&mut self.editing));
+                    let toast = std::mem::take(&mut self.editing);
+                    let id = Id::unique();
+
+                    self.toasts.push((id.clone(), toast));
+
+                    Self::expire(id, self.timeout_secs)
+                } else {
+                    Task::none()
                 }
-                Task::none()
             }
-            Message::Close(index) => {
-                self.toasts.remove(index);
+            Message::Close(id) => {
+                self.toasts.retain(|(toast_id, _)| toast_id != &id);
                 Task::none()
             }
             Message::Title(title) => {
@@ -86,6 +104,13 @@ impl App {
             })) => operation::focus_next(),
             Message::Event(_) => Task::none(),
         }
+    }
+
+    /// Schedules the expiration of the toast with the given `id`.
+    fn expire(id: Id, timeout_secs: u64) -> Task<Message> {
+        Task::perform(tokio::time::sleep(seconds(timeout_secs)), move |_| {
+            Message::Close(id)
+        })
     }
 
     fn view(&self) -> Element<'_, Message> {
@@ -141,35 +166,45 @@ impl App {
             .width(Fit.max(200)),
         );
 
-        toast::Manager::new(content, &self.toasts, Message::Close)
-            .timeout(self.timeout_secs)
+        let toasts = self.toasts.iter().map(|(id, toast)| {
+            container(
+                column![
+                    container(
+                        row![
+                            text(toast.title.as_str()),
+                            space::horizontal(),
+                            button("X")
+                                .on_press_with(|| Message::Close(id.clone()))
+                                .padding(5),
+                        ]
+                        .align_y(Center)
+                    )
+                    .width(Fill)
+                    .padding(10)
+                    .style(match toast.status {
+                        Status::Primary => container::primary,
+                        Status::Secondary => container::secondary,
+                        Status::Success => container::success,
+                        Status::Danger => container::danger,
+                        Status::Warning => container::warning,
+                    }),
+                    rule::horizontal(1),
+                    text(toast.body.as_str())
+                ]
+                .spacing(10)
+                .padding(10),
+            )
+            .style(container::rounded_box)
+            .width(Fit.max(200))
             .into()
-    }
-}
+        });
 
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
+        stack![content, right(column(toasts).spacing(10))].into()
     }
 }
 
 mod toast {
     use std::fmt;
-
-    use iced::advanced::layout::{self, Layout};
-    use iced::advanced::overlay;
-    use iced::advanced::renderer;
-    use iced::advanced::shell;
-    use iced::advanced::widget::{self, Operation, Tree};
-    use iced::advanced::{Shell, Widget};
-    use iced::mouse;
-    use iced::time::{self, Duration, Instant};
-    use iced::widget::{button, column, container, row, rule, space, text};
-    use iced::window;
-    use iced::{
-        Alignment, Center, Element, Event, Fill, Fit, Length, Point, Rectangle, Renderer, Size,
-        Theme, Vector,
-    };
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
 
@@ -211,401 +246,5 @@ mod toast {
         pub title: String,
         pub body: String,
         pub status: Status,
-    }
-
-    pub struct Manager<'a, Message> {
-        content: Element<'a, Message>,
-        toasts: Vec<Element<'a, Message>>,
-        timeout_secs: u64,
-        on_close: Box<dyn Fn(usize) -> Message + 'a>,
-    }
-
-    impl<'a, Message> Manager<'a, Message>
-    where
-        Message: 'a + Clone,
-    {
-        pub fn new(
-            content: impl Into<Element<'a, Message>>,
-            toasts: &'a [Toast],
-            on_close: impl Fn(usize) -> Message + 'a,
-        ) -> Self {
-            let toasts = toasts
-                .iter()
-                .enumerate()
-                .map(|(index, toast)| {
-                    container(column![
-                        container(
-                            row![
-                                text(toast.title.as_str()),
-                                space::horizontal(),
-                                button("X").on_press((on_close)(index)).padding(3),
-                            ]
-                            .align_y(Center)
-                        )
-                        .width(Fill)
-                        .padding(5)
-                        .style(match toast.status {
-                            Status::Primary => container::primary,
-                            Status::Secondary => container::secondary,
-                            Status::Success => container::success,
-                            Status::Danger => container::danger,
-                            Status::Warning => container::warning,
-                        }),
-                        rule::horizontal(1),
-                        container(text(toast.body.as_str()))
-                            .width(Fill)
-                            .padding(5)
-                            .style(container::rounded_box),
-                    ])
-                    .width(Fit.max(200))
-                    .into()
-                })
-                .collect();
-
-            Self {
-                content: content.into(),
-                toasts,
-                timeout_secs: DEFAULT_TIMEOUT,
-                on_close: Box::new(on_close),
-            }
-        }
-
-        pub fn timeout(self, seconds: u64) -> Self {
-            Self {
-                timeout_secs: seconds,
-                ..self
-            }
-        }
-    }
-
-    impl<Message> Widget<Message, Theme, Renderer> for Manager<'_, Message> {
-        fn size(&self) -> Size<Length> {
-            self.content.as_widget().size()
-        }
-
-        fn layout(
-            &mut self,
-            tree: &mut Tree,
-            renderer: &Renderer,
-            limits: &layout::Limits,
-        ) -> layout::Node {
-            self.content
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
-        }
-
-        fn tag(&self) -> widget::tree::Tag {
-            struct Marker;
-            widget::tree::Tag::of::<Marker>()
-        }
-
-        fn state(&self) -> widget::tree::State {
-            widget::tree::State::new(Vec::<Option<Instant>>::new())
-        }
-
-        fn diff(&mut self, tree: &mut Tree) {
-            let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
-
-            // Invalidating removed instants to None allows us to remove
-            // them here so that diffing for removed / new toast instants
-            // is accurate
-            instants.retain(Option::is_some);
-
-            match (instants.len(), self.toasts.len()) {
-                (old, new) if old > new => {
-                    instants.truncate(new);
-                }
-                (old, new) if old < new => {
-                    instants.extend(std::iter::repeat_n(Some(Instant::now()), new - old));
-                }
-                _ => {}
-            }
-
-            tree.diff_children(
-                &mut std::iter::once(&mut self.content)
-                    .chain(&mut self.toasts)
-                    .collect::<Vec<_>>(),
-            );
-        }
-
-        fn operate(
-            &mut self,
-            tree: &mut Tree,
-            layout: Layout<'_>,
-            viewport: &Rectangle,
-            renderer: &Renderer,
-            operation: &mut dyn Operation,
-        ) {
-            operation.container(None, layout.bounds(), viewport);
-            operation.traverse(&mut |operation| {
-                self.content.as_widget_mut().operate(
-                    &mut tree.children[0],
-                    layout,
-                    viewport,
-                    renderer,
-                    operation,
-                );
-            });
-        }
-
-        fn update(
-            &mut self,
-            tree: &mut Tree,
-            event: &Event,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-            renderer: &Renderer,
-            shell: &mut Shell<'_, Message>,
-            viewport: &Rectangle,
-        ) {
-            self.content.as_widget_mut().update(
-                &mut tree.children[0],
-                event,
-                layout,
-                cursor,
-                renderer,
-                shell,
-                viewport,
-            );
-        }
-
-        fn draw(
-            &self,
-            tree: &Tree,
-            renderer: &mut Renderer,
-            theme: &Theme,
-            style: &renderer::Style,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-            viewport: &Rectangle,
-        ) {
-            self.content.as_widget().draw(
-                &tree.children[0],
-                renderer,
-                theme,
-                style,
-                layout,
-                cursor,
-                viewport,
-            );
-        }
-
-        fn mouse_interaction(
-            &self,
-            tree: &Tree,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-            viewport: &Rectangle,
-            renderer: &Renderer,
-        ) -> mouse::Interaction {
-            self.content.as_widget().mouse_interaction(
-                &tree.children[0],
-                layout,
-                cursor,
-                viewport,
-                renderer,
-            )
-        }
-
-        fn overlay<'b>(
-            &'b mut self,
-            tree: &'b mut Tree,
-            layout: Layout<'b>,
-            renderer: &Renderer,
-            viewport: &Rectangle,
-            translation: Vector,
-        ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-            let instants = tree.state.downcast_mut::<Vec<Option<Instant>>>();
-
-            let (content_state, toasts_state) = tree.children.split_at_mut(1);
-
-            let content = self.content.as_widget_mut().overlay(
-                &mut content_state[0],
-                layout,
-                renderer,
-                viewport,
-                translation,
-            );
-
-            let toasts = (!self.toasts.is_empty()).then(|| {
-                overlay::Element::new(Box::new(Overlay {
-                    position: layout.bounds().position() + translation,
-                    viewport: *viewport + translation,
-                    toasts: &mut self.toasts,
-                    trees: toasts_state,
-                    instants,
-                    on_close: &self.on_close,
-                    timeout_secs: self.timeout_secs,
-                }))
-            });
-
-            content.into_iter().chain(toasts).collect()
-        }
-    }
-
-    struct Overlay<'a, 'b, Message> {
-        position: Point,
-        viewport: Rectangle,
-        toasts: &'b mut [Element<'a, Message>],
-        trees: &'b mut [Tree],
-        instants: &'b mut [Option<Instant>],
-        on_close: &'b dyn Fn(usize) -> Message,
-        timeout_secs: u64,
-    }
-
-    impl<Message> overlay::Overlay<Message, Theme, Renderer> for Overlay<'_, '_, Message> {
-        fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-            let limits = layout::Limits::new(Size::ZERO, bounds);
-
-            layout::flex::resolve(
-                layout::flex::Axis::Vertical,
-                renderer,
-                &limits,
-                Fill,
-                Fill,
-                10.into(),
-                10.0,
-                Alignment::End,
-                self.toasts,
-                self.trees,
-            )
-            .translate(Vector::new(self.position.x, self.position.y))
-        }
-
-        fn update(
-            &mut self,
-            event: &Event,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-            renderer: &Renderer,
-            shell: &mut Shell<'_, Message>,
-        ) {
-            if let Event::Window(window::Event::RedrawRequested(now)) = &event {
-                self.instants
-                    .iter_mut()
-                    .enumerate()
-                    .for_each(|(index, maybe_instant)| {
-                        if let Some(instant) = maybe_instant.as_mut() {
-                            let remaining =
-                                time::seconds(self.timeout_secs).saturating_sub(instant.elapsed());
-
-                            if remaining == Duration::ZERO {
-                                maybe_instant.take();
-                                shell.publish((self.on_close)(index));
-                            } else {
-                                shell.request_redraw_at(*now + remaining);
-                            }
-                        }
-                    });
-            }
-
-            let viewport = layout.bounds();
-
-            for (((child, state), layout), instant) in self
-                .toasts
-                .iter_mut()
-                .zip(self.trees.iter_mut())
-                .zip(layout.children())
-                .zip(self.instants.iter_mut())
-            {
-                let mut local_messages = shell::Bus::new();
-                let mut local_shell = shell.local(&mut local_messages);
-
-                child.as_widget_mut().update(
-                    state,
-                    event,
-                    layout,
-                    cursor,
-                    renderer,
-                    &mut local_shell,
-                    &viewport,
-                );
-
-                if !local_shell.is_empty() {
-                    instant.take();
-                }
-
-                shell.merge(local_shell, std::convert::identity);
-            }
-        }
-
-        fn draw(
-            &self,
-            renderer: &mut Renderer,
-            theme: &Theme,
-            style: &renderer::Style,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-        ) {
-            let viewport = layout.bounds();
-
-            for ((child, tree), layout) in self
-                .toasts
-                .iter()
-                .zip(self.trees.iter())
-                .zip(layout.children())
-            {
-                child
-                    .as_widget()
-                    .draw(tree, renderer, theme, style, layout, cursor, &viewport);
-            }
-        }
-
-        fn operate(
-            &mut self,
-            layout: Layout<'_>,
-            renderer: &Renderer,
-            operation: &mut dyn widget::Operation,
-        ) {
-            operation.container(None, layout.bounds(), &self.viewport);
-            operation.traverse(&mut |operation| {
-                self.toasts
-                    .iter_mut()
-                    .zip(self.trees.iter_mut())
-                    .zip(layout.children())
-                    .for_each(|((child, state), layout)| {
-                        child.as_widget_mut().operate(
-                            state,
-                            layout,
-                            &self.viewport,
-                            renderer,
-                            operation,
-                        );
-                    });
-            });
-        }
-
-        fn mouse_interaction(
-            &self,
-            layout: Layout<'_>,
-            cursor: mouse::Cursor,
-            renderer: &Renderer,
-        ) -> mouse::Interaction {
-            self.toasts
-                .iter()
-                .zip(self.trees.iter())
-                .zip(layout.children())
-                .map(|((child, state), layout)| {
-                    child
-                        .as_widget()
-                        .mouse_interaction(state, layout, cursor, &self.viewport, renderer)
-                        .max(if cursor.is_over(layout.bounds()) {
-                            mouse::Interaction::Idle
-                        } else {
-                            Default::default()
-                        })
-                })
-                .max()
-                .unwrap_or_default()
-        }
-    }
-
-    impl<'a, Message> From<Manager<'a, Message>> for Element<'a, Message>
-    where
-        Message: 'a,
-    {
-        fn from(manager: Manager<'a, Message>) -> Self {
-            Element::new(manager)
-        }
     }
 }

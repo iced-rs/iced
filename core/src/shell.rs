@@ -22,9 +22,21 @@ pub struct Shell<'a, Message> {
     event_status: event::Status,
     redraw_request: window::RedrawRequest,
     input_method: InputMethod,
-    is_layout_invalid: Option<Diff>,
-    are_widgets_invalid: bool,
+    invalidation: Invalidation,
     clipboard: Clipboard,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// TODO
+pub enum Invalidation {
+    /// TODO
+    None,
+    /// TODO
+    Overlay,
+    /// TODO
+    Layout(Diff),
+    /// TODO
+    Widgets,
 }
 
 impl<'a, Message> Shell<'a, Message> {
@@ -36,8 +48,7 @@ impl<'a, Message> Shell<'a, Message> {
             waker,
             event_status: event::Status::Ignored,
             redraw_request: window::RedrawRequest::Wait,
-            is_layout_invalid: None,
-            are_widgets_invalid: false,
+            invalidation: Invalidation::None,
             input_method: InputMethod::Disabled,
             clipboard: Clipboard {
                 reads: Vec::new(),
@@ -173,10 +184,11 @@ impl<'a, Message> Shell<'a, Message> {
         &mut self.input_method
     }
 
-    /// Returns whether the current layout is invalid or not.
-    #[must_use]
-    pub fn is_layout_invalid(&self) -> Option<Diff> {
-        self.is_layout_invalid
+    /// Invalidates the current application overlay.
+    ///
+    /// The shell will recreate the application overlays.
+    pub fn invalidate_overlay(&mut self) {
+        self.invalidate(Invalidation::Overlay);
     }
 
     /// Invalidates the current application layout.
@@ -188,29 +200,24 @@ impl<'a, Message> Shell<'a, Message> {
 
     /// Invalidates the current application layout with the following [`Diff`] strategy.
     pub fn invalidate_layout_with(&mut self, diff: Diff) {
-        self.is_layout_invalid = Some(diff);
-    }
-
-    /// Triggers the given function if the layout is invalid, cleaning it in the
-    /// process.
-    pub fn revalidate_layout(&mut self, f: impl FnOnce(Diff)) {
-        if let Some(diff) = self.is_layout_invalid.take() {
-            f(diff);
-        }
-    }
-
-    /// Returns whether the widgets of the current application have been
-    /// invalidated.
-    #[must_use]
-    pub fn are_widgets_invalid(&self) -> bool {
-        self.are_widgets_invalid
+        self.invalidate(Invalidation::Layout(diff));
     }
 
     /// Invalidates the current application widgets.
     ///
     /// The shell will rebuild and relayout the widget tree.
     pub fn invalidate_widgets(&mut self) {
-        self.are_widgets_invalid = true;
+        self.invalidate(Invalidation::Widgets);
+    }
+
+    /// Sets the [`Invalidation`] of the [`Shell`].
+    pub fn invalidate(&mut self, invalidation: Invalidation) {
+        self.invalidation = self.invalidation.max(invalidation);
+    }
+
+    /// Returns the [`Invalidation`] of the [`Shell`].
+    pub fn invalidation(&self) -> Invalidation {
+        self.invalidation
     }
 
     /// Merges the current [`Shell`] with another one by applying the given
@@ -226,12 +233,7 @@ impl<'a, Message> Shell<'a, Message> {
                 .map(|(message, receipt)| (f(message), receipt)),
         );
 
-        self.is_layout_invalid = match (self.is_layout_invalid, other.is_layout_invalid) {
-            (Some(a), Some(b)) => Some(a.max(b)),
-            _ => self.is_layout_invalid.or(other.is_layout_invalid),
-        };
-
-        self.are_widgets_invalid = self.are_widgets_invalid || other.are_widgets_invalid;
+        self.invalidation = self.invalidation.max(other.invalidation);
         self.redraw_request = self.redraw_request.min(other.redraw_request);
         self.event_status = self.event_status.merge(other.event_status);
 

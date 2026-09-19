@@ -345,6 +345,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
@@ -353,6 +354,7 @@ where
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }

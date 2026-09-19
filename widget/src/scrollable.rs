@@ -77,7 +77,7 @@ const WHEEL_PX_PER_LINE: f32 = 120.0;
 pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
+    Renderer: core::Renderer,
 {
     id: Option<widget::Id>,
     width: Length,
@@ -1319,6 +1319,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
@@ -1334,6 +1335,7 @@ where
             renderer,
             &(viewport + offset),
             translation - offset,
+            window,
         );
 
         let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
@@ -1372,20 +1374,18 @@ where
     Renderer: text::Renderer,
     Theme: Catalog,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(Size::new(Self::SIZE, Self::SIZE))
-            .move_to(self.origin - Vector::new(Self::SIZE, Self::SIZE) / 2.0)
-    }
-
     fn draw(
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
         _cursor: mouse::Cursor,
     ) {
-        let bounds = layout.bounds();
+        let bounds = Rectangle::new(
+            self.origin - Vector::new(Self::SIZE, Self::SIZE) / 2.0,
+            Size::new(Self::SIZE, Self::SIZE),
+        );
+
         let style = theme
             .style(
                 self.class,
@@ -1396,7 +1396,7 @@ where
             )
             .auto_scroll;
 
-        renderer.with_layer(Rectangle::INFINITE, |renderer| {
+        renderer.with_layer(bounds, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,

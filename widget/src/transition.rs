@@ -357,6 +357,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.element.as_widget_mut().overlay(
             &mut tree.children[0],
@@ -364,6 +365,7 @@ where
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }
