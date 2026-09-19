@@ -157,7 +157,7 @@ where
 #[derive(Debug)]
 pub struct State {
     tree: Tree,
-    layout: Option<layout::Node>,
+    layout: layout::Node,
 }
 
 impl State {
@@ -165,13 +165,8 @@ impl State {
     pub fn new() -> Self {
         Self {
             tree: Tree::empty(),
-            layout: None,
+            layout: layout::Node::new(Size::ZERO),
         }
-    }
-
-    /// Invalidates the layout of the [`Menu`].
-    pub fn invalidate_layout(&mut self) {
-        self.layout = None;
     }
 }
 
@@ -247,30 +242,26 @@ where
         let space_below = window.height - (position.y + target_height);
         let space_above = position.y;
 
-        if state.layout.is_none() {
-            let limits = layout::Limits::new(
-                Size::ZERO,
-                Size::new(
-                    window.width - position.x,
-                    if space_below > space_above {
-                        space_below
-                    } else {
-                        space_above
-                    },
-                ),
-            )
-            .width(width);
+        let limits = layout::Limits::new(
+            Size::ZERO,
+            Size::new(
+                window.width - position.x,
+                if space_below > space_above {
+                    space_below
+                } else {
+                    space_above
+                },
+            ),
+        )
+        .width(width);
 
-            state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
-            state.layout = Some(list.layout(&mut state.tree, renderer, &limits));
-        }
+        state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
+        state.layout = list.layout(&mut state.tree, renderer, &limits);
 
-        let layout = state.layout.as_ref().expect("layout must be computed");
-
-        let layout = Layout::new(layout).move_to(if space_below > space_above {
+        let layout = Layout::new(&state.layout).move_to(if space_below > space_above {
             position + Vector::new(0.0, target_height)
         } else {
-            position - Vector::new(0.0, layout.size().height)
+            position - Vector::new(0.0, state.layout.size().height)
         });
 
         Self {

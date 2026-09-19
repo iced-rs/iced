@@ -470,8 +470,6 @@ where
             state.editor.input.overwrite(&self.selection);
             state.editor.selection = Some(self.selection.clone());
             state.filter(&self.state.options, &self.selection);
-            state.menu.invalidate_layout();
-
             state.version = self.state.version;
         }
     }
@@ -506,7 +504,6 @@ where
             }
 
             internal.filter(&self.state.options, &value);
-            internal.menu.invalidate_layout();
         }
 
         let is_focused = internal.editor.input.is_focused();
@@ -515,7 +512,6 @@ where
             if !was_focused {
                 internal.editor.input.overwrite("");
                 internal.filtered_options = self.state.options.clone();
-                internal.menu.invalidate_layout();
 
                 if let Some(on_option_hovered) = &mut self.on_option_hovered {
                     let hovered_option = internal.hovered_option.unwrap_or(0);

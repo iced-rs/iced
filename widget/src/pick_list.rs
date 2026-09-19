@@ -339,11 +339,6 @@ where
         tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
-    fn diff(&mut self, tree: &mut Tree) {
-        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
-        state.menu.invalidate_layout();
-    }
-
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
