@@ -1,7 +1,7 @@
 //! Operate on widgets that can be scrolled.
 use crate::widget::operation::Animation;
 use crate::widget::{Id, Operation};
-use crate::{Rectangle, Vector};
+use crate::{Rectangle, Size, Vector};
 
 /// The internal state of a widget that can be scrolled.
 pub trait Scrollable {
@@ -11,7 +11,7 @@ pub trait Scrollable {
         offset: RelativeOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
     );
 
     /// Scroll the widget to the given [`AbsoluteOffset`] along the horizontal & vertical axis.
@@ -20,7 +20,7 @@ pub trait Scrollable {
         offset: AbsoluteOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
     );
 
     /// Scroll the widget by the given [`AbsoluteOffset`] along the horizontal & vertical axis.
@@ -29,7 +29,7 @@ pub trait Scrollable {
         offset: AbsoluteOffset,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
     );
 }
 
@@ -55,12 +55,12 @@ pub fn snap_to<T>(
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             _translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             if Some(&self.target) == id {
-                state.snap_to(self.offset, self.animation, bounds, content_bounds);
+                state.snap_to(self.offset, self.animation, bounds, content);
             }
         }
     }
@@ -94,12 +94,12 @@ pub fn scroll_to<T>(
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             _translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             if Some(&self.target) == id {
-                state.scroll_to(self.offset, self.animation, bounds, content_bounds);
+                state.scroll_to(self.offset, self.animation, bounds, content);
             }
         }
     }
@@ -129,12 +129,12 @@ pub fn scroll_by<T>(target: Id, offset: AbsoluteOffset, animation: Animation) ->
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             _translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             if Some(&self.target) == id {
-                state.scroll_by(self.offset, self.animation, bounds, content_bounds);
+                state.scroll_by(self.offset, self.animation, bounds, content);
             }
         }
     }

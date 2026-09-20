@@ -8,7 +8,7 @@ pub use scrollable::Scrollable;
 pub use text_input::TextInput;
 
 use crate::widget::Id;
-use crate::{Rectangle, Vector};
+use crate::{Rectangle, Size, Vector};
 
 use std::any::Any;
 use std::fmt;
@@ -34,7 +34,7 @@ pub trait Operation<T = ()>: Send {
         &mut self,
         _id: Option<&Id>,
         _bounds: Rectangle,
-        _content_bounds: Rectangle,
+        _content: Size,
         _translation: Vector,
         _state: &mut dyn Scrollable,
     ) {
@@ -78,12 +78,12 @@ where
         &mut self,
         id: Option<&Id>,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
         translation: Vector,
         state: &mut dyn Scrollable,
     ) {
         self.as_mut()
-            .scrollable(id, bounds, content_bounds, translation, state);
+            .scrollable(id, bounds, content, translation, state);
     }
 
     fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {
@@ -178,12 +178,12 @@ where
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             self.operation
-                .scrollable(id, bounds, content_bounds, translation, state);
+                .scrollable(id, bounds, content, translation, state);
         }
 
         fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {
@@ -248,12 +248,12 @@ where
                     &mut self,
                     id: Option<&Id>,
                     bounds: Rectangle,
-                    content_bounds: Rectangle,
+                    content: Size,
                     translation: Vector,
                     state: &mut dyn Scrollable,
                 ) {
                     self.operation
-                        .scrollable(id, bounds, content_bounds, translation, state);
+                        .scrollable(id, bounds, content, translation, state);
                 }
 
                 fn focusable(
@@ -300,12 +300,12 @@ where
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             self.operation
-                .scrollable(id, bounds, content_bounds, translation, state);
+                .scrollable(id, bounds, content, translation, state);
         }
 
         fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {
@@ -381,12 +381,12 @@ where
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             translation: crate::Vector,
             state: &mut dyn Scrollable,
         ) {
             self.operation
-                .scrollable(id, bounds, content_bounds, translation, state);
+                .scrollable(id, bounds, content, translation, state);
         }
 
         fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {

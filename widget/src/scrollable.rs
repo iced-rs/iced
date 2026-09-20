@@ -601,10 +601,11 @@ where
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
         let translation = state.last_translation;
         let viewport = viewport.intersection(&bounds).unwrap_or_default() + translation;
 
-        operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
+        operation.scrollable(self.id.as_ref(), bounds, content, translation, state);
         operation.container(self.id.as_ref(), content_bounds, &viewport);
 
         operation.traverse(&mut |operation| {
@@ -635,11 +636,11 @@ where
         let bounds = layout.bounds();
         let cursor_over_scrollable = cursor.position_over(bounds);
 
-        let content = layout.children().next().unwrap();
-        let content_bounds = content.bounds();
+        let child = layout.children().next().unwrap();
+        let content = child.size();
 
         let mut translation = state.last_translation;
-        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
 
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
@@ -668,8 +669,8 @@ where
                 // Step the smooth scrolling animation, if any;
                 // `last_frame` guards against stepping twice for the
                 // same instant
-                if state.last_frame != Some(*now) && state.step(*now, bounds, content_bounds) {
-                    let _ = notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                if state.last_frame != Some(*now) && state.step(*now, bounds, content) {
+                    let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
                 }
 
                 if state.target.is_some() {
@@ -718,18 +719,13 @@ where
                                         * scroll_factor,
                                 )),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
                             state.source = Some(Source::AutoScroll);
 
-                            let has_scrolled = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let has_scrolled =
+                                notify_scroll(state, &self.on_scroll, bounds, content, shell);
 
                             if has_scrolled || time_delta.is_zero() {
                                 state.interaction = Interaction::AutoScrolling {
@@ -741,17 +737,11 @@ where
                                 shell.request_redraw();
                             }
                         } else {
-                            let _ = notify_viewport(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_viewport(state, &self.on_scroll, bounds, content, shell);
                         }
                     }
                 } else {
-                    let _ = notify_viewport(state, &self.on_scroll, bounds, content_bounds, shell);
+                    let _ = notify_viewport(state, &self.on_scroll, bounds, content, shell);
                 }
 
                 // A source that did not produce a notification must not be
@@ -760,7 +750,7 @@ where
                     state.source = None;
                 }
 
-                translation = state.translation(self.direction, bounds, content_bounds);
+                translation = state.translation(self.direction, bounds, content);
                 state.last_translation = translation;
             }
 
@@ -776,18 +766,12 @@ where
                             state.scroll_y_to(
                                 scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
                             state.source = Some(Source::Scrollbar);
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
 
                             shell.capture_event();
                         }
@@ -808,19 +792,13 @@ where
                             state.scroll_y_to(
                                 scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
                             state.interaction = Interaction::YScrollerGrabbed(scroller_grabbed_at);
                             state.source = Some(Source::Scrollbar);
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
                         }
 
                         shell.capture_event();
@@ -841,18 +819,12 @@ where
                             state.scroll_x_to(
                                 scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
                             state.source = Some(Source::Scrollbar);
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
                         }
 
                         shell.capture_event();
@@ -873,19 +845,13 @@ where
                             state.scroll_x_to(
                                 scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
                             state.interaction = Interaction::XScrollerGrabbed(scroller_grabbed_at);
                             state.source = Some(Source::Scrollbar);
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
 
                             shell.capture_event();
                         }
@@ -929,7 +895,7 @@ where
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
                     event,
-                    content,
+                    child,
                     cursor,
                     renderer,
                     shell,
@@ -996,15 +962,15 @@ where
                     let delta = self.direction.align(delta);
 
                     if self.smooth_scroll && is_lines {
-                        state.scroll_smoothly(delta, bounds, content_bounds, Instant::now());
+                        state.scroll_smoothly(delta, bounds, content, Instant::now());
                     } else {
-                        state.scroll(delta, bounds, content_bounds);
+                        state.scroll(delta, bounds, content);
                     }
 
                     state.source = Some(Source::Wheel);
 
                     let has_scrolled =
-                        notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                        notify_scroll(state, &self.on_scroll, bounds, content, shell);
 
                     let in_transaction = state.last_scrolled.is_some() || state.target.is_some();
 
@@ -1061,19 +1027,13 @@ where
                                 scroll_box_touched_at.y - cursor_position.y,
                             );
 
-                            state.scroll(self.direction.align(delta), bounds, content_bounds);
+                            state.scroll(self.direction.align(delta), bounds, content);
 
                             state.interaction = Interaction::TouchScrolling(cursor_position);
                             // TODO: bubble up touch movements if not consumed.
                             state.source = Some(Source::Touch);
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
                         }
                         _ => {}
                     }
@@ -1162,10 +1122,10 @@ where
         };
 
         let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
 
         let translation = state.last_translation;
-        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
         let cursor_over_scrollable = cursor.position_over(bounds);
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
@@ -1313,10 +1273,10 @@ where
 
         let cursor_over_scrollable = cursor.position_over(bounds);
         let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
 
         let translation = state.last_translation;
-        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
@@ -1347,7 +1307,7 @@ where
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
         let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
 
         let offset = state.last_translation;
@@ -1362,7 +1322,7 @@ where
         );
 
         let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
-            let scrollbars = Scrollbars::new(offset, self.direction, bounds, content_bounds);
+            let scrollbars = Scrollbars::new(offset, self.direction, bounds, content);
 
             Some(overlay::Element::new(Box::new(AutoScrollIcon {
                 origin,
@@ -1536,7 +1496,7 @@ fn notify_scroll<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
-    content: Rectangle,
+    content: Size,
     shell: &mut Shell<'_, Message>,
 ) -> bool {
     if notify_viewport(state, on_scroll, bounds, content, shell) {
@@ -1552,7 +1512,7 @@ fn notify_viewport<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
-    content: Rectangle,
+    content: Size,
     shell: &mut Shell<'_, Message>,
 ) -> bool {
     if content.width <= bounds.width && content.height <= bounds.height {
@@ -1693,7 +1653,7 @@ impl operation::Scrollable for State {
         offset: RelativeOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
     ) {
         State::snap_to(self, offset, animation, bounds, content);
     }
@@ -1703,7 +1663,7 @@ impl operation::Scrollable for State {
         offset: AbsoluteOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
     ) {
         State::scroll_to(self, offset, animation, bounds, content);
     }
@@ -1713,7 +1673,7 @@ impl operation::Scrollable for State {
         offset: AbsoluteOffset,
         animation: Animation,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
     ) {
         State::scroll_by(self, offset, animation, bounds, content);
     }
@@ -1771,7 +1731,7 @@ pub struct Target {
 
 impl Target {
     /// Resolves the given offsets into a [`Target`].
-    fn new(x: Offset, y: Offset, bounds: Rectangle, content: Rectangle) -> Self {
+    fn new(x: Offset, y: Offset, bounds: Rectangle, content: Size) -> Self {
         let destination = Vector::new(
             x.absolute(bounds.width, content.width),
             y.absolute(bounds.height, content.height),
@@ -1861,8 +1821,8 @@ pub struct Viewport {
     /// The bounds of the [`Scrollable`].
     pub bounds: Rectangle,
 
-    /// The bounds of the content of the [`Scrollable`].
-    pub content: Rectangle,
+    /// The size of the content of the [`Scrollable`].
+    pub content: Size,
 }
 
 impl Viewport {
@@ -1978,7 +1938,7 @@ impl State {
         State::default()
     }
 
-    fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content: Rectangle) {
+    fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content: Size) {
         self.cancel();
 
         if bounds.height < content.height {
@@ -2005,7 +1965,7 @@ impl State {
         &mut self,
         delta: Vector<f32>,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
         now: Instant,
     ) {
         let current = Point::new(
@@ -2047,7 +2007,7 @@ impl State {
         &mut self,
         target: Target,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
         now: Instant,
     ) {
         // The scroll is requested between frames; start the animation one
@@ -2152,7 +2112,7 @@ impl State {
     /// offset.
     ///
     /// Returns `true` if the animation is still in progress.
-    fn step(&mut self, now: Instant, bounds: Rectangle, content: Rectangle) -> bool {
+    fn step(&mut self, now: Instant, bounds: Rectangle, content: Size) -> bool {
         let Some(target) = self.target else {
             return false;
         };
@@ -2347,13 +2307,13 @@ impl State {
         (low + high) / 2.0
     }
 
-    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content: Rectangle) {
+    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
         self.cancel();
         self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
         self.unsnap_y(bounds, content);
     }
 
-    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content: Rectangle) {
+    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
         self.cancel();
         self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
         self.unsnap_x(bounds, content);
@@ -2366,7 +2326,7 @@ impl State {
         offset: RelativeOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
     ) {
         self.source = Some(Source::Operation);
 
@@ -2409,7 +2369,7 @@ impl State {
         offset: AbsoluteOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
     ) {
         self.source = Some(Source::Operation);
 
@@ -2453,7 +2413,7 @@ impl State {
         offset: AbsoluteOffset,
         animation: Animation,
         bounds: Rectangle,
-        content: Rectangle,
+        content: Size,
     ) {
         self.source = Some(Source::Operation);
 
@@ -2476,17 +2436,17 @@ impl State {
         }
     }
 
-    fn unsnap_x(&mut self, bounds: Rectangle, content: Rectangle) {
+    fn unsnap_x(&mut self, bounds: Rectangle, content: Size) {
         self.offset_x = Offset::Absolute(self.offset_x.absolute(bounds.width, content.width));
     }
 
-    fn unsnap_y(&mut self, bounds: Rectangle, content: Rectangle) {
+    fn unsnap_y(&mut self, bounds: Rectangle, content: Size) {
         self.offset_y = Offset::Absolute(self.offset_y.absolute(bounds.height, content.height));
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
     /// the bounds of the [`Scrollable`] and its contents.
-    fn translation(&self, direction: Direction, bounds: Rectangle, content: Rectangle) -> Vector {
+    fn translation(&self, direction: Direction, bounds: Rectangle, content: Size) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
                 self.offset_x
@@ -2536,12 +2496,7 @@ struct Scrollbars {
 
 impl Scrollbars {
     /// Create y and/or x scrollbar(s) if content is overflowing the [`Scrollable`] bounds.
-    fn new(
-        translation: Vector,
-        direction: Direction,
-        bounds: Rectangle,
-        content: Rectangle,
-    ) -> Self {
+    fn new(translation: Vector, direction: Direction, bounds: Rectangle, content: Size) -> Self {
         let show_scrollbar_x = direction
             .horizontal()
             .filter(|_scrollbar| content.width > bounds.width);

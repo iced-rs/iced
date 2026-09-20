@@ -55,6 +55,11 @@ impl<'a> Layout<'a> {
         Rectangle::new(self.position, self.node.size())
     }
 
+    /// Returns the size of the [`Layout`].
+    pub fn size(&self) -> Size {
+        self.node.size()
+    }
+
     /// Returns the bounds of the parent of this [`Layout`], if any.
     pub fn parent(&self) -> Option<Rectangle> {
         self.parent
