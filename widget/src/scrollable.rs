@@ -976,7 +976,13 @@ where
                     let delta = self.direction.align(delta);
 
                     if self.smooth_scroll && is_lines {
-                        state.scroll_smoothly(delta, bounds, content_bounds, Instant::now());
+                        state.scroll_smoothly(
+                            delta,
+                            bounds,
+                            content_bounds,
+                            Instant::now()
+                                - Duration::from_secs_f32(State::SMOOTH_SCROLL_FRAME_DELAY),
+                        );
                     } else {
                         state.scroll(delta, bounds, content_bounds);
                     }
@@ -1754,14 +1760,24 @@ impl State {
     /// Chromium's.
     const SMOOTH_SCROLL_DURATION_DIVISOR: f32 = 60.0;
 
+    /// The delay (in seconds) between a wheel event and the next drawn frame.
+    ///
+    /// Wheel events are processed between frames, and the smooth scrolling
+    /// animation is only stepped when the next frame is drawn. Starting the
+    /// animation one nominal frame *before* the event, where a nominal frame
+    /// is one unit of `SMOOTH_SCROLL_DURATION_DIVISOR`, ensures that the
+    /// first drawn frame already shows some progress, instead of repeating
+    /// the previous one.
+    ///
+    /// A full frame is used rather than the mean delay of half a frame: it
+    /// guarantees that the first drawn frame visibly moves, even when the
+    /// event arrives right after a frame. The animation then settles one
+    /// frame early, which is imperceptible since the curve ends at rest.
+    const SMOOTH_SCROLL_FRAME_DELAY: f32 = 1.0 / Self::SMOOTH_SCROLL_DURATION_DIVISOR;
+
     /// The distances (in pixels) at which the smooth scrolling duration ramp
     /// starts and ends.
-    ///
-    /// `SMOOTH_SCROLL_DURATION_RAMP_END` matches Chromium's.
-    /// `SMOOTH_SCROLL_DURATION_RAMP_START` is halved from Chromium's `120.0`
-    /// for a snappier feel: the full (soft) duration only applies to very
-    /// short scrolls, and the ramp down to the snappiest duration is steeper.
-    const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = 60.0;
+    const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = WHEEL_PX_PER_LINE;
     const SMOOTH_SCROLL_DURATION_RAMP_END: f32 = 480.0;
 
     /// The shortest and longest smooth scrolling animation durations, in
