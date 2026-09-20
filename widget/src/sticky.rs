@@ -273,32 +273,26 @@ where
         if let Some(parent) = parent
             && state.is_stuck
         {
-            let position = {
-                let scale_factor = renderer.hint_factor().unwrap_or(1.0);
-                let translation = translation.hint(scale_factor);
-                let viewport = (*viewport + translation).hint(scale_factor);
-                let bounds = (bounds + translation).hint(scale_factor);
-                let parent = (parent + translation).hint(scale_factor);
-
-                Point::new(
-                    stuck_axis(
-                        bounds.x,
-                        bounds.width,
-                        viewport.x,
-                        viewport.width,
-                        (parent.x, parent.x + parent.width),
-                    ),
-                    stuck_axis(
-                        bounds.y,
-                        bounds.height,
-                        viewport.y,
-                        viewport.height,
-                        (parent.y, parent.y + parent.height),
-                    ),
-                )
-            };
-
             let viewport = *viewport + translation;
+            let bounds = bounds + translation;
+            let parent = parent + translation;
+
+            let position = Point::new(
+                stuck_axis(
+                    bounds.x,
+                    bounds.width,
+                    viewport.x,
+                    viewport.width,
+                    (parent.x, parent.x + parent.width),
+                ),
+                stuck_axis(
+                    bounds.y,
+                    bounds.height,
+                    viewport.y,
+                    viewport.height,
+                    (parent.y, parent.y + parent.height),
+                ),
+            );
 
             vec![overlay::Element::new(Box::new(Overlay {
                 content: &mut self.content,
