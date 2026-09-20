@@ -1555,11 +1555,11 @@ fn notify_scroll<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
-    content_bounds: Rectangle,
+    content: Rectangle,
     shell: &mut Shell<'_, Message>,
     source: Option<Source>,
 ) -> bool {
-    if notify_viewport(state, on_scroll, bounds, content_bounds, shell, source) {
+    if notify_viewport(state, on_scroll, bounds, content, shell, source) {
         state.last_scrolled = Some(Instant::now());
 
         true
@@ -1572,20 +1572,19 @@ fn notify_viewport<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
-    content_bounds: Rectangle,
+    content: Rectangle,
     shell: &mut Shell<'_, Message>,
     source: Option<Source>,
 ) -> bool {
-    if content_bounds.width <= bounds.width && content_bounds.height <= bounds.height {
+    if content.width <= bounds.width && content.height <= bounds.height {
         return false;
     }
 
     let viewport = Viewport {
-        offset_x: state.offset_x,
-        offset_y: state.offset_y,
+        x: state.offset_x,
+        y: state.offset_y,
         bounds,
-        content_bounds,
-        is_animating: state.target.is_some(),
+        content,
     };
 
     // Don't publish redundant viewports to shell
@@ -1600,7 +1599,7 @@ fn notify_viewport<Message>(
             |a: f32, b: f32| (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan());
 
         if last_notified.bounds == bounds
-            && last_notified.content_bounds == content_bounds
+            && last_notified.content == content
             && unchanged(last_relative_offset.x, current_relative_offset.x)
             && unchanged(last_relative_offset.y, current_relative_offset.y)
             && unchanged(last_absolute_offset.x, current_absolute_offset.x)
@@ -1617,7 +1616,7 @@ fn notify_viewport<Message>(
         .or_else(|| state.pending_source.take())
         .unwrap_or_else(|| {
             if let Some(last_notified) = state.last_notified {
-                if last_notified.content_bounds != content_bounds {
+                if last_notified.content != content {
                     Source::Content
                 } else {
                     Source::Resize
@@ -1631,7 +1630,11 @@ fn notify_viewport<Message>(
     state.last_notified = Some(viewport);
 
     if let Some(on_scroll) = on_scroll
-        && let Some(message) = on_scroll(Scroll { viewport, source })
+        && let Some(message) = on_scroll(Scroll {
+            viewport,
+            source,
+            target: state.target,
+        })
     {
         shell.publish(message);
     }
@@ -1705,9 +1708,9 @@ impl operation::Scrollable for State {
         offset: RelativeOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
     ) {
-        State::snap_to(self, offset, animation, bounds, content_bounds);
+        State::snap_to(self, offset, animation, bounds, content);
     }
 
     fn scroll_to(
@@ -1715,9 +1718,9 @@ impl operation::Scrollable for State {
         offset: AbsoluteOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
     ) {
-        State::scroll_to(self, offset, animation, bounds, content_bounds);
+        State::scroll_to(self, offset, animation, bounds, content);
     }
 
     fn scroll_by(
@@ -1725,19 +1728,28 @@ impl operation::Scrollable for State {
         offset: AbsoluteOffset,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
     ) {
-        State::scroll_by(self, offset, animation, bounds, content_bounds);
+        State::scroll_by(self, offset, animation, bounds, content);
     }
 }
 
+/// An offset of a [`Scrollable`], in either absolute or relative units.
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Offset {
+pub enum Offset {
+    /// An absolute offset, in pixels.
     Absolute(f32),
+
+    /// A relative offset, as a fraction of the scrollable range.
     Relative(f32),
 }
 
 impl Offset {
+    /// Returns whether this offset is snapped, i.e. relative.
+    pub fn is_snapped(self) -> bool {
+        matches!(self, Offset::Relative(_))
+    }
+
     fn absolute(self, viewport: f32, content: f32) -> f32 {
         match self {
             Offset::Absolute(absolute) => absolute.min((content - viewport).max(0.0)),
@@ -1757,30 +1769,30 @@ impl Offset {
 
 /// The target of an in-progress smooth scroll.
 ///
-/// The `x` and `y` offsets are the destination in [`Offset`] units — what
-/// the scroll settles at, so relative (snapped) offsets stay snapped;
-/// `destination` is their resolution at the current bounds, the point the
-/// running segment eases towards.
+/// The offsets are what the scroll settles at, so relative (snapped)
+/// offsets stay snapped.
 #[derive(Debug, Clone, Copy)]
-struct Target {
-    x: Offset,
-    y: Offset,
-    destination: Vector,
-    source: Source,
+pub struct Target {
+    /// The X offset of the target, in [`Offset`] units.
+    pub x: Offset,
+
+    /// The Y offset of the target, in [`Offset`] units.
+    pub y: Offset,
+
+    /// The resolution of the offsets at the current bounds, the point the
+    /// running segment eases towards.
+    pub destination: Vector,
+
+    /// The [`Source`] of the scroll that started the segment.
+    pub source: Source,
 }
 
 impl Target {
     /// Resolves the given offsets into a [`Target`].
-    fn new(
-        x: Offset,
-        y: Offset,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-        source: Source,
-    ) -> Self {
+    fn new(x: Offset, y: Offset, bounds: Rectangle, content: Rectangle, source: Source) -> Self {
         let destination = Vector::new(
-            x.absolute(bounds.width, content_bounds.width),
-            y.absolute(bounds.height, content_bounds.height),
+            x.absolute(bounds.width, content.width),
+            y.absolute(bounds.height, content.height),
         );
 
         Self {
@@ -1835,31 +1847,49 @@ pub struct Scroll {
 
     /// The [`Source`] of the scroll.
     pub source: Source,
+
+    /// The [`Target`] of the scroll.
+    pub target: Option<Target>,
+}
+
+impl Scroll {
+    /// Returns the [`Viewport`] that this scroll settles at.
+    ///
+    /// While a smooth scrolling animation is in progress, the returned
+    /// [`Viewport`] carries the [`Target`]'s offsets — the offsets the
+    /// scroll settles at — instead of the current ones.
+    pub fn destination(&self) -> Viewport {
+        Viewport {
+            x: self
+                .target
+                .map(|target| target.x)
+                .unwrap_or(self.viewport.x),
+            y: self
+                .target
+                .map(|target| target.y)
+                .unwrap_or(self.viewport.y),
+            ..self.viewport
+        }
+    }
 }
 
 /// The current [`Viewport`] of the [`Scrollable`].
 #[derive(Debug, Clone, Copy)]
 pub struct Viewport {
-    offset_x: Offset,
-    offset_y: Offset,
-    bounds: Rectangle,
-    content_bounds: Rectangle,
-    is_animating: bool,
+    /// The current X offset, in [`Offset`] units.
+    pub x: Offset,
+
+    /// The current Y offset, in [`Offset`] units.
+    pub y: Offset,
+
+    /// The bounds of the [`Scrollable`].
+    pub bounds: Rectangle,
+
+    /// The bounds of the content of the [`Scrollable`].
+    pub content: Rectangle,
 }
 
 impl Viewport {
-    /// Returns the [`AbsoluteOffset`] of the current [`Viewport`].
-    pub fn absolute_offset(&self) -> AbsoluteOffset {
-        let x = self
-            .offset_x
-            .absolute(self.bounds.width, self.content_bounds.width);
-        let y = self
-            .offset_y
-            .absolute(self.bounds.height, self.content_bounds.height);
-
-        AbsoluteOffset { x, y }
-    }
-
     /// Returns the distance from the current scroll position to the end of
     /// the content, in pixels, per axis.
     ///
@@ -1869,9 +1899,17 @@ impl Viewport {
         let AbsoluteOffset { x, y } = self.absolute_offset();
 
         Vector::new(
-            (self.content_bounds.width - self.bounds.width - x).max(0.0),
-            (self.content_bounds.height - self.bounds.height - y).max(0.0),
+            (self.content.width - self.bounds.width - x).max(0.0),
+            (self.content.height - self.bounds.height - y).max(0.0),
         )
+    }
+
+    /// Returns the [`AbsoluteOffset`] of the current [`Viewport`].
+    pub fn absolute_offset(&self) -> AbsoluteOffset {
+        let x = self.x.absolute(self.bounds.width, self.content.width);
+        let y = self.y.absolute(self.bounds.height, self.content.height);
+
+        AbsoluteOffset { x, y }
     }
 
     /// Returns the [`AbsoluteOffset`] of the current [`Viewport`], but with its
@@ -1883,8 +1921,8 @@ impl Viewport {
         let AbsoluteOffset { x, y } = self.absolute_offset();
 
         AbsoluteOffset {
-            x: (self.content_bounds.width - self.bounds.width).max(0.0) - x,
-            y: (self.content_bounds.height - self.bounds.height).max(0.0) - y,
+            x: (self.content.width - self.bounds.width).max(0.0) - x,
+            y: (self.content.height - self.bounds.height).max(0.0) - y,
         }
     }
 
@@ -1892,33 +1930,10 @@ impl Viewport {
     pub fn relative_offset(&self) -> RelativeOffset {
         let AbsoluteOffset { x, y } = self.absolute_offset();
 
-        let x = x / (self.content_bounds.width - self.bounds.width);
-        let y = y / (self.content_bounds.height - self.bounds.height);
+        let x = x / (self.content.width - self.bounds.width);
+        let y = y / (self.content.height - self.bounds.height);
 
         RelativeOffset { x, y }
-    }
-
-    /// Returns the bounds of the current [`Viewport`].
-    pub fn bounds(&self) -> Rectangle {
-        self.bounds
-    }
-
-    /// Returns the content bounds of the current [`Viewport`].
-    pub fn content_bounds(&self) -> Rectangle {
-        self.content_bounds
-    }
-
-    /// Returns whether a smooth scrolling animation is in progress.
-    pub fn is_animating(&self) -> bool {
-        self.is_animating
-    }
-
-    /// Returns whether the X/Y axes are snapped.
-    pub fn is_snapped(&self) -> (bool, bool) {
-        (
-            matches!(self.offset_x, Offset::Relative(_)),
-            matches!(self.offset_y, Offset::Relative(_)),
-        )
     }
 }
 
@@ -1987,20 +2002,20 @@ impl State {
         State::default()
     }
 
-    fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content_bounds: Rectangle) {
+    fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content: Rectangle) {
         self.cancel();
 
-        if bounds.height < content_bounds.height {
+        if bounds.height < content.height {
             self.offset_y = Offset::Absolute(
-                (self.offset_y.absolute(bounds.height, content_bounds.height) + delta.y)
-                    .clamp(0.0, content_bounds.height - bounds.height),
+                (self.offset_y.absolute(bounds.height, content.height) + delta.y)
+                    .clamp(0.0, content.height - bounds.height),
             );
         }
 
-        if bounds.width < content_bounds.width {
+        if bounds.width < content.width {
             self.offset_x = Offset::Absolute(
-                (self.offset_x.absolute(bounds.width, content_bounds.width) + delta.x)
-                    .clamp(0.0, content_bounds.width - bounds.width),
+                (self.offset_x.absolute(bounds.width, content.width) + delta.x)
+                    .clamp(0.0, content.width - bounds.width),
             );
         }
     }
@@ -2014,39 +2029,35 @@ impl State {
         &mut self,
         delta: Vector<f32>,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
         now: Instant,
     ) {
         let current = Point::new(
-            self.offset_x.absolute(bounds.width, content_bounds.width),
-            self.offset_y.absolute(bounds.height, content_bounds.height),
+            self.offset_x.absolute(bounds.width, content.width),
+            self.offset_y.absolute(bounds.height, content.height),
         );
 
         // Accumulate onto the pending target, if any, so that quick wheel
         // movements do not lose their (not yet scrolled) distance
         let target = match self.target {
             Some(target) => Vector::new(
-                Self::clamp_offset(
-                    target.destination.x + delta.x,
-                    bounds.width,
-                    content_bounds.width,
-                ),
+                Self::clamp_offset(target.destination.x + delta.x, bounds.width, content.width),
                 Self::clamp_offset(
                     target.destination.y + delta.y,
                     bounds.height,
-                    content_bounds.height,
+                    content.height,
                 ),
             ),
             None => Vector::new(
-                Self::clamp_offset(current.x + delta.x, bounds.width, content_bounds.width),
-                Self::clamp_offset(current.y + delta.y, bounds.height, content_bounds.height),
+                Self::clamp_offset(current.x + delta.x, bounds.width, content.width),
+                Self::clamp_offset(current.y + delta.y, bounds.height, content.height),
             ),
         };
 
         self.scroll_smoothly_to(
             Target::absolute(target, Source::Wheel),
             bounds,
-            content_bounds,
+            content,
             now,
         );
     }
@@ -2065,7 +2076,7 @@ impl State {
         &mut self,
         target: Target,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
         now: Instant,
     ) {
         // The scroll is requested between frames; start the animation one
@@ -2074,8 +2085,8 @@ impl State {
         let now = now - Duration::from_secs_f32(Self::SMOOTH_SCROLL_FRAME_DELAY);
 
         let current = Point::new(
-            self.offset_x.absolute(bounds.width, content_bounds.width),
-            self.offset_y.absolute(bounds.height, content_bounds.height),
+            self.offset_x.absolute(bounds.width, content.width),
+            self.offset_y.absolute(bounds.height, content.height),
         );
 
         // Nothing to animate: the content fits, or we're already at the target
@@ -2171,14 +2182,14 @@ impl State {
     /// offset.
     ///
     /// Returns `true` if the animation is still in progress.
-    fn step(&mut self, now: Instant, bounds: Rectangle, content_bounds: Rectangle) -> bool {
+    fn step(&mut self, now: Instant, bounds: Rectangle, content: Rectangle) -> bool {
         let Some(target) = self.target else {
             return false;
         };
 
         // The bounds and content may have changed while the animation is
         // running; re-resolve the target, and retarget if it moved
-        let resolved = Target::new(target.x, target.y, bounds, content_bounds, target.source);
+        let resolved = Target::new(target.x, target.y, bounds, content, target.source);
         if resolved.destination != target.destination {
             self.retarget(resolved, now);
         }
@@ -2367,16 +2378,16 @@ impl State {
         (low + high) / 2.0
     }
 
-    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
+    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content: Rectangle) {
         self.cancel();
         self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap_y(bounds, content_bounds);
+        self.unsnap_y(bounds, content);
     }
 
-    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
+    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content: Rectangle) {
         self.cancel();
         self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap_x(bounds, content_bounds);
+        self.unsnap_x(bounds, content);
     }
 
     /// Snaps the scroll to the given [`RelativeOffset`], with the given
@@ -2386,7 +2397,7 @@ impl State {
         offset: RelativeOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
     ) {
         self.pending_source = Some(Source::Operation);
 
@@ -2416,9 +2427,9 @@ impl State {
             .unwrap_or(self.offset_y);
 
         self.scroll_smoothly_to(
-            Target::new(x, y, bounds, content_bounds, Source::Operation),
+            Target::new(x, y, bounds, content, Source::Operation),
             bounds,
-            content_bounds,
+            content,
             Instant::now(),
         );
     }
@@ -2429,7 +2440,7 @@ impl State {
         offset: AbsoluteOffset<Option<f32>>,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
     ) {
         self.pending_source = Some(Source::Operation);
 
@@ -2451,17 +2462,17 @@ impl State {
         // keep the current offsets of the axes the scroll does not target
         let x = offset
             .x
-            .map(|x| Offset::Absolute(Self::clamp_offset(x, bounds.width, content_bounds.width)))
+            .map(|x| Offset::Absolute(Self::clamp_offset(x, bounds.width, content.width)))
             .unwrap_or(self.offset_x);
         let y = offset
             .y
-            .map(|y| Offset::Absolute(Self::clamp_offset(y, bounds.height, content_bounds.height)))
+            .map(|y| Offset::Absolute(Self::clamp_offset(y, bounds.height, content.height)))
             .unwrap_or(self.offset_y);
 
         self.scroll_smoothly_to(
-            Target::new(x, y, bounds, content_bounds, Source::Operation),
+            Target::new(x, y, bounds, content, Source::Operation),
             bounds,
-            content_bounds,
+            content,
             Instant::now(),
         );
     }
@@ -2473,16 +2484,16 @@ impl State {
         offset: AbsoluteOffset,
         animation: Animation,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
     ) {
         self.pending_source = Some(Source::Operation);
 
         let delta = Vector::new(offset.x, offset.y);
 
         if self.should_scroll_smoothly(animation) {
-            self.scroll_smoothly(delta, bounds, content_bounds, Instant::now());
+            self.scroll_smoothly(delta, bounds, content, Instant::now());
         } else {
-            self.scroll(delta, bounds, content_bounds);
+            self.scroll(delta, bounds, content);
         }
     }
 
@@ -2496,34 +2507,27 @@ impl State {
         }
     }
 
-    fn unsnap_x(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
-        self.offset_x =
-            Offset::Absolute(self.offset_x.absolute(bounds.width, content_bounds.width));
+    fn unsnap_x(&mut self, bounds: Rectangle, content: Rectangle) {
+        self.offset_x = Offset::Absolute(self.offset_x.absolute(bounds.width, content.width));
     }
 
-    fn unsnap_y(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
-        self.offset_y =
-            Offset::Absolute(self.offset_y.absolute(bounds.height, content_bounds.height));
+    fn unsnap_y(&mut self, bounds: Rectangle, content: Rectangle) {
+        self.offset_y = Offset::Absolute(self.offset_y.absolute(bounds.height, content.height));
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
     /// the bounds of the [`Scrollable`] and its contents.
-    fn translation(
-        &self,
-        direction: Direction,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) -> Vector {
+    fn translation(&self, direction: Direction, bounds: Rectangle, content: Rectangle) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
                 self.offset_x
-                    .translation(bounds.width, content_bounds.width, horizontal.alignment)
+                    .translation(bounds.width, content.width, horizontal.alignment)
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
                 self.offset_y
-                    .translation(bounds.height, content_bounds.height, vertical.alignment)
+                    .translation(bounds.height, content.height, vertical.alignment)
             } else {
                 0.0
             },
@@ -2567,15 +2571,15 @@ impl Scrollbars {
         translation: Vector,
         direction: Direction,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Rectangle,
     ) -> Self {
         let show_scrollbar_x = direction
             .horizontal()
-            .filter(|_scrollbar| content_bounds.width > bounds.width);
+            .filter(|_scrollbar| content.width > bounds.width);
 
         let show_scrollbar_y = direction
             .vertical()
-            .filter(|_scrollbar| content_bounds.height > bounds.height);
+            .filter(|_scrollbar| content.height > bounds.height);
 
         let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
             let Scrollbar {
@@ -2614,7 +2618,7 @@ impl Scrollbars {
                 height: scrollbar_height,
             };
 
-            let ratio = bounds.height / content_bounds.height;
+            let ratio = bounds.height / content.height;
 
             let scroller = if ratio >= 1.0 {
                 None
@@ -2641,7 +2645,7 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: vertical.alignment,
-                disabled: content_bounds.height <= bounds.height,
+                disabled: content.height <= bounds.height,
                 floating: spacing.is_none(),
             })
         } else {
@@ -2685,7 +2689,7 @@ impl Scrollbars {
                 height: width,
             };
 
-            let ratio = bounds.width / content_bounds.width;
+            let ratio = bounds.width / content.width;
 
             let scroller = if ratio >= 1.0 {
                 None
@@ -2713,7 +2717,7 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: horizontal.alignment,
-                disabled: content_bounds.width <= bounds.width,
+                disabled: content.width <= bounds.width,
                 floating: spacing.is_none(),
             })
         } else {

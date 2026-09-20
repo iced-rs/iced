@@ -86,12 +86,7 @@ fn wheel_scrolling_is_smooth() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|scroll| {
-            (
-                scroll.viewport.absolute_offset().y,
-                scroll.viewport.is_animating(),
-            )
-        })
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
         .unzip();
 
     // The wheel event must not have moved the offset: the first
@@ -145,12 +140,7 @@ fn wheel_scrolling_is_immediate_when_smooth_scroll_disabled() {
     // on the wheel event itself — and no animation
     let notifications: Vec<(f32, bool)> = simulator
         .into_messages()
-        .map(|scroll| {
-            (
-                scroll.viewport.absolute_offset().y,
-                scroll.viewport.is_animating(),
-            )
-        })
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
         .collect();
 
     assert_eq!(notifications, [(px(2.0), false)]);
@@ -168,12 +158,7 @@ fn pixel_scrolling_is_immediate_even_when_smooth_scroll_enabled() {
     // smooth scrolling is enabled by default — and there is no animation
     let notifications: Vec<(f32, bool)> = simulator
         .into_messages()
-        .map(|scroll| {
-            (
-                scroll.viewport.absolute_offset().y,
-                scroll.viewport.is_animating(),
-            )
-        })
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
         .collect();
 
     assert_eq!(notifications, [(120.0, false)]);
@@ -437,12 +422,7 @@ fn high_precision_scrolling_cancels_smooth_scroll() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|scroll| {
-            (
-                scroll.viewport.absolute_offset().y,
-                scroll.viewport.is_animating(),
-            )
-        })
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
         .unzip();
 
     // Exactly four notifications: the wheel event (at the original
@@ -504,12 +484,7 @@ fn scroll_to_with_smooth_behavior_is_smooth() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|scroll| {
-            (
-                scroll.viewport.absolute_offset().y,
-                scroll.viewport.is_animating(),
-            )
-        })
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
         .unzip();
 
     // The operation is backdated by one nominal frame: the first drawn
@@ -562,12 +537,7 @@ fn scroll_to_with_instant_behavior_is_immediate() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|scroll| {
-            (
-                scroll.viewport.absolute_offset().y,
-                scroll.viewport.is_animating(),
-            )
-        })
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
         .unzip();
 
     // The offset must be at the target on the very first frame, with no
@@ -1438,5 +1408,79 @@ fn notifications_report_the_layout_source() {
         sources,
         vec![Source::Resize],
         "the resize must report `Resize`: {sources:?}"
+    );
+}
+
+#[test]
+fn destination_is_snapped_during_animation() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    // Smoothly snap to the end: the animation targets a relative offset,
+    // so the Y axis is snapped while it is still in flight
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 1);
+
+    let scroll = simulator.drain().pop().unwrap();
+    assert!(
+        scroll.target.is_some(),
+        "expected an in-flight animation: {scroll:?}"
+    );
+    assert!(
+        scroll.destination().y.is_snapped(),
+        "the Y axis must be snapped mid-flight, towards its relative target: {scroll:?}"
+    );
+
+    // Settled: the offset itself is relative now
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let scroll = simulator.drain().pop().unwrap();
+    assert!(
+        scroll.target.is_none(),
+        "expected a settled animation: {scroll:?}"
+    );
+    assert!(
+        scroll.viewport.y.is_snapped(),
+        "the Y offset must be relative once settled: {scroll:?}"
+    );
+}
+
+#[test]
+fn destination_is_unsnapped_for_absolute_targets() {
+    let mut simulator = Simulator::new(element(3000, 200));
+    simulator.point_at(Point::new(500.0, 100.0));
+
+    // A wheel targets an absolute offset
+    let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -1.0 });
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 1);
+
+    let scroll = simulator.drain().pop().unwrap();
+    assert!(
+        scroll.target.is_some(),
+        "expected an in-flight animation: {scroll:?}"
+    );
+    assert!(
+        !scroll.destination().y.is_snapped(),
+        "a wheel targets an absolute offset: {scroll:?}"
+    );
+
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let scroll = simulator.drain().pop().unwrap();
+    assert!(
+        !scroll.viewport.y.is_snapped(),
+        "the settled offset must be absolute: {scroll:?}"
     );
 }
