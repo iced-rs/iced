@@ -1381,11 +1381,7 @@ fn notifications_report_the_layout_source() {
     let mut instant = Instant::now();
     step_frames(&mut simulator, &mut instant, 1);
 
-    let sources: Vec<Source> = simulator
-        .drain()
-        .into_iter()
-        .map(|scroll| scroll.source)
-        .collect();
+    let sources: Vec<Source> = simulator.drain().map(|scroll| scroll.source).collect();
     assert_eq!(
         sources,
         vec![Source::Content],
@@ -1396,11 +1392,7 @@ fn notifications_report_the_layout_source() {
     simulator = simulator.rebuild(fill_element(6000));
     step_frames(&mut simulator, &mut instant, 1);
 
-    let sources: Vec<Source> = simulator
-        .drain()
-        .into_iter()
-        .map(|scroll| scroll.source)
-        .collect();
+    let sources: Vec<Source> = simulator.drain().map(|scroll| scroll.source).collect();
     assert_eq!(
         sources,
         vec![Source::Content],
@@ -1411,11 +1403,7 @@ fn notifications_report_the_layout_source() {
     simulator = simulator.resize(Size::new(1024.0, 600.0));
     step_frames(&mut simulator, &mut instant, 1);
 
-    let sources: Vec<Source> = simulator
-        .drain()
-        .into_iter()
-        .map(|scroll| scroll.source)
-        .collect();
+    let sources: Vec<Source> = simulator.drain().map(|scroll| scroll.source).collect();
     assert_eq!(
         sources,
         vec![Source::Resize],
@@ -1443,7 +1431,7 @@ fn destination_is_snapped_during_animation() {
     let mut instant = Instant::now();
     step_frames(&mut simulator, &mut instant, 1);
 
-    let scroll = simulator.drain().pop().unwrap();
+    let scroll = simulator.drain().last().unwrap();
     assert!(
         scroll.target.is_some(),
         "expected an in-flight animation: {scroll:?}"
@@ -1456,7 +1444,7 @@ fn destination_is_snapped_during_animation() {
     // Settled: the offset itself is relative now
     step_frames(&mut simulator, &mut instant, 60);
 
-    let scroll = simulator.drain().pop().unwrap();
+    let scroll = simulator.drain().last().unwrap();
     assert!(
         scroll.target.is_none(),
         "expected a settled animation: {scroll:?}"
@@ -1478,7 +1466,7 @@ fn destination_is_unsnapped_for_absolute_targets() {
     let mut instant = Instant::now();
     step_frames(&mut simulator, &mut instant, 1);
 
-    let scroll = simulator.drain().pop().unwrap();
+    let scroll = simulator.drain().last().unwrap();
     assert!(
         scroll.target.is_some(),
         "expected an in-flight animation: {scroll:?}"
@@ -1490,7 +1478,7 @@ fn destination_is_unsnapped_for_absolute_targets() {
 
     step_frames(&mut simulator, &mut instant, 60);
 
-    let scroll = simulator.drain().pop().unwrap();
+    let scroll = simulator.drain().last().unwrap();
     assert!(
         !scroll.viewport.y.is_snapped(),
         "the settled offset must be absolute: {scroll:?}"

@@ -284,8 +284,8 @@ where
     }
 
     /// Returns the messages published so far, clearing the queue.
-    pub fn drain(&mut self) -> Vec<Message> {
-        self.messages.drain().map(|(message, _)| message).collect()
+    pub fn drain(&mut self) -> impl Iterator<Item = Message> {
+        self.messages.drain().map(|(message, _)| message)
     }
 }
 
