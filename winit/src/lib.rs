@@ -42,7 +42,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::theme;
-use crate::core::time::Instant;
+use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation;
 use crate::core::{Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
@@ -946,41 +946,51 @@ async fn run_instance<P>(
                                     // This is an unrecoverable error.
                                     panic!("{error:?}");
                                 }
-                                compositor::SurfaceError::Outdated
-                                | compositor::SurfaceError::Lost => {
-                                    present_span.finish();
-
-                                    // Reconfigure surface and try redrawing
-                                    let physical_size = window.state.physical_size();
-
-                                    if error == compositor::SurfaceError::Lost {
-                                        window.surface = current_compositor.create_surface(
-                                            window.raw.clone(),
-                                            physical_size.width,
-                                            physical_size.height,
-                                        );
-                                    } else {
-                                        current_compositor.configure_surface(
-                                            &mut window.surface,
-                                            physical_size.width,
-                                            physical_size.height,
-                                        );
-                                    }
-
-                                    window.raw.request_redraw();
-                                }
                                 compositor::SurfaceError::Occluded => {
                                     present_span.finish();
 
                                     // Do nothing and wait for window to become visible again
                                 }
-                                _ => {
+                                compositor::SurfaceError::Timeout => {
                                     present_span.finish();
 
-                                    log::warn!("Error {error:?} when presenting surface.");
+                                    window.raw.request_redraw();
+                                }
+                                compositor::SurfaceError::Lost
+                                | compositor::SurfaceError::Outdated
+                                | compositor::SurfaceError::Other => {
+                                    present_span.finish();
 
-                                    // Try rendering all windows again next frame.
-                                    for (_id, window) in window_manager.iter_mut() {
+                                    // Reconfigure or recreate at most once a second,
+                                    // and do not request a redraw in between, so a
+                                    // surface that keeps failing cannot spin the loop.
+                                    let due = window
+                                        .surface_error_at
+                                        .is_none_or(|at| at.elapsed() > Duration::from_secs(1));
+
+                                    if due {
+                                        window.surface_error_at = Some(Instant::now());
+
+                                        log::warn!(
+                                            "Error {error:?} when presenting surface. Recovering it."
+                                        );
+
+                                        let physical_size = window.state.physical_size();
+
+                                        if matches!(error, compositor::SurfaceError::Outdated) {
+                                            current_compositor.configure_surface(
+                                                &mut window.surface,
+                                                physical_size.width,
+                                                physical_size.height,
+                                            );
+                                        } else {
+                                            window.surface = current_compositor.create_surface(
+                                                window.raw.clone(),
+                                                physical_size.width,
+                                                physical_size.height,
+                                            );
+                                        }
+
                                         window.raw.request_redraw();
                                     }
                                 }
