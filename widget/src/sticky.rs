@@ -41,6 +41,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
+use crate::core::window;
 use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that keeps its contents in view.
@@ -174,18 +175,21 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
-        let is_stuck = if let Some(parent) = layout.parent()
-            && parent.intersects(viewport)
-            && !layout.bounds().is_within(viewport)
-        {
-            true
-        } else {
-            false
-        };
+        if let Event::Window(window::Event::RedrawRequested(_)) = event {
+            let is_stuck = if let Some(parent) = layout.parent()
+                && parent.intersects(viewport)
+                && !layout.bounds().is_within(viewport)
+            {
+                true
+            } else {
+                false
+            };
 
-        if is_stuck != state.is_stuck {
-            state.is_stuck = is_stuck;
-            shell.invalidate_overlay();
+            if is_stuck != state.is_stuck {
+                state.is_stuck = is_stuck;
+                shell.invalidate_overlay();
+                return; // Avoid propagating a stale redraw
+            }
         }
 
         if state.is_stuck {
