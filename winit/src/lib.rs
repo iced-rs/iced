@@ -796,24 +796,26 @@ async fn run_instance<P>(
                                 &mut messages,
                             );
 
+                            if redraw_count >= 2 {
+                                log::warn!(
+                                    "3 consecutive RedrawRequested events produced invalidation"
+                                );
+
+                                break state;
+                            }
+
                             if message_count == messages.len() {
                                 match state {
                                     user_interface::State::Outdated => {}
                                     user_interface::State::Updated { change, .. } => match change {
-                                        user_interface::Change::Overlay => continue,
                                         user_interface::Change::None => break state,
+                                        user_interface::Change::Overlay => {
+                                            redraw_count += 1;
+                                            continue;
+                                        }
                                         user_interface::Change::Layout => {}
                                     },
                                 }
-                            }
-
-                            if redraw_count >= 2 {
-                                log::warn!(
-                                    "More than 3 consecutive RedrawRequested events \
-                                    produced layout invalidation"
-                                );
-
-                                break state;
                             }
 
                             redraw_count += 1;
