@@ -11,7 +11,9 @@ use iced_widget::core::mouse::{self, ScrollDelta};
 use iced_widget::core::widget::{Id, Tree, operation};
 use iced_widget::core::window;
 use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme};
-use iced_widget::scrollable::{AbsoluteOffset, RelativeOffset, Scrollable, Viewport};
+use iced_widget::scrollable::{
+    AbsoluteOffset, Direction, RelativeOffset, Scrollable, Scrollbar, Viewport,
+};
 use iced_widget::space;
 
 use std::cell::RefCell;
@@ -851,4 +853,351 @@ fn content_update_and_draw_see_the_same_translation() {
         // Give the animation a frame's worth of time before the next redraw
         std::thread::sleep(FRAME);
     }
+}
+
+#[test]
+fn snap_to_end_with_smooth_behavior_stays_snapped_when_content_grows() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    // Settle the animation, frame by frame
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 60);
+
+    // Grow the content while keeping the state, like an app would on a new
+    // message
+    simulator = simulator.rebuild(element(6000, 200));
+
+    // The snapped (relative) offset must re-resolve to the new end
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    assert_eq!(
+        offsets.last(),
+        Some(&5800.0),
+        "the smooth snap must stay snapped to the end after the content grows: {offsets:?}"
+    );
+}
+
+#[test]
+fn snap_to_end_with_smooth_behavior_tracks_content_growth_mid_scroll() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    // A few frames into the animation, grow the content
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 5);
+    simulator = simulator.rebuild(element(6000, 200));
+
+    // Settle the retargeted animation
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    // The animation must retarget to the new end, not settle on the stale one
+    assert_eq!(
+        offsets.last(),
+        Some(&5800.0),
+        "the scroll must settle on the grown end: {offsets:?}"
+    );
+
+    // ... and the offset must never move backwards along the way
+    assert!(
+        offsets.windows(2).all(|pair| pair[1] >= pair[0]),
+        "the offset must not jump: {offsets:?}"
+    );
+}
+
+#[test]
+fn wheel_during_smooth_snap_to_end_drops_the_snap() {
+    let mut simulator = Simulator::new(element(3000, 200));
+    simulator.point_at(Point::new(500.0, 100.0));
+
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    // A few frames into the animation, scroll up one line with the wheel
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 5);
+
+    let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: 1.0 });
+
+    // Settle the retargeted animation: the pending destination (the end,
+    // 2800 px) minus one line (120 px)
+    step_frames(&mut simulator, &mut instant, 60);
+
+    // The snap must have been replaced by the wheel's absolute target:
+    // growing the content no longer moves the offset
+    simulator = simulator.rebuild(element(6000, 200));
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    assert_eq!(
+        offsets.last(),
+        Some(&2680.0),
+        "the wheel must replace the snap with an absolute target: {offsets:?}"
+    );
+}
+
+#[test]
+fn snap_to_end_with_smooth_behavior_stays_snapped_when_already_at_destination() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    // Scroll to the end with an immediate (absolute) offset
+    let mut operation = operation::scrollable::scroll_to(
+        ELEMENT_ID,
+        AbsoluteOffset {
+            x: None,
+            y: Some(2800.0),
+        },
+        operation::Animation::Instant,
+    );
+
+    simulator.operate(&mut operation);
+
+    // Let the immediate scroll notify
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // Snap to the end smoothly: there is nothing to animate, but the offset
+    // must still become relative (snapped)
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    // Grow the content: the snapped offset must pin the scroll to the end
+    simulator = simulator.rebuild(element(6000, 200));
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    assert_eq!(
+        offsets.last(),
+        Some(&5800.0),
+        "the snap must apply even when already at the destination: {offsets:?}"
+    );
+}
+
+#[test]
+fn snap_to_end_with_smooth_behavior_stays_snapped_without_overflow() {
+    let mut simulator = Simulator::new(element(100, 200));
+
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    // The content does not overflow, so there is nothing to animate; the
+    // snapped (relative) offset must still be applied
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // Once the content overflows, the snapped offset must pin the scroll
+    // to the end
+    simulator = simulator.rebuild(element(3000, 200));
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    assert_eq!(
+        offsets.last(),
+        Some(&2800.0),
+        "the snap must apply even without overflow: {offsets:?}"
+    );
+}
+
+/// A `Scrollable` with content of the given size and a 1024 × 200 viewport,
+/// so that the content overflows on both axes.
+fn element_xy(
+    content_width: u32,
+    content_height: u32,
+) -> Scrollable<'static, Viewport, Theme, Renderer> {
+    Scrollable::new(
+        space()
+            .width(Length::Fixed(content_width as f32))
+            .height(Length::Fixed(content_height as f32)),
+    )
+    .id("scrollable")
+    .width(Length::Fill)
+    .height(200)
+    .direction(Direction::Both {
+        vertical: Scrollbar::default(),
+        horizontal: Scrollbar::default(),
+    })
+    .on_scroll(Some)
+}
+
+#[test]
+fn snap_to_end_with_smooth_behavior_preserves_other_axis_snappedness() {
+    let mut simulator = Simulator::new(element_xy(2000, 3000));
+
+    // Pin the horizontal scroll to the end (instantly)
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: Some(1.0),
+            y: None,
+        },
+        operation::Animation::Instant,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // Snap the vertical scroll to the end smoothly: the horizontal offset
+    // must keep its snappedness
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+    step_frames(&mut simulator, &mut instant, 60);
+
+    // Grow the content wider: the horizontally-snapped offset must follow
+    // the new right edge (3000 − 1024), not freeze at the old one (976)
+    simulator = simulator.rebuild(element_xy(3000, 3000));
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().x)
+        .collect();
+
+    assert_eq!(
+        offsets.last(),
+        Some(&1976.0),
+        "the horizontal snappedness must survive the vertical snap: {offsets:?}"
+    );
+}
+
+#[test]
+fn scrollbar_drag_unsnaps_only_the_dragged_axis() {
+    let mut simulator = Simulator::new(element_xy(2000, 3000));
+
+    // Pin the horizontal scroll to the end (instantly)
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: Some(1.0),
+            y: None,
+        },
+        operation::Animation::Instant,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // Drag the vertical scrollbar (right edge, 10 px wide) partway down
+    simulator.point_at(Point::new(1019.0, 60.0));
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonPressed(
+        mouse::Button::Left,
+    ))]);
+
+    simulator.point_at(Point::new(1019.0, 150.0));
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::CursorMoved {
+        position: Point::new(1019.0, 150.0),
+    })]);
+
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonReleased(
+        mouse::Button::Left,
+    ))]);
+
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // Grow the content wider
+    simulator = simulator.rebuild(element_xy(3000, 3000));
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let viewports: Vec<Viewport> = simulator.into_messages().collect();
+
+    let (dragged, grown) = (
+        viewports[viewports.len() - 2].absolute_offset(),
+        viewports.last().unwrap().absolute_offset(),
+    );
+
+    // The drag must have registered, moving the vertical scroll
+    assert!(
+        grown.y > 1000.0,
+        "the drag must move the vertical scroll: {viewports:?}"
+    );
+
+    // The drag must have materialized the vertical offset: growing the
+    // content leaves it where the drag left it
+    assert_eq!(
+        dragged.y, grown.y,
+        "the dragged axis must not keep its snappedness: {viewports:?}"
+    );
+
+    // ... while the horizontal snappedness follows the new right edge
+    assert_eq!(
+        grown.x, 1976.0,
+        "the horizontal snappedness must survive the vertical drag: {viewports:?}"
+    );
 }

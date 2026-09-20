@@ -1589,7 +1589,7 @@ struct State {
     offset_y: Offset,
     offset_x: Offset,
     smooth_scroll: bool,
-    target: Option<Vector>,
+    target: Option<Target>,
     segment_start: Point,
     segment_started: Option<Instant>,
     segment_duration: f32,
@@ -1694,6 +1694,40 @@ impl Offset {
         match alignment {
             Anchor::Start => offset,
             Anchor::End => ((content - viewport).max(0.0) - offset).max(0.0),
+        }
+    }
+}
+
+/// The target of an in-progress smooth scroll.
+///
+/// The `x` and `y` offsets are the destination in [`Offset`] units — what
+/// the scroll settles at, so relative (snapped) offsets stay snapped;
+/// `destination` is their resolution at the current bounds, the point the
+/// running segment eases towards.
+#[derive(Debug, Clone, Copy)]
+struct Target {
+    x: Offset,
+    y: Offset,
+    destination: Vector,
+}
+
+impl Target {
+    /// Resolves the given offsets into a [`Target`].
+    fn new(x: Offset, y: Offset, bounds: Rectangle, content_bounds: Rectangle) -> Self {
+        let destination = Vector::new(
+            x.absolute(bounds.width, content_bounds.width),
+            y.absolute(bounds.height, content_bounds.height),
+        );
+
+        Self { x, y, destination }
+    }
+
+    /// A [`Target`] that settles at the given absolute `destination`.
+    fn absolute(destination: Vector) -> Self {
+        Self {
+            x: Offset::Absolute(destination.x),
+            y: Offset::Absolute(destination.y),
+            destination,
         }
     }
 }
@@ -1856,9 +1890,6 @@ impl State {
         content_bounds: Rectangle,
         now: Instant,
     ) {
-        // Materialize any snapped (relative) offsets before animating from them
-        self.unsnap(bounds, content_bounds);
-
         let current = Point::new(
             self.offset_x.absolute(bounds.width, content_bounds.width),
             self.offset_y.absolute(bounds.height, content_bounds.height),
@@ -1868,8 +1899,16 @@ impl State {
         // movements do not lose their (not yet scrolled) distance
         let target = match self.target {
             Some(target) => Vector::new(
-                Self::clamp_offset(target.x + delta.x, bounds.width, content_bounds.width),
-                Self::clamp_offset(target.y + delta.y, bounds.height, content_bounds.height),
+                Self::clamp_offset(
+                    target.destination.x + delta.x,
+                    bounds.width,
+                    content_bounds.width,
+                ),
+                Self::clamp_offset(
+                    target.destination.y + delta.y,
+                    bounds.height,
+                    content_bounds.height,
+                ),
             ),
             None => Vector::new(
                 Self::clamp_offset(current.x + delta.x, bounds.width, content_bounds.width),
@@ -1877,10 +1916,10 @@ impl State {
             ),
         };
 
-        self.scroll_smoothly_to(target, bounds, content_bounds, now);
+        self.scroll_smoothly_to(Target::absolute(target), bounds, content_bounds, now);
     }
 
-    /// Scrolls smoothly to the given absolute `target` offset.
+    /// Scrolls smoothly to the given `target`.
     ///
     /// The target replaces any pending one. If a segment is already running,
     /// it is retargeted from the current position and velocity, so that
@@ -1892,7 +1931,7 @@ impl State {
     /// shorter (snappier) one.
     fn scroll_smoothly_to(
         &mut self,
-        target: Vector<f32>,
+        target: Target,
         bounds: Rectangle,
         content_bounds: Rectangle,
         now: Instant,
@@ -1908,7 +1947,9 @@ impl State {
         );
 
         // Nothing to animate: the content fits, or we're already at the target
-        if target.x == current.x && target.y == current.y {
+        if target.destination.x == current.x && target.destination.y == current.y {
+            self.offset_x = target.x;
+            self.offset_y = target.y;
             self.target = None;
             self.last_frame = None;
             return;
@@ -1917,9 +1958,9 @@ impl State {
         let Some(ongoing) = self.target else {
             // A new scroll run: start a fresh segment from rest at the
             // current position
-            let distance = (target.x - current.x)
+            let distance = (target.destination.x - current.x)
                 .abs()
-                .max((target.y - current.y).abs());
+                .max((target.destination.y - current.y).abs());
 
             self.target = Some(target);
             self.segment_start = current;
@@ -1931,15 +1972,24 @@ impl State {
         };
 
         // The target is unchanged: keep the running segment as is
-        if ongoing == target {
+        if ongoing.destination == target.destination {
             return;
         }
 
+        self.retarget(target, now);
+    }
+
+    /// Retargets the running segment towards `target`, from the current
+    /// position and velocity, so that scrolling flows instead of restarting.
+    fn retarget(&mut self, target: Target, now: Instant) {
         // Retarget the running segment from the current position, preserving
         // the current velocity
         let start = self.animated_position(now);
         let velocity = self.animated_velocity(now);
-        let new = Vector::new(target.x - start.x, target.y - start.y);
+        let new = Vector::new(
+            target.destination.x - start.x,
+            target.destination.y - start.y,
+        );
 
         // The signed dimension with the largest magnitude, like Chromium's
         let max_dimension = if new.x.abs() > new.y.abs() {
@@ -1962,8 +2012,8 @@ impl State {
 
         if max_dimension.abs() < 0.01 || duration < 0.01 {
             // The new target is right on top of us: end the animation now
-            self.offset_x = Offset::Absolute(target.x);
-            self.offset_y = Offset::Absolute(target.y);
+            self.offset_x = target.x;
+            self.offset_y = target.y;
             self.target = None;
             self.last_frame = None;
             return;
@@ -1992,34 +2042,41 @@ impl State {
         let Some(target) = self.target else {
             return false;
         };
+
+        // The bounds and content may have changed while the animation is
+        // running; re-resolve the target, and retarget if it moved
+        let resolved = Target::new(target.x, target.y, bounds, content_bounds);
+        if resolved.destination != target.destination {
+            self.retarget(resolved, now);
+        }
+
+        let Some(target) = self.target else {
+            return false;
+        };
         let Some(started) = self.segment_started else {
             return false;
         };
-
-        // Clamp the target in case the bounds changed while the animation is
-        // running
-        let target = Vector::new(
-            Self::clamp_offset(target.x, bounds.width, content_bounds.width),
-            Self::clamp_offset(target.y, bounds.height, content_bounds.height),
-        );
 
         let t = (now - started).as_secs_f32();
         let progress = (t / self.segment_duration).clamp(0.0, 1.0);
 
         if progress >= 1.0 {
-            // Settled exactly on the target
-            self.offset_x = Offset::Absolute(target.x);
-            self.offset_y = Offset::Absolute(target.y);
+            // Settled exactly on the target, keeping relative (snapped)
+            // offsets
+            self.offset_x = target.x;
+            self.offset_y = target.y;
             self.target = None;
             self.last_frame = None;
             return false;
         }
 
         let bez = Self::smooth_scroll_progress(progress, self.segment_slope);
-        self.offset_x =
-            Offset::Absolute(self.segment_start.x + (target.x - self.segment_start.x) * bez);
-        self.offset_y =
-            Offset::Absolute(self.segment_start.y + (target.y - self.segment_start.y) * bez);
+        self.offset_x = Offset::Absolute(
+            self.segment_start.x + (target.destination.x - self.segment_start.x) * bez,
+        );
+        self.offset_y = Offset::Absolute(
+            self.segment_start.y + (target.destination.y - self.segment_start.y) * bez,
+        );
 
         self.last_frame = Some(now);
         true
@@ -2056,8 +2113,8 @@ impl State {
         let bez = Self::smooth_scroll_progress(progress, self.segment_slope);
 
         Point::new(
-            self.segment_start.x + (target.x - self.segment_start.x) * bez,
-            self.segment_start.y + (target.y - self.segment_start.y) * bez,
+            self.segment_start.x + (target.destination.x - self.segment_start.x) * bez,
+            self.segment_start.y + (target.destination.y - self.segment_start.y) * bez,
         )
     }
 
@@ -2074,8 +2131,8 @@ impl State {
             return 0.0;
         }
 
-        let dx = target.x - self.segment_start.x;
-        let dy = target.y - self.segment_start.y;
+        let dx = target.destination.x - self.segment_start.x;
+        let dy = target.destination.y - self.segment_start.y;
         let max_dimension = if dx.abs() > dy.abs() { dx } else { dy };
 
         Self::smooth_scroll_curve_slope(progress, self.segment_slope) * max_dimension
@@ -2179,13 +2236,13 @@ impl State {
     fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
         self.cancel();
         self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap(bounds, content_bounds);
+        self.unsnap_y(bounds, content_bounds);
     }
 
     fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
         self.cancel();
         self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap(bounds, content_bounds);
+        self.unsnap_x(bounds, content_bounds);
     }
 
     /// Snaps the scroll to the given [`RelativeOffset`], with the given
@@ -2211,26 +2268,23 @@ impl State {
             return;
         }
 
-        // Materialize the percentages as an absolute target, then animate
-        self.unsnap(bounds, content_bounds);
+        // Snap the targeted axes relative to the content, and keep the
+        // current offsets of the axes the snap does not target
+        let x = offset
+            .x
+            .map(|x| Offset::Relative(x.clamp(0.0, 1.0)))
+            .unwrap_or(self.offset_x);
+        let y = offset
+            .y
+            .map(|y| Offset::Relative(y.clamp(0.0, 1.0)))
+            .unwrap_or(self.offset_y);
 
-        let current = Point::new(
-            self.offset_x.absolute(bounds.width, content_bounds.width),
-            self.offset_y.absolute(bounds.height, content_bounds.height),
+        self.scroll_smoothly_to(
+            Target::new(x, y, bounds, content_bounds),
+            bounds,
+            content_bounds,
+            Instant::now(),
         );
-
-        let target = Vector::new(
-            offset
-                .x
-                .map(|x| (content_bounds.width - bounds.width).max(0.0) * x.clamp(0.0, 1.0))
-                .unwrap_or(current.x),
-            offset
-                .y
-                .map(|y| (content_bounds.height - bounds.height).max(0.0) * y.clamp(0.0, 1.0))
-                .unwrap_or(current.y),
-        );
-
-        self.scroll_smoothly_to(target, bounds, content_bounds, Instant::now());
     }
 
     /// Scrolls to the given [`AbsoluteOffset`], with the given [`Animation`].
@@ -2255,27 +2309,23 @@ impl State {
             return;
         }
 
-        // Materialize any snapped (relative) offsets before animating from
-        // them
-        self.unsnap(bounds, content_bounds);
+        // Scroll the targeted axes to their clamped absolute offsets, and
+        // keep the current offsets of the axes the scroll does not target
+        let x = offset
+            .x
+            .map(|x| Offset::Absolute(Self::clamp_offset(x, bounds.width, content_bounds.width)))
+            .unwrap_or(self.offset_x);
+        let y = offset
+            .y
+            .map(|y| Offset::Absolute(Self::clamp_offset(y, bounds.height, content_bounds.height)))
+            .unwrap_or(self.offset_y);
 
-        let current = Point::new(
-            self.offset_x.absolute(bounds.width, content_bounds.width),
-            self.offset_y.absolute(bounds.height, content_bounds.height),
+        self.scroll_smoothly_to(
+            Target::new(x, y, bounds, content_bounds),
+            bounds,
+            content_bounds,
+            Instant::now(),
         );
-
-        let target = Vector::new(
-            offset
-                .x
-                .map(|x| Self::clamp_offset(x, bounds.width, content_bounds.width))
-                .unwrap_or(current.x),
-            offset
-                .y
-                .map(|y| Self::clamp_offset(y, bounds.height, content_bounds.height))
-                .unwrap_or(current.y),
-        );
-
-        self.scroll_smoothly_to(target, bounds, content_bounds, Instant::now());
     }
 
     /// Scrolls by the provided [`AbsoluteOffset`], with the given
@@ -2306,11 +2356,12 @@ impl State {
         }
     }
 
-    /// Unsnaps the current scroll position, if snapped, given the bounds of the
-    /// [`Scrollable`] and its contents.
-    fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
+    fn unsnap_x(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
         self.offset_x =
             Offset::Absolute(self.offset_x.absolute(bounds.width, content_bounds.width));
+    }
+
+    fn unsnap_y(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
         self.offset_y =
             Offset::Absolute(self.offset_y.absolute(bounds.height, content_bounds.height));
     }

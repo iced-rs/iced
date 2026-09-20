@@ -131,6 +131,20 @@ where
         self.raw.operate(&self.renderer, operation);
     }
 
+    /// Rebuilds the [`Simulator`]'s user interface with a new `element`,
+    /// preserving the state of widgets with an unchanged id.
+    pub fn rebuild(mut self, element: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+        let cache = self.raw.into_cache();
+
+        Self {
+            raw: UserInterface::build(element, self.size, cache, &mut self.renderer),
+            renderer: self.renderer,
+            size: self.size,
+            cursor: self.cursor,
+            messages: self.messages,
+        }
+    }
+
     /// Clicks the [`Bounded`] target found by the given [`Selector`], if any.
     ///
     /// This consists in:
