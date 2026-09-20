@@ -12,7 +12,7 @@ use iced_widget::core::widget::{Id, Tree, operation};
 use iced_widget::core::window;
 use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme};
 use iced_widget::scrollable::{
-    AbsoluteOffset, Direction, RelativeOffset, Scrollable, Scrollbar, Viewport,
+    AbsoluteOffset, Direction, RelativeOffset, Scroll, Scrollable, Scrollbar, Source, Viewport,
 };
 use iced_widget::space;
 
@@ -40,7 +40,7 @@ fn px(lines: f32) -> f32 {
 fn element(
     content_height: u32,
     viewport_height: u32,
-) -> Scrollable<'static, Viewport, Theme, Renderer> {
+) -> Scrollable<'static, Scroll, Theme, Renderer> {
     Scrollable::new(space().height(content_height))
         .id("scrollable")
         .width(Length::Fill)
@@ -58,7 +58,7 @@ const ELEMENT_ID: Id = Id::new("scrollable");
 /// the synthetic frame instants run ahead of it, a wheel event would be
 /// observed "in the past" of the animation's timeline. Sleeping for each
 /// frame guarantees the two timelines stay consistent.
-fn step_frames(simulator: &mut Simulator<'_, Viewport>, instant: &mut Instant, frames: usize) {
+fn step_frames(simulator: &mut Simulator<'_, Scroll>, instant: &mut Instant, frames: usize) {
     for _ in 0..frames {
         *instant += FRAME;
         std::thread::sleep(FRAME);
@@ -86,7 +86,12 @@ fn wheel_scrolling_is_smooth() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .map(|scroll| {
+            (
+                scroll.viewport.absolute_offset().y,
+                scroll.viewport.is_animating(),
+            )
+        })
         .unzip();
 
     // The wheel event must not have moved the offset: the first
@@ -140,7 +145,12 @@ fn wheel_scrolling_is_immediate_when_smooth_scroll_disabled() {
     // on the wheel event itself — and no animation
     let notifications: Vec<(f32, bool)> = simulator
         .into_messages()
-        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .map(|scroll| {
+            (
+                scroll.viewport.absolute_offset().y,
+                scroll.viewport.is_animating(),
+            )
+        })
         .collect();
 
     assert_eq!(notifications, [(px(2.0), false)]);
@@ -158,7 +168,12 @@ fn pixel_scrolling_is_immediate_even_when_smooth_scroll_enabled() {
     // smooth scrolling is enabled by default — and there is no animation
     let notifications: Vec<(f32, bool)> = simulator
         .into_messages()
-        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .map(|scroll| {
+            (
+                scroll.viewport.absolute_offset().y,
+                scroll.viewport.is_animating(),
+            )
+        })
         .collect();
 
     assert_eq!(notifications, [(120.0, false)]);
@@ -183,7 +198,7 @@ fn smooth_scroll_settles_on_target() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The offset must approach the target monotonically
@@ -232,7 +247,7 @@ fn smooth_scroll_accumulates_pending_delta() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The offset must not scroll backwards
@@ -271,7 +286,7 @@ fn smooth_scroll_duration_scales_inversely_with_distance() {
 
         simulator
             .into_messages()
-            .map(|viewport| viewport.absolute_offset().y)
+            .map(|scroll| scroll.viewport.absolute_offset().y)
             .collect()
     }
 
@@ -326,7 +341,7 @@ fn smooth_scroll_retarget_preserves_velocity() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The wheel event itself does not publish a new viewport (the offset
@@ -374,7 +389,7 @@ fn smooth_scroll_reversal_carries_momentum() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The wheel event itself does not publish a new viewport (the offset
@@ -422,7 +437,12 @@ fn high_precision_scrolling_cancels_smooth_scroll() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .map(|scroll| {
+            (
+                scroll.viewport.absolute_offset().y,
+                scroll.viewport.is_animating(),
+            )
+        })
         .unzip();
 
     // Exactly four notifications: the wheel event (at the original
@@ -457,7 +477,7 @@ fn smooth_scroll_is_noop_without_overflow() {
     // Nothing is published: no offset ever moved
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     assert!(offsets.is_empty(), "unexpected notifications: {offsets:?}");
@@ -484,7 +504,12 @@ fn scroll_to_with_smooth_behavior_is_smooth() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .map(|scroll| {
+            (
+                scroll.viewport.absolute_offset().y,
+                scroll.viewport.is_animating(),
+            )
+        })
         .unzip();
 
     // The operation is backdated by one nominal frame: the first drawn
@@ -537,7 +562,12 @@ fn scroll_to_with_instant_behavior_is_immediate() {
 
     let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
         .into_messages()
-        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .map(|scroll| {
+            (
+                scroll.viewport.absolute_offset().y,
+                scroll.viewport.is_animating(),
+            )
+        })
         .unzip();
 
     // The offset must be at the target on the very first frame, with no
@@ -574,7 +604,7 @@ fn scroll_to_with_auto_behavior_follows_smooth_scroll() {
 
         let offsets: Vec<f32> = simulator
             .into_messages()
-            .map(|viewport| viewport.absolute_offset().y)
+            .map(|scroll| scroll.viewport.absolute_offset().y)
             .collect();
 
         assert!(
@@ -605,7 +635,7 @@ fn scroll_to_with_auto_behavior_follows_smooth_scroll() {
 
         let offsets: Vec<f32> = simulator
             .into_messages()
-            .map(|viewport| viewport.absolute_offset().y)
+            .map(|scroll| scroll.viewport.absolute_offset().y)
             .collect();
 
         assert_eq!(
@@ -637,7 +667,7 @@ fn snap_to_with_smooth_behavior_settles_at_percentage() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The 100% snap must settle exactly at the end of the content
@@ -676,7 +706,7 @@ fn scroll_by_with_smooth_behavior_accumulates() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The delta must accumulate onto the pending target
@@ -714,7 +744,7 @@ fn scroll_to_with_smooth_behavior_replaces_pending_target() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The absolute target must replace the pending one, not accumulate
@@ -883,7 +913,7 @@ fn snap_to_end_with_smooth_behavior_stays_snapped_when_content_grows() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     assert_eq!(
@@ -918,7 +948,7 @@ fn snap_to_end_with_smooth_behavior_tracks_content_growth_mid_scroll() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     // The animation must retarget to the new end, not settle on the stale one
@@ -968,7 +998,7 @@ fn wheel_during_smooth_snap_to_end_drops_the_snap() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     assert_eq!(
@@ -1017,7 +1047,7 @@ fn snap_to_end_with_smooth_behavior_stays_snapped_when_already_at_destination() 
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     assert_eq!(
@@ -1054,7 +1084,7 @@ fn snap_to_end_with_smooth_behavior_stays_snapped_without_overflow() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().y)
+        .map(|scroll| scroll.viewport.absolute_offset().y)
         .collect();
 
     assert_eq!(
@@ -1069,7 +1099,7 @@ fn snap_to_end_with_smooth_behavior_stays_snapped_without_overflow() {
 fn element_xy(
     content_width: u32,
     content_height: u32,
-) -> Scrollable<'static, Viewport, Theme, Renderer> {
+) -> Scrollable<'static, Scroll, Theme, Renderer> {
     Scrollable::new(
         space()
             .width(Length::Fixed(content_width as f32))
@@ -1125,7 +1155,7 @@ fn snap_to_end_with_smooth_behavior_preserves_other_axis_snappedness() {
 
     let offsets: Vec<f32> = simulator
         .into_messages()
-        .map(|viewport| viewport.absolute_offset().x)
+        .map(|scroll| scroll.viewport.absolute_offset().x)
         .collect();
 
     assert_eq!(
@@ -1175,11 +1205,11 @@ fn scrollbar_drag_unsnaps_only_the_dragged_axis() {
     simulator = simulator.rebuild(element_xy(3000, 3000));
     step_frames(&mut simulator, &mut instant, 2);
 
-    let viewports: Vec<Viewport> = simulator.into_messages().collect();
+    let viewports: Vec<Scroll> = simulator.into_messages().collect();
 
     let (dragged, grown) = (
-        viewports[viewports.len() - 2].absolute_offset(),
-        viewports.last().unwrap().absolute_offset(),
+        viewports[viewports.len() - 2].viewport.absolute_offset(),
+        viewports.last().unwrap().viewport.absolute_offset(),
     );
 
     // The drag must have registered, moving the vertical scroll
@@ -1199,5 +1229,214 @@ fn scrollbar_drag_unsnaps_only_the_dragged_axis() {
     assert_eq!(
         grown.x, 1976.0,
         "the horizontal snappedness must survive the vertical drag: {viewports:?}"
+    );
+}
+
+/// A `Scrollable` that fills the simulator's window, with content of the
+/// given height.
+fn fill_element(content_height: u32) -> Scrollable<'static, Scroll, Theme, Renderer> {
+    Scrollable::new(space().height(content_height))
+        .id("scrollable")
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .on_scroll(Some)
+}
+
+#[test]
+fn notifications_report_the_wheel_source() {
+    let mut simulator = Simulator::new(element(3000, 200));
+    simulator.point_at(Point::new(500.0, 100.0));
+
+    let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -1.0 });
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let sources: Vec<Source> = simulator
+        .into_messages()
+        .map(|scroll| scroll.source)
+        .collect();
+
+    assert!(
+        !sources.is_empty(),
+        "expected wheel notifications: {sources:?}"
+    );
+    assert!(
+        sources.iter().all(|source| matches!(source, Source::Wheel)),
+        "all wheel notifications must report `Wheel`: {sources:?}"
+    );
+}
+
+#[test]
+fn notifications_report_the_operation_source() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    // An immediate scroll operation
+    let mut operation = operation::scrollable::scroll_to(
+        ELEMENT_ID,
+        AbsoluteOffset {
+            x: None,
+            y: Some(600.0),
+        },
+        operation::Animation::Instant,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // A smooth snap operation
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let sources: Vec<Source> = simulator
+        .into_messages()
+        .map(|scroll| scroll.source)
+        .collect();
+
+    assert!(
+        !sources.is_empty(),
+        "expected operation notifications: {sources:?}"
+    );
+    assert!(
+        sources
+            .iter()
+            .all(|source| matches!(source, Source::Operation)),
+        "all operation notifications must report `Operation`: {sources:?}"
+    );
+}
+
+#[test]
+fn notifications_report_the_scrollbar_source() {
+    let mut simulator = Simulator::new(element_xy(2000, 3000));
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // Drag the vertical scrollbar (right edge, 10 px wide) partway down
+    simulator.point_at(Point::new(1019.0, 60.0));
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonPressed(
+        mouse::Button::Left,
+    ))]);
+
+    simulator.point_at(Point::new(1019.0, 150.0));
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::CursorMoved {
+        position: Point::new(1019.0, 150.0),
+    })]);
+
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonReleased(
+        mouse::Button::Left,
+    ))]);
+
+    let sources: Vec<Source> = simulator
+        .into_messages()
+        .map(|scroll| scroll.source)
+        .collect();
+
+    assert_eq!(
+        sources,
+        vec![Source::Content, Source::Scrollbar, Source::Scrollbar],
+        "the drag must report `Scrollbar`: {sources:?}"
+    );
+}
+
+#[test]
+fn notifications_report_the_auto_scroll_source() {
+    let element = Scrollable::new(space().height(Length::Fixed(3000.0)))
+        .id("scrollable")
+        .width(Length::Fill)
+        .height(200)
+        .auto_scroll(true)
+        .on_scroll(Some);
+
+    let mut simulator = Simulator::new(element);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // Press the middle button over the content, then move the cursor below
+    // the scrollable to auto-scroll down
+    simulator.point_at(Point::new(500.0, 100.0));
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonPressed(
+        mouse::Button::Middle,
+    ))]);
+
+    simulator.point_at(Point::new(500.0, 400.0));
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::CursorMoved {
+        position: Point::new(500.0, 400.0),
+    })]);
+
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let sources: Vec<Source> = simulator
+        .into_messages()
+        .map(|scroll| scroll.source)
+        .collect();
+
+    assert!(
+        sources
+            .iter()
+            .any(|source| matches!(source, Source::AutoScroll)),
+        "the auto-scroll must report `AutoScroll`: {sources:?}"
+    );
+}
+
+#[test]
+fn notifications_report_the_layout_source() {
+    let mut simulator = Simulator::new(fill_element(3000));
+
+    // The first notification reports the initial layout
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 1);
+
+    let sources: Vec<Source> = simulator
+        .drain()
+        .into_iter()
+        .map(|scroll| scroll.source)
+        .collect();
+    assert_eq!(
+        sources,
+        vec![Source::Content],
+        "the initial notification must report `Content`: {sources:?}"
+    );
+
+    // Growing the content reports `Content`
+    simulator = simulator.rebuild(fill_element(6000));
+    step_frames(&mut simulator, &mut instant, 1);
+
+    let sources: Vec<Source> = simulator
+        .drain()
+        .into_iter()
+        .map(|scroll| scroll.source)
+        .collect();
+    assert_eq!(
+        sources,
+        vec![Source::Content],
+        "the content growth must report `Content`: {sources:?}"
+    );
+
+    // Resizing the window reports `Resize`
+    simulator = simulator.resize(Size::new(1024.0, 600.0));
+    step_frames(&mut simulator, &mut instant, 1);
+
+    let sources: Vec<Source> = simulator
+        .drain()
+        .into_iter()
+        .map(|scroll| scroll.source)
+        .collect();
+    assert_eq!(
+        sources,
+        vec![Source::Resize],
+        "the resize must report `Resize`: {sources:?}"
     );
 }

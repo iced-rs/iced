@@ -145,6 +145,17 @@ where
         }
     }
 
+    /// Resizes the [`Simulator`]'s window to the given `size`, relaying out
+    /// the user interface and preserving widget state.
+    pub fn resize(mut self, size: impl Into<Size>) -> Self {
+        let size = size.into();
+
+        self.raw = self.raw.relayout(size, &mut self.renderer);
+        self.size = size;
+
+        self
+    }
+
     /// Clicks the [`Bounded`] target found by the given [`Selector`], if any.
     ///
     /// This consists in:
@@ -270,6 +281,11 @@ where
     /// Turns the [`Simulator`] into the sequence of messages produced by any interactions.
     pub fn into_messages(self) -> impl Iterator<Item = Message> + use<Message, Theme, Renderer> {
         self.messages.into_iter()
+    }
+
+    /// Returns the messages published so far, clearing the queue.
+    pub fn drain(&mut self) -> Vec<Message> {
+        self.messages.drain().map(|(message, _)| message).collect()
     }
 }
 

@@ -86,7 +86,7 @@ where
     auto_scroll: bool,
     smooth_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Viewport) -> Option<Message> + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Scroll) -> Option<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
@@ -149,12 +149,14 @@ where
 
     /// Sets a handler to call when the [`Scrollable`] is scrolled.
     ///
-    /// The function takes the [`Viewport`] of the [`Scrollable`]
-    pub fn on_scroll<T>(mut self, f: impl Fn(Viewport) -> T + 'a) -> Self
+    /// The function takes a [`Scroll`], which contains the [`Viewport`] of
+    /// the [`Scrollable`] and the [`Source`] of the scroll that caused the
+    /// notification.
+    pub fn on_scroll<T>(mut self, f: impl Fn(Scroll) -> T + 'a) -> Self
     where
         T: Into<Option<Message>>,
     {
-        self.on_scroll = Some(Box::new(move |viewport| f(viewport).into()));
+        self.on_scroll = Some(Box::new(move |scroll| f(scroll).into()));
         self
     }
 
@@ -666,11 +668,18 @@ where
                 // Step the smooth scrolling animation, if any;
                 // `last_frame` guards against stepping twice for the
                 // same instant
-                if state.target.is_some()
-                    && state.last_frame != Some(*now)
+                if state.last_frame != Some(*now)
                     && state.step(*now, bounds, content_bounds)
+                    && let Some(target) = state.target
                 {
-                    let _ = notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                    let _ = notify_scroll(
+                        state,
+                        &self.on_scroll,
+                        bounds,
+                        content_bounds,
+                        shell,
+                        Some(target.source),
+                    );
                 }
 
                 if state.target.is_some() {
@@ -728,6 +737,7 @@ where
                                 bounds,
                                 content_bounds,
                                 shell,
+                                Some(Source::AutoScroll),
                             );
 
                             if has_scrolled || time_delta.is_zero() {
@@ -746,11 +756,25 @@ where
                                 bounds,
                                 content_bounds,
                                 shell,
+                                None,
                             );
                         }
                     }
                 } else {
-                    let _ = notify_viewport(state, &self.on_scroll, bounds, content_bounds, shell);
+                    let _ = notify_viewport(
+                        state,
+                        &self.on_scroll,
+                        bounds,
+                        content_bounds,
+                        shell,
+                        None,
+                    );
+                }
+
+                // A pending source that did not produce a notification must
+                // not be attributed to a later one
+                if state.target.is_none() {
+                    state.pending_source = None;
                 }
 
                 translation = state.translation(self.direction, bounds, content_bounds);
@@ -778,6 +802,7 @@ where
                                 bounds,
                                 content_bounds,
                                 shell,
+                                Some(Source::Scrollbar),
                             );
 
                             shell.capture_event();
@@ -810,6 +835,7 @@ where
                                 bounds,
                                 content_bounds,
                                 shell,
+                                Some(Source::Scrollbar),
                             );
                         }
 
@@ -840,6 +866,7 @@ where
                                 bounds,
                                 content_bounds,
                                 shell,
+                                Some(Source::Scrollbar),
                             );
                         }
 
@@ -872,6 +899,7 @@ where
                                 bounds,
                                 content_bounds,
                                 shell,
+                                Some(Source::Scrollbar),
                             );
 
                             shell.capture_event();
@@ -988,8 +1016,14 @@ where
                         state.scroll(delta, bounds, content_bounds);
                     }
 
-                    let has_scrolled =
-                        notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                    let has_scrolled = notify_scroll(
+                        state,
+                        &self.on_scroll,
+                        bounds,
+                        content_bounds,
+                        shell,
+                        Some(Source::Wheel),
+                    );
 
                     let in_transaction = state.last_scrolled.is_some() || state.target.is_some();
 
@@ -1057,6 +1091,7 @@ where
                                 bounds,
                                 content_bounds,
                                 shell,
+                                Some(Source::Touch),
                             );
                         }
                         _ => {}
@@ -1518,12 +1553,13 @@ where
 
 fn notify_scroll<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
+    source: Option<Source>,
 ) -> bool {
-    if notify_viewport(state, on_scroll, bounds, content_bounds, shell) {
+    if notify_viewport(state, on_scroll, bounds, content_bounds, shell, source) {
         state.last_scrolled = Some(Instant::now());
 
         true
@@ -1534,10 +1570,11 @@ fn notify_scroll<Message>(
 
 fn notify_viewport<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
+    source: Option<Source>,
 ) -> bool {
     if content_bounds.width <= bounds.width && content_bounds.height <= bounds.height {
         return false;
@@ -1573,10 +1610,28 @@ fn notify_viewport<Message>(
         }
     }
 
+    // The notification's source: the scroll that caused it, a pending
+    // operation, or, when the scroll position changed on its own, what
+    // changed in the layout
+    let source = source
+        .or_else(|| state.pending_source.take())
+        .unwrap_or_else(|| {
+            if let Some(last_notified) = state.last_notified {
+                if last_notified.content_bounds != content_bounds {
+                    Source::Content
+                } else {
+                    Source::Resize
+                }
+            } else {
+                // The first notification: the content was laid out
+                Source::Content
+            }
+        });
+
     state.last_notified = Some(viewport);
 
     if let Some(on_scroll) = on_scroll
-        && let Some(message) = on_scroll(viewport)
+        && let Some(message) = on_scroll(Scroll { viewport, source })
     {
         shell.publish(message);
     }
@@ -1590,6 +1645,7 @@ struct State {
     offset_x: Offset,
     smooth_scroll: bool,
     target: Option<Target>,
+    pending_source: Option<Source>,
     segment_start: Point,
     segment_started: Option<Instant>,
     segment_duration: f32,
@@ -1625,6 +1681,7 @@ impl Default for State {
             offset_x: Offset::Absolute(0.0),
             smooth_scroll: true,
             target: None,
+            pending_source: None,
             segment_start: Point::ORIGIN,
             segment_started: None,
             segment_duration: 0.0,
@@ -1709,27 +1766,75 @@ struct Target {
     x: Offset,
     y: Offset,
     destination: Vector,
+    source: Source,
 }
 
 impl Target {
     /// Resolves the given offsets into a [`Target`].
-    fn new(x: Offset, y: Offset, bounds: Rectangle, content_bounds: Rectangle) -> Self {
+    fn new(
+        x: Offset,
+        y: Offset,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        source: Source,
+    ) -> Self {
         let destination = Vector::new(
             x.absolute(bounds.width, content_bounds.width),
             y.absolute(bounds.height, content_bounds.height),
         );
 
-        Self { x, y, destination }
+        Self {
+            x,
+            y,
+            destination,
+            source,
+        }
     }
 
     /// A [`Target`] that settles at the given absolute `destination`.
-    fn absolute(destination: Vector) -> Self {
+    fn absolute(destination: Vector, source: Source) -> Self {
         Self {
             x: Offset::Absolute(destination.x),
             y: Offset::Absolute(destination.y),
             destination,
+            source,
         }
     }
+}
+
+/// The source of a scroll notification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Source {
+    /// The user scrolled with a mouse wheel or touchpad.
+    Wheel,
+
+    /// The user scrolled by swiping with a touch.
+    Touch,
+
+    /// The user scrolled by dragging the scrollbar's scroller.
+    Scrollbar,
+
+    /// The user scrolled by auto-scrolling with the middle mouse button.
+    AutoScroll,
+
+    /// A scroll operation (`scroll_to`, `snap_to` or `scroll_by`) scrolled.
+    Operation,
+
+    /// The size of the content changed.
+    Content,
+
+    /// The size of the [`Scrollable`] changed.
+    Resize,
+}
+
+/// An event describing a scroll of a [`Scrollable`].
+#[derive(Debug, Clone, Copy)]
+pub struct Scroll {
+    /// The [`Viewport`] of the [`Scrollable`].
+    pub viewport: Viewport,
+
+    /// The [`Source`] of the scroll.
+    pub source: Source,
 }
 
 /// The current [`Viewport`] of the [`Scrollable`].
@@ -1753,6 +1858,20 @@ impl Viewport {
             .absolute(self.bounds.height, self.content_bounds.height);
 
         AbsoluteOffset { x, y }
+    }
+
+    /// Returns the distance from the current scroll position to the end of
+    /// the content, in pixels, per axis.
+    ///
+    /// This is the amount of content that can still be scrolled into view:
+    /// it is zero when the content fits, or when the scroll is at the end.
+    pub fn distance_to_end(&self) -> Vector {
+        let AbsoluteOffset { x, y } = self.absolute_offset();
+
+        Vector::new(
+            (self.content_bounds.width - self.bounds.width - x).max(0.0),
+            (self.content_bounds.height - self.bounds.height - y).max(0.0),
+        )
     }
 
     /// Returns the [`AbsoluteOffset`] of the current [`Viewport`], but with its
@@ -1792,6 +1911,14 @@ impl Viewport {
     /// Returns whether a smooth scrolling animation is in progress.
     pub fn is_animating(&self) -> bool {
         self.is_animating
+    }
+
+    /// Returns whether the X/Y axes are snapped.
+    pub fn is_snapped(&self) -> (bool, bool) {
+        (
+            matches!(self.offset_x, Offset::Relative(_)),
+            matches!(self.offset_y, Offset::Relative(_)),
+        )
     }
 }
 
@@ -1916,7 +2043,12 @@ impl State {
             ),
         };
 
-        self.scroll_smoothly_to(Target::absolute(target), bounds, content_bounds, now);
+        self.scroll_smoothly_to(
+            Target::absolute(target, Source::Wheel),
+            bounds,
+            content_bounds,
+            now,
+        );
     }
 
     /// Scrolls smoothly to the given `target`.
@@ -2014,6 +2146,7 @@ impl State {
             // The new target is right on top of us: end the animation now
             self.offset_x = target.x;
             self.offset_y = target.y;
+            self.pending_source = Some(target.source);
             self.target = None;
             self.last_frame = None;
             return;
@@ -2045,7 +2178,7 @@ impl State {
 
         // The bounds and content may have changed while the animation is
         // running; re-resolve the target, and retarget if it moved
-        let resolved = Target::new(target.x, target.y, bounds, content_bounds);
+        let resolved = Target::new(target.x, target.y, bounds, content_bounds, target.source);
         if resolved.destination != target.destination {
             self.retarget(resolved, now);
         }
@@ -2065,6 +2198,7 @@ impl State {
             // offsets
             self.offset_x = target.x;
             self.offset_y = target.y;
+            self.pending_source = Some(target.source);
             self.target = None;
             self.last_frame = None;
             return false;
@@ -2254,6 +2388,8 @@ impl State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
+        self.pending_source = Some(Source::Operation);
+
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
 
@@ -2280,7 +2416,7 @@ impl State {
             .unwrap_or(self.offset_y);
 
         self.scroll_smoothly_to(
-            Target::new(x, y, bounds, content_bounds),
+            Target::new(x, y, bounds, content_bounds, Source::Operation),
             bounds,
             content_bounds,
             Instant::now(),
@@ -2295,6 +2431,8 @@ impl State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
+        self.pending_source = Some(Source::Operation);
+
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
 
@@ -2321,7 +2459,7 @@ impl State {
             .unwrap_or(self.offset_y);
 
         self.scroll_smoothly_to(
-            Target::new(x, y, bounds, content_bounds),
+            Target::new(x, y, bounds, content_bounds, Source::Operation),
             bounds,
             content_bounds,
             Instant::now(),
@@ -2337,6 +2475,8 @@ impl State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
+        self.pending_source = Some(Source::Operation);
+
         let delta = Vector::new(offset.x, offset.y);
 
         if self.should_scroll_smoothly(animation) {
