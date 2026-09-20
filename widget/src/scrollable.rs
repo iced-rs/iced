@@ -1650,14 +1650,7 @@ impl operation::Scrollable for State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        State::snap_to(
-            self,
-            offset,
-            animation,
-            bounds,
-            content_bounds,
-            Instant::now(),
-        );
+        State::snap_to(self, offset, animation, bounds, content_bounds);
     }
 
     fn scroll_to(
@@ -1667,14 +1660,7 @@ impl operation::Scrollable for State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        State::scroll_to(
-            self,
-            offset,
-            animation,
-            bounds,
-            content_bounds,
-            Instant::now(),
-        );
+        State::scroll_to(self, offset, animation, bounds, content_bounds);
     }
 
     fn scroll_by(
@@ -1684,14 +1670,7 @@ impl operation::Scrollable for State {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) {
-        State::scroll_by(
-            self,
-            offset,
-            animation,
-            bounds,
-            content_bounds,
-            Instant::now(),
-        );
+        State::scroll_by(self, offset, animation, bounds, content_bounds);
     }
 }
 
@@ -2217,7 +2196,6 @@ impl State {
         animation: Animation,
         bounds: Rectangle,
         content_bounds: Rectangle,
-        now: Instant,
     ) {
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
@@ -2252,7 +2230,7 @@ impl State {
                 .unwrap_or(current.y),
         );
 
-        self.scroll_smoothly_to(target, bounds, content_bounds, now);
+        self.scroll_smoothly_to(target, bounds, content_bounds, Instant::now());
     }
 
     /// Scrolls to the given [`AbsoluteOffset`], with the given [`Animation`].
@@ -2262,7 +2240,6 @@ impl State {
         animation: Animation,
         bounds: Rectangle,
         content_bounds: Rectangle,
-        now: Instant,
     ) {
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
@@ -2298,7 +2275,7 @@ impl State {
                 .unwrap_or(current.y),
         );
 
-        self.scroll_smoothly_to(target, bounds, content_bounds, now);
+        self.scroll_smoothly_to(target, bounds, content_bounds, Instant::now());
     }
 
     /// Scrolls by the provided [`AbsoluteOffset`], with the given
@@ -2309,12 +2286,11 @@ impl State {
         animation: Animation,
         bounds: Rectangle,
         content_bounds: Rectangle,
-        now: Instant,
     ) {
         let delta = Vector::new(offset.x, offset.y);
 
         if self.should_scroll_smoothly(animation) {
-            self.scroll_smoothly(delta, bounds, content_bounds, now);
+            self.scroll_smoothly(delta, bounds, content_bounds, Instant::now());
         } else {
             self.scroll(delta, bounds, content_bounds);
         }
