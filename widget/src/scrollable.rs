@@ -1594,10 +1594,7 @@ struct State {
     smooth_scroll: bool,
     target: Option<Target>,
     source: Option<Source>,
-    segment_start: Point,
-    segment_started: Option<Instant>,
-    segment_duration: f32,
-    segment_slope: f32,
+    segment: Segment,
     last_frame: Option<Instant>,
     last_translation: Vector,
     interaction: Interaction,
@@ -1607,6 +1604,14 @@ struct State {
     is_scrollbar_visible: bool,
     last_status: Option<Status>,
     last_id: Option<widget::Id>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Segment {
+    start: Point,
+    started: Instant,
+    duration: f32,
+    slope: f32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1630,10 +1635,12 @@ impl Default for State {
             smooth_scroll: true,
             target: None,
             source: None,
-            segment_start: Point::ORIGIN,
-            segment_started: None,
-            segment_duration: 0.0,
-            segment_slope: 0.0,
+            segment: Segment {
+                start: Point::ORIGIN,
+                started: Instant::now(),
+                duration: 0.0,
+                slope: 0.0,
+            },
             last_frame: None,
             last_translation: Vector::ZERO,
             interaction: Interaction::None,
@@ -2037,10 +2044,12 @@ impl State {
                 .max((target.destination.y - current.y).abs());
 
             self.target = Some(target);
-            self.segment_start = current;
-            self.segment_started = Some(now);
-            self.segment_duration = Self::smooth_scroll_duration(distance);
-            self.segment_slope = 0.0;
+            self.segment = Segment {
+                start: current,
+                started: now,
+                duration: Self::smooth_scroll_duration(distance),
+                slope: 0.0,
+            };
             self.last_frame = Some(now);
             return;
         };
@@ -2101,10 +2110,12 @@ impl State {
         );
 
         self.target = Some(target);
-        self.segment_start = start;
-        self.segment_started = Some(now);
-        self.segment_duration = duration;
-        self.segment_slope = slope;
+        self.segment = Segment {
+            start,
+            started: now,
+            duration,
+            slope,
+        };
         self.last_frame = Some(now);
     }
 
@@ -2127,12 +2138,10 @@ impl State {
         let Some(target) = self.target else {
             return false;
         };
-        let Some(started) = self.segment_started else {
-            return false;
-        };
+        let started = self.segment.started;
 
         let t = (now - started).as_secs_f32();
-        let progress = (t / self.segment_duration).clamp(0.0, 1.0);
+        let progress = (t / self.segment.duration).clamp(0.0, 1.0);
 
         if progress >= 1.0 {
             // Settled exactly on the target, keeping relative (snapped)
@@ -2144,12 +2153,12 @@ impl State {
             return false;
         }
 
-        let bez = Self::smooth_scroll_progress(progress, self.segment_slope);
+        let bez = Self::smooth_scroll_progress(progress, self.segment.slope);
         self.offset_x = Offset::Absolute(
-            self.segment_start.x + (target.destination.x - self.segment_start.x) * bez,
+            self.segment.start.x + (target.destination.x - self.segment.start.x) * bez,
         );
         self.offset_y = Offset::Absolute(
-            self.segment_start.y + (target.destination.y - self.segment_start.y) * bez,
+            self.segment.start.y + (target.destination.y - self.segment.start.y) * bez,
         );
 
         self.last_frame = Some(now);
@@ -2177,40 +2186,47 @@ impl State {
         }
     }
 
-    /// The animated position at `now`, while a segment is running.
+    /// The animated position at `now`, or [`Point::ORIGIN`] if a segment is
+    /// not running.
     fn animated_position(&self, now: Instant) -> Point {
-        let started = self.segment_started.expect("a segment is running");
-        let target = self.target.expect("a segment is running");
+        let Some(target) = self.target else {
+            return Point::ORIGIN;
+        };
+
+        let started = self.segment.started;
 
         let t = (now - started).as_secs_f32();
-        let progress = (t / self.segment_duration).clamp(0.0, 1.0);
-        let bez = Self::smooth_scroll_progress(progress, self.segment_slope);
+        let progress = (t / self.segment.duration).clamp(0.0, 1.0);
+        let bez = Self::smooth_scroll_progress(progress, self.segment.slope);
 
         Point::new(
-            self.segment_start.x + (target.destination.x - self.segment_start.x) * bez,
-            self.segment_start.y + (target.destination.y - self.segment_start.y) * bez,
+            self.segment.start.x + (target.destination.x - self.segment.start.x) * bez,
+            self.segment.start.y + (target.destination.y - self.segment.start.y) * bez,
         )
     }
 
     /// The animated velocity at `now`, in pixels per second along the
-    /// segment's largest dimension, while a segment is running.
+    /// segment's largest dimension, or `0.0` if a segment is not running.
     fn animated_velocity(&self, now: Instant) -> f32 {
-        let started = self.segment_started.expect("a segment is running");
-        let target = self.target.expect("a segment is running");
+        let Some(target) = self.target else {
+            return 0.0;
+        };
+
+        let started = self.segment.started;
 
         let t = (now - started).as_secs_f32();
-        let progress = (t / self.segment_duration).clamp(0.0, 1.0);
+        let progress = (t / self.segment.duration).clamp(0.0, 1.0);
 
         if progress >= 1.0 {
             return 0.0;
         }
 
-        let dx = target.destination.x - self.segment_start.x;
-        let dy = target.destination.y - self.segment_start.y;
+        let dx = target.destination.x - self.segment.start.x;
+        let dy = target.destination.y - self.segment.start.y;
         let max_dimension = if dx.abs() > dy.abs() { dx } else { dy };
 
-        Self::smooth_scroll_curve_slope(progress, self.segment_slope) * max_dimension
-            / self.segment_duration
+        Self::smooth_scroll_curve_slope(progress, self.segment.slope) * max_dimension
+            / self.segment.duration
     }
 
     /// The duration (in seconds) of a smooth scrolling segment covering the
