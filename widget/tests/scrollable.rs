@@ -1241,6 +1241,19 @@ fn notifications_report_the_wheel_source() {
 fn notifications_report_the_operation_source() {
     let mut simulator = Simulator::new(element(3000, 200));
 
+    let mut instant = Instant::now();
+
+    // A smooth scroll operation
+    let mut operation = operation::scrollable::scroll_by(
+        ELEMENT_ID,
+        AbsoluteOffset { x: 0.0, y: 1000.0 },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    step_frames(&mut simulator, &mut instant, 60);
+
     // An immediate scroll operation
     let mut operation = operation::scrollable::scroll_to(
         ELEMENT_ID,
@@ -1253,7 +1266,6 @@ fn notifications_report_the_operation_source() {
 
     simulator.operate(&mut operation);
 
-    let mut instant = Instant::now();
     step_frames(&mut simulator, &mut instant, 2);
 
     // A smooth snap operation
