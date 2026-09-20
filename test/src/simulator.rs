@@ -126,6 +126,11 @@ where
         self.cursor = mouse::Cursor::Available(position.into());
     }
 
+    /// Applies a [`widget::Operation`] to the [`Simulator`]'s widget tree.
+    pub fn operate(&mut self, operation: &mut dyn widget::Operation) {
+        self.raw.operate(&self.renderer, operation);
+    }
+
     /// Clicks the [`Bounded`] target found by the given [`Selector`], if any.
     ///
     /// This consists in:

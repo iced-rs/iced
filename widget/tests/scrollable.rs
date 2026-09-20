@@ -8,10 +8,10 @@ use iced_test::Simulator;
 use iced_widget::Renderer;
 use iced_widget::core::layout::{self, Layout};
 use iced_widget::core::mouse::{self, ScrollDelta};
-use iced_widget::core::widget::Tree;
+use iced_widget::core::widget::{Id, Tree, operation};
 use iced_widget::core::window;
 use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme};
-use iced_widget::scrollable::{Scrollable, Viewport};
+use iced_widget::scrollable::{AbsoluteOffset, RelativeOffset, Scrollable, Viewport};
 use iced_widget::space;
 
 use std::cell::RefCell;
@@ -40,10 +40,14 @@ fn element(
     viewport_height: u32,
 ) -> Scrollable<'static, Viewport, Theme, Renderer> {
     Scrollable::new(space().height(content_height))
+        .id("scrollable")
         .width(Length::Fill)
         .height(viewport_height)
         .on_scroll(Some)
 }
+
+/// The [`Id`] of the [`element`] under test.
+const ELEMENT_ID: Id = Id::new("scrollable");
 
 /// Steps the given number of frames, keeping the real-time clock ahead of
 /// the synthetic frame timeline.
@@ -455,6 +459,264 @@ fn smooth_scroll_is_noop_without_overflow() {
         .collect();
 
     assert!(offsets.is_empty(), "unexpected notifications: {offsets:?}");
+}
+
+#[test]
+fn scroll_to_with_smooth_behavior_is_smooth() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    let mut operation = operation::scrollable::scroll_to(
+        ELEMENT_ID,
+        AbsoluteOffset {
+            x: None,
+            y: Some(px(2.0)),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    // Settle the animation, frame by frame
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
+        .into_messages()
+        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .unzip();
+
+    // The operation is backdated by one nominal frame: the first drawn
+    // frame must already show progress
+    assert!(
+        offsets.first() > Some(&0.0) && offsets.first() < Some(&px(2.0)),
+        "the first frame must already show progress: {offsets:?}"
+    );
+
+    // The scroll must have been gradual: it took several frames to settle
+    assert!(
+        offsets.len() > 2,
+        "expected multiple intermediate offsets, got: {offsets:?}"
+    );
+
+    // ... and it must have settled exactly on the target (two lines)
+    assert_eq!(offsets.last(), Some(&px(2.0)));
+
+    // The notifications report the animation as in progress until the
+    // scroll settles
+    assert!(
+        animating[..animating.len() - 1]
+            .iter()
+            .all(|&is_animating| is_animating),
+        "expected the scroll to be animating until it settles: {offsets:?} {animating:?}"
+    );
+    assert!(
+        !animating.last().unwrap(),
+        "expected the scroll to have settled: {offsets:?} {animating:?}"
+    );
+}
+
+#[test]
+fn scroll_to_with_instant_behavior_is_immediate() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    let mut operation = operation::scrollable::scroll_to(
+        ELEMENT_ID,
+        AbsoluteOffset {
+            x: None,
+            y: Some(px(2.0)),
+        },
+        operation::Animation::Instant,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
+        .into_messages()
+        .map(|viewport| (viewport.absolute_offset().y, viewport.is_animating()))
+        .unzip();
+
+    // The offset must be at the target on the very first frame, with no
+    // animation in between
+    assert_eq!(
+        offsets.len(),
+        1,
+        "expected a single notification, got: {offsets:?}"
+    );
+    assert_eq!(offsets.first(), Some(&px(2.0)));
+    assert!(!animating[0]);
+}
+
+#[test]
+fn scroll_to_with_auto_behavior_follows_smooth_scroll() {
+    // With smooth scrolling enabled (the default), `Auto` resolves to a
+    // smooth scroll
+    {
+        let mut simulator = Simulator::new(element(3000, 200));
+
+        let mut operation = operation::scrollable::scroll_to(
+            ELEMENT_ID,
+            AbsoluteOffset {
+                x: None,
+                y: Some(px(2.0)),
+            },
+            operation::Animation::Auto,
+        );
+
+        simulator.operate(&mut operation);
+
+        let mut instant = Instant::now();
+        step_frames(&mut simulator, &mut instant, 60);
+
+        let offsets: Vec<f32> = simulator
+            .into_messages()
+            .map(|viewport| viewport.absolute_offset().y)
+            .collect();
+
+        assert!(
+            offsets.len() > 2,
+            "`Auto` must follow the enabled smooth scrolling: {offsets:?}"
+        );
+        assert_eq!(offsets.last(), Some(&px(2.0)));
+    }
+
+    // ... while with smooth scrolling disabled, it resolves to an immediate
+    // scroll
+    {
+        let mut simulator = Simulator::new(element(3000, 200).smooth_scroll(false));
+
+        let mut operation = operation::scrollable::scroll_to(
+            ELEMENT_ID,
+            AbsoluteOffset {
+                x: None,
+                y: Some(px(2.0)),
+            },
+            operation::Animation::Auto,
+        );
+
+        simulator.operate(&mut operation);
+
+        let mut instant = Instant::now();
+        step_frames(&mut simulator, &mut instant, 2);
+
+        let offsets: Vec<f32> = simulator
+            .into_messages()
+            .map(|viewport| viewport.absolute_offset().y)
+            .collect();
+
+        assert_eq!(
+            offsets.len(),
+            1,
+            "`Auto` must follow the disabled smooth scrolling: {offsets:?}"
+        );
+        assert_eq!(offsets.first(), Some(&px(2.0)));
+    }
+}
+
+#[test]
+fn snap_to_with_smooth_behavior_settles_at_percentage() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    let mut operation = operation::scrollable::snap_to(
+        ELEMENT_ID,
+        RelativeOffset {
+            x: None,
+            y: Some(1.0),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    // The 100% snap must settle exactly at the end of the content
+    assert_eq!(offsets.last(), Some(&(3000.0 - 200.0)));
+    assert!(
+        offsets.len() > 2,
+        "expected a smooth animation: {offsets:?}"
+    );
+}
+
+#[test]
+fn scroll_by_with_smooth_behavior_accumulates() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    // Start a smooth scroll of one line...
+    let mut operation = operation::scrollable::scroll_by(
+        ELEMENT_ID,
+        AbsoluteOffset { x: 0.0, y: px(1.0) },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // ... and add another line while it is still running
+    let mut operation = operation::scrollable::scroll_by(
+        ELEMENT_ID,
+        AbsoluteOffset { x: 0.0, y: px(1.0) },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    // The delta must accumulate onto the pending target
+    assert_eq!(offsets.last(), Some(&px(2.0)));
+}
+
+#[test]
+fn scroll_to_with_smooth_behavior_replaces_pending_target() {
+    let mut simulator = Simulator::new(element(3000, 200));
+
+    // Start a smooth scroll of one line...
+    let mut operation = operation::scrollable::scroll_by(
+        ELEMENT_ID,
+        AbsoluteOffset { x: 0.0, y: px(1.0) },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 2);
+
+    // ... then scroll to an absolute target while it is still running
+    let mut operation = operation::scrollable::scroll_to(
+        ELEMENT_ID,
+        AbsoluteOffset {
+            x: None,
+            y: Some(px(3.0)),
+        },
+        operation::Animation::Smooth,
+    );
+
+    simulator.operate(&mut operation);
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|viewport| viewport.absolute_offset().y)
+        .collect();
+
+    // The absolute target must replace the pending one, not accumulate
+    assert_eq!(offsets.last(), Some(&px(3.0)));
 }
 
 /// A single observation of the content's coordinates, as seen by one pass

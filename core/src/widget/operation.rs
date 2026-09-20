@@ -128,6 +128,25 @@ where
     }
 }
 
+/// The animation to apply to a state change, as requested by an
+/// [`Operation`].
+///
+/// Some widgets can apply a state change either immediately or with an
+/// animation; operations on those widgets take an [`Animation`] to select
+/// which.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Animation {
+    /// Use the default animation of the widget.
+    #[default]
+    Auto,
+
+    /// Apply the change immediately.
+    Instant,
+
+    /// Animate the change towards the new state.
+    Smooth,
+}
+
 /// Wraps the [`Operation`] in a black box, erasing its returning type.
 pub fn black_box<'a, T, O>(operation: &'a mut dyn Operation<T>) -> impl Operation<O> + 'a
 where

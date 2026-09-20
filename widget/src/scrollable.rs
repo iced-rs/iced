@@ -31,7 +31,7 @@ use crate::core::text;
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
-use crate::core::widget::operation::{self, Operation};
+use crate::core::widget::operation::{self, Animation, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -262,6 +262,10 @@ where
     /// [`Scrollable`] eases towards it over a few frames. High-precision
     /// scrolls (e.g. from a touchpad), which are already smooth, are always
     /// applied immediately.
+    ///
+    /// The setting also acts as the default behavior of the scroll operations
+    /// (`snap_to`, `scroll_to`, `scroll_by`): operations with
+    /// [`Animation::Auto`] scroll smoothly if and only if it is enabled.
     ///
     /// By default, it is enabled.
     pub fn smooth_scroll(mut self, smooth_scroll: bool) -> Self {
@@ -588,6 +592,9 @@ where
         operation: &mut dyn Operation,
     ) {
         let state = tree.state.downcast_mut::<State>();
+
+        // `Animation::Auto` scroll operations resolve against this
+        state.smooth_scroll = self.smooth_scroll;
 
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -976,13 +983,7 @@ where
                     let delta = self.direction.align(delta);
 
                     if self.smooth_scroll && is_lines {
-                        state.scroll_smoothly(
-                            delta,
-                            bounds,
-                            content_bounds,
-                            Instant::now()
-                                - Duration::from_secs_f32(State::SMOOTH_SCROLL_FRAME_DELAY),
-                        );
+                        state.scroll_smoothly(delta, bounds, content_bounds, Instant::now());
                     } else {
                         state.scroll(delta, bounds, content_bounds);
                     }
@@ -1587,6 +1588,7 @@ fn notify_viewport<Message>(
 struct State {
     offset_y: Offset,
     offset_x: Offset,
+    smooth_scroll: bool,
     target: Option<Vector>,
     segment_start: Point,
     segment_started: Option<Instant>,
@@ -1621,6 +1623,7 @@ impl Default for State {
         Self {
             offset_y: Offset::Absolute(0.0),
             offset_x: Offset::Absolute(0.0),
+            smooth_scroll: true,
             target: None,
             segment_start: Point::ORIGIN,
             segment_started: None,
@@ -1640,16 +1643,55 @@ impl Default for State {
 }
 
 impl operation::Scrollable for State {
-    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
-        State::snap_to(self, offset);
+    fn snap_to(
+        &mut self,
+        offset: RelativeOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::snap_to(
+            self,
+            offset,
+            animation,
+            bounds,
+            content_bounds,
+            Instant::now(),
+        );
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
-        State::scroll_to(self, offset);
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::scroll_to(
+            self,
+            offset,
+            animation,
+            bounds,
+            content_bounds,
+            Instant::now(),
+        );
     }
 
-    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
-        State::scroll_by(self, offset, bounds, content_bounds);
+    fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        animation: Animation,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+    ) {
+        State::scroll_by(
+            self,
+            offset,
+            animation,
+            bounds,
+            content_bounds,
+            Instant::now(),
+        );
     }
 }
 
@@ -1825,12 +1867,9 @@ impl State {
 
     /// Moves the *target* scroll offset by `delta`, for smooth scrolling.
     ///
-    /// The target is then eased towards on each frame, via [`State::step`],
-    /// with an ease-in-out animation whose duration depends on the distance:
-    /// short scrolls get a longer (softer) animation, while long scrolls get a
-    /// shorter (snappier) one. When a new delta arrives while an animation is
-    /// running, the animation is retargeted from the current position and
-    /// velocity, so that continuous scrolling flows instead of restarting.
+    /// The delta is accumulated onto the pending target, if any, so that
+    /// quick wheel movements do not lose their (not yet scrolled) distance;
+    /// the target is then animated via [`State::scroll_smoothly_to`].
     fn scroll_smoothly(
         &mut self,
         delta: Vector<f32>,
@@ -1859,6 +1898,36 @@ impl State {
             ),
         };
 
+        self.scroll_smoothly_to(target, bounds, content_bounds, now);
+    }
+
+    /// Scrolls smoothly to the given absolute `target` offset.
+    ///
+    /// The target replaces any pending one. If a segment is already running,
+    /// it is retargeted from the current position and velocity, so that
+    /// scrolling flows instead of restarting.
+    ///
+    /// The target is then eased towards on each frame, via [`State::step`],
+    /// with an ease-in-out animation whose duration depends on the distance:
+    /// short scrolls get a longer (softer) animation, while long scrolls get a
+    /// shorter (snappier) one.
+    fn scroll_smoothly_to(
+        &mut self,
+        target: Vector<f32>,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        now: Instant,
+    ) {
+        // The scroll is requested between frames; start the animation one
+        // nominal frame early so that the first drawn frame already shows
+        // progress
+        let now = now - Duration::from_secs_f32(Self::SMOOTH_SCROLL_FRAME_DELAY);
+
+        let current = Point::new(
+            self.offset_x.absolute(bounds.width, content_bounds.width),
+            self.offset_y.absolute(bounds.height, content_bounds.height),
+        );
+
         // Nothing to animate: the content fits, or we're already at the target
         if target.x == current.x && target.y == current.y {
             self.target = None;
@@ -1882,8 +1951,7 @@ impl State {
             return;
         };
 
-        // The delta was clamped away: the target is unchanged, so keep the
-        // running segment as is
+        // The target is unchanged: keep the running segment as is
         if ongoing == target {
             return;
         }
@@ -2141,33 +2209,125 @@ impl State {
         self.unsnap(bounds, content_bounds);
     }
 
-    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
-        self.cancel();
+    /// Snaps the scroll to the given [`RelativeOffset`], with the given
+    /// [`Animation`].
+    fn snap_to(
+        &mut self,
+        offset: RelativeOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        now: Instant,
+    ) {
+        if !self.should_scroll_smoothly(animation) {
+            self.cancel();
 
-        if let Some(x) = offset.x {
-            self.offset_x = Offset::Relative(x.clamp(0.0, 1.0));
+            if let Some(x) = offset.x {
+                self.offset_x = Offset::Relative(x.clamp(0.0, 1.0));
+            }
+
+            if let Some(y) = offset.y {
+                self.offset_y = Offset::Relative(y.clamp(0.0, 1.0));
+            }
+
+            return;
         }
 
-        if let Some(y) = offset.y {
-            self.offset_y = Offset::Relative(y.clamp(0.0, 1.0));
+        // Materialize the percentages as an absolute target, then animate
+        self.unsnap(bounds, content_bounds);
+
+        let current = Point::new(
+            self.offset_x.absolute(bounds.width, content_bounds.width),
+            self.offset_y.absolute(bounds.height, content_bounds.height),
+        );
+
+        let target = Vector::new(
+            offset
+                .x
+                .map(|x| (content_bounds.width - bounds.width).max(0.0) * x.clamp(0.0, 1.0))
+                .unwrap_or(current.x),
+            offset
+                .y
+                .map(|y| (content_bounds.height - bounds.height).max(0.0) * y.clamp(0.0, 1.0))
+                .unwrap_or(current.y),
+        );
+
+        self.scroll_smoothly_to(target, bounds, content_bounds, now);
+    }
+
+    /// Scrolls to the given [`AbsoluteOffset`], with the given [`Animation`].
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        now: Instant,
+    ) {
+        if !self.should_scroll_smoothly(animation) {
+            self.cancel();
+
+            if let Some(x) = offset.x {
+                self.offset_x = Offset::Absolute(x.max(0.0));
+            }
+
+            if let Some(y) = offset.y {
+                self.offset_y = Offset::Absolute(y.max(0.0));
+            }
+
+            return;
+        }
+
+        // Materialize any snapped (relative) offsets before animating from
+        // them
+        self.unsnap(bounds, content_bounds);
+
+        let current = Point::new(
+            self.offset_x.absolute(bounds.width, content_bounds.width),
+            self.offset_y.absolute(bounds.height, content_bounds.height),
+        );
+
+        let target = Vector::new(
+            offset
+                .x
+                .map(|x| Self::clamp_offset(x, bounds.width, content_bounds.width))
+                .unwrap_or(current.x),
+            offset
+                .y
+                .map(|y| Self::clamp_offset(y, bounds.height, content_bounds.height))
+                .unwrap_or(current.y),
+        );
+
+        self.scroll_smoothly_to(target, bounds, content_bounds, now);
+    }
+
+    /// Scrolls by the provided [`AbsoluteOffset`], with the given
+    /// [`Animation`].
+    fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        animation: Animation,
+        bounds: Rectangle,
+        content_bounds: Rectangle,
+        now: Instant,
+    ) {
+        let delta = Vector::new(offset.x, offset.y);
+
+        if self.should_scroll_smoothly(animation) {
+            self.scroll_smoothly(delta, bounds, content_bounds, now);
+        } else {
+            self.scroll(delta, bounds, content_bounds);
         }
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
-        self.cancel();
-
-        if let Some(x) = offset.x {
-            self.offset_x = Offset::Absolute(x.max(0.0));
+    /// Whether the given [`Animation`] requests a smooth scroll, given the
+    /// widget's smooth scrolling setting.
+    fn should_scroll_smoothly(&self, animation: Animation) -> bool {
+        match animation {
+            Animation::Auto => self.smooth_scroll,
+            Animation::Instant => false,
+            Animation::Smooth => true,
         }
-
-        if let Some(y) = offset.y {
-            self.offset_y = Offset::Absolute(y.max(0.0));
-        }
-    }
-
-    /// Scroll by the provided [`AbsoluteOffset`].
-    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
-        self.scroll(Vector::new(offset.x, offset.y), bounds, content_bounds);
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the

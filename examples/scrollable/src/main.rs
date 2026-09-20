@@ -62,13 +62,21 @@ impl ScrollableDemo {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::AlignmentChanged(alignment) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.anchor = alignment;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::ScrollbarWidthChanged(width) => {
                 self.scrollbar_width = width;
@@ -93,12 +101,20 @@ impl ScrollableDemo {
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::ScrollToEnd => {
                 self.current_scroll_offset = scrollable::RelativeOffset::END;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::Scrolled(viewport) => {
                 self.current_scroll_offset = viewport.relative_offset();

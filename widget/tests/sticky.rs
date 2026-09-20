@@ -1,8 +1,12 @@
 //! Tests for the `sticky` widget.
-use iced_widget::core::{
-    Event, Length::Fill, Never, Point, Rectangle, Settings, Size, Vector, layout, mouse, shell,
-    time, widget, window,
-};
+use iced_widget::core::layout;
+use iced_widget::core::mouse;
+use iced_widget::core::shell;
+use iced_widget::core::time;
+use iced_widget::core::widget;
+use iced_widget::core::widget::operation;
+use iced_widget::core::window;
+use iced_widget::core::{Event, Length::Fill, Never, Point, Rectangle, Settings, Size, Vector};
 use iced_widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
 use iced_widget::{Renderer, Theme, column, container, pick_list, row, scrollable, space, sticky};
 
@@ -43,12 +47,13 @@ fn build(element: &mut Element) -> widget::Tree {
 }
 
 fn scroll(element: &mut Element, tree: &mut widget::Tree, node: &layout::Node, x: f32, y: f32) {
-    let mut scroll_to = widget::operation::scrollable::scroll_to(
+    let mut scroll_to = operation::scrollable::scroll_to(
         "scrollable".into(),
         AbsoluteOffset {
             x: Some(x),
             y: Some(y),
         },
+        operation::Animation::Instant,
     );
     element.as_widget_mut().operate(
         tree,
