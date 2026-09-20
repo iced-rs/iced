@@ -74,6 +74,20 @@ const WHEEL_PX_PER_LINE: f32 = 120.0;
 ///     ]).into()
 /// }
 /// ```
+///
+/// # Scrollbars
+///
+/// A scrollbar has two interactive parts: the *scroller* (the draggable
+/// thumb) and the *rail* (the track it slides on).
+///
+/// * Pressing and dragging the **scroller** moves it 1:1 with the pointer.
+/// * Pressing the **rail** scrolls one page (animated like a wheel scroll
+///   when [`Self::smooth_scroll`] is enabled). While the button is held, the
+///   scroller then slides toward the pointer at a constant speed, stopping
+///   when its edge reaches the pointer; moving the pointer moves the target
+///   with it. This mirrors the track autoscroll of most toolkits.
+/// * `Shift`-clicking the **rail** instead jumps the scroller so that its
+///   center is under the pointer, and then drags it from there.
 pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -642,7 +656,7 @@ where
         let mut translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
 
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
 
         let last_offsets = (state.offset_x, state.offset_y);
 
@@ -671,6 +685,54 @@ where
                 // same instant
                 if state.last_frame != Some(*now) && state.step(*now, bounds, content) {
                     let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
+                }
+
+                // Step the held-rail autoscroll, if any; the geometry is
+                // rebuilt from the current translation, so that the pause
+                // and stop conditions are evaluated against the scroller as
+                // of this frame
+                if let Interaction::RailHeld(mut rail) = state.interaction {
+                    let scrollbars = Scrollbars::new(
+                        state.translation(self.direction, bounds, content),
+                        self.direction,
+                        bounds,
+                        content,
+                    );
+
+                    let scrollbar = match rail.axis {
+                        Axis::X => scrollbars.x.as_ref(),
+                        Axis::Y => scrollbars.y.as_ref(),
+                    };
+
+                    let step = state
+                        .step_rail(&mut rail, *now, scrollbar, bounds, content)
+                        .map(|step| (Interaction::RailHeld(rail), step));
+
+                    match step {
+                        Some((interaction, step)) => {
+                            state.interaction = interaction;
+
+                            match step {
+                                RailStep::Moved => {
+                                    state.source = Some(Source::Scrollbar);
+                                    let _ = notify_scroll(
+                                        state,
+                                        &self.on_scroll,
+                                        bounds,
+                                        content,
+                                        shell,
+                                    );
+                                    shell.request_redraw();
+                                }
+                                RailStep::Waiting => shell.request_redraw(),
+                                RailStep::Idle => {}
+                            }
+                        }
+                        // The scrollbar disappeared while the rail was held:
+                        // drop the interaction, like Chromium does when its
+                        // scrollbar is unregistered
+                        None => state.interaction = Interaction::None,
+                    }
                 }
 
                 if state.target.is_some() {
@@ -754,17 +816,35 @@ where
                 state.last_translation = translation;
             }
 
-            if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at() {
+            // A held rail: track the pointer for the autoscroll's pause and
+            // stop conditions; a moved pointer re-evaluates them, waking the
+            // animation
+            if let Interaction::RailHeld(mut rail) = state.interaction
+                && let Some(position) = rail_moved(event, cursor, rail.pointer)
+            {
+                rail.pointer = position;
+                state.interaction = Interaction::RailHeld(rail);
+                shell.request_redraw();
+            }
+
+            // A scroller being dragged follows the pointer 1:1, until the
+            // button is released
+            if let Some((axis, scroller_grabbed_at)) = state.interaction.scroller_grabbed() {
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        if let Some(scrollbar) = scrollbars.y {
+                        if let Some(scrollbar) = scrollbars.scrollbar(axis) {
                             let Some(cursor_position) = cursor.observe().position() else {
                                 return;
                             };
 
-                            state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
+                            state.scroll_to_percentage(
+                                axis,
+                                scrollbar.scroll_percentage(
+                                    axis,
+                                    scroller_grabbed_at,
+                                    cursor_position,
+                                ),
                                 bounds,
                                 content,
                             );
@@ -778,7 +858,9 @@ where
                     }
                     _ => {}
                 }
-            } else if mouse_over_y_scrollbar {
+                // Otherwise, a press on a scrollbar under the cursor grabs its
+                // scroller, jump-drags it (with `Shift`), or presses the rail
+            } else if let Some(axis) = mouse_over_scrollbar {
                 match event {
                     Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                     | Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -786,69 +868,59 @@ where
                             return;
                         };
 
-                        if let (Some(scroller_grabbed_at), Some(scrollbar)) =
-                            (scrollbars.grab_y_scroller(cursor_position), scrollbars.y)
-                        {
-                            state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
-                                bounds,
-                                content,
-                            );
+                        if let Some((scrollbar, hit)) = scrollbars.hit(axis, cursor_position) {
+                            match hit {
+                                // The scroller: jump to the click position
+                                // and drag it from there
+                                Hit::Scroller { grabbed_at } => {
+                                    state.scroll_to_percentage(
+                                        axis,
+                                        scrollbar.scroll_percentage(
+                                            axis,
+                                            grabbed_at,
+                                            cursor_position,
+                                        ),
+                                        bounds,
+                                        content,
+                                    );
 
-                            state.interaction = Interaction::YScrollerGrabbed(scroller_grabbed_at);
-                            state.source = Some(Source::Scrollbar);
+                                    state.interaction =
+                                        Interaction::ScrollerGrabbed(axis, grabbed_at);
+                                }
+                                // A `Shift`-click on the rail is a "jump
+                                // click": jump the scroller to the click
+                                // position and drag it from there, like
+                                // Chromium's `Shift`+click on the track
+                                Hit::Rail if state.keyboard_modifiers.shift() => {
+                                    state.scroll_to_percentage(
+                                        axis,
+                                        scrollbar.scroll_percentage(axis, 0.5, cursor_position),
+                                        bounds,
+                                        content,
+                                    );
 
-                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-                        }
+                                    state.interaction = Interaction::ScrollerGrabbed(axis, 0.5);
+                                }
+                                // A plain rail press: a page step (animated
+                                // like a wheel scroll) and, while the button
+                                // is held, a constant-velocity autoscroll
+                                // until the scroller reaches the pointer,
+                                // like Chromium's track autoscroll
+                                Hit::Rail => {
+                                    state.press_rail(
+                                        axis,
+                                        scrollbar,
+                                        cursor_position,
+                                        self.smooth_scroll,
+                                        Instant::now(),
+                                        bounds,
+                                        content,
+                                    );
 
-                        shell.capture_event();
-                    }
-                    _ => {}
-                }
-            }
+                                    shell.request_redraw();
+                                }
+                            }
 
-            if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at() {
-                match event {
-                    Event::Mouse(mouse::Event::CursorMoved { .. })
-                    | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.observe().position() else {
-                            return;
-                        };
-
-                        if let Some(scrollbar) = scrollbars.x {
-                            state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
-                                bounds,
-                                content,
-                            );
-
-                            state.source = Some(Source::Scrollbar);
-
-                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-                        }
-
-                        shell.capture_event();
-                    }
-                    _ => {}
-                }
-            } else if mouse_over_x_scrollbar {
-                match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                    | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
-                            return;
-                        };
-
-                        if let (Some(scroller_grabbed_at), Some(scrollbar)) =
-                            (scrollbars.grab_x_scroller(cursor_position), scrollbars.x)
-                        {
-                            state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
-                                bounds,
-                                content,
-                            );
-
-                            state.interaction = Interaction::XScrollerGrabbed(scroller_grabbed_at);
                             state.source = Some(Source::Scrollbar);
 
                             let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
@@ -881,9 +953,8 @@ where
             {
                 let cursor = match cursor_over_scrollable {
                     Some(cursor_position)
-                        if !(mouse_over_x_scrollbar
-                            || mouse_over_y_scrollbar
-                            || state.scrollers_grabbed()) =>
+                        if mouse_over_scrollbar.is_none()
+                            && !state.interaction.scrollers_grabbed() =>
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
@@ -1001,7 +1072,7 @@ where
                 }
                 Event::Touch(event)
                     if matches!(state.interaction, Interaction::TouchScrolling(_))
-                        || (!mouse_over_y_scrollbar && !mouse_over_x_scrollbar) =>
+                        || mouse_over_scrollbar.is_none() =>
                 {
                     match event {
                         touch::Event::FingerPressed { .. } => {
@@ -1070,17 +1141,19 @@ where
 
         update();
 
-        let status = if state.scrollers_grabbed() {
+        let scrollbar_axis = state.interaction.axis();
+
+        let status = if scrollbar_axis.is_some() {
             Status::Dragged {
-                is_horizontal_scrollbar_dragged: state.x_scroller_grabbed_at().is_some(),
-                is_vertical_scrollbar_dragged: state.y_scroller_grabbed_at().is_some(),
+                is_horizontal_scrollbar_dragged: scrollbar_axis == Some(Axis::X),
+                is_vertical_scrollbar_dragged: scrollbar_axis == Some(Axis::Y),
                 is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
                 is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
         } else if cursor_over_scrollable.is_some() {
             Status::Hovered {
-                is_horizontal_scrollbar_hovered: mouse_over_x_scrollbar,
-                is_vertical_scrollbar_hovered: mouse_over_y_scrollbar,
+                is_horizontal_scrollbar_hovered: mouse_over_scrollbar == Some(Axis::X),
+                is_vertical_scrollbar_hovered: mouse_over_scrollbar == Some(Axis::Y),
                 is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
                 is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
@@ -1127,10 +1200,10 @@ where
         let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
         let cursor_over_scrollable = cursor.position_over(bounds);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
-            Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
+            Some(cursor_position) if mouse_over_scrollbar.is_none() => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
             _ => cursor.obstruct() + translation,
@@ -1263,7 +1336,7 @@ where
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<State>();
 
-        if state.scrollers_grabbed() {
+        if state.interaction.scrollers_grabbed() {
             return mouse::Interaction::Idle;
         }
 
@@ -1277,10 +1350,10 @@ where
 
         let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
-            Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
+            Some(cursor_position) if mouse_over_scrollbar.is_none() => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
             _ => cursor.obstruct() + translation,
@@ -1492,6 +1565,25 @@ where
     }
 }
 
+/// The new position of the pointer of a held rail, if it moved.
+///
+/// A moved pointer re-evaluates the autoscroll's pause and stop conditions,
+/// so it wakes the animation with a redraw.
+fn rail_moved(event: &Event, cursor: mouse::Cursor, last: Point) -> Option<Point> {
+    if matches!(
+        event,
+        Event::Mouse(mouse::Event::CursorMoved { .. })
+            | Event::Touch(touch::Event::FingerMoved { .. })
+    ) {
+        cursor
+            .observe()
+            .position()
+            .filter(|position| *position != last)
+    } else {
+        None
+    }
+}
+
 fn notify_scroll<Message>(
     state: &mut State,
     on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
@@ -1617,14 +1709,131 @@ struct Segment {
 #[derive(Debug, Clone, Copy)]
 enum Interaction {
     None,
-    YScrollerGrabbed(f32),
-    XScrollerGrabbed(f32),
+    ScrollerGrabbed(Axis, f32),
     TouchScrolling(Point),
     AutoScrolling {
         origin: Point,
         current: Point,
         last_frame: Option<Instant>,
     },
+    RailHeld(RailHeld),
+}
+
+impl Interaction {
+    /// The axis of the active scrollbar interaction — a scroller drag or a
+    /// held rail — if any.
+    fn axis(&self) -> Option<Axis> {
+        match self {
+            Interaction::ScrollerGrabbed(axis, _) => Some(*axis),
+            Interaction::RailHeld(rail) => Some(rail.axis),
+            _ => None,
+        }
+    }
+
+    /// Whether the user is interacting with a scrollbar: dragging a
+    /// scroller or holding a rail pressed.
+    fn scrollers_grabbed(&self) -> bool {
+        self.axis().is_some()
+    }
+
+    /// The axis and the fraction of the scroller grabbed, if a scroller is
+    /// being dragged.
+    fn scroller_grabbed(&self) -> Option<(Axis, f32)> {
+        let Interaction::ScrollerGrabbed(axis, grabbed_at) = self else {
+            return None;
+        };
+
+        Some((*axis, *grabbed_at))
+    }
+}
+
+/// The state of a [`Scrollable`] whose rail is being held pressed.
+///
+/// A plain rail press scrolls one page (smoothly) and, after
+/// [`State::RAIL_AUTOSCROLL_DELAY`], autoscrolls at a constant velocity
+/// until the scroller reaches the pointer, mirroring Chromium's track
+/// autoscroll (`cc::ScrollbarController`).
+#[derive(Debug, Clone, Copy)]
+struct RailHeld {
+    /// The axis the rail was pressed on
+    axis: Axis,
+
+    /// The direction of the autoscroll, in offset units (`+1.0` or
+    /// `-1.0`), fixed when the rail was pressed
+    direction: f32,
+
+    /// Which side of the scroller the rail was pressed on, in cursor
+    /// units: `+1.0` below it, `-1.0` above it.
+    ///
+    /// This is independent of the anchor's mirroring, and selects the
+    /// scroller edge the autoscroll stops at (its leading edge) and the
+    /// track part that pauses it.
+    cursor_direction: f32,
+
+    /// The autoscroll velocity, in pixels per second
+    velocity: f32,
+
+    /// When the rail was pressed
+    pressed_at: Instant,
+
+    /// The latest pointer position
+    pointer: Point,
+
+    /// The last frame the autoscroll was stepped for, guarding against
+    /// stepping twice for the same instant
+    last_frame: Option<Instant>,
+}
+
+/// The outcome of stepping a held rail's autoscroll.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RailStep {
+    /// The offset moved; the scroll should be notified and redrawn
+    Moved,
+
+    /// The autoscroll has not started yet (within the press delay); frames
+    /// must keep coming
+    Waiting,
+
+    /// Nothing can move until the pointer moves again
+    Idle,
+}
+
+/// The axis of the [`Scrollable`] content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Axis {
+    /// The horizontal axis.
+    X,
+
+    /// The vertical axis.
+    Y,
+}
+
+impl Axis {
+    /// The length of the given size along this axis.
+    fn length(self, size: impl Into<Size>) -> f32 {
+        let size = size.into();
+        match self {
+            Axis::X => size.width,
+            Axis::Y => size.height,
+        }
+    }
+
+    /// The coordinate of the given `point` along this axis.
+    fn coordinate(self, point: Point) -> f32 {
+        match self {
+            Axis::X => point.x,
+            Axis::Y => point.y,
+        }
+    }
+
+    /// A [`Vector`] with the given `value` on this axis and `0.0` on the
+    /// other.
+    fn vector(self, value: f32) -> Vector {
+        match self {
+            Axis::X => Vector::new(value, 0.0),
+            Axis::Y => Vector::new(0.0, value),
+        }
+    }
 }
 
 impl Default for State {
@@ -1940,6 +2149,38 @@ impl State {
     /// The clamp for the initial slope of a retargeted animation, matching
     /// Chromium's.
     const SMOOTH_SCROLL_SLOPE_CLAMP: f32 = 1000.0;
+
+    // The held-rail behavior below (the press delay, the autoscroll
+    // velocity, and the page step) is derived from the Chromium
+    // project's compositor scrollbar controller (`cc/input/
+    // scrollbar_controller.{h,cc}` and `cc/input/scrollbar.h`), which is
+    // licensed under the BSD 3-Clause license:
+    // <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
+
+    /// The delay between a rail press and the start of the held-rail
+    /// autoscroll, matching Chromium's `cc::kInitialAutoscrollTimerDelay`.
+    ///
+    /// During the delay, only the initial page step (animated like a wheel
+    /// scroll) is applied; a quick click therefore scrolls exactly one page.
+    const RAIL_AUTOSCROLL_DELAY: Duration = Duration::from_millis(250);
+
+    /// The factor converting a rail page step into the held-rail autoscroll
+    /// velocity, matching Chromium's `cc::kAutoscrollMultiplier`.
+    ///
+    /// Chromium's main thread autoscroll applies the page step every 50 ms;
+    /// the equivalent constant velocity is the step times 20.
+    const RAIL_AUTOSCROLL_MULTIPLIER: f32 = 20.0;
+
+    /// The fraction of the viewport covered by a rail click's initial page
+    /// step, matching Chromium's `cc::kMinFractionToStepWhenPaging` (the
+    /// non-Mac page step).
+    const RAIL_PAGE_STEP_FRACTION: f32 = 0.875;
+
+    /// The distance (in pixels) of a rail click's initial page step, given
+    /// the length of the scrollable viewport.
+    fn rail_page_step(viewport: f32) -> f32 {
+        (viewport * Self::RAIL_PAGE_STEP_FRACTION).max(1.0)
+    }
 
     fn new() -> Self {
         State::default()
@@ -2323,16 +2564,187 @@ impl State {
         (low + high) / 2.0
     }
 
-    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
+    /// Jumps the scroll to the given `percentage` along the given axis,
+    /// snapping it to the nearest logical position.
+    fn scroll_to_percentage(
+        &mut self,
+        axis: Axis,
+        percentage: f32,
+        bounds: Rectangle,
+        content: Size,
+    ) {
         self.cancel();
-        self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap_y(bounds, content);
+
+        match axis {
+            Axis::X => self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0)),
+            Axis::Y => self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0)),
+        }
+
+        self.unsnap(axis, bounds, content);
     }
 
-    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
-        self.cancel();
-        self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap_x(bounds, content);
+    /// Presses the rail of the given axis at `cursor_position`, starting
+    /// the held-rail autoscroll.
+    ///
+    /// This mirrors Chromium's track press (`cc::ScrollbarController::
+    /// HandlePointerDown`): a page step is applied immediately, animated
+    /// like a wheel scroll (or immediately when smooth scrolling is
+    /// disabled), and, while the button is held, a constant-velocity
+    /// autoscroll runs after a delay until the scroller reaches the
+    /// pointer (stepped on each frame, via [`Self::step_rail`]).
+    fn press_rail(
+        &mut self,
+        axis: Axis,
+        scrollbar: &internals::Scrollbar,
+        cursor_position: Point,
+        smooth: bool,
+        now: Instant,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        let Some(scroller) = scrollbar.scroller else {
+            return;
+        };
+
+        // Which side of the scroller was pressed, in cursor space: valid
+        // for both anchors, as the scroller's bounds already account for
+        // the `Anchor::End` mirroring
+        let cursor_direction =
+            if axis.coordinate(cursor_position) < axis.coordinate(scroller.bounds.position()) {
+                -1.0
+            } else {
+                1.0
+            };
+
+        // The offset at which the scroller's leading edge (toward the
+        // pointer) reaches the pointer: a `grabbed_at` of `0.0` is the
+        // scroller's start edge, `1.0` its end edge
+        let grabbed_at = if cursor_direction < 0.0 { 0.0 } else { 1.0 };
+        let stop = Offset::Relative(scrollbar.scroll_percentage(axis, grabbed_at, cursor_position))
+            .absolute(axis.length(bounds), axis.length(content));
+
+        // The direction, in offset units: the offset-space sign of the stop
+        // line, which accounts for the anchor's mirroring
+        let direction = (stop - self.axis_offset(axis, bounds, content)).signum();
+        if direction == 0.0 {
+            // The pointer is on the stop line: there is nothing to scroll
+            return;
+        }
+
+        let page_step = Self::rail_page_step(axis.length(bounds));
+
+        // The initial page step: animated like a wheel scroll, or applied
+        // immediately when smooth scrolling is disabled
+        if smooth {
+            self.scroll_smoothly(axis.vector(direction * page_step), bounds, content, now);
+        } else {
+            self.scroll(axis.vector(direction * page_step), bounds, content);
+        }
+
+        self.interaction = Interaction::RailHeld(RailHeld {
+            axis,
+            direction,
+            cursor_direction,
+            velocity: page_step * Self::RAIL_AUTOSCROLL_MULTIPLIER,
+            pressed_at: now,
+            pointer: cursor_position,
+            last_frame: None,
+        });
+    }
+
+    /// Steps the held-rail autoscroll of the given axis on a frame.
+    ///
+    /// Returns `None` if the scrollbar disappeared while the rail was held,
+    /// in which case the interaction must be dropped (like Chromium does
+    /// when its scrollbar is unregistered); otherwise, the outcome of the
+    /// step.
+    fn step_rail(
+        &mut self,
+        rail: &mut RailHeld,
+        now: Instant,
+        scrollbar: Option<&internals::Scrollbar>,
+        bounds: Rectangle,
+        content: Size,
+    ) -> Option<RailStep> {
+        let axis = rail.axis;
+
+        let scrollbar = scrollbar?;
+
+        // The autoscroll starts after the press delay, while the initial
+        // page step is still easing
+        if now - rail.pressed_at < Self::RAIL_AUTOSCROLL_DELAY {
+            return Some(RailStep::Waiting);
+        }
+
+        // `last_frame` guards against stepping twice for the same instant
+        if rail.last_frame == Some(now) {
+            return Some(RailStep::Waiting);
+        }
+
+        // The time since the last step; the first step starts from the
+        // nominal start of the autoscroll, not from the press
+        let last_frame = rail.last_frame;
+        rail.last_frame = Some(now);
+        let time_delta = last_frame.map_or(
+            (now - rail.pressed_at) - Self::RAIL_AUTOSCROLL_DELAY,
+            |last_frame| now - last_frame,
+        );
+        if time_delta.is_zero() {
+            return Some(RailStep::Waiting);
+        }
+
+        let scroller = scrollbar.scroller?;
+
+        let current = self.axis_offset(axis, bounds, content);
+
+        // The offset at which the scroller's leading edge (the edge on the
+        // pressed side, in cursor space) reaches the pointer
+        let grabbed_at = if rail.cursor_direction > 0.0 {
+            1.0
+        } else {
+            0.0
+        };
+        let stop = Offset::Relative(scrollbar.scroll_percentage(axis, grabbed_at, rail.pointer))
+            .absolute(axis.length(bounds), axis.length(content));
+
+        // The autoscroll pauses while the pointer is on the rail but no
+        // longer on the pressed side of the (moving) scroller, and
+        // continues while the pointer is off the rail, mirroring Chromium's
+        // behavior when the pointer leaves the scrollbar layer
+        let on_pressed_side = if rail.cursor_direction > 0.0 {
+            axis.coordinate(rail.pointer)
+                > axis.coordinate(scroller.bounds.position()) + axis.length(scroller.bounds)
+        } else {
+            axis.coordinate(rail.pointer) < axis.coordinate(scroller.bounds.position())
+        };
+        if scrollbar.total_bounds.contains(rail.pointer) && !on_pressed_side {
+            return Some(RailStep::Idle);
+        }
+
+        // ... and it stops while the scroller's leading edge has reached
+        // the pointer
+        let remaining = if rail.direction > 0.0 {
+            stop - current
+        } else {
+            current - stop
+        };
+        if remaining <= 0.0 {
+            return Some(RailStep::Idle);
+        }
+
+        // A constant-velocity step, clamped so that the scroller does not
+        // cross the pointer within the frame
+        let delta = rail.direction * (rail.velocity * time_delta.as_secs_f32()).min(remaining);
+
+        self.scroll(axis.vector(delta), bounds, content);
+
+        Some(if self.axis_offset(axis, bounds, content) != current {
+            RailStep::Moved
+        } else {
+            // The step was clamped away (e.g. at the end of the content):
+            // nothing can move until the pointer moves again
+            RailStep::Idle
+        })
     }
 
     /// Snaps the scroll to the given [`RelativeOffset`], with the given
@@ -2452,12 +2864,27 @@ impl State {
         }
     }
 
-    fn unsnap_x(&mut self, bounds: Rectangle, content: Size) {
-        self.offset_x = Offset::Absolute(self.offset_x.absolute(bounds.width, content.width));
+    /// Materializes the given axis's offset into an absolute one, so that it
+    /// is no longer snapped to a logical position.
+    fn unsnap(&mut self, axis: Axis, bounds: Rectangle, content: Size) {
+        match axis {
+            Axis::X => {
+                self.offset_x =
+                    Offset::Absolute(self.offset_x.absolute(bounds.width, content.width));
+            }
+            Axis::Y => {
+                self.offset_y =
+                    Offset::Absolute(self.offset_y.absolute(bounds.height, content.height));
+            }
+        }
     }
 
-    fn unsnap_y(&mut self, bounds: Rectangle, content: Size) {
-        self.offset_y = Offset::Absolute(self.offset_y.absolute(bounds.height, content.height));
+    /// The absolute offset of the given axis, in pixels.
+    fn axis_offset(&self, axis: Axis, bounds: Rectangle, content: Size) -> f32 {
+        match axis {
+            Axis::X => self.offset_x.absolute(bounds.width, content.width),
+            Axis::Y => self.offset_y.absolute(bounds.height, content.height),
+        }
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
@@ -2478,29 +2905,21 @@ impl State {
             },
         )
     }
+}
 
-    fn scrollers_grabbed(&self) -> bool {
-        matches!(
-            self.interaction,
-            Interaction::YScrollerGrabbed(_) | Interaction::XScrollerGrabbed(_),
-        )
-    }
+/// The part of a [`Scrollbar`] hit by a cursor position.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Hit {
+    /// The scroller (thumb) of the [`Scrollbar`], grabbed at the given
+    /// fraction of its length.
+    Scroller {
+        /// The fraction of the scroller's length, from its start, at which
+        /// it was grabbed.
+        grabbed_at: f32,
+    },
 
-    pub fn y_scroller_grabbed_at(&self) -> Option<f32> {
-        let Interaction::YScrollerGrabbed(at) = self.interaction else {
-            return None;
-        };
-
-        Some(at)
-    }
-
-    pub fn x_scroller_grabbed_at(&self) -> Option<f32> {
-        let Interaction::XScrollerGrabbed(at) = self.interaction else {
-            return None;
-        };
-
-        Some(at)
-    }
+    /// The rail (track) of the [`Scrollbar`], outside of the scroller.
+    Rail,
 }
 
 #[derive(Debug)]
@@ -2670,20 +3089,35 @@ impl Scrollbars {
         }
     }
 
-    fn is_mouse_over(&self, cursor: mouse::Cursor) -> (bool, bool) {
-        if let Some(cursor_position) = cursor.position() {
-            (
-                self.y
-                    .as_ref()
-                    .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-                    .unwrap_or(false),
-                self.x
-                    .as_ref()
-                    .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-                    .unwrap_or(false),
-            )
+    /// The [`internals::Scrollbar`] of the given axis, if it is shown.
+    fn scrollbar(&self, axis: Axis) -> Option<&internals::Scrollbar> {
+        match axis {
+            Axis::X => self.x.as_ref(),
+            Axis::Y => self.y.as_ref(),
+        }
+    }
+
+    /// The [`Axis`] of the scrollbar the given `cursor` is over, if any.
+    ///
+    /// The scrollbars' total bounds don't overlap, so the cursor is over at
+    /// most one of them; the vertical one takes precedence.
+    fn is_mouse_over(&self, cursor: mouse::Cursor) -> Option<Axis> {
+        let cursor_position = cursor.position()?;
+
+        if self
+            .y
+            .as_ref()
+            .is_some_and(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+        {
+            Some(Axis::Y)
+        } else if self
+            .x
+            .as_ref()
+            .is_some_and(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+        {
+            Some(Axis::X)
         } else {
-            (false, false)
+            None
         }
     }
 
@@ -2695,34 +3129,31 @@ impl Scrollbars {
         self.x.map(|x| x.disabled).unwrap_or(false)
     }
 
-    fn grab_y_scroller(&self, cursor_position: Point) -> Option<f32> {
-        let scrollbar = self.y?;
+    /// The [`internals::Scrollbar`] of the given axis and the part of it hit by
+    /// the given cursor position, if any.
+    fn hit(&self, axis: Axis, cursor_position: Point) -> Option<(&internals::Scrollbar, Hit)> {
+        let scrollbar = match axis {
+            Axis::X => self.x.as_ref(),
+            Axis::Y => self.y.as_ref(),
+        }?;
         let scroller = scrollbar.scroller?;
 
-        if scrollbar.total_bounds.contains(cursor_position) {
-            Some(if scroller.bounds.contains(cursor_position) {
-                (cursor_position.y - scroller.bounds.y) / scroller.bounds.height
-            } else {
-                0.5
-            })
-        } else {
-            None
+        if !scrollbar.total_bounds.contains(cursor_position) {
+            return None;
         }
-    }
 
-    fn grab_x_scroller(&self, cursor_position: Point) -> Option<f32> {
-        let scrollbar = self.x?;
-        let scroller = scrollbar.scroller?;
-
-        if scrollbar.total_bounds.contains(cursor_position) {
-            Some(if scroller.bounds.contains(cursor_position) {
-                (cursor_position.x - scroller.bounds.x) / scroller.bounds.width
+        Some((
+            scrollbar,
+            if scroller.bounds.contains(cursor_position) {
+                Hit::Scroller {
+                    grabbed_at: (axis.coordinate(cursor_position)
+                        - axis.coordinate(scroller.bounds.position()))
+                        / axis.length(scroller.bounds),
+                }
             } else {
-                0.5
-            })
-        } else {
-            None
-        }
+                Hit::Rail
+            },
+        ))
     }
 
     fn is_any_floating(&self) -> bool {
@@ -2756,35 +3187,26 @@ pub(super) mod internals {
             self.total_bounds.contains(cursor_position)
         }
 
-        /// Returns the y-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_y(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
-            if let Some(scroller) = self.scroller {
-                let percentage =
-                    (cursor_position.y - self.bounds.y - scroller.bounds.height * grabbed_at)
-                        / (self.bounds.height - scroller.bounds.height);
+        /// Returns the scrolled percentage from the cursor position, along
+        /// the given axis.
+        pub fn scroll_percentage(
+            &self,
+            axis: super::Axis,
+            grabbed_at: f32,
+            cursor_position: Point,
+        ) -> f32 {
+            let Some(scroller) = self.scroller else {
+                return 0.0;
+            };
 
-                match self.alignment {
-                    Anchor::Start => percentage,
-                    Anchor::End => 1.0 - percentage,
-                }
-            } else {
-                0.0
-            }
-        }
+            let percentage = (axis.coordinate(cursor_position)
+                - axis.coordinate(self.bounds.position())
+                - axis.length(scroller.bounds) * grabbed_at)
+                / (axis.length(self.bounds) - axis.length(scroller.bounds));
 
-        /// Returns the x-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_x(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
-            if let Some(scroller) = self.scroller {
-                let percentage =
-                    (cursor_position.x - self.bounds.x - scroller.bounds.width * grabbed_at)
-                        / (self.bounds.width - scroller.bounds.width);
-
-                match self.alignment {
-                    Anchor::Start => percentage,
-                    Anchor::End => 1.0 - percentage,
-                }
-            } else {
-                0.0
+            match self.alignment {
+                Anchor::Start => percentage,
+                Anchor::End => 1.0 - percentage,
             }
         }
     }
