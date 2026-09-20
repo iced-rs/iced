@@ -198,6 +198,7 @@ where
                             cursor_position,
                             layout: None,
                         };
+                        shell.invalidate_overlay();
                     } else {
                         *state = State::Hovered { at: now };
                     }
