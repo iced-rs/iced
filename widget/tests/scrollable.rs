@@ -13,8 +13,8 @@ use iced_widget::core::widget::{Id, Tree, operation};
 use iced_widget::core::window;
 use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme};
 use iced_widget::scrollable::{
-    AbsoluteOffset, Anchor, Direction, RelativeOffset, Scroll, Scrollable, Scrollbar, Source,
-    Viewport,
+    AbsoluteOffset, Action, Anchor, Direction, RelativeOffset, Scroll, Scrollable, Scrollbar,
+    Source, Viewport,
 };
 use iced_widget::space;
 
@@ -1823,4 +1823,52 @@ fn shift_rail_click_jumps_to_pointer() {
         !animating.last().unwrap(),
         "the jump must not animate: {offsets:?} {animating:?}"
     );
+}
+
+#[test]
+fn on_scroll_action_can_scroll() {
+    // The handler scrolls the widget to a fixed position the first time it is
+    // notified, and reports every notification after that
+    let first = Rc::new(RefCell::new(true));
+    let handler_first = first.clone();
+
+    let element = Scrollable::new(space().height(3000))
+        .id("scrollable")
+        .width(Length::Fill)
+        .height(200)
+        .smooth_scroll(false)
+        .on_scroll(move |scroll| {
+            if *handler_first.borrow_mut() {
+                *handler_first.borrow_mut() = false;
+                Action::ScrollTo(
+                    AbsoluteOffset {
+                        x: None,
+                        y: Some(1000.0),
+                    },
+                    operation::Animation::Instant,
+                )
+            } else {
+                Action::Custom(scroll)
+            }
+        });
+
+    let mut simulator = Simulator::new(element);
+    simulator.point_at(Point::new(500.0, 100.0));
+
+    // Scroll down two lines (240 px); the handler consumes this notification
+    // and instead scrolls the widget to 1000 px
+    let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -2.0 });
+
+    // Let the `Action::ScrollTo` take effect on the following frames
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 5);
+
+    let offsets: Vec<f32> = simulator
+        .into_messages()
+        .map(|scroll| scroll.viewport.absolute_offset().y)
+        .collect();
+
+    // The wheel's own notification (240 px) was not published, and the only
+    // message is the move to 1000 px requested by the handler
+    assert_eq!(offsets, vec![1000.0]);
 }

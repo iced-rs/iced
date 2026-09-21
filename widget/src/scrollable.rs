@@ -89,7 +89,7 @@ where
     auto_scroll: bool,
     smooth_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Scroll) -> Option<Message> + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Scroll) -> Action<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
@@ -157,7 +157,7 @@ where
     /// notification.
     pub fn on_scroll<T>(mut self, f: impl Fn(Scroll) -> T + 'a) -> Self
     where
-        T: Into<Option<Message>>,
+        T: Into<Action<Message>>,
     {
         self.on_scroll = Some(Box::new(move |scroll| f(scroll).into()));
         self
@@ -659,9 +659,8 @@ where
 
         if let Some(scroll) = interact.scroll
             && let Some(on_scroll) = &self.on_scroll
-            && let Some(message) = on_scroll(scroll)
         {
-            shell.publish(message);
+            on_scroll(scroll).perform(state, bounds, content, shell);
         }
 
         if interact.capture {
@@ -712,9 +711,8 @@ where
 
             if let Some(scroll) = update.scroll
                 && let Some(on_scroll) = &self.on_scroll
-                && let Some(message) = on_scroll(scroll)
             {
-                shell.publish(message);
+                on_scroll(scroll).perform(state, bounds, content, shell);
             }
 
             if update.capture {
@@ -1632,6 +1630,68 @@ impl Viewport {
         let y = y / (self.content.height - self.bounds.height);
 
         RelativeOffset { x, y }
+    }
+}
+
+/// An action to perform in response to a [`Scroll`].
+///
+/// This is the return type of the [`Scrollable::on_scroll`] handler. It lets
+/// the handler react to a scroll notification by driving the [`Scrollable`]
+/// further, or by publishing a message.
+#[derive(Debug)]
+pub enum Action<Message> {
+    /// Do nothing.
+    None,
+
+    /// Scroll to the given [`AbsoluteOffset`], with the given [`Animation`].
+    ///
+    /// An axis set to `None` keeps its current position.
+    ScrollTo(AbsoluteOffset<Option<f32>>, Animation),
+
+    /// Snap to the given [`RelativeOffset`], with the given [`Animation`].
+    ///
+    /// An axis set to `None` keeps its current position.
+    SnapTo(RelativeOffset<Option<f32>>, Animation),
+
+    /// Publish the given message.
+    Custom(Message),
+}
+
+impl<Message> Action<Message> {
+    fn perform(
+        self,
+        state: &mut State,
+        bounds: Rectangle,
+        content: Size,
+        shell: &mut Shell<'_, Message>,
+    ) {
+        match self {
+            Action::None => {}
+            Action::ScrollTo(absolute_offset, animation) => {
+                state.scroll_to(absolute_offset, animation, bounds, content);
+            }
+            Action::SnapTo(relative_offset, animation) => {
+                state.snap_to(relative_offset, animation, bounds, content);
+            }
+            Action::Custom(message) => {
+                shell.publish(message);
+            }
+        }
+    }
+}
+
+impl<Message> From<Message> for Action<Message> {
+    fn from(message: Message) -> Self {
+        Self::Custom(message)
+    }
+}
+
+impl<Message> From<Option<Message>> for Action<Message> {
+    fn from(message: Option<Message>) -> Self {
+        match message {
+            Some(message) => Self::Custom(message),
+            None => Self::None,
+        }
     }
 }
 
