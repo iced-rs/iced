@@ -1637,116 +1637,116 @@ impl Viewport {
     }
 }
 
+/// The distance (in logical pixels) scrolled per wheel line.
+///
+/// Chromium scrolls a fixed 120 CSS pixels per classic wheel notch,
+/// independent of the page's line height: the OS delta is normalized to
+/// 120 units (`ui::MouseWheelEvent::kWheelDelta`) and passed through 1:1.
+///
+/// This value assumes the platform reports one line per notch (e.g. X11).
+/// On platforms that report three lines per notch, `40.0` (Chromium's
+/// `cc::kPixelsPerLineStep`) is the equivalent value.
+const WHEEL_PX_PER_LINE: f32 = 120.0;
+
+// The smooth scrolling behavior below (the easing curve, the animation
+// durations, and the velocity-preserving retargeting) is derived from
+// the Chromium project's wheel scroll animation
+// (`cc/animation/scroll_offset_animation_curve.{h,cc}`), which is
+// licensed under the BSD 3-Clause license:
+// <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
+
+/// The control points of the smooth scrolling easing curve.
+///
+/// This is the standard ease-in-out cubic bezier, as used by Chromium for
+/// wheel scrolling: the scroll starts from rest, peaks mid-way, and
+/// settles on the target at rest.
+const SMOOTH_SCROLL_BEZIER_X1: f32 = 0.42;
+const SMOOTH_SCROLL_BEZIER_X2: f32 = 0.58;
+
+/// The divisor of the smooth scrolling animation duration, matching
+/// Chromium's.
+const SMOOTH_SCROLL_DURATION_DIVISOR: f32 = 60.0;
+
+/// The delay (in seconds) between a wheel event and the next drawn frame.
+///
+/// Wheel events are processed between frames, and the smooth scrolling
+/// animation is only stepped when the next frame is drawn. Starting the
+/// animation one nominal frame *before* the event, where a nominal frame
+/// is one unit of `SMOOTH_SCROLL_DURATION_DIVISOR`, ensures that the
+/// first drawn frame already shows some progress, instead of repeating
+/// the previous one.
+///
+/// A full frame is used rather than the mean delay of half a frame: it
+/// guarantees that the first drawn frame visibly moves, even when the
+/// event arrives right after a frame. The animation then settles one
+/// frame early, which is imperceptible since the curve ends at rest.
+const SMOOTH_SCROLL_FRAME_DELAY: f32 = 1.0 / SMOOTH_SCROLL_DURATION_DIVISOR;
+
+/// The distances (in pixels) at which the smooth scrolling duration ramp
+/// starts and ends.
+const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = WHEEL_PX_PER_LINE;
+const SMOOTH_SCROLL_DURATION_RAMP_END: f32 = 480.0;
+
+/// The shortest and longest smooth scrolling animation durations, in
+/// `SMOOTH_SCROLL_DURATION_DIVISOR` units, matching Chromium's.
+///
+/// The duration is *inversely* proportional to the distance within these
+/// bounds: short scrolls get a longer (softer) animation, while long
+/// scrolls get a shorter (snappier) one.
+const SMOOTH_SCROLL_DURATION_MIN: f32 = 6.0;
+const SMOOTH_SCROLL_DURATION_MAX: f32 = 12.0;
+
+/// The factor applied to the time it would take to cover the new distance
+/// at the current velocity when retargeting a running animation, matching
+/// Chromium's.
+///
+/// Bounding the new duration by this keeps a fast scroll from "rubber
+/// banding" when a small new delta is added at high velocity.
+const SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND: f32 = 2.5;
+
+/// The clamp for the initial slope of a retargeted animation, matching
+/// Chromium's.
+const SMOOTH_SCROLL_SLOPE_CLAMP: f32 = 1000.0;
+
+// The held-rail behavior below (the press delay, the autoscroll
+// velocity, and the page step) is derived from the Chromium
+// project's compositor scrollbar controller (`cc/input/
+// scrollbar_controller.{h,cc}` and `cc/input/scrollbar.h`), which is
+// licensed under the BSD 3-Clause license:
+// <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
+
+/// The delay between a rail press and the start of the held-rail
+/// autoscroll, matching Chromium's `cc::kInitialAutoscrollTimerDelay`.
+///
+/// During the delay, only the initial page step (animated like a wheel
+/// scroll) is applied; a quick click therefore scrolls exactly one page.
+const RAIL_AUTOSCROLL_DELAY: Duration = Duration::from_millis(250);
+
+/// The factor converting a rail page step into the held-rail autoscroll
+/// velocity, matching Chromium's `cc::kAutoscrollMultiplier`.
+///
+/// Chromium's main thread autoscroll applies the page step every 50 ms;
+/// the equivalent constant velocity is the step times 20.
+const RAIL_AUTOSCROLL_MULTIPLIER: f32 = 20.0;
+
+/// The fraction of the viewport covered by a rail click's initial page
+/// step, matching Chromium's `cc::kMinFractionToStepWhenPaging` (the
+/// non-Mac page step).
+const RAIL_PAGE_STEP_FRACTION: f32 = 0.875;
+
+/// The distance (in pixels) within which the auto-scroll (middle mouse
+/// button) movement is ignored.
+const AUTOSCROLL_DEADZONE: f32 = 20.0;
+
+/// The exponent of the auto-scroll velocity curve, which makes the
+/// auto-scroll accelerate with the distance from the origin.
+const AUTOSCROLL_SMOOTHNESS: f32 = 1.5;
+
 impl State {
-    /// The distance (in logical pixels) scrolled per wheel line.
-    ///
-    /// Chromium scrolls a fixed 120 CSS pixels per classic wheel notch,
-    /// independent of the page's line height: the OS delta is normalized to
-    /// 120 units (`ui::MouseWheelEvent::kWheelDelta`) and passed through 1:1.
-    ///
-    /// This value assumes the platform reports one line per notch (e.g. X11).
-    /// On platforms that report three lines per notch, `40.0` (Chromium's
-    /// `cc::kPixelsPerLineStep`) is the equivalent value.
-    const WHEEL_PX_PER_LINE: f32 = 120.0;
-
-    // The smooth scrolling behavior below (the easing curve, the animation
-    // durations, and the velocity-preserving retargeting) is derived from
-    // the Chromium project's wheel scroll animation
-    // (`cc/animation/scroll_offset_animation_curve.{h,cc}`), which is
-    // licensed under the BSD 3-Clause license:
-    // <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
-
-    /// The control points of the smooth scrolling easing curve.
-    ///
-    /// This is the standard ease-in-out cubic bezier, as used by Chromium for
-    /// wheel scrolling: the scroll starts from rest, peaks mid-way, and
-    /// settles on the target at rest.
-    const SMOOTH_SCROLL_BEZIER_X1: f32 = 0.42;
-    const SMOOTH_SCROLL_BEZIER_X2: f32 = 0.58;
-
-    /// The divisor of the smooth scrolling animation duration, matching
-    /// Chromium's.
-    const SMOOTH_SCROLL_DURATION_DIVISOR: f32 = 60.0;
-
-    /// The delay (in seconds) between a wheel event and the next drawn frame.
-    ///
-    /// Wheel events are processed between frames, and the smooth scrolling
-    /// animation is only stepped when the next frame is drawn. Starting the
-    /// animation one nominal frame *before* the event, where a nominal frame
-    /// is one unit of `SMOOTH_SCROLL_DURATION_DIVISOR`, ensures that the
-    /// first drawn frame already shows some progress, instead of repeating
-    /// the previous one.
-    ///
-    /// A full frame is used rather than the mean delay of half a frame: it
-    /// guarantees that the first drawn frame visibly moves, even when the
-    /// event arrives right after a frame. The animation then settles one
-    /// frame early, which is imperceptible since the curve ends at rest.
-    const SMOOTH_SCROLL_FRAME_DELAY: f32 = 1.0 / Self::SMOOTH_SCROLL_DURATION_DIVISOR;
-
-    /// The distances (in pixels) at which the smooth scrolling duration ramp
-    /// starts and ends.
-    const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = Self::WHEEL_PX_PER_LINE;
-    const SMOOTH_SCROLL_DURATION_RAMP_END: f32 = 480.0;
-
-    /// The shortest and longest smooth scrolling animation durations, in
-    /// `SMOOTH_SCROLL_DURATION_DIVISOR` units, matching Chromium's.
-    ///
-    /// The duration is *inversely* proportional to the distance within these
-    /// bounds: short scrolls get a longer (softer) animation, while long
-    /// scrolls get a shorter (snappier) one.
-    const SMOOTH_SCROLL_DURATION_MIN: f32 = 6.0;
-    const SMOOTH_SCROLL_DURATION_MAX: f32 = 12.0;
-
-    /// The factor applied to the time it would take to cover the new distance
-    /// at the current velocity when retargeting a running animation, matching
-    /// Chromium's.
-    ///
-    /// Bounding the new duration by this keeps a fast scroll from "rubber
-    /// banding" when a small new delta is added at high velocity.
-    const SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND: f32 = 2.5;
-
-    /// The clamp for the initial slope of a retargeted animation, matching
-    /// Chromium's.
-    const SMOOTH_SCROLL_SLOPE_CLAMP: f32 = 1000.0;
-
-    // The held-rail behavior below (the press delay, the autoscroll
-    // velocity, and the page step) is derived from the Chromium
-    // project's compositor scrollbar controller (`cc/input/
-    // scrollbar_controller.{h,cc}` and `cc/input/scrollbar.h`), which is
-    // licensed under the BSD 3-Clause license:
-    // <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
-
-    /// The delay between a rail press and the start of the held-rail
-    /// autoscroll, matching Chromium's `cc::kInitialAutoscrollTimerDelay`.
-    ///
-    /// During the delay, only the initial page step (animated like a wheel
-    /// scroll) is applied; a quick click therefore scrolls exactly one page.
-    const RAIL_AUTOSCROLL_DELAY: Duration = Duration::from_millis(250);
-
-    /// The factor converting a rail page step into the held-rail autoscroll
-    /// velocity, matching Chromium's `cc::kAutoscrollMultiplier`.
-    ///
-    /// Chromium's main thread autoscroll applies the page step every 50 ms;
-    /// the equivalent constant velocity is the step times 20.
-    const RAIL_AUTOSCROLL_MULTIPLIER: f32 = 20.0;
-
-    /// The fraction of the viewport covered by a rail click's initial page
-    /// step, matching Chromium's `cc::kMinFractionToStepWhenPaging` (the
-    /// non-Mac page step).
-    const RAIL_PAGE_STEP_FRACTION: f32 = 0.875;
-
-    /// The distance (in pixels) within which the auto-scroll (middle mouse
-    /// button) movement is ignored.
-    const AUTOSCROLL_DEADZONE: f32 = 20.0;
-
-    /// The exponent of the auto-scroll velocity curve, which makes the
-    /// auto-scroll accelerate with the distance from the origin.
-    const AUTOSCROLL_SMOOTHNESS: f32 = 1.5;
-
     /// The distance (in pixels) of a rail click's initial page step, given
     /// the length of the scrollable viewport.
     fn rail_page_step(viewport: f32) -> f32 {
-        (viewport * Self::RAIL_PAGE_STEP_FRACTION).max(1.0)
+        (viewport * RAIL_PAGE_STEP_FRACTION).max(1.0)
     }
 
     fn new() -> Self {
@@ -1828,7 +1828,7 @@ impl State {
         // The scroll is requested between frames; start the animation one
         // nominal frame early so that the first drawn frame already shows
         // progress
-        let now = now - Duration::from_secs_f32(Self::SMOOTH_SCROLL_FRAME_DELAY);
+        let now = now - Duration::from_secs_f32(SMOOTH_SCROLL_FRAME_DELAY);
 
         let current = Point::new(
             self.offset_x.absolute(bounds.width, content.width),
@@ -1894,7 +1894,7 @@ impl State {
         // the new delta is against the current motion, and does not apply
         let mut duration = Self::smooth_scroll_duration(max_dimension.abs());
         if velocity.abs() > 0.01 {
-            let bound = Self::SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND * max_dimension / velocity;
+            let bound = SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND * max_dimension / velocity;
 
             if bound > 0.0 {
                 duration = duration.min(bound);
@@ -1912,10 +1912,8 @@ impl State {
 
         // Adjust the initial slope of the new segment so that it starts with
         // the current velocity
-        let slope = (velocity * (duration / max_dimension)).clamp(
-            -Self::SMOOTH_SCROLL_SLOPE_CLAMP,
-            Self::SMOOTH_SCROLL_SLOPE_CLAMP,
-        );
+        let slope = (velocity * (duration / max_dimension))
+            .clamp(-SMOOTH_SCROLL_SLOPE_CLAMP, SMOOTH_SCROLL_SLOPE_CLAMP);
 
         self.target = Some(target);
         self.segment = Segment {
@@ -2044,15 +2042,12 @@ impl State {
     /// short scrolls get a longer (softer) animation, while long scrolls get a
     /// shorter (snappier) one.
     fn smooth_scroll_duration(distance: f32) -> f32 {
-        let slope = (Self::SMOOTH_SCROLL_DURATION_MIN - Self::SMOOTH_SCROLL_DURATION_MAX)
-            / (Self::SMOOTH_SCROLL_DURATION_RAMP_END - Self::SMOOTH_SCROLL_DURATION_RAMP_START);
-        let offset =
-            Self::SMOOTH_SCROLL_DURATION_MAX - Self::SMOOTH_SCROLL_DURATION_RAMP_START * slope;
+        let slope = (SMOOTH_SCROLL_DURATION_MIN - SMOOTH_SCROLL_DURATION_MAX)
+            / (SMOOTH_SCROLL_DURATION_RAMP_END - SMOOTH_SCROLL_DURATION_RAMP_START);
+        let offset = SMOOTH_SCROLL_DURATION_MAX - SMOOTH_SCROLL_DURATION_RAMP_START * slope;
 
-        (offset + distance * slope).clamp(
-            Self::SMOOTH_SCROLL_DURATION_MIN,
-            Self::SMOOTH_SCROLL_DURATION_MAX,
-        ) / Self::SMOOTH_SCROLL_DURATION_DIVISOR
+        (offset + distance * slope).clamp(SMOOTH_SCROLL_DURATION_MIN, SMOOTH_SCROLL_DURATION_MAX)
+            / SMOOTH_SCROLL_DURATION_DIVISOR
     }
 
     /// The progress of the smooth scrolling easing curve at the given time
@@ -2070,7 +2065,7 @@ impl State {
         }
 
         let s = Self::bezier_solve(time);
-        let y1 = Self::SMOOTH_SCROLL_BEZIER_X1 * slope;
+        let y1 = SMOOTH_SCROLL_BEZIER_X1 * slope;
         let os = 1.0 - s;
 
         // y(s), with y2 = 1
@@ -2088,8 +2083,8 @@ impl State {
             Self::bezier_solve(time)
         };
 
-        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
-        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+        let x1 = SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = SMOOTH_SCROLL_BEZIER_X2;
         let y1 = x1 * slope;
         let os = 1.0 - s;
 
@@ -2107,8 +2102,8 @@ impl State {
     /// The x-axis is strictly increasing for the control points used here, so
     /// bisection converges unconditionally.
     fn bezier_solve(time: f32) -> f32 {
-        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
-        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+        let x1 = SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = SMOOTH_SCROLL_BEZIER_X2;
 
         let x = |s: f32| {
             let os = 1.0 - s;
@@ -2293,7 +2288,7 @@ impl State {
             axis,
             direction,
             cursor_direction,
-            velocity: page_step * Self::RAIL_AUTOSCROLL_MULTIPLIER,
+            velocity: page_step * RAIL_AUTOSCROLL_MULTIPLIER,
             pressed_at: now,
             pointer: cursor_position,
             last_frame: None,
@@ -2320,7 +2315,7 @@ impl State {
 
         // The autoscroll starts after the press delay, while the initial
         // page step is still easing
-        if now - rail.pressed_at < Self::RAIL_AUTOSCROLL_DELAY {
+        if now - rail.pressed_at < RAIL_AUTOSCROLL_DELAY {
             return Some(RailStep::Waiting);
         }
 
@@ -2334,7 +2329,7 @@ impl State {
         let last_frame = rail.last_frame;
         rail.last_frame = Some(now);
         let time_delta = last_frame.map_or(
-            (now - rail.pressed_at) - Self::RAIL_AUTOSCROLL_DELAY,
+            (now - rail.pressed_at) - RAIL_AUTOSCROLL_DELAY,
             |last_frame| now - last_frame,
         );
         if time_delta.is_zero() {
@@ -2624,11 +2619,11 @@ impl State {
 
                     let mut delta = current - origin;
 
-                    if delta.x.abs() < Self::AUTOSCROLL_DEADZONE {
+                    if delta.x.abs() < AUTOSCROLL_DEADZONE {
                         delta.x = 0.0;
                     }
 
-                    if delta.y.abs() < Self::AUTOSCROLL_DEADZONE {
+                    if delta.y.abs() < AUTOSCROLL_DEADZONE {
                         delta.y = 0.0;
                     }
 
@@ -2641,10 +2636,10 @@ impl State {
                         self.scroll(
                             direction.align(Vector::new(
                                 delta.x.signum()
-                                    * delta.x.abs().powf(Self::AUTOSCROLL_SMOOTHNESS)
+                                    * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
                                     * scroll_factor,
                                 delta.y.signum()
-                                    * delta.y.abs().powf(Self::AUTOSCROLL_SMOOTHNESS)
+                                    * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
                                     * scroll_factor,
                             )),
                             bounds,
@@ -2893,7 +2888,7 @@ impl State {
                             Vector::new(y, x)
                         };
 
-                        (-movement * Self::WHEEL_PX_PER_LINE, true)
+                        (-movement * WHEEL_PX_PER_LINE, true)
                     }
                     // Pixel deltas (e.g. from high-precision touchpads) are
                     // already smooth, so scrolling them immediately avoids
@@ -2999,8 +2994,8 @@ impl State {
                         last_frame,
                     };
 
-                    if (delta.x.abs() >= Self::AUTOSCROLL_DEADZONE
-                        || delta.y.abs() >= Self::AUTOSCROLL_DEADZONE)
+                    if (delta.x.abs() >= AUTOSCROLL_DEADZONE
+                        || delta.y.abs() >= AUTOSCROLL_DEADZONE)
                         && last_frame.is_none()
                     {
                         update.request_redraw = true;
