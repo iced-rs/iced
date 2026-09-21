@@ -730,12 +730,10 @@ where
             }
         }
 
-        let scrollbar_axis = state.interaction.axis();
-
-        let status = if scrollbar_axis.is_some() {
+        let status = if let Some(axis) = state.interaction.axis() {
             Status::Dragged {
-                is_horizontal_scrollbar_dragged: scrollbar_axis == Some(Axis::X),
-                is_vertical_scrollbar_dragged: scrollbar_axis == Some(Axis::Y),
+                is_horizontal_scrollbar_dragged: axis == Axis::X,
+                is_vertical_scrollbar_dragged: axis == Axis::Y,
                 is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
                 is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
@@ -2154,9 +2152,6 @@ impl State {
 
         // Don't publish redundant viewports to shell
         if let Some(last_notified) = self.last_notified {
-            let last_relative_offset = last_notified.relative_offset();
-            let current_relative_offset = viewport.relative_offset();
-
             let last_absolute_offset = last_notified.absolute_offset();
             let current_absolute_offset = viewport.absolute_offset();
 
@@ -2165,8 +2160,6 @@ impl State {
 
             if last_notified.bounds == bounds
                 && last_notified.content == content
-                && unchanged(last_relative_offset.x, current_relative_offset.x)
-                && unchanged(last_relative_offset.y, current_relative_offset.y)
                 && unchanged(last_absolute_offset.x, current_absolute_offset.x)
                 && unchanged(last_absolute_offset.y, current_absolute_offset.y)
             {
@@ -2664,12 +2657,12 @@ impl State {
 
                             interact.request_redraw = true;
                         }
-                    } else if let Some(notification) = self.notify_viewport(bounds, content) {
-                        interact.scroll = Some(notification);
                     }
                 }
-            } else if let Some(notification) = self.notify_viewport(bounds, content) {
-                interact.scroll = Some(notification);
+            }
+
+            if interact.scroll.is_none() {
+                interact.scroll = self.notify_viewport(bounds, content);
             }
 
             // A source that did not produce a notification must not be
