@@ -1825,6 +1825,107 @@ fn shift_rail_click_jumps_to_pointer() {
     );
 }
 
+/// With `click_to_scroll` enabled, a plain rail click is a "jump click":
+/// the scroller jumps (without animation) so that its center is under the
+/// pointer, and then behaves like a grabbed scroller.
+#[test]
+fn click_to_scroll_rail_click_jumps_to_pointer() {
+    let mut simulator = Simulator::new(element(3000, 200).click_to_scroll(true));
+
+    // Render a frame so that the scroller is at its position for the
+    // current offset before the press
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 1);
+
+    simulator.point_at(Point::new(1019.0, 60.0));
+
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonPressed(
+        mouse::Button::Left,
+    ))]);
+
+    // The jump is immediate: no further frames are needed, the scroller is
+    // centered on the pointer (offset 800), with no in-flight animation
+    let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
+        .into_messages()
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
+        .unzip();
+
+    let last = *offsets.last().unwrap();
+    assert!(
+        (last - 800.0).abs() < 1.0,
+        "a rail click must center the scroller on the pointer (offset 800): {offsets:?}"
+    );
+    assert!(
+        !animating.last().unwrap(),
+        "the jump must not animate: {offsets:?} {animating:?}"
+    );
+}
+
+/// With `click_to_scroll` enabled, `Shift`-clicking the rail is a page
+/// press: a quick press and release scrolls exactly one page, with the
+/// same gradual easing as a wheel scroll.
+#[test]
+fn click_to_scroll_shift_rail_click_pages() {
+    let mut simulator = Simulator::new(element(3000, 200).click_to_scroll(true));
+
+    // Render a frame so that the scroller is at its position for the
+    // current offset before the press
+    let mut instant = Instant::now();
+    step_frames(&mut simulator, &mut instant, 1);
+
+    simulator.point_at(Point::new(1019.0, 60.0));
+
+    let _ = simulator.simulate([Event::Keyboard(keyboard::Event::ModifiersChanged(
+        Modifiers::SHIFT,
+    ))]);
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonPressed(
+        mouse::Button::Left,
+    ))]);
+    let _ = simulator.simulate([Event::Mouse(mouse::Event::ButtonReleased(
+        mouse::Button::Left,
+    ))]);
+
+    step_frames(&mut simulator, &mut instant, 60);
+
+    let (offsets, animating): (Vec<f32>, Vec<bool>) = simulator
+        .into_messages()
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.target.is_some()))
+        .unzip();
+
+    assert!(
+        !offsets.is_empty(),
+        "expected on_scroll notifications, got: {offsets:?}"
+    );
+    assert_eq!(
+        offsets.first(),
+        Some(&0.0),
+        "the offset must not move before the first frame: {offsets:?}"
+    );
+    assert!(
+        offsets.len() > 2,
+        "the page step must be gradual, not an instant jump: {offsets:?}"
+    );
+    assert_eq!(
+        offsets.last(),
+        Some(&175.0),
+        "a quick `Shift` rail click must settle exactly one page (175 px): {offsets:?}"
+    );
+    assert!(
+        !animating.first().unwrap(),
+        "the pre-press notification must not be animating: {animating:?}"
+    );
+    assert!(
+        animating[1..animating.len() - 1]
+            .iter()
+            .all(|&is_animating| is_animating),
+        "expected the scroll to be animating until it settles: {offsets:?} {animating:?}"
+    );
+    assert!(
+        !animating.last().unwrap(),
+        "expected the scroll to have settled: {offsets:?} {animating:?}"
+    );
+}
+
 #[test]
 fn on_scroll_action_can_scroll() {
     let element = Scrollable::new(space().height(3000))

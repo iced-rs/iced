@@ -77,6 +77,9 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///   with it. This mirrors the track autoscroll of most toolkits.
 /// * `Shift`-clicking the **rail** instead jumps the scroller so that its
 ///   center is under the pointer, and then drags it from there.
+///
+/// With [`Self::click_to_scroll`] enabled, the behavior of the rail press
+/// and the `Shift`-click is inverted.
 pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -88,6 +91,7 @@ where
     direction: Direction,
     auto_scroll: bool,
     smooth_scroll: bool,
+    click_to_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Scroll) -> Action<Message> + 'a>>,
     class: Theme::Class<'a>,
@@ -115,6 +119,7 @@ where
             direction: direction.into(),
             auto_scroll: false,
             smooth_scroll: true,
+            click_to_scroll: false,
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
@@ -275,6 +280,24 @@ where
     /// By default, it is enabled.
     pub fn smooth_scroll(mut self, smooth_scroll: bool) -> Self {
         self.smooth_scroll = smooth_scroll;
+        self
+    }
+
+    /// Sets whether a plain click on the scrollbar rail should jump the
+    /// scroller to the click position, instead of scrolling one page.
+    ///
+    /// By default, a press on the rail scrolls one page (and autoscrolls
+    /// while the button is held), while a `Shift`-click jumps the scroller
+    /// so that its center is under the pointer and drags it from there.
+    ///
+    /// When enabled, the behavior is inverted: a plain click jumps the
+    /// scroller so that its center is under the pointer (and drags it from
+    /// there), while a `Shift`-click scrolls one page (and autoscrolls
+    /// while the button is held).
+    ///
+    /// By default, it is disabled.
+    pub fn click_to_scroll(mut self, click_to_scroll: bool) -> Self {
+        self.click_to_scroll = click_to_scroll;
         self
     }
 
@@ -655,6 +678,7 @@ where
             mouse_over_scrollbar,
             self.direction,
             self.smooth_scroll,
+            self.click_to_scroll,
         );
 
         if let Some(scroll) = interact.scroll
@@ -2601,6 +2625,7 @@ impl State {
         mouse_over_scrollbar: Option<Axis>,
         direction: Direction,
         smooth_scroll: bool,
+        click_to_scroll: bool,
     ) -> Interact {
         let mut interact = Interact::default();
 
@@ -2799,7 +2824,8 @@ impl State {
             }
         } else if let Some(axis) = mouse_over_scrollbar {
             // Otherwise, a press on a scrollbar under the cursor grabs its
-            // scroller, jump-drags it (with `Shift`), or presses the rail
+            // scroller, jump-drags it (with `Shift`, or with a plain press
+            // when `click_to_scroll` is enabled), or presses the rail
             match event {
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
                 | Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -2822,11 +2848,12 @@ impl State {
 
                                 self.interaction = Interaction::ScrollerGrabbed(axis, grabbed_at);
                             }
-                            // A `Shift`-click on the rail is a "jump click":
-                            // jump the scroller to the click position and drag
-                            // it from there, like Chromium's `Shift`+click on
-                            // the track
-                            Hit::Rail if self.keyboard_modifiers.shift() => {
+                            // A "jump click" on the rail — a `Shift`-click by
+                            // default, or a plain click when `click_to_scroll`
+                            // is enabled: jump the scroller to the click
+                            // position and drag it from there, like
+                            // Chromium's `Shift`+click on the track
+                            Hit::Rail if self.keyboard_modifiers.shift() != click_to_scroll => {
                                 self.scroll_to_percentage(
                                     axis,
                                     scrollbar.scroll_percentage(axis, 0.5, cursor_position),
@@ -2836,8 +2863,10 @@ impl State {
 
                                 self.interaction = Interaction::ScrollerGrabbed(axis, 0.5);
                             }
-                            // A plain rail press: a page step (animated like a
-                            // wheel scroll) and, while the button is held, a
+                            // A paging rail press — a plain click by default,
+                            // or a `Shift`-click when `click_to_scroll` is
+                            // enabled: a page step (animated like a wheel
+                            // scroll) and, while the button is held, a
                             // constant-velocity autoscroll until the scroller
                             // reaches the pointer, like Chromium's track
                             // autoscroll
