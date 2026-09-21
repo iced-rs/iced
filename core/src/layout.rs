@@ -204,6 +204,10 @@ pub fn positioned(
     let content = layout(child, &limits.shrink(padding));
     let padding = padding.fit(content, limits.bounds());
 
-    tree.size = limits.shrink(padding).resolve(width, height, content);
+    tree.size = limits
+        .shrink(padding)
+        .resolve(width, height, content)
+        .expand(padding);
+
     child.translation = Vector::new(padding.left, padding.top) + translate(content);
 }

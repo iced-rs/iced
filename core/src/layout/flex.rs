@@ -498,5 +498,5 @@ pub fn resolve<Message, Theme, Renderer>(
         Axis::Vertical => limits.resolve_height(height, main - pad.0),
     };
 
-    tree.size = Size::from(axis.pack(main, cross));
+    tree.size = Size::from(axis.pack(main, cross)).expand(padding);
 }
