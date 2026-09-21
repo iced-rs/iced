@@ -164,6 +164,17 @@ impl From<AbsoluteOffset> for AbsoluteOffset<Option<f32>> {
     }
 }
 
+impl std::ops::Add<Vector> for AbsoluteOffset {
+    type Output = Self;
+
+    fn add(self, translation: Vector) -> Self::Output {
+        Self {
+            x: self.x + translation.x,
+            y: self.y + translation.y,
+        }
+    }
+}
+
 /// The amount of relative offset in each direction of a [`Scrollable`].
 ///
 /// A value of `0.0` means start, while `1.0` means end.

@@ -1541,6 +1541,9 @@ pub struct Scroll {
     /// The [`Viewport`] of the [`Scrollable`].
     pub viewport: Viewport,
 
+    /// The original [`Viewport`] before the scroll event, if any.
+    pub origin: Option<Viewport>,
+
     /// The [`Source`] of the scroll.
     pub source: Source,
 
@@ -1586,6 +1589,21 @@ pub struct Viewport {
 }
 
 impl Viewport {
+    /// Returns the end of the [`Viewport`].
+    pub fn end(&self) -> AbsoluteOffset {
+        self.absolute_offset() + self.distance_to_end()
+    }
+
+    /// Returns a new [`Viewport`] aligned with the coordinates of the
+    /// given one.
+    pub fn slide(self, other: Self) -> Self {
+        Self {
+            x: other.x,
+            y: other.y,
+            ..self
+        }
+    }
+
     /// Returns the distance from the current scroll position to the end of
     /// the content, in pixels, per axis.
     ///
@@ -2251,10 +2269,12 @@ impl State {
             }
         });
 
+        let origin = self.last_notified;
         self.last_notified = Some(viewport);
 
         Some(Scroll {
             viewport,
+            origin,
             source,
             target: self.target,
         })
