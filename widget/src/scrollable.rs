@@ -41,17 +41,6 @@ use crate::core::{
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
-/// The distance (in logical pixels) scrolled per wheel line.
-///
-/// Chromium scrolls a fixed 120 CSS pixels per classic wheel notch,
-/// independent of the page's line height: the OS delta is normalized to
-/// 120 units (`ui::MouseWheelEvent::kWheelDelta`) and passed through 1:1.
-///
-/// This value assumes the platform reports one line per notch (e.g. X11).
-/// On platforms that report three lines per notch, `40.0` (Chromium's
-/// `cc::kPixelsPerLineStep`) is the equivalent value.
-const WHEEL_PX_PER_LINE: f32 = 120.0;
-
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 ///
@@ -74,6 +63,23 @@ const WHEEL_PX_PER_LINE: f32 = 120.0;
 ///     ]).into()
 /// }
 /// ```
+///
+/// # Scrollbars
+///
+/// A scrollbar has two interactive parts: the *scroller* (the draggable
+/// thumb) and the *rail* (the track it slides on).
+///
+/// * Pressing and dragging the **scroller** moves it 1:1 with the pointer.
+/// * Pressing the **rail** scrolls one page (animated like a wheel scroll
+///   when [`Self::smooth_scroll`] is enabled). While the button is held, the
+///   scroller then slides toward the pointer at a constant speed, stopping
+///   when its edge reaches the pointer; moving the pointer moves the target
+///   with it. This mirrors the track autoscroll of most toolkits.
+/// * `Shift`-clicking the **rail** instead jumps the scroller so that its
+///   center is under the pointer, and then drags it from there.
+///
+/// With [`Self::click_to_scroll`] enabled, the behavior of the rail press
+/// and the `Shift`-click is inverted.
 pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
@@ -85,8 +91,9 @@ where
     direction: Direction,
     auto_scroll: bool,
     smooth_scroll: bool,
+    click_to_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Scroll) -> Option<Message> + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Scroll) -> Action<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
@@ -112,6 +119,7 @@ where
             direction: direction.into(),
             auto_scroll: false,
             smooth_scroll: true,
+            click_to_scroll: false,
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
@@ -154,7 +162,7 @@ where
     /// notification.
     pub fn on_scroll<T>(mut self, f: impl Fn(Scroll) -> T + 'a) -> Self
     where
-        T: Into<Option<Message>>,
+        T: Into<Action<Message>>,
     {
         self.on_scroll = Some(Box::new(move |scroll| f(scroll).into()));
         self
@@ -272,6 +280,24 @@ where
     /// By default, it is enabled.
     pub fn smooth_scroll(mut self, smooth_scroll: bool) -> Self {
         self.smooth_scroll = smooth_scroll;
+        self
+    }
+
+    /// Sets whether a plain click on the scrollbar rail should jump the
+    /// scroller to the click position, instead of scrolling one page.
+    ///
+    /// By default, a press on the rail scrolls one page (and autoscrolls
+    /// while the button is held), while a `Shift`-click jumps the scroller
+    /// so that its center is under the pointer and drags it from there.
+    ///
+    /// When enabled, the behavior is inverted: a plain click jumps the
+    /// scroller so that its center is under the pointer (and drags it from
+    /// there), while a `Shift`-click scrolls one page (and autoscrolls
+    /// while the button is held).
+    ///
+    /// By default, it is disabled.
+    pub fn click_to_scroll(mut self, click_to_scroll: bool) -> Self {
+        self.click_to_scroll = click_to_scroll;
         self
     }
 
@@ -629,9 +655,6 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
-        const AUTOSCROLL_DEADZONE: f32 = 20.0;
-        const AUTOSCROLL_SMOOTHNESS: f32 = 1.5;
-
         let state = tree.state.downcast_mut::<State>();
         let bounds = layout.bounds();
         let cursor_over_scrollable = cursor.position_over(bounds);
@@ -639,257 +662,45 @@ where
         let child = layout.children().next().unwrap();
         let content = child.size();
 
-        let mut translation = state.last_translation;
+        let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
-
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
 
         let last_offsets = (state.offset_x, state.offset_y);
 
-        if let Some(last_scrolled) = state.last_scrolled {
-            let clear_transaction = match event {
-                Event::Mouse(
-                    mouse::Event::ButtonPressed(_)
-                    | mouse::Event::ButtonReleased(_)
-                    | mouse::Event::CursorLeft,
-                ) => true,
-                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                    last_scrolled.elapsed() > Duration::from_millis(100)
-                }
-                _ => last_scrolled.elapsed() > Duration::from_millis(1500),
-            };
+        let interact = state.interact(
+            event,
+            bounds,
+            content,
+            cursor,
+            cursor_over_scrollable,
+            &scrollbars,
+            mouse_over_scrollbar,
+            self.direction,
+            self.smooth_scroll,
+            self.click_to_scroll,
+        );
 
-            if clear_transaction {
-                state.last_scrolled = None;
-            }
+        if let Some(scroll) = interact.scroll
+            && let Some(on_scroll) = &self.on_scroll
+        {
+            on_scroll(scroll).perform(state, bounds, content, shell);
         }
 
-        let mut update = || {
-            if let Event::Window(window::Event::RedrawRequested(now)) = event {
-                // Step the smooth scrolling animation, if any;
-                // `last_frame` guards against stepping twice for the
-                // same instant
-                if state.last_frame != Some(*now) && state.step(*now, bounds, content) {
-                    let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-                }
+        if interact.capture {
+            shell.capture_event();
+        }
 
-                if state.target.is_some() {
-                    shell.request_redraw();
-                } else if let Interaction::AutoScrolling {
-                    origin,
-                    current,
-                    last_frame,
-                } = state.interaction
-                {
-                    if last_frame == Some(*now) {
-                        shell.request_redraw();
-                    } else {
-                        state.interaction = Interaction::AutoScrolling {
-                            origin,
-                            current,
-                            last_frame: None,
-                        };
+        if interact.invalidate_layout {
+            shell.invalidate_layout();
+        }
 
-                        let mut delta = current - origin;
+        if interact.request_redraw {
+            shell.request_redraw();
+        }
 
-                        if delta.x.abs() < AUTOSCROLL_DEADZONE {
-                            delta.x = 0.0;
-                        }
-
-                        if delta.y.abs() < AUTOSCROLL_DEADZONE {
-                            delta.y = 0.0;
-                        }
-
-                        if delta.x != 0.0 || delta.y != 0.0 {
-                            let time_delta = if let Some(last_frame) = last_frame {
-                                *now - last_frame
-                            } else {
-                                Duration::ZERO
-                            };
-
-                            let scroll_factor = time_delta.as_secs_f32();
-
-                            state.scroll(
-                                self.direction.align(Vector::new(
-                                    delta.x.signum()
-                                        * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
-                                        * scroll_factor,
-                                    delta.y.signum()
-                                        * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
-                                        * scroll_factor,
-                                )),
-                                bounds,
-                                content,
-                            );
-
-                            state.source = Some(Source::AutoScroll);
-
-                            let has_scrolled =
-                                notify_scroll(state, &self.on_scroll, bounds, content, shell);
-
-                            if has_scrolled || time_delta.is_zero() {
-                                state.interaction = Interaction::AutoScrolling {
-                                    origin,
-                                    current,
-                                    last_frame: Some(*now),
-                                };
-
-                                shell.request_redraw();
-                            }
-                        } else {
-                            let _ = notify_viewport(state, &self.on_scroll, bounds, content, shell);
-                        }
-                    }
-                } else {
-                    let _ = notify_viewport(state, &self.on_scroll, bounds, content, shell);
-                }
-
-                // A source that did not produce a notification must not be
-                // attributed to a later one
-                if state.target.is_none() {
-                    state.source = None;
-                }
-
-                translation = state.translation(self.direction, bounds, content);
-                state.last_translation = translation;
-            }
-
-            if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at() {
-                match event {
-                    Event::Mouse(mouse::Event::CursorMoved { .. })
-                    | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) = cursor.observe().position() else {
-                                return;
-                            };
-
-                            state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
-                                bounds,
-                                content,
-                            );
-
-                            state.source = Some(Source::Scrollbar);
-
-                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-
-                            shell.capture_event();
-                        }
-                    }
-                    _ => {}
-                }
-            } else if mouse_over_y_scrollbar {
-                match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                    | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
-                            return;
-                        };
-
-                        if let (Some(scroller_grabbed_at), Some(scrollbar)) =
-                            (scrollbars.grab_y_scroller(cursor_position), scrollbars.y)
-                        {
-                            state.scroll_y_to(
-                                scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
-                                bounds,
-                                content,
-                            );
-
-                            state.interaction = Interaction::YScrollerGrabbed(scroller_grabbed_at);
-                            state.source = Some(Source::Scrollbar);
-
-                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-                        }
-
-                        shell.capture_event();
-                    }
-                    _ => {}
-                }
-            }
-
-            if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at() {
-                match event {
-                    Event::Mouse(mouse::Event::CursorMoved { .. })
-                    | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.observe().position() else {
-                            return;
-                        };
-
-                        if let Some(scrollbar) = scrollbars.x {
-                            state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
-                                bounds,
-                                content,
-                            );
-
-                            state.source = Some(Source::Scrollbar);
-
-                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-                        }
-
-                        shell.capture_event();
-                    }
-                    _ => {}
-                }
-            } else if mouse_over_x_scrollbar {
-                match event {
-                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                    | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                        let Some(cursor_position) = cursor.position() else {
-                            return;
-                        };
-
-                        if let (Some(scroller_grabbed_at), Some(scrollbar)) =
-                            (scrollbars.grab_x_scroller(cursor_position), scrollbars.x)
-                        {
-                            state.scroll_x_to(
-                                scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
-                                bounds,
-                                content,
-                            );
-
-                            state.interaction = Interaction::XScrollerGrabbed(scroller_grabbed_at);
-                            state.source = Some(Source::Scrollbar);
-
-                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-
-                            shell.capture_event();
-                        }
-                    }
-                    _ => {}
-                }
-            }
-
-            if matches!(state.interaction, Interaction::AutoScrolling { .. })
-                && matches!(
-                    event,
-                    Event::Mouse(
-                        mouse::Event::ButtonPressed(_) | mouse::Event::WheelScrolled { .. }
-                    ) | Event::Touch(_)
-                        | Event::Keyboard(_)
-                )
-            {
-                state.interaction = Interaction::None;
-                shell.capture_event();
-                shell.invalidate_layout();
-                shell.request_redraw();
-                return;
-            }
-
-            if state.last_scrolled.is_none()
-                || !matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
-            {
-                let cursor = match cursor_over_scrollable {
-                    Some(cursor_position)
-                        if !(mouse_over_x_scrollbar
-                            || mouse_over_y_scrollbar
-                            || state.scrollers_grabbed()) =>
-                    {
-                        mouse::Cursor::Available(cursor_position + translation)
-                    }
-                    _ => cursor.obstruct() + translation,
-                };
-
+        if !interact.stop {
+            if let Some(Content { cursor, viewport }) = interact.content {
                 let had_input_method = shell.input_method().is_enabled();
 
                 self.content.as_widget_mut().update(
@@ -899,188 +710,59 @@ where
                     cursor,
                     renderer,
                     shell,
-                    &Rectangle {
-                        y: bounds.y + translation.y,
-                        x: bounds.x + translation.x,
-                        ..bounds
-                    },
+                    &viewport,
                 );
 
                 if !had_input_method
                     && let InputMethod::Enabled { cursor, .. } = shell.input_method_mut()
                 {
-                    *cursor -= translation;
+                    *cursor -= state.last_translation;
                 }
-            };
+            }
 
-            if matches!(
+            let update = state.update(
                 event,
-                Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-                    | Event::Touch(
-                        touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. }
-                    )
-            ) {
-                state.interaction = Interaction::None;
-                return;
+                bounds,
+                content,
+                cursor,
+                cursor_over_scrollable,
+                mouse_over_scrollbar,
+                self.direction,
+                self.smooth_scroll,
+                self.auto_scroll,
+                shell.is_event_captured(),
+            );
+
+            if let Some(scroll) = update.scroll
+                && let Some(on_scroll) = &self.on_scroll
+            {
+                on_scroll(scroll).perform(state, bounds, content, shell);
             }
 
-            if shell.is_event_captured() {
-                return;
+            if update.capture {
+                shell.capture_event();
             }
 
-            match event {
-                Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                    if !cursor.land().is_over(bounds) {
-                        return;
-                    }
-
-                    let (delta, is_lines) = match *delta {
-                        mouse::ScrollDelta::Lines { x, y } => {
-                            let is_shift_pressed = state.keyboard_modifiers.shift();
-
-                            // macOS automatically inverts the axes when Shift is pressed
-                            let (x, y) = if cfg!(target_os = "macos") && is_shift_pressed {
-                                (y, x)
-                            } else {
-                                (x, y)
-                            };
-
-                            let movement = if !is_shift_pressed {
-                                Vector::new(x, y)
-                            } else {
-                                Vector::new(y, x)
-                            };
-
-                            (-movement * WHEEL_PX_PER_LINE, true)
-                        }
-                        // Pixel deltas (e.g. from high-precision touchpads) are
-                        // already smooth, so scrolling them immediately avoids
-                        // double-smoothing them
-                        mouse::ScrollDelta::Pixels { x, y } => (-Vector::new(x, y), false),
-                    };
-
-                    let delta = self.direction.align(delta);
-
-                    if self.smooth_scroll && is_lines {
-                        state.scroll_smoothly(delta, bounds, content, Instant::now());
-                    } else {
-                        state.scroll(delta, bounds, content);
-                    }
-
-                    state.source = Some(Source::Wheel);
-
-                    let has_scrolled =
-                        notify_scroll(state, &self.on_scroll, bounds, content, shell);
-
-                    let in_transaction = state.last_scrolled.is_some() || state.target.is_some();
-
-                    if has_scrolled || in_transaction {
-                        shell.capture_event();
-                    }
-
-                    if state.target.is_some() {
-                        shell.request_redraw();
-                    }
-                }
-                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))
-                    if self.auto_scroll && matches!(state.interaction, Interaction::None) =>
-                {
-                    let Some(origin) = cursor_over_scrollable else {
-                        return;
-                    };
-
-                    state.interaction = Interaction::AutoScrolling {
-                        origin,
-                        current: origin,
-                        last_frame: None,
-                    };
-
-                    shell.capture_event();
-                    shell.invalidate_layout();
-                    shell.request_redraw();
-                }
-                Event::Touch(event)
-                    if matches!(state.interaction, Interaction::TouchScrolling(_))
-                        || (!mouse_over_y_scrollbar && !mouse_over_x_scrollbar) =>
-                {
-                    match event {
-                        touch::Event::FingerPressed { .. } => {
-                            let Some(position) = cursor_over_scrollable else {
-                                return;
-                            };
-
-                            state.interaction = Interaction::TouchScrolling(position);
-                        }
-                        touch::Event::FingerMoved { .. } => {
-                            let Interaction::TouchScrolling(scroll_box_touched_at) =
-                                state.interaction
-                            else {
-                                return;
-                            };
-
-                            let Some(cursor_position) = cursor.position() else {
-                                return;
-                            };
-
-                            let delta = Vector::new(
-                                scroll_box_touched_at.x - cursor_position.x,
-                                scroll_box_touched_at.y - cursor_position.y,
-                            );
-
-                            state.scroll(self.direction.align(delta), bounds, content);
-
-                            state.interaction = Interaction::TouchScrolling(cursor_position);
-                            // TODO: bubble up touch movements if not consumed.
-                            state.source = Some(Source::Touch);
-
-                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
-                        }
-                        _ => {}
-                    }
-
-                    shell.capture_event();
-                }
-                Event::Mouse(mouse::Event::CursorMoved { position }) => {
-                    if let Interaction::AutoScrolling {
-                        origin, last_frame, ..
-                    } = state.interaction
-                    {
-                        let delta = *position - origin;
-
-                        state.interaction = Interaction::AutoScrolling {
-                            origin,
-                            current: *position,
-                            last_frame,
-                        };
-
-                        if (delta.x.abs() >= AUTOSCROLL_DEADZONE
-                            || delta.y.abs() >= AUTOSCROLL_DEADZONE)
-                            && last_frame.is_none()
-                        {
-                            shell.request_redraw();
-                        }
-                    }
-                }
-                Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-                    state.keyboard_modifiers = *modifiers;
-                }
-                _ => {}
+            if update.invalidate_layout {
+                shell.invalidate_layout();
             }
-        };
 
-        update();
+            if update.request_redraw {
+                shell.request_redraw();
+            }
+        }
 
-        let status = if state.scrollers_grabbed() {
+        let status = if let Some(axis) = state.interaction.axis() {
             Status::Dragged {
-                is_horizontal_scrollbar_dragged: state.x_scroller_grabbed_at().is_some(),
-                is_vertical_scrollbar_dragged: state.y_scroller_grabbed_at().is_some(),
+                is_horizontal_scrollbar_dragged: axis == Axis::X,
+                is_vertical_scrollbar_dragged: axis == Axis::Y,
                 is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
                 is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
         } else if cursor_over_scrollable.is_some() {
             Status::Hovered {
-                is_horizontal_scrollbar_hovered: mouse_over_x_scrollbar,
-                is_vertical_scrollbar_hovered: mouse_over_y_scrollbar,
+                is_horizontal_scrollbar_hovered: mouse_over_scrollbar == Some(Axis::X),
+                is_vertical_scrollbar_hovered: mouse_over_scrollbar == Some(Axis::Y),
                 is_horizontal_scrollbar_disabled: scrollbars.is_x_disabled(),
                 is_vertical_scrollbar_disabled: scrollbars.is_y_disabled(),
             }
@@ -1127,10 +809,10 @@ where
         let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
         let cursor_over_scrollable = cursor.position_over(bounds);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
-            Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
+            Some(cursor_position) if mouse_over_scrollbar.is_none() => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
             _ => cursor.obstruct() + translation,
@@ -1263,7 +945,7 @@ where
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<State>();
 
-        if state.scrollers_grabbed() {
+        if state.interaction.scrollers_grabbed() {
             return mouse::Interaction::Idle;
         }
 
@@ -1277,10 +959,10 @@ where
 
         let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
-        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
+        let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
-            Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
+            Some(cursor_position) if mouse_over_scrollbar.is_none() => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
             _ => cursor.obstruct() + translation,
@@ -1492,99 +1174,77 @@ where
     }
 }
 
-fn notify_scroll<Message>(
-    state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
-    bounds: Rectangle,
-    content: Size,
-    shell: &mut Shell<'_, Message>,
-) -> bool {
-    if notify_viewport(state, on_scroll, bounds, content, shell) {
-        state.last_scrolled = Some(Instant::now());
-
-        true
+/// The new position of the pointer of a held rail, if it moved.
+///
+/// A moved pointer re-evaluates the autoscroll's pause and stop conditions,
+/// so it wakes the animation with a redraw.
+fn rail_moved(event: &Event, cursor: mouse::Cursor, last: Point) -> Option<Point> {
+    if matches!(
+        event,
+        Event::Mouse(mouse::Event::CursorMoved { .. })
+            | Event::Touch(touch::Event::FingerMoved { .. })
+    ) {
+        cursor
+            .observe()
+            .position()
+            .filter(|position| *position != last)
     } else {
-        false
+        None
     }
 }
 
-fn notify_viewport<Message>(
-    state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
-    bounds: Rectangle,
-    content: Size,
-    shell: &mut Shell<'_, Message>,
-) -> bool {
-    if content.width <= bounds.width && content.height <= bounds.height {
-        return false;
-    }
+/// The content update that [`State::interact`] requests to be delegated to the
+/// child widget.
+#[derive(Debug)]
+struct Content {
+    /// The [`mouse::Cursor`] to pass to the child widget
+    cursor: mouse::Cursor,
 
-    let viewport = Viewport {
-        x: state.offset_x,
-        y: state.offset_y,
-        bounds,
-        content,
-    };
+    /// The viewport to pass to the child widget
+    viewport: Rectangle,
+}
 
-    // Don't publish redundant viewports to shell
-    if let Some(last_notified) = state.last_notified {
-        let last_relative_offset = last_notified.relative_offset();
-        let current_relative_offset = viewport.relative_offset();
+/// The outcome of [`State::interact`]: the [`Shell`] effects to materialize and
+/// whether the event must be delegated to the content.
+#[derive(Debug, Default)]
+struct Interact {
+    /// The scroll notification to publish, if the scroll changed: the final
+    /// state after the event, coalescing any intermediate changes
+    scroll: Option<Scroll>,
 
-        let last_absolute_offset = last_notified.absolute_offset();
-        let current_absolute_offset = viewport.absolute_offset();
+    /// Whether the event must be captured
+    capture: bool,
 
-        let unchanged =
-            |a: f32, b: f32| (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan());
+    /// Whether the layout must be invalidated
+    invalidate_layout: bool,
 
-        if last_notified.bounds == bounds
-            && last_notified.content == content
-            && unchanged(last_relative_offset.x, current_relative_offset.x)
-            && unchanged(last_relative_offset.y, current_relative_offset.y)
-            && unchanged(last_absolute_offset.x, current_absolute_offset.x)
-            && unchanged(last_absolute_offset.y, current_absolute_offset.y)
-        {
-            return false;
-        }
-    }
+    /// Whether a redraw must be requested
+    request_redraw: bool,
 
-    // The notification's source: the scroll in progress or pending, or,
-    // when the scroll position changed on its own, what changed in the
-    // layout
-    let source = if state.target.is_some() {
-        // An in-flight animation: report the segment's source, keeping it
-        // so that the settle notification reports it too
-        state.source
-    } else {
-        // A settled or pending scroll: consume the source
-        state.source.take()
-    }
-    .unwrap_or_else(|| {
-        if let Some(last_notified) = state.last_notified {
-            if last_notified.content != content {
-                Source::Content
-            } else {
-                Source::Resize
-            }
-        } else {
-            // The first notification: the content was laid out
-            Source::Content
-        }
-    });
+    /// Whether the interaction stopped early: the event must not be delegated
+    /// to the content, nor processed by [`State::update`]
+    stop: bool,
 
-    state.last_notified = Some(viewport);
+    /// If `Some`, the event must be delegated to the content with the given
+    /// cursor and viewport
+    content: Option<Content>,
+}
 
-    if let Some(on_scroll) = on_scroll
-        && let Some(message) = on_scroll(Scroll {
-            viewport,
-            source,
-            target: state.target,
-        })
-    {
-        shell.publish(message);
-    }
+/// The outcome of [`State::update`]: the [`Shell`] effects to materialize
+#[derive(Debug, Default)]
+struct Update {
+    /// The scroll notification to publish, if the scroll changed: the final
+    /// state after the event, coalescing any intermediate changes
+    scroll: Option<Scroll>,
 
-    true
+    /// Whether the event must be captured
+    capture: bool,
+
+    /// Whether the layout must be invalidated
+    invalidate_layout: bool,
+
+    /// Whether a redraw must be requested
+    request_redraw: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -1617,14 +1277,131 @@ struct Segment {
 #[derive(Debug, Clone, Copy)]
 enum Interaction {
     None,
-    YScrollerGrabbed(f32),
-    XScrollerGrabbed(f32),
+    ScrollerGrabbed(Axis, f32),
     TouchScrolling(Point),
     AutoScrolling {
         origin: Point,
         current: Point,
         last_frame: Option<Instant>,
     },
+    RailHeld(RailHeld),
+}
+
+impl Interaction {
+    /// The axis of the active scrollbar interaction — a scroller drag or a
+    /// held rail — if any.
+    fn axis(&self) -> Option<Axis> {
+        match self {
+            Interaction::ScrollerGrabbed(axis, _) => Some(*axis),
+            Interaction::RailHeld(rail) => Some(rail.axis),
+            _ => None,
+        }
+    }
+
+    /// Whether the user is interacting with a scrollbar: dragging a
+    /// scroller or holding a rail pressed.
+    fn scrollers_grabbed(&self) -> bool {
+        self.axis().is_some()
+    }
+
+    /// The axis and the fraction of the scroller grabbed, if a scroller is
+    /// being dragged.
+    fn scroller_grabbed(&self) -> Option<(Axis, f32)> {
+        let Interaction::ScrollerGrabbed(axis, grabbed_at) = self else {
+            return None;
+        };
+
+        Some((*axis, *grabbed_at))
+    }
+}
+
+/// The state of a [`Scrollable`] whose rail is being held pressed.
+///
+/// A plain rail press scrolls one page (smoothly) and, after
+/// [`State::RAIL_AUTOSCROLL_DELAY`], autoscrolls at a constant velocity
+/// until the scroller reaches the pointer, mirroring Chromium's track
+/// autoscroll (`cc::ScrollbarController`).
+#[derive(Debug, Clone, Copy)]
+struct RailHeld {
+    /// The axis the rail was pressed on
+    axis: Axis,
+
+    /// The direction of the autoscroll, in offset units (`+1.0` or
+    /// `-1.0`), fixed when the rail was pressed
+    direction: f32,
+
+    /// Which side of the scroller the rail was pressed on, in cursor
+    /// units: `+1.0` below it, `-1.0` above it.
+    ///
+    /// This is independent of the anchor's mirroring, and selects the
+    /// scroller edge the autoscroll stops at (its leading edge) and the
+    /// track part that pauses it.
+    cursor_direction: f32,
+
+    /// The autoscroll velocity, in pixels per second
+    velocity: f32,
+
+    /// When the rail was pressed
+    pressed_at: Instant,
+
+    /// The latest pointer position
+    pointer: Point,
+
+    /// The last frame the autoscroll was stepped for, guarding against
+    /// stepping twice for the same instant
+    last_frame: Option<Instant>,
+}
+
+/// The outcome of stepping a held rail's autoscroll.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum RailStep {
+    /// The offset moved; the scroll should be notified and redrawn
+    Moved,
+
+    /// The autoscroll has not started yet (within the press delay); frames
+    /// must keep coming
+    Waiting,
+
+    /// Nothing can move until the pointer moves again
+    Idle,
+}
+
+/// The axis of the [`Scrollable`] content.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum Axis {
+    /// The horizontal axis.
+    X,
+
+    /// The vertical axis.
+    Y,
+}
+
+impl Axis {
+    /// The length of the given size along this axis.
+    fn length(self, size: impl Into<Size>) -> f32 {
+        let size = size.into();
+        match self {
+            Axis::X => size.width,
+            Axis::Y => size.height,
+        }
+    }
+
+    /// The coordinate of the given `point` along this axis.
+    fn coordinate(self, point: Point) -> f32 {
+        match self {
+            Axis::X => point.x,
+            Axis::Y => point.y,
+        }
+    }
+
+    /// A [`Vector`] with the given `value` on this axis and `0.0` on the
+    /// other.
+    fn vector(self, value: f32) -> Vector {
+        match self {
+            Axis::X => Vector::new(value, 0.0),
+            Axis::Y => Vector::new(0.0, value),
+        }
+    }
 }
 
 impl Default for State {
@@ -1662,7 +1439,7 @@ impl operation::Scrollable for State {
         bounds: Rectangle,
         content: Size,
     ) {
-        State::snap_to(self, offset, animation, bounds, content);
+        State::snap_to(self, offset, animation, bounds, content, Source::Operation);
     }
 
     fn scroll_to(
@@ -1672,7 +1449,7 @@ impl operation::Scrollable for State {
         bounds: Rectangle,
         content: Size,
     ) {
-        State::scroll_to(self, offset, animation, bounds, content);
+        State::scroll_to(self, offset, animation, bounds, content, Source::Operation);
     }
 
     fn scroll_by(
@@ -1775,6 +1552,9 @@ pub enum Source {
     /// A scroll operation (`scroll_to`, `snap_to` or `scroll_by`) scrolled.
     Operation,
 
+    /// A scroll [`Action`] scrolled.
+    Action,
+
     /// The size of the content changed.
     Content,
 
@@ -1787,6 +1567,9 @@ pub enum Source {
 pub struct Scroll {
     /// The [`Viewport`] of the [`Scrollable`].
     pub viewport: Viewport,
+
+    /// The original [`Viewport`] before the scroll event, if any.
+    pub origin: Option<Viewport>,
 
     /// The [`Source`] of the scroll.
     pub source: Source,
@@ -1833,6 +1616,21 @@ pub struct Viewport {
 }
 
 impl Viewport {
+    /// Returns the end of the [`Viewport`].
+    pub fn end(&self) -> AbsoluteOffset {
+        self.absolute_offset() + self.distance_to_end()
+    }
+
+    /// Returns a new [`Viewport`] aligned with the coordinates of the
+    /// given one.
+    pub fn slide(self, other: Self) -> Self {
+        Self {
+            x: other.x,
+            y: other.y,
+            ..self
+        }
+    }
+
     /// Returns the distance from the current scroll position to the end of
     /// the content, in pixels, per axis.
     ///
@@ -1880,66 +1678,179 @@ impl Viewport {
     }
 }
 
+/// An action to perform in response to a [`Scroll`].
+///
+/// This is the return type of the [`Scrollable::on_scroll`] handler. It lets
+/// the handler react to a scroll notification by driving the [`Scrollable`]
+/// further, or by publishing a message.
+#[derive(Debug)]
+pub enum Action<Message> {
+    /// Do nothing.
+    None,
+
+    /// Scroll to the given [`AbsoluteOffset`], with the given [`Animation`].
+    ///
+    /// An axis set to `None` keeps its current position.
+    ScrollTo(AbsoluteOffset<Option<f32>>, Animation),
+
+    /// Snap to the given [`RelativeOffset`], with the given [`Animation`].
+    ///
+    /// An axis set to `None` keeps its current position.
+    SnapTo(RelativeOffset<Option<f32>>, Animation),
+
+    /// Publish the given message.
+    Custom(Message),
+}
+
+impl<Message> Action<Message> {
+    fn perform(
+        self,
+        state: &mut State,
+        bounds: Rectangle,
+        content: Size,
+        shell: &mut Shell<'_, Message>,
+    ) {
+        match self {
+            Action::None => {}
+            Action::ScrollTo(absolute_offset, animation) => {
+                state.scroll_to(absolute_offset, animation, bounds, content, Source::Action);
+            }
+            Action::SnapTo(relative_offset, animation) => {
+                state.snap_to(relative_offset, animation, bounds, content, Source::Action);
+            }
+            Action::Custom(message) => {
+                shell.publish(message);
+            }
+        }
+    }
+}
+
+impl<Message> From<Message> for Action<Message> {
+    fn from(message: Message) -> Self {
+        Self::Custom(message)
+    }
+}
+
+impl<Message> From<Option<Message>> for Action<Message> {
+    fn from(message: Option<Message>) -> Self {
+        match message {
+            Some(message) => Self::Custom(message),
+            None => Self::None,
+        }
+    }
+}
+
+/// The distance (in logical pixels) scrolled per wheel line.
+///
+/// Chromium scrolls a fixed 120 CSS pixels per classic wheel notch,
+/// independent of the page's line height: the OS delta is normalized to
+/// 120 units (`ui::MouseWheelEvent::kWheelDelta`) and passed through 1:1.
+///
+/// This value assumes the platform reports one line per notch (e.g. X11).
+/// On platforms that report three lines per notch, `40.0` (Chromium's
+/// `cc::kPixelsPerLineStep`) is the equivalent value.
+const WHEEL_PX_PER_LINE: f32 = 120.0;
+
+// The smooth scrolling behavior below (the easing curve, the animation
+// durations, and the velocity-preserving retargeting) is derived from
+// the Chromium project's wheel scroll animation
+// (`cc/animation/scroll_offset_animation_curve.{h,cc}`), which is
+// licensed under the BSD 3-Clause license:
+// <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
+
+/// The control points of the smooth scrolling easing curve.
+///
+/// This is the standard ease-in-out cubic bezier, as used by Chromium for
+/// wheel scrolling: the scroll starts from rest, peaks mid-way, and
+/// settles on the target at rest.
+const SMOOTH_SCROLL_BEZIER_X1: f32 = 0.42;
+const SMOOTH_SCROLL_BEZIER_X2: f32 = 0.58;
+
+/// The divisor of the smooth scrolling animation duration, matching
+/// Chromium's.
+const SMOOTH_SCROLL_DURATION_DIVISOR: f32 = 60.0;
+
+/// The delay (in seconds) between a wheel event and the next drawn frame.
+///
+/// Wheel events are processed between frames, and the smooth scrolling
+/// animation is only stepped when the next frame is drawn. Starting the
+/// animation one nominal frame *before* the event, where a nominal frame
+/// is one unit of `SMOOTH_SCROLL_DURATION_DIVISOR`, ensures that the
+/// first drawn frame already shows some progress, instead of repeating
+/// the previous one.
+///
+/// A full frame is used rather than the mean delay of half a frame: it
+/// guarantees that the first drawn frame visibly moves, even when the
+/// event arrives right after a frame. The animation then settles one
+/// frame early, which is imperceptible since the curve ends at rest.
+const SMOOTH_SCROLL_FRAME_DELAY: f32 = 1.0 / SMOOTH_SCROLL_DURATION_DIVISOR;
+
+/// The distances (in pixels) at which the smooth scrolling duration ramp
+/// starts and ends.
+const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = WHEEL_PX_PER_LINE;
+const SMOOTH_SCROLL_DURATION_RAMP_END: f32 = 480.0;
+
+/// The shortest and longest smooth scrolling animation durations, in
+/// `SMOOTH_SCROLL_DURATION_DIVISOR` units, matching Chromium's.
+///
+/// The duration is *inversely* proportional to the distance within these
+/// bounds: short scrolls get a longer (softer) animation, while long
+/// scrolls get a shorter (snappier) one.
+const SMOOTH_SCROLL_DURATION_MIN: f32 = 6.0;
+const SMOOTH_SCROLL_DURATION_MAX: f32 = 12.0;
+
+/// The factor applied to the time it would take to cover the new distance
+/// at the current velocity when retargeting a running animation, matching
+/// Chromium's.
+///
+/// Bounding the new duration by this keeps a fast scroll from "rubber
+/// banding" when a small new delta is added at high velocity.
+const SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND: f32 = 2.5;
+
+/// The clamp for the initial slope of a retargeted animation, matching
+/// Chromium's.
+const SMOOTH_SCROLL_SLOPE_CLAMP: f32 = 1000.0;
+
+// The held-rail behavior below (the press delay, the autoscroll
+// velocity, and the page step) is derived from the Chromium
+// project's compositor scrollbar controller (`cc/input/
+// scrollbar_controller.{h,cc}` and `cc/input/scrollbar.h`), which is
+// licensed under the BSD 3-Clause license:
+// <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
+
+/// The delay between a rail press and the start of the held-rail
+/// autoscroll, matching Chromium's `cc::kInitialAutoscrollTimerDelay`.
+///
+/// During the delay, only the initial page step (animated like a wheel
+/// scroll) is applied; a quick click therefore scrolls exactly one page.
+const RAIL_AUTOSCROLL_DELAY: Duration = Duration::from_millis(250);
+
+/// The factor converting a rail page step into the held-rail autoscroll
+/// velocity, matching Chromium's `cc::kAutoscrollMultiplier`.
+///
+/// Chromium's main thread autoscroll applies the page step every 50 ms;
+/// the equivalent constant velocity is the step times 20.
+const RAIL_AUTOSCROLL_MULTIPLIER: f32 = 20.0;
+
+/// The fraction of the viewport covered by a rail click's initial page
+/// step, matching Chromium's `cc::kMinFractionToStepWhenPaging` (the
+/// non-Mac page step).
+const RAIL_PAGE_STEP_FRACTION: f32 = 0.875;
+
+/// The distance (in pixels) within which the auto-scroll (middle mouse
+/// button) movement is ignored.
+const AUTOSCROLL_DEADZONE: f32 = 20.0;
+
+/// The exponent of the auto-scroll velocity curve, which makes the
+/// auto-scroll accelerate with the distance from the origin.
+const AUTOSCROLL_SMOOTHNESS: f32 = 1.5;
+
 impl State {
-    // The smooth scrolling behavior below (the easing curve, the animation
-    // durations, and the velocity-preserving retargeting) is derived from
-    // the Chromium project's wheel scroll animation
-    // (`cc/animation/scroll_offset_animation_curve.{h,cc}`), which is
-    // licensed under the BSD 3-Clause license:
-    // <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
-
-    /// The control points of the smooth scrolling easing curve.
-    ///
-    /// This is the standard ease-in-out cubic bezier, as used by Chromium for
-    /// wheel scrolling: the scroll starts from rest, peaks mid-way, and
-    /// settles on the target at rest.
-    const SMOOTH_SCROLL_BEZIER_X1: f32 = 0.42;
-    const SMOOTH_SCROLL_BEZIER_X2: f32 = 0.58;
-
-    /// The divisor of the smooth scrolling animation duration, matching
-    /// Chromium's.
-    const SMOOTH_SCROLL_DURATION_DIVISOR: f32 = 60.0;
-
-    /// The delay (in seconds) between a wheel event and the next drawn frame.
-    ///
-    /// Wheel events are processed between frames, and the smooth scrolling
-    /// animation is only stepped when the next frame is drawn. Starting the
-    /// animation one nominal frame *before* the event, where a nominal frame
-    /// is one unit of `SMOOTH_SCROLL_DURATION_DIVISOR`, ensures that the
-    /// first drawn frame already shows some progress, instead of repeating
-    /// the previous one.
-    ///
-    /// A full frame is used rather than the mean delay of half a frame: it
-    /// guarantees that the first drawn frame visibly moves, even when the
-    /// event arrives right after a frame. The animation then settles one
-    /// frame early, which is imperceptible since the curve ends at rest.
-    const SMOOTH_SCROLL_FRAME_DELAY: f32 = 1.0 / Self::SMOOTH_SCROLL_DURATION_DIVISOR;
-
-    /// The distances (in pixels) at which the smooth scrolling duration ramp
-    /// starts and ends.
-    const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = WHEEL_PX_PER_LINE;
-    const SMOOTH_SCROLL_DURATION_RAMP_END: f32 = 480.0;
-
-    /// The shortest and longest smooth scrolling animation durations, in
-    /// `SMOOTH_SCROLL_DURATION_DIVISOR` units, matching Chromium's.
-    ///
-    /// The duration is *inversely* proportional to the distance within these
-    /// bounds: short scrolls get a longer (softer) animation, while long
-    /// scrolls get a shorter (snappier) one.
-    const SMOOTH_SCROLL_DURATION_MIN: f32 = 6.0;
-    const SMOOTH_SCROLL_DURATION_MAX: f32 = 12.0;
-
-    /// The factor applied to the time it would take to cover the new distance
-    /// at the current velocity when retargeting a running animation, matching
-    /// Chromium's.
-    ///
-    /// Bounding the new duration by this keeps a fast scroll from "rubber
-    /// banding" when a small new delta is added at high velocity.
-    const SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND: f32 = 2.5;
-
-    /// The clamp for the initial slope of a retargeted animation, matching
-    /// Chromium's.
-    const SMOOTH_SCROLL_SLOPE_CLAMP: f32 = 1000.0;
+    /// The distance (in pixels) of a rail click's initial page step, given
+    /// the length of the scrollable viewport.
+    fn rail_page_step(viewport: f32) -> f32 {
+        (viewport * RAIL_PAGE_STEP_FRACTION).max(1.0)
+    }
 
     fn new() -> Self {
         State::default()
@@ -2020,7 +1931,7 @@ impl State {
         // The scroll is requested between frames; start the animation one
         // nominal frame early so that the first drawn frame already shows
         // progress
-        let now = now - Duration::from_secs_f32(Self::SMOOTH_SCROLL_FRAME_DELAY);
+        let now = now - Duration::from_secs_f32(SMOOTH_SCROLL_FRAME_DELAY);
 
         let current = Point::new(
             self.offset_x.absolute(bounds.width, content.width),
@@ -2086,7 +1997,7 @@ impl State {
         // the new delta is against the current motion, and does not apply
         let mut duration = Self::smooth_scroll_duration(max_dimension.abs());
         if velocity.abs() > 0.01 {
-            let bound = Self::SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND * max_dimension / velocity;
+            let bound = SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND * max_dimension / velocity;
 
             if bound > 0.0 {
                 duration = duration.min(bound);
@@ -2104,10 +2015,8 @@ impl State {
 
         // Adjust the initial slope of the new segment so that it starts with
         // the current velocity
-        let slope = (velocity * (duration / max_dimension)).clamp(
-            -Self::SMOOTH_SCROLL_SLOPE_CLAMP,
-            Self::SMOOTH_SCROLL_SLOPE_CLAMP,
-        );
+        let slope = (velocity * (duration / max_dimension))
+            .clamp(-SMOOTH_SCROLL_SLOPE_CLAMP, SMOOTH_SCROLL_SLOPE_CLAMP);
 
         self.target = Some(target);
         self.segment = Segment {
@@ -2236,15 +2145,12 @@ impl State {
     /// short scrolls get a longer (softer) animation, while long scrolls get a
     /// shorter (snappier) one.
     fn smooth_scroll_duration(distance: f32) -> f32 {
-        let slope = (Self::SMOOTH_SCROLL_DURATION_MIN - Self::SMOOTH_SCROLL_DURATION_MAX)
-            / (Self::SMOOTH_SCROLL_DURATION_RAMP_END - Self::SMOOTH_SCROLL_DURATION_RAMP_START);
-        let offset =
-            Self::SMOOTH_SCROLL_DURATION_MAX - Self::SMOOTH_SCROLL_DURATION_RAMP_START * slope;
+        let slope = (SMOOTH_SCROLL_DURATION_MIN - SMOOTH_SCROLL_DURATION_MAX)
+            / (SMOOTH_SCROLL_DURATION_RAMP_END - SMOOTH_SCROLL_DURATION_RAMP_START);
+        let offset = SMOOTH_SCROLL_DURATION_MAX - SMOOTH_SCROLL_DURATION_RAMP_START * slope;
 
-        (offset + distance * slope).clamp(
-            Self::SMOOTH_SCROLL_DURATION_MIN,
-            Self::SMOOTH_SCROLL_DURATION_MAX,
-        ) / Self::SMOOTH_SCROLL_DURATION_DIVISOR
+        (offset + distance * slope).clamp(SMOOTH_SCROLL_DURATION_MIN, SMOOTH_SCROLL_DURATION_MAX)
+            / SMOOTH_SCROLL_DURATION_DIVISOR
     }
 
     /// The progress of the smooth scrolling easing curve at the given time
@@ -2262,7 +2168,7 @@ impl State {
         }
 
         let s = Self::bezier_solve(time);
-        let y1 = Self::SMOOTH_SCROLL_BEZIER_X1 * slope;
+        let y1 = SMOOTH_SCROLL_BEZIER_X1 * slope;
         let os = 1.0 - s;
 
         // y(s), with y2 = 1
@@ -2280,8 +2186,8 @@ impl State {
             Self::bezier_solve(time)
         };
 
-        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
-        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+        let x1 = SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = SMOOTH_SCROLL_BEZIER_X2;
         let y1 = x1 * slope;
         let os = 1.0 - s;
 
@@ -2299,8 +2205,8 @@ impl State {
     /// The x-axis is strictly increasing for the control points used here, so
     /// bisection converges unconditionally.
     fn bezier_solve(time: f32) -> f32 {
-        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
-        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+        let x1 = SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = SMOOTH_SCROLL_BEZIER_X2;
 
         let x = |s: f32| {
             let os = 1.0 - s;
@@ -2323,16 +2229,265 @@ impl State {
         (low + high) / 2.0
     }
 
-    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
-        self.cancel();
-        self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap_y(bounds, content);
+    /// Builds a [`Scroll`] notification for the current viewport, if it changed
+    /// since the last one, and records that the user scrolled.
+    fn notify_scroll(&mut self, bounds: Rectangle, content: Size) -> Option<Scroll> {
+        let notification = self.notify_viewport(bounds, content);
+
+        if notification.is_some() {
+            self.last_scrolled = Some(Instant::now());
+        }
+
+        notification
     }
 
-    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
+    /// Builds a [`Scroll`] notification for the current viewport, if it changed
+    /// since the last one, recording it so that it is not reported again.
+    fn notify_viewport(&mut self, bounds: Rectangle, content: Size) -> Option<Scroll> {
+        if content.width <= bounds.width && content.height <= bounds.height {
+            return None;
+        }
+
+        let viewport = Viewport {
+            x: self.offset_x,
+            y: self.offset_y,
+            bounds,
+            content,
+        };
+
+        // Don't publish redundant viewports to shell
+        if let Some(last_notified) = self.last_notified {
+            let last_absolute_offset = last_notified.absolute_offset();
+            let current_absolute_offset = viewport.absolute_offset();
+
+            let unchanged =
+                |a: f32, b: f32| (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan());
+
+            if last_notified.bounds == bounds
+                && last_notified.content == content
+                && unchanged(last_absolute_offset.x, current_absolute_offset.x)
+                && unchanged(last_absolute_offset.y, current_absolute_offset.y)
+            {
+                return None;
+            }
+        }
+
+        // The notification's source: the scroll in progress or pending, or,
+        // when the scroll position changed on its own, what changed in the
+        // layout
+        let source = if self.target.is_some() {
+            // An in-flight animation: report the segment's source, keeping it
+            // so that the settle notification reports it too
+            self.source
+        } else {
+            // A settled or pending scroll: consume the source
+            self.source.take()
+        }
+        .unwrap_or_else(|| {
+            if let Some(last_notified) = self.last_notified {
+                if last_notified.content != content {
+                    Source::Content
+                } else {
+                    Source::Resize
+                }
+            } else {
+                // The first notification: the content was laid out
+                Source::Content
+            }
+        });
+
+        let origin = self.last_notified;
+        self.last_notified = Some(viewport);
+
+        Some(Scroll {
+            viewport,
+            origin,
+            source,
+            target: self.target,
+        })
+    }
+
+    /// Jumps the scroll to the given `percentage` along the given axis,
+    /// snapping it to the nearest logical position.
+    fn scroll_to_percentage(
+        &mut self,
+        axis: Axis,
+        percentage: f32,
+        bounds: Rectangle,
+        content: Size,
+    ) {
         self.cancel();
-        self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap_x(bounds, content);
+
+        match axis {
+            Axis::X => self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0)),
+            Axis::Y => self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0)),
+        }
+
+        self.unsnap(axis, bounds, content);
+    }
+
+    /// Presses the rail of the given axis at `cursor_position`, starting
+    /// the held-rail autoscroll.
+    ///
+    /// This mirrors Chromium's track press (`cc::ScrollbarController::
+    /// HandlePointerDown`): a page step is applied immediately, animated
+    /// like a wheel scroll (or immediately when smooth scrolling is
+    /// disabled), and, while the button is held, a constant-velocity
+    /// autoscroll runs after a delay until the scroller reaches the
+    /// pointer (stepped on each frame, via [`Self::step_rail`]).
+    fn press_rail(
+        &mut self,
+        axis: Axis,
+        scrollbar: &internals::Scrollbar,
+        cursor_position: Point,
+        smooth: bool,
+        now: Instant,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        let Some(scroller) = scrollbar.scroller else {
+            return;
+        };
+
+        // Which side of the scroller was pressed, in cursor space: valid
+        // for both anchors, as the scroller's bounds already account for
+        // the `Anchor::End` mirroring
+        let cursor_direction =
+            if axis.coordinate(cursor_position) < axis.coordinate(scroller.bounds.position()) {
+                -1.0
+            } else {
+                1.0
+            };
+
+        // The offset at which the scroller's leading edge (toward the
+        // pointer) reaches the pointer: a `grabbed_at` of `0.0` is the
+        // scroller's start edge, `1.0` its end edge
+        let grabbed_at = if cursor_direction < 0.0 { 0.0 } else { 1.0 };
+        let stop = Offset::Relative(scrollbar.scroll_percentage(axis, grabbed_at, cursor_position))
+            .absolute(axis.length(bounds), axis.length(content));
+
+        // The direction, in offset units: the offset-space sign of the stop
+        // line, which accounts for the anchor's mirroring
+        let direction = (stop - self.axis_offset(axis, bounds, content)).signum();
+        if direction == 0.0 {
+            // The pointer is on the stop line: there is nothing to scroll
+            return;
+        }
+
+        let page_step = Self::rail_page_step(axis.length(bounds));
+
+        // The initial page step: animated like a wheel scroll, or applied
+        // immediately when smooth scrolling is disabled
+        if smooth {
+            self.scroll_smoothly(axis.vector(direction * page_step), bounds, content, now);
+        } else {
+            self.scroll(axis.vector(direction * page_step), bounds, content);
+        }
+
+        self.interaction = Interaction::RailHeld(RailHeld {
+            axis,
+            direction,
+            cursor_direction,
+            velocity: page_step * RAIL_AUTOSCROLL_MULTIPLIER,
+            pressed_at: now,
+            pointer: cursor_position,
+            last_frame: None,
+        });
+    }
+
+    /// Steps the held-rail autoscroll of the given axis on a frame.
+    ///
+    /// Returns `None` if the scrollbar disappeared while the rail was held,
+    /// in which case the interaction must be dropped (like Chromium does
+    /// when its scrollbar is unregistered); otherwise, the outcome of the
+    /// step.
+    fn step_rail(
+        &mut self,
+        rail: &mut RailHeld,
+        now: Instant,
+        scrollbar: Option<&internals::Scrollbar>,
+        bounds: Rectangle,
+        content: Size,
+    ) -> Option<RailStep> {
+        let axis = rail.axis;
+
+        let scrollbar = scrollbar?;
+
+        // The autoscroll starts after the press delay, while the initial
+        // page step is still easing
+        if now - rail.pressed_at < RAIL_AUTOSCROLL_DELAY {
+            return Some(RailStep::Waiting);
+        }
+
+        // `last_frame` guards against stepping twice for the same instant
+        if rail.last_frame == Some(now) {
+            return Some(RailStep::Waiting);
+        }
+
+        // The time since the last step; the first step starts from the
+        // nominal start of the autoscroll, not from the press
+        let last_frame = rail.last_frame;
+        rail.last_frame = Some(now);
+        let time_delta = last_frame.map_or(
+            (now - rail.pressed_at) - RAIL_AUTOSCROLL_DELAY,
+            |last_frame| now - last_frame,
+        );
+        if time_delta.is_zero() {
+            return Some(RailStep::Waiting);
+        }
+
+        let scroller = scrollbar.scroller?;
+
+        let current = self.axis_offset(axis, bounds, content);
+
+        // The offset at which the scroller's leading edge (the edge on the
+        // pressed side, in cursor space) reaches the pointer
+        let grabbed_at = if rail.cursor_direction > 0.0 {
+            1.0
+        } else {
+            0.0
+        };
+        let stop = Offset::Relative(scrollbar.scroll_percentage(axis, grabbed_at, rail.pointer))
+            .absolute(axis.length(bounds), axis.length(content));
+
+        // The autoscroll pauses while the pointer is on the rail but no
+        // longer on the pressed side of the (moving) scroller, and
+        // continues while the pointer is off the rail, mirroring Chromium's
+        // behavior when the pointer leaves the scrollbar layer
+        let on_pressed_side = if rail.cursor_direction > 0.0 {
+            axis.coordinate(rail.pointer)
+                > axis.coordinate(scroller.bounds.position()) + axis.length(scroller.bounds)
+        } else {
+            axis.coordinate(rail.pointer) < axis.coordinate(scroller.bounds.position())
+        };
+        if scrollbar.total_bounds.contains(rail.pointer) && !on_pressed_side {
+            return Some(RailStep::Idle);
+        }
+
+        // ... and it stops while the scroller's leading edge has reached
+        // the pointer
+        let remaining = if rail.direction > 0.0 {
+            stop - current
+        } else {
+            current - stop
+        };
+        if remaining <= 0.0 {
+            return Some(RailStep::Idle);
+        }
+
+        // A constant-velocity step, clamped so that the scroller does not
+        // cross the pointer within the frame
+        let delta = rail.direction * (rail.velocity * time_delta.as_secs_f32()).min(remaining);
+
+        self.scroll(axis.vector(delta), bounds, content);
+
+        Some(if self.axis_offset(axis, bounds, content) != current {
+            RailStep::Moved
+        } else {
+            // The step was clamped away (e.g. at the end of the content):
+            // nothing can move until the pointer moves again
+            RailStep::Idle
+        })
     }
 
     /// Snaps the scroll to the given [`RelativeOffset`], with the given
@@ -2343,8 +2498,9 @@ impl State {
         animation: Animation,
         bounds: Rectangle,
         content: Size,
+        source: Source,
     ) {
-        self.source = Some(Source::Operation);
+        self.source = Some(source);
 
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
@@ -2386,8 +2542,9 @@ impl State {
         animation: Animation,
         bounds: Rectangle,
         content: Size,
+        source: Source,
     ) {
-        self.source = Some(Source::Operation);
+        self.source = Some(source);
 
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
@@ -2452,12 +2609,536 @@ impl State {
         }
     }
 
-    fn unsnap_x(&mut self, bounds: Rectangle, content: Size) {
-        self.offset_x = Offset::Absolute(self.offset_x.absolute(bounds.width, content.width));
+    /// Handles the interaction of the user with the [`Scrollable`], up to (but
+    /// not including) the delegation of the event to the content.
+    ///
+    /// Returns the [`Interact`] effects to materialize on the [`Shell`] and
+    /// whether the event must be delegated to the content.
+    fn interact(
+        &mut self,
+        event: &Event,
+        bounds: Rectangle,
+        content: Size,
+        cursor: mouse::Cursor,
+        cursor_over_scrollable: Option<Point>,
+        scrollbars: &Scrollbars,
+        mouse_over_scrollbar: Option<Axis>,
+        direction: Direction,
+        smooth_scroll: bool,
+        click_to_scroll: bool,
+    ) -> Interact {
+        let mut interact = Interact::default();
+
+        // Clear the scroll transaction, if the user is no longer scrolling
+        if let Some(last_scrolled) = self.last_scrolled {
+            let clear_transaction = match event {
+                Event::Mouse(
+                    mouse::Event::ButtonPressed(_)
+                    | mouse::Event::ButtonReleased(_)
+                    | mouse::Event::CursorLeft,
+                ) => true,
+                Event::Mouse(mouse::Event::CursorMoved { .. }) => {
+                    last_scrolled.elapsed() > Duration::from_millis(100)
+                }
+                _ => last_scrolled.elapsed() > Duration::from_millis(1500),
+            };
+
+            if clear_transaction {
+                self.last_scrolled = None;
+            }
+        }
+
+        let mut translation = self.last_translation;
+
+        if let Event::Window(window::Event::RedrawRequested(now)) = event {
+            // Step the smooth scrolling animation, if any; `last_frame`
+            // guards against stepping twice for the same instant
+            if self.last_frame != Some(*now)
+                && self.step(*now, bounds, content)
+                && let Some(notification) = self.notify_scroll(bounds, content)
+            {
+                interact.scroll = Some(notification);
+            }
+
+            translation = self.translation(direction, bounds, content);
+            self.last_translation = translation;
+
+            // Step the held-rail autoscroll, if any; the geometry is rebuilt
+            // from the current translation, so that the pause and stop
+            // conditions are evaluated against the scroller as of this frame
+            if let Interaction::RailHeld(mut rail) = self.interaction {
+                let scrollbars = Scrollbars::new(translation, direction, bounds, content);
+
+                let scrollbar = match rail.axis {
+                    Axis::X => scrollbars.x.as_ref(),
+                    Axis::Y => scrollbars.y.as_ref(),
+                };
+
+                let step = self
+                    .step_rail(&mut rail, *now, scrollbar, bounds, content)
+                    .map(|step| (Interaction::RailHeld(rail), step));
+
+                match step {
+                    Some((interaction, step)) => {
+                        self.interaction = interaction;
+
+                        match step {
+                            RailStep::Moved => {
+                                self.source = Some(Source::Scrollbar);
+
+                                if let Some(notification) = self.notify_scroll(bounds, content) {
+                                    interact.scroll = Some(notification);
+                                }
+
+                                interact.request_redraw = true;
+                            }
+                            RailStep::Waiting => interact.request_redraw = true,
+                            RailStep::Idle => {}
+                        }
+                    }
+                    // The scrollbar disappeared while the rail was held: drop
+                    // the interaction, like Chromium does when its scrollbar
+                    // is unregistered
+                    None => self.interaction = Interaction::None,
+                }
+            }
+
+            if self.target.is_some() {
+                interact.request_redraw = true;
+            } else if let Interaction::AutoScrolling {
+                origin,
+                current,
+                last_frame,
+            } = self.interaction
+            {
+                if last_frame == Some(*now) {
+                    interact.request_redraw = true;
+                } else {
+                    self.interaction = Interaction::AutoScrolling {
+                        origin,
+                        current,
+                        last_frame: None,
+                    };
+
+                    let mut delta = current - origin;
+
+                    if delta.x.abs() < AUTOSCROLL_DEADZONE {
+                        delta.x = 0.0;
+                    }
+
+                    if delta.y.abs() < AUTOSCROLL_DEADZONE {
+                        delta.y = 0.0;
+                    }
+
+                    if delta.x != 0.0 || delta.y != 0.0 {
+                        let time_delta =
+                            last_frame.map_or(Duration::ZERO, |last_frame| *now - last_frame);
+
+                        let scroll_factor = time_delta.as_secs_f32();
+
+                        self.scroll(
+                            direction.align(Vector::new(
+                                delta.x.signum()
+                                    * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                    * scroll_factor,
+                                delta.y.signum()
+                                    * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                    * scroll_factor,
+                            )),
+                            bounds,
+                            content,
+                        );
+
+                        self.source = Some(Source::AutoScroll);
+
+                        let notification = self.notify_scroll(bounds, content);
+                        let has_scrolled = notification.is_some();
+
+                        if let Some(notification) = notification {
+                            interact.scroll = Some(notification);
+                        }
+
+                        if has_scrolled || time_delta.is_zero() {
+                            self.interaction = Interaction::AutoScrolling {
+                                origin,
+                                current,
+                                last_frame: Some(*now),
+                            };
+
+                            interact.request_redraw = true;
+                        }
+                    }
+                }
+            }
+
+            if interact.scroll.is_none() {
+                interact.scroll = self.notify_viewport(bounds, content);
+            }
+
+            // A source that did not produce a notification must not be
+            // attributed to a later one
+            if self.target.is_none() {
+                self.source = None;
+            }
+        }
+
+        // A held rail: track the pointer for the autoscroll's pause and stop
+        // conditions; a moved pointer re-evaluates them, waking the animation
+        if let Interaction::RailHeld(mut rail) = self.interaction
+            && let Some(position) = rail_moved(event, cursor, rail.pointer)
+        {
+            rail.pointer = position;
+            self.interaction = Interaction::RailHeld(rail);
+            interact.request_redraw = true;
+        }
+
+        // A scroller being dragged follows the pointer 1:1, until the button
+        // is released
+        if let Some((axis, scroller_grabbed_at)) = self.interaction.scroller_grabbed() {
+            match event {
+                Event::Mouse(mouse::Event::CursorMoved { .. })
+                | Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    if let Some(scrollbar) = scrollbars.scrollbar(axis) {
+                        let Some(cursor_position) = cursor.observe().position() else {
+                            interact.stop = true;
+                            return interact;
+                        };
+
+                        self.scroll_to_percentage(
+                            axis,
+                            scrollbar.scroll_percentage(axis, scroller_grabbed_at, cursor_position),
+                            bounds,
+                            content,
+                        );
+
+                        self.source = Some(Source::Scrollbar);
+
+                        if let Some(notification) = self.notify_scroll(bounds, content) {
+                            interact.scroll = Some(notification);
+                        }
+
+                        interact.capture = true;
+                    }
+                }
+                _ => {}
+            }
+        } else if let Some(axis) = mouse_over_scrollbar {
+            // Otherwise, a press on a scrollbar under the cursor grabs its
+            // scroller, jump-drags it (with `Shift`, or with a plain press
+            // when `click_to_scroll` is enabled), or presses the rail
+            match event {
+                Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+                | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                    let Some(cursor_position) = cursor.position() else {
+                        interact.stop = true;
+                        return interact;
+                    };
+
+                    if let Some((scrollbar, hit)) = scrollbars.hit(axis, cursor_position) {
+                        match hit {
+                            // The scroller: jump to the click position and
+                            // drag it from there
+                            Hit::Scroller { grabbed_at } => {
+                                self.scroll_to_percentage(
+                                    axis,
+                                    scrollbar.scroll_percentage(axis, grabbed_at, cursor_position),
+                                    bounds,
+                                    content,
+                                );
+
+                                self.interaction = Interaction::ScrollerGrabbed(axis, grabbed_at);
+                            }
+                            // A "jump click" on the rail — a `Shift`-click by
+                            // default, or a plain click when `click_to_scroll`
+                            // is enabled: jump the scroller to the click
+                            // position and drag it from there, like
+                            // Chromium's `Shift`+click on the track
+                            Hit::Rail if self.keyboard_modifiers.shift() != click_to_scroll => {
+                                self.scroll_to_percentage(
+                                    axis,
+                                    scrollbar.scroll_percentage(axis, 0.5, cursor_position),
+                                    bounds,
+                                    content,
+                                );
+
+                                self.interaction = Interaction::ScrollerGrabbed(axis, 0.5);
+                            }
+                            // A paging rail press — a plain click by default,
+                            // or a `Shift`-click when `click_to_scroll` is
+                            // enabled: a page step (animated like a wheel
+                            // scroll) and, while the button is held, a
+                            // constant-velocity autoscroll until the scroller
+                            // reaches the pointer, like Chromium's track
+                            // autoscroll
+                            Hit::Rail => {
+                                self.press_rail(
+                                    axis,
+                                    scrollbar,
+                                    cursor_position,
+                                    smooth_scroll,
+                                    Instant::now(),
+                                    bounds,
+                                    content,
+                                );
+
+                                interact.request_redraw = true;
+                            }
+                        }
+
+                        self.source = Some(Source::Scrollbar);
+
+                        if let Some(notification) = self.notify_scroll(bounds, content) {
+                            interact.scroll = Some(notification);
+                        }
+
+                        interact.capture = true;
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if matches!(self.interaction, Interaction::AutoScrolling { .. })
+            && matches!(
+                event,
+                Event::Mouse(mouse::Event::ButtonPressed(_) | mouse::Event::WheelScrolled { .. })
+                    | Event::Touch(_)
+                    | Event::Keyboard(_)
+            )
+        {
+            self.interaction = Interaction::None;
+            interact.capture = true;
+            interact.invalidate_layout = true;
+            interact.request_redraw = true;
+            interact.stop = true;
+            return interact;
+        }
+
+        if self.last_scrolled.is_none()
+            || !matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
+        {
+            let cursor = match cursor_over_scrollable {
+                Some(cursor_position)
+                    if mouse_over_scrollbar.is_none() && !self.interaction.scrollers_grabbed() =>
+                {
+                    mouse::Cursor::Available(cursor_position + translation)
+                }
+                _ => cursor.obstruct() + translation,
+            };
+
+            interact.content = Some(Content {
+                cursor,
+                viewport: Rectangle {
+                    y: bounds.y + translation.y,
+                    x: bounds.x + translation.x,
+                    ..bounds
+                },
+            });
+        }
+
+        interact
     }
 
-    fn unsnap_y(&mut self, bounds: Rectangle, content: Size) {
-        self.offset_y = Offset::Absolute(self.offset_y.absolute(bounds.height, content.height));
+    /// Handles the part of the interaction that happens after the event is
+    /// delegated to the content.
+    ///
+    /// Returns the [`Update`] effects to materialize on the [`Shell`].
+    fn update(
+        &mut self,
+        event: &Event,
+        bounds: Rectangle,
+        content: Size,
+        cursor: mouse::Cursor,
+        cursor_over_scrollable: Option<Point>,
+        mouse_over_scrollbar: Option<Axis>,
+        direction: Direction,
+        smooth_scroll: bool,
+        auto_scroll: bool,
+        is_event_captured: bool,
+    ) -> Update {
+        let mut update = Update::default();
+
+        if matches!(
+            event,
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+                | Event::Touch(touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. })
+        ) {
+            self.interaction = Interaction::None;
+            return update;
+        }
+
+        if is_event_captured {
+            return update;
+        }
+
+        match event {
+            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                if !cursor.land().is_over(bounds) {
+                    return update;
+                }
+
+                let (delta, is_lines) = match *delta {
+                    mouse::ScrollDelta::Lines { x, y } => {
+                        let is_shift_pressed = self.keyboard_modifiers.shift();
+
+                        // macOS automatically inverts the axes when Shift is
+                        // pressed
+                        let (x, y) = if cfg!(target_os = "macos") && is_shift_pressed {
+                            (y, x)
+                        } else {
+                            (x, y)
+                        };
+
+                        let movement = if !is_shift_pressed {
+                            Vector::new(x, y)
+                        } else {
+                            Vector::new(y, x)
+                        };
+
+                        (-movement * WHEEL_PX_PER_LINE, true)
+                    }
+                    // Pixel deltas (e.g. from high-precision touchpads) are
+                    // already smooth, so scrolling them immediately avoids
+                    // double-smoothing them
+                    mouse::ScrollDelta::Pixels { x, y } => (-Vector::new(x, y), false),
+                };
+
+                let delta = direction.align(delta);
+
+                if smooth_scroll && is_lines {
+                    self.scroll_smoothly(delta, bounds, content, Instant::now());
+                } else {
+                    self.scroll(delta, bounds, content);
+                }
+
+                self.source = Some(Source::Wheel);
+
+                let notification = self.notify_scroll(bounds, content);
+                let has_scrolled = notification.is_some();
+
+                if let Some(notification) = notification {
+                    update.scroll = Some(notification);
+                }
+
+                let in_transaction = self.last_scrolled.is_some() || self.target.is_some();
+
+                if has_scrolled || in_transaction {
+                    update.capture = true;
+                }
+
+                if self.target.is_some() {
+                    update.request_redraw = true;
+                }
+            }
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))
+                if auto_scroll && matches!(self.interaction, Interaction::None) =>
+            {
+                let Some(origin) = cursor_over_scrollable else {
+                    return update;
+                };
+
+                self.interaction = Interaction::AutoScrolling {
+                    origin,
+                    current: origin,
+                    last_frame: None,
+                };
+
+                update.capture = true;
+                update.invalidate_layout = true;
+                update.request_redraw = true;
+            }
+            Event::Touch(event)
+                if matches!(self.interaction, Interaction::TouchScrolling(_))
+                    || mouse_over_scrollbar.is_none() =>
+            {
+                match event {
+                    touch::Event::FingerPressed { .. } => {
+                        let Some(position) = cursor_over_scrollable else {
+                            return update;
+                        };
+
+                        self.interaction = Interaction::TouchScrolling(position);
+                    }
+                    touch::Event::FingerMoved { .. } => {
+                        let Interaction::TouchScrolling(scroll_box_touched_at) = self.interaction
+                        else {
+                            return update;
+                        };
+
+                        let Some(cursor_position) = cursor.position() else {
+                            return update;
+                        };
+
+                        let delta = Vector::new(
+                            scroll_box_touched_at.x - cursor_position.x,
+                            scroll_box_touched_at.y - cursor_position.y,
+                        );
+
+                        self.scroll(direction.align(delta), bounds, content);
+
+                        self.interaction = Interaction::TouchScrolling(cursor_position);
+                        self.source = Some(Source::Touch);
+
+                        if let Some(notification) = self.notify_scroll(bounds, content) {
+                            update.scroll = Some(notification);
+                        }
+                    }
+                    _ => {}
+                }
+
+                update.capture = true;
+            }
+            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                if let Interaction::AutoScrolling {
+                    origin, last_frame, ..
+                } = self.interaction
+                {
+                    let delta = *position - origin;
+
+                    self.interaction = Interaction::AutoScrolling {
+                        origin,
+                        current: *position,
+                        last_frame,
+                    };
+
+                    if (delta.x.abs() >= AUTOSCROLL_DEADZONE
+                        || delta.y.abs() >= AUTOSCROLL_DEADZONE)
+                        && last_frame.is_none()
+                    {
+                        update.request_redraw = true;
+                    }
+                }
+            }
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+                self.keyboard_modifiers = *modifiers;
+            }
+            _ => {}
+        }
+
+        update
+    }
+
+    /// Materializes the given axis's offset into an absolute one, so that it
+    /// is no longer snapped to a logical position.
+    fn unsnap(&mut self, axis: Axis, bounds: Rectangle, content: Size) {
+        match axis {
+            Axis::X => {
+                self.offset_x =
+                    Offset::Absolute(self.offset_x.absolute(bounds.width, content.width));
+            }
+            Axis::Y => {
+                self.offset_y =
+                    Offset::Absolute(self.offset_y.absolute(bounds.height, content.height));
+            }
+        }
+    }
+
+    /// The absolute offset of the given axis, in pixels.
+    fn axis_offset(&self, axis: Axis, bounds: Rectangle, content: Size) -> f32 {
+        match axis {
+            Axis::X => self.offset_x.absolute(bounds.width, content.width),
+            Axis::Y => self.offset_y.absolute(bounds.height, content.height),
+        }
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
@@ -2478,29 +3159,21 @@ impl State {
             },
         )
     }
+}
 
-    fn scrollers_grabbed(&self) -> bool {
-        matches!(
-            self.interaction,
-            Interaction::YScrollerGrabbed(_) | Interaction::XScrollerGrabbed(_),
-        )
-    }
+/// The part of a [`Scrollbar`] hit by a cursor position.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Hit {
+    /// The scroller (thumb) of the [`Scrollbar`], grabbed at the given
+    /// fraction of its length.
+    Scroller {
+        /// The fraction of the scroller's length, from its start, at which
+        /// it was grabbed.
+        grabbed_at: f32,
+    },
 
-    pub fn y_scroller_grabbed_at(&self) -> Option<f32> {
-        let Interaction::YScrollerGrabbed(at) = self.interaction else {
-            return None;
-        };
-
-        Some(at)
-    }
-
-    pub fn x_scroller_grabbed_at(&self) -> Option<f32> {
-        let Interaction::XScrollerGrabbed(at) = self.interaction else {
-            return None;
-        };
-
-        Some(at)
-    }
+    /// The rail (track) of the [`Scrollbar`], outside of the scroller.
+    Rail,
 }
 
 #[derive(Debug)]
@@ -2670,20 +3343,35 @@ impl Scrollbars {
         }
     }
 
-    fn is_mouse_over(&self, cursor: mouse::Cursor) -> (bool, bool) {
-        if let Some(cursor_position) = cursor.position() {
-            (
-                self.y
-                    .as_ref()
-                    .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-                    .unwrap_or(false),
-                self.x
-                    .as_ref()
-                    .map(|scrollbar| scrollbar.is_mouse_over(cursor_position))
-                    .unwrap_or(false),
-            )
+    /// The [`internals::Scrollbar`] of the given axis, if it is shown.
+    fn scrollbar(&self, axis: Axis) -> Option<&internals::Scrollbar> {
+        match axis {
+            Axis::X => self.x.as_ref(),
+            Axis::Y => self.y.as_ref(),
+        }
+    }
+
+    /// The [`Axis`] of the scrollbar the given `cursor` is over, if any.
+    ///
+    /// The scrollbars' total bounds don't overlap, so the cursor is over at
+    /// most one of them; the vertical one takes precedence.
+    fn is_mouse_over(&self, cursor: mouse::Cursor) -> Option<Axis> {
+        let cursor_position = cursor.position()?;
+
+        if self
+            .y
+            .as_ref()
+            .is_some_and(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+        {
+            Some(Axis::Y)
+        } else if self
+            .x
+            .as_ref()
+            .is_some_and(|scrollbar| scrollbar.is_mouse_over(cursor_position))
+        {
+            Some(Axis::X)
         } else {
-            (false, false)
+            None
         }
     }
 
@@ -2695,34 +3383,31 @@ impl Scrollbars {
         self.x.map(|x| x.disabled).unwrap_or(false)
     }
 
-    fn grab_y_scroller(&self, cursor_position: Point) -> Option<f32> {
-        let scrollbar = self.y?;
+    /// The [`internals::Scrollbar`] of the given axis and the part of it hit by
+    /// the given cursor position, if any.
+    fn hit(&self, axis: Axis, cursor_position: Point) -> Option<(&internals::Scrollbar, Hit)> {
+        let scrollbar = match axis {
+            Axis::X => self.x.as_ref(),
+            Axis::Y => self.y.as_ref(),
+        }?;
         let scroller = scrollbar.scroller?;
 
-        if scrollbar.total_bounds.contains(cursor_position) {
-            Some(if scroller.bounds.contains(cursor_position) {
-                (cursor_position.y - scroller.bounds.y) / scroller.bounds.height
-            } else {
-                0.5
-            })
-        } else {
-            None
+        if !scrollbar.total_bounds.contains(cursor_position) {
+            return None;
         }
-    }
 
-    fn grab_x_scroller(&self, cursor_position: Point) -> Option<f32> {
-        let scrollbar = self.x?;
-        let scroller = scrollbar.scroller?;
-
-        if scrollbar.total_bounds.contains(cursor_position) {
-            Some(if scroller.bounds.contains(cursor_position) {
-                (cursor_position.x - scroller.bounds.x) / scroller.bounds.width
+        Some((
+            scrollbar,
+            if scroller.bounds.contains(cursor_position) {
+                Hit::Scroller {
+                    grabbed_at: (axis.coordinate(cursor_position)
+                        - axis.coordinate(scroller.bounds.position()))
+                        / axis.length(scroller.bounds),
+                }
             } else {
-                0.5
-            })
-        } else {
-            None
-        }
+                Hit::Rail
+            },
+        ))
     }
 
     fn is_any_floating(&self) -> bool {
@@ -2756,35 +3441,26 @@ pub(super) mod internals {
             self.total_bounds.contains(cursor_position)
         }
 
-        /// Returns the y-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_y(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
-            if let Some(scroller) = self.scroller {
-                let percentage =
-                    (cursor_position.y - self.bounds.y - scroller.bounds.height * grabbed_at)
-                        / (self.bounds.height - scroller.bounds.height);
+        /// Returns the scrolled percentage from the cursor position, along
+        /// the given axis.
+        pub fn scroll_percentage(
+            &self,
+            axis: super::Axis,
+            grabbed_at: f32,
+            cursor_position: Point,
+        ) -> f32 {
+            let Some(scroller) = self.scroller else {
+                return 0.0;
+            };
 
-                match self.alignment {
-                    Anchor::Start => percentage,
-                    Anchor::End => 1.0 - percentage,
-                }
-            } else {
-                0.0
-            }
-        }
+            let percentage = (axis.coordinate(cursor_position)
+                - axis.coordinate(self.bounds.position())
+                - axis.length(scroller.bounds) * grabbed_at)
+                / (axis.length(self.bounds) - axis.length(scroller.bounds));
 
-        /// Returns the x-axis scrolled percentage from the cursor position.
-        pub fn scroll_percentage_x(&self, grabbed_at: f32, cursor_position: Point) -> f32 {
-            if let Some(scroller) = self.scroller {
-                let percentage =
-                    (cursor_position.x - self.bounds.x - scroller.bounds.width * grabbed_at)
-                        / (self.bounds.width - scroller.bounds.width);
-
-                match self.alignment {
-                    Anchor::Start => percentage,
-                    Anchor::End => 1.0 - percentage,
-                }
-            } else {
-                0.0
+            match self.alignment {
+                Anchor::Start => percentage,
+                Anchor::End => 1.0 - percentage,
             }
         }
     }

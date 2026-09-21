@@ -476,7 +476,7 @@ impl Thumbnail {
         self.allocation = None;
         self.fade_in = Animation::new(false)
             .easing(animation::Easing::EaseIn)
-            .quick();
+            .very_quick();
     }
 
     pub fn show(&mut self, allocation: image::Allocation, now: Instant) {
