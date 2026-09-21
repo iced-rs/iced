@@ -1827,19 +1827,13 @@ fn shift_rail_click_jumps_to_pointer() {
 
 #[test]
 fn on_scroll_action_can_scroll() {
-    // The handler scrolls the widget to a fixed position the first time it is
-    // notified, and reports every notification after that
-    let first = Rc::new(RefCell::new(true));
-    let handler_first = first.clone();
-
     let element = Scrollable::new(space().height(3000))
         .id("scrollable")
         .width(Length::Fill)
         .height(200)
         .smooth_scroll(false)
         .on_scroll(move |scroll| {
-            if *handler_first.borrow_mut() {
-                *handler_first.borrow_mut() = false;
+            if scroll.origin.is_none() {
                 Action::ScrollTo(
                     AbsoluteOffset {
                         x: None,
@@ -1863,12 +1857,13 @@ fn on_scroll_action_can_scroll() {
     let mut instant = Instant::now();
     step_frames(&mut simulator, &mut instant, 5);
 
-    let offsets: Vec<f32> = simulator
+    let (offsets, sources): (Vec<f32>, Vec<Source>) = simulator
         .into_messages()
-        .map(|scroll| scroll.viewport.absolute_offset().y)
+        .map(|scroll| (scroll.viewport.absolute_offset().y, scroll.source))
         .collect();
 
     // The wheel's own notification (240 px) was not published, and the only
     // message is the move to 1000 px requested by the handler
     assert_eq!(offsets, vec![1000.0]);
+    assert!(sources.into_iter().all(|source| source == Source::Action));
 }

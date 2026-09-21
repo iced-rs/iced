@@ -1415,7 +1415,7 @@ impl operation::Scrollable for State {
         bounds: Rectangle,
         content: Size,
     ) {
-        State::snap_to(self, offset, animation, bounds, content);
+        State::snap_to(self, offset, animation, bounds, content, Source::Operation);
     }
 
     fn scroll_to(
@@ -1425,7 +1425,7 @@ impl operation::Scrollable for State {
         bounds: Rectangle,
         content: Size,
     ) {
-        State::scroll_to(self, offset, animation, bounds, content);
+        State::scroll_to(self, offset, animation, bounds, content, Source::Operation);
     }
 
     fn scroll_by(
@@ -1527,6 +1527,9 @@ pub enum Source {
 
     /// A scroll operation (`scroll_to`, `snap_to` or `scroll_by`) scrolled.
     Operation,
+
+    /// A scroll [`Action`] scrolled.
+    Action,
 
     /// The size of the content changed.
     Content,
@@ -1686,10 +1689,10 @@ impl<Message> Action<Message> {
         match self {
             Action::None => {}
             Action::ScrollTo(absolute_offset, animation) => {
-                state.scroll_to(absolute_offset, animation, bounds, content);
+                state.scroll_to(absolute_offset, animation, bounds, content, Source::Action);
             }
             Action::SnapTo(relative_offset, animation) => {
-                state.snap_to(relative_offset, animation, bounds, content);
+                state.snap_to(relative_offset, animation, bounds, content, Source::Action);
             }
             Action::Custom(message) => {
                 shell.publish(message);
@@ -2471,8 +2474,9 @@ impl State {
         animation: Animation,
         bounds: Rectangle,
         content: Size,
+        source: Source,
     ) {
-        self.source = Some(Source::Operation);
+        self.source = Some(source);
 
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
@@ -2514,8 +2518,9 @@ impl State {
         animation: Animation,
         bounds: Rectangle,
         content: Size,
+        source: Source,
     ) {
-        self.source = Some(Source::Operation);
+        self.source = Some(source);
 
         if !self.should_scroll_smoothly(animation) {
             self.cancel();
