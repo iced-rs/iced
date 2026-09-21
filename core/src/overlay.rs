@@ -81,7 +81,7 @@ where
 pub fn from_children<'a, Message, Theme, Renderer>(
     children: &'a mut [crate::Element<'_, Message, Theme, Renderer>],
     tree: &'a mut Tree,
-    layout: Layout<'a>,
+    layout: Layout,
     renderer: &Renderer,
     viewport: &Rectangle,
     translation: Vector,
@@ -92,9 +92,8 @@ where
 {
     children
         .iter_mut()
-        .zip(&mut tree.children)
-        .zip(layout.children())
-        .flat_map(|((child, state), layout)| {
+        .zip(layout.children_mut(tree))
+        .flat_map(|(child, (layout, state))| {
             child
                 .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, translation, window)

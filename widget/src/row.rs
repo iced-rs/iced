@@ -197,12 +197,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
@@ -212,15 +207,15 @@ where
             self.padding,
             self.spacing,
             self.align,
+            tree,
             &mut self.children,
-            &mut tree.children,
-        )
+        );
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -229,9 +224,8 @@ where
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
-                .zip(&mut tree.children)
-                .zip(layout.children())
-                .for_each(|((child, state), layout)| {
+                .zip(layout.children_mut(tree))
+                .for_each(|(child, (layout, state))| {
                     child
                         .as_widget_mut()
                         .operate(state, layout, viewport, renderer, operation);
@@ -243,18 +237,13 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((child, tree), layout) in self
-            .children
-            .iter_mut()
-            .zip(&mut tree.children)
-            .zip(layout.children())
-        {
+        for (child, (layout, tree)) in self.children.iter_mut().zip(layout.children_mut(tree)) {
             child
                 .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
@@ -264,16 +253,15 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.children
             .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-            .map(|((child, tree), layout)| {
+            .zip(layout.children(tree))
+            .map(|(child, (layout, tree))| {
                 child
                     .as_widget()
                     .mouse_interaction(tree, layout, cursor, viewport, renderer)
@@ -288,7 +276,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -299,12 +287,11 @@ where
                 viewport
             };
 
-            for ((child, tree), layout) in self
+            for (child, (layout, tree)) in self
                 .children
                 .iter()
-                .zip(&tree.children)
-                .zip(layout.children())
-                .filter(|(_, layout)| layout.bounds().intersects(viewport))
+                .zip(layout.children(tree))
+                .filter(|(_, (layout, _))| layout.bounds().intersects(viewport))
             {
                 child
                     .as_widget()
@@ -316,7 +303,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -385,12 +372,7 @@ where
         self.row.size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let limits = limits
             .width(self.row.width)
             .height(self.row.height)
@@ -401,7 +383,6 @@ where
         let vertical_spacing = self.vertical_spacing.unwrap_or(spacing);
         let max_width = limits.bounds().width;
 
-        let mut children: Vec<layout::Node> = Vec::new();
         let mut intrinsic_size = Size::ZERO;
         let mut row_start = 0;
         let mut row_height = 0.0;
@@ -414,29 +395,28 @@ where
             Alignment::End => 1.0,
         };
 
-        let align_y = |row_start: std::ops::Range<usize>,
-                       row_height: f32,
-                       children: &mut Vec<layout::Node>| {
-            if align_factor != 0.0 {
-                for node in &mut children[row_start] {
-                    let height = node.size().height;
+        let align_y =
+            |row_start: std::ops::Range<usize>, row_height: f32, children: &mut [Tree]| {
+                if align_factor != 0.0 {
+                    for child in &mut children[row_start] {
+                        let height = child.size.height;
 
-                    node.translate_mut(Vector::new(0.0, (row_height - height) / align_factor));
+                        child.translation.y += (row_height - height) / align_factor;
+                    }
                 }
-            }
-        };
+            };
 
         for (i, child) in self.row.children.iter_mut().enumerate() {
-            let node = child
+            child
                 .as_widget_mut()
                 .layout(&mut tree.children[i], renderer, &child_limits);
 
-            let child_size = node.size();
+            let child_size = tree.children[i].size;
 
             if x != 0.0 && x + child_size.width > max_width {
                 intrinsic_size.width = intrinsic_size.width.max(x - spacing);
 
-                align_y(row_start..i, row_height, &mut children);
+                align_y(row_start..i, row_height, &mut tree.children);
 
                 y += row_height + vertical_spacing;
                 x = 0.0;
@@ -446,7 +426,8 @@ where
 
             row_height = row_height.max(child_size.height);
 
-            children.push(node.move_to((x + self.row.padding.left, y + self.row.padding.top)));
+            tree.children[i].translation =
+                Vector::new(x + self.row.padding.left, y + self.row.padding.top);
 
             x += child_size.width + spacing;
         }
@@ -456,7 +437,11 @@ where
         }
 
         intrinsic_size.height = y + row_height;
-        align_y(row_start..children.len(), row_height, &mut children);
+        align_y(
+            row_start..tree.children.len(),
+            row_height,
+            &mut tree.children,
+        );
 
         let align_factor = match self.align_x {
             alignment::Horizontal::Left => 0.0,
@@ -469,20 +454,20 @@ where
 
             let mut row_start = 0;
 
-            for i in 0..children.len() {
-                let bounds = children[i].bounds();
-                let row_width = bounds.x + bounds.width;
+            for i in 0..tree.children.len() {
+                let row_width = tree.children[i].translation.x + tree.children[i].size.width;
 
-                let next_x = children
+                let next_x = tree
+                    .children
                     .get(i + 1)
-                    .map(|node| node.bounds().x)
+                    .map(|child| child.translation.x)
                     .unwrap_or_default();
 
                 if next_x == 0.0 {
                     let translation = Vector::new((total_width - row_width) / align_factor, 0.0);
 
-                    for node in &mut children[row_start..=i] {
-                        node.translate_mut(translation);
+                    for child in &mut tree.children[row_start..=i] {
+                        child.translation += translation;
                     }
 
                     row_start = i + 1;
@@ -492,13 +477,13 @@ where
 
         let size = limits.resolve(self.row.width, self.row.height, intrinsic_size);
 
-        layout::Node::with_children(size.expand(self.row.padding), children)
+        tree.size = size.expand(self.row.padding);
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -511,7 +496,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -524,7 +509,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -539,7 +524,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -550,7 +535,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,

@@ -511,17 +511,13 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        let mut layout = |right_padding, bottom_padding| {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let mut layout = |tree: &mut Tree, right_padding: f32, bottom_padding: f32| {
             let is_horizontal = self.direction.horizontal().is_some();
             let is_vertical = self.direction.vertical().is_some();
 
             layout::padded(
+                tree,
                 limits,
                 self.width,
                 self.height,
@@ -530,7 +526,7 @@ where
                     bottom: bottom_padding,
                     ..Padding::ZERO
                 },
-                |limits| {
+                |tree, limits| {
                     let child_limits = layout::Limits::with_flags(
                         limits.min,
                         limits.max,
@@ -541,13 +537,13 @@ where
                         ),
                     );
 
-                    self.content.as_widget_mut().layout(
-                        &mut tree.children[0],
-                        renderer,
-                        &child_limits,
-                    )
+                    self.content
+                        .as_widget_mut()
+                        .layout(tree, renderer, &child_limits);
+
+                    tree.size
                 },
-            )
+            );
         };
 
         match self.direction {
@@ -566,15 +562,17 @@ where
                 let is_vertical = matches!(self.direction, Direction::Vertical(_));
 
                 let padding = width + margin * 2.0 + spacing;
-                let state = tree.state.downcast_mut::<State>();
+                let state_is_scrollbar_visible =
+                    tree.state.downcast_mut::<State>().is_scrollbar_visible;
 
-                let status_quo = layout(
-                    if is_vertical && state.is_scrollbar_visible {
+                layout(
+                    tree,
+                    if is_vertical && state_is_scrollbar_visible {
                         padding
                     } else {
                         0.0
                     },
-                    if !is_vertical && state.is_scrollbar_visible {
+                    if !is_vertical && state_is_scrollbar_visible {
                         padding
                     } else {
                         0.0
@@ -582,52 +580,52 @@ where
                 );
 
                 let is_scrollbar_visible = if is_vertical {
-                    status_quo.children()[0].size().height > status_quo.size().height
+                    tree.children[0].size.height > tree.size.height
                 } else {
-                    status_quo.children()[0].size().width > status_quo.size().width
+                    tree.children[0].size.width > tree.size.width
                 };
 
-                if state.is_scrollbar_visible == is_scrollbar_visible {
-                    status_quo
-                } else {
+                if state_is_scrollbar_visible != is_scrollbar_visible {
                     log::trace!("Scrollbar status quo has changed");
-                    state.is_scrollbar_visible = is_scrollbar_visible;
+                    tree.state.downcast_mut::<State>().is_scrollbar_visible = is_scrollbar_visible;
 
                     layout(
-                        if is_vertical && state.is_scrollbar_visible {
+                        tree,
+                        if is_vertical && is_scrollbar_visible {
                             padding
                         } else {
                             0.0
                         },
-                        if !is_vertical && state.is_scrollbar_visible {
+                        if !is_vertical && is_scrollbar_visible {
                             padding
                         } else {
                             0.0
                         },
-                    )
+                    );
                 }
             }
-            _ => layout(0.0, 0.0),
+            _ => layout(tree, 0.0, 0.0),
         }
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
+        let bounds = layout.bounds();
+        let content_layout = layout.children(tree).next().unwrap().0;
+        let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
+
         let state = tree.state.downcast_mut::<State>();
 
         // `Animation::Auto` scroll operations resolve against this
         state.smooth_scroll = self.smooth_scroll;
 
-        let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
-        let content = content_layout.size();
         let translation = state.last_translation;
         let viewport = viewport.intersection(&bounds).unwrap_or_default() + translation;
 
@@ -649,19 +647,19 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
-        let state = tree.state.downcast_mut::<State>();
         let bounds = layout.bounds();
         let cursor_over_scrollable = cursor.position_over(bounds);
 
-        let child = layout.children().next().unwrap();
+        let child = layout.children(tree).next().unwrap().0;
         let content = child.size();
 
+        let state = tree.state.downcast_mut::<State>();
         let translation = state.last_translation;
         let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
         let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
@@ -792,7 +790,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         defaults: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -803,7 +801,7 @@ where
             return;
         };
 
-        let content_layout = layout.children().next().unwrap();
+        let content_layout = layout.children(tree).next().unwrap().0;
         let content = content_layout.size();
 
         let translation = state.last_translation;
@@ -937,7 +935,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -954,7 +952,7 @@ where
         };
 
         let cursor_over_scrollable = cursor.position_over(bounds);
-        let content_layout = layout.children().next().unwrap();
+        let content_layout = layout.children(tree).next().unwrap().0;
         let content = content_layout.size();
 
         let translation = state.last_translation;
@@ -980,7 +978,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -988,7 +986,7 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let content_layout = layout.children().next().unwrap();
+        let content_layout = layout.children(tree).next().unwrap().0;
         let content = content_layout.size();
         let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
 
@@ -996,7 +994,7 @@ where
 
         let overlay = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
-            layout.children().next().unwrap(),
+            content_layout,
             renderer,
             &(viewport + offset),
             translation - offset,

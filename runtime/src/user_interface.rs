@@ -25,7 +25,6 @@ use crate::core::{
 /// [`integration`]: https://github.com/iced-rs/iced/tree/master/examples/integration
 pub struct UserInterface<'a, Message, Theme, Renderer> {
     root: Element<'a, Message, Theme, Renderer>,
-    base: layout::Node,
     state: widget::Tree,
     overlay: Option<mouse::Interaction>,
     bounds: Size,
@@ -101,7 +100,7 @@ where
         let Cache { mut state } = cache;
         state.diff(root.as_widget_mut());
 
-        let base = root.as_widget_mut().layout(
+        root.as_widget_mut().layout(
             &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
@@ -109,7 +108,6 @@ where
 
         UserInterface {
             root,
-            base,
             state,
             overlay: None,
             bounds,
@@ -198,10 +196,11 @@ where
         let mut input_method = InputMethod::Disabled;
         let mut clipboard = Clipboard::new();
         let viewport = Rectangle::with_size(self.bounds);
+        let layout = Layout::new(self.state.size);
 
         let overlay = self.root.as_widget_mut().overlay(
             &mut self.state,
-            Layout::new(&self.base),
+            layout,
             renderer,
             &viewport,
             Vector::ZERO,
@@ -239,7 +238,7 @@ where
                             shell::Diff::Skip => {}
                         }
 
-                        self.base = self.root.as_widget_mut().layout(
+                        self.root.as_widget_mut().layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -249,7 +248,7 @@ where
                     maybe_overlay = {
                         let overlay = self.root.as_widget_mut().overlay(
                             &mut self.state,
-                            Layout::new(&self.base),
+                            layout,
                             renderer,
                             &viewport,
                             Vector::ZERO,
@@ -314,7 +313,7 @@ where
                 self.root.as_widget_mut().update(
                     &mut self.state,
                     event,
-                    Layout::new(&self.base),
+                    layout,
                     base_cursor,
                     renderer,
                     &mut shell,
@@ -341,7 +340,7 @@ where
                             shell::Diff::Skip => {}
                         }
 
-                        self.base = self.root.as_widget_mut().layout(
+                        self.root.as_widget_mut().layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -350,7 +349,7 @@ where
 
                     let overlay = self.root.as_widget_mut().overlay(
                         &mut self.state,
-                        Layout::new(&self.base),
+                        layout,
                         renderer,
                         &viewport,
                         Vector::ZERO,
@@ -371,7 +370,7 @@ where
         let mouse_interaction = if overlay_interaction == mouse::Interaction::None {
             self.root.as_widget().mouse_interaction(
                 &self.state,
-                Layout::new(&self.base),
+                layout,
                 base_cursor,
                 &viewport,
                 renderer,
@@ -485,6 +484,7 @@ where
         let viewport = Rectangle::with_size(self.bounds);
         renderer.reset(viewport);
 
+        let layout = Layout::new(self.state.size);
         let base_cursor = match &self.overlay {
             None | Some(mouse::Interaction::None) => cursor,
             _ => cursor.levitate(),
@@ -495,17 +495,12 @@ where
             renderer,
             theme,
             style,
-            Layout::new(&self.base),
+            layout,
             base_cursor,
             &viewport,
         );
 
-        let Self {
-            overlay,
-            root,
-            base,
-            ..
-        } = self;
+        let Self { overlay, root, .. } = self;
 
         if overlay.is_none() {
             return;
@@ -513,7 +508,7 @@ where
 
         let overlay = root.as_widget_mut().overlay(
             &mut self.state,
-            Layout::new(base),
+            layout,
             renderer,
             &viewport,
             Vector::ZERO,
@@ -530,11 +525,12 @@ where
     /// Applies a [`widget::Operation`] to the [`UserInterface`].
     pub fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         let viewport = Rectangle::with_size(self.bounds);
+        let layout = Layout::new(self.state.size);
 
         operation.traverse(&mut |operation| {
             self.root.as_widget_mut().operate(
                 &mut self.state,
-                Layout::new(&self.base),
+                layout,
                 &viewport,
                 renderer,
                 operation,
@@ -543,7 +539,7 @@ where
 
         let overlay = self.root.as_widget_mut().overlay(
             &mut self.state,
-            Layout::new(&self.base),
+            layout,
             renderer,
             &viewport,
             Vector::ZERO,

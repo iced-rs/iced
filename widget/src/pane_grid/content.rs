@@ -98,7 +98,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -111,9 +111,8 @@ where
         }
 
         if let Some(title_bar) = &self.title_bar {
-            let mut children = layout.children();
-            let title_bar_layout = children.next().unwrap();
-            let body_layout = children.next().unwrap();
+            let body_layout = layout.children(tree).next().unwrap().0;
+            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
 
             let show_controls = cursor.is_over(bounds);
 
@@ -150,24 +149,19 @@ where
         }
     }
 
-    pub(crate) fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    pub(crate) fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         if let Some(title_bar) = &mut self.title_bar {
             let max_size = limits.max;
 
-            let title_bar_layout = title_bar.layout(
+            title_bar.layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
             );
 
-            let title_bar_size = title_bar_layout.size();
+            let title_bar_size = tree.children[1].size;
 
-            let body_layout = self.body.as_widget_mut().layout(
+            self.body.as_widget_mut().layout(
                 &mut tree.children[0],
                 renderer,
                 &layout::Limits::new(
@@ -176,40 +170,40 @@ where
                 ),
             );
 
-            layout::Node::with_children(
-                max_size,
-                vec![
-                    title_bar_layout,
-                    body_layout.move_to(Point::new(0.0, title_bar_size.height)),
-                ],
-            )
+            tree.children[1].translation = Vector::ZERO;
+            tree.children[0].translation = Vector::new(0.0, title_bar_size.height);
+
+            tree.size = max_size;
         } else {
             self.body
                 .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits)
+                .layout(&mut tree.children[0], renderer, limits);
+
+            tree.size = tree.children[0].size;
         }
     }
 
     pub(crate) fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         let body_layout = if let Some(title_bar) = &mut self.title_bar {
-            let mut children = layout.children();
+            let body_layout = layout.children(tree).next().unwrap().0;
+            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
 
             title_bar.operate(
                 &mut tree.children[1],
-                children.next().unwrap(),
+                title_bar_layout,
                 viewport,
                 renderer,
                 operation,
             );
 
-            children.next().unwrap()
+            body_layout
         } else {
             layout
         };
@@ -227,7 +221,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -235,19 +229,20 @@ where
         is_picked: bool,
     ) {
         let body_layout = if let Some(title_bar) = &mut self.title_bar {
-            let mut children = layout.children();
+            let body_layout = layout.children(tree).next().unwrap().0;
+            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
 
             title_bar.update(
                 &mut tree.children[1],
                 event,
-                children.next().unwrap(),
+                title_bar_layout,
                 cursor,
                 renderer,
                 shell,
                 viewport,
             );
 
-            children.next().unwrap()
+            body_layout
         } else {
             layout
         };
@@ -267,18 +262,20 @@ where
 
     pub(crate) fn grid_interaction(
         &self,
-        layout: Layout<'_>,
+        tree: &Tree,
+        layout: Layout,
         cursor: mouse::Cursor,
         drag_enabled: bool,
     ) -> Option<mouse::Interaction> {
         let title_bar = self.title_bar.as_ref()?;
 
-        let mut children = layout.children();
-        let title_bar_layout = children.next().unwrap();
+        let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
 
         let is_over_pick_area = cursor
             .position()
-            .map(|cursor_position| title_bar.is_over_pick_area(title_bar_layout, cursor_position))
+            .map(|cursor_position| {
+                title_bar.is_over_pick_area(&tree.children[1], title_bar_layout, cursor_position)
+            })
             .unwrap_or_default();
 
         if is_over_pick_area && drag_enabled {
@@ -291,20 +288,24 @@ where
     pub(crate) fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
         drag_enabled: bool,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) = if let Some(title_bar) = &self.title_bar {
-            let mut children = layout.children();
-            let title_bar_layout = children.next().unwrap();
+            let body_layout = layout.children(tree).next().unwrap().0;
+            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
 
             let is_over_pick_area = cursor
                 .position()
                 .map(|cursor_position| {
-                    title_bar.is_over_pick_area(title_bar_layout, cursor_position)
+                    title_bar.is_over_pick_area(
+                        &tree.children[1],
+                        title_bar_layout,
+                        cursor_position,
+                    )
                 })
                 .unwrap_or_default();
 
@@ -320,7 +321,7 @@ where
                 renderer,
             );
 
-            (children.next().unwrap(), mouse_interaction)
+            (body_layout, mouse_interaction)
         } else {
             (layout, mouse::Interaction::default())
         };
@@ -334,18 +335,15 @@ where
     pub(crate) fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
-            let mut children = layout.children();
-            let Some(title_bar_layout) = children.next() else {
-                return Vec::new();
-            };
-            let body_layout = children.next();
+            let body_layout = layout.children(tree).next().unwrap().0;
+            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
 
             let mut states = tree.children.iter_mut();
             let body_state = states.next().unwrap();
@@ -360,20 +358,18 @@ where
                 window,
             );
 
-            let body_overlays = body_layout.map(|body_layout| {
-                self.body.as_widget_mut().overlay(
-                    body_state,
-                    body_layout,
-                    renderer,
-                    viewport,
-                    translation,
-                    window,
-                )
-            });
+            let body_overlays = self.body.as_widget_mut().overlay(
+                body_state,
+                body_layout,
+                renderer,
+                viewport,
+                translation,
+                window,
+            );
 
             title_bar_overlays
                 .into_iter()
-                .chain(body_overlays.into_iter().flatten())
+                .chain(body_overlays)
                 .collect()
         } else {
             self.body.as_widget_mut().overlay(
@@ -393,12 +389,11 @@ where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    fn can_be_dragged_at(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+    fn can_be_dragged_at(&self, tree: &Tree, layout: Layout, cursor_position: Point) -> bool {
         if let Some(title_bar) = &self.title_bar {
-            let mut children = layout.children();
-            let title_bar_layout = children.next().unwrap();
+            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
 
-            title_bar.is_over_pick_area(title_bar_layout, cursor_position)
+            title_bar.is_over_pick_area(&tree.children[1], title_bar_layout, cursor_position)
         } else {
             false
         }

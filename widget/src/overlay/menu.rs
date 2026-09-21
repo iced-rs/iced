@@ -157,7 +157,7 @@ where
 #[derive(Debug)]
 pub struct State {
     tree: Tree,
-    layout: layout::Node,
+    layout: layout::Layout,
 }
 
 impl State {
@@ -165,7 +165,7 @@ impl State {
     pub fn new() -> Self {
         Self {
             tree: Tree::empty(),
-            layout: layout::Node::new(Size::ZERO),
+            layout: layout::Layout::new(Size::ZERO),
         }
     }
 }
@@ -182,7 +182,7 @@ where
     Renderer: text::Renderer,
 {
     window: Size,
-    layout: Layout<'a>,
+    layout: Layout,
     tree: &'a mut Tree,
     list: Scrollable<'a, Message, Theme, Renderer>,
     class: &'a <Theme as Catalog>::Class<'b>,
@@ -256,9 +256,14 @@ where
         .width(width);
 
         state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
-        state.layout = list.layout(&mut state.tree, renderer, &limits);
+        list.layout(&mut state.tree, renderer, &limits);
 
-        let layout = Layout::new(&state.layout).move_to(if space_below > space_above {
+        state.layout = Layout::new(state.tree.size).move_to(Point::new(
+            state.tree.translation.x,
+            state.tree.translation.y,
+        ));
+
+        let layout = state.layout.move_to(if space_below > space_above {
             position + Vector::new(0.0, target_height)
         } else {
             position - Vector::new(0.0, state.layout.size().height)
@@ -403,12 +408,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         use std::f32;
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
@@ -425,14 +425,14 @@ where
             limits.resolve(Length::Fill, Length::Fit, intrinsic)
         };
 
-        layout::Node::new(size)
+        tree.size = size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -507,7 +507,7 @@ where
     fn operate(
         &mut self,
         _tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn crate::core::widget::Operation,
@@ -552,7 +552,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -572,7 +572,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {

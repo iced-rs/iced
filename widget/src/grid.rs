@@ -157,18 +157,14 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let size = self.size();
         let limits = limits.width(size.width).height(size.height);
         let available = limits.max;
 
         if limits.compression.width && self.width.is_none() {
-            return layout::Node::new(Size::ZERO);
+            tree.size = Size::ZERO;
+            return;
         }
 
         let cells_per_row = match self.columns {
@@ -180,7 +176,8 @@ where
         };
 
         if self.children.is_empty() || cells_per_row == 0 {
-            return layout::Node::new(limits.resolve(size.width, size.height, Size::ZERO));
+            tree.size = limits.resolve(size.width, size.height, Size::ZERO);
+            return;
         }
 
         let cell_width =
@@ -202,18 +199,16 @@ where
             Size::new(cell_width, cell_height.unwrap_or(available.height)),
         );
 
-        let mut nodes = Vec::with_capacity(self.children.len());
         let mut x = 0.0;
         let mut y = 0.0;
         let mut row_height = 0.0f32;
 
         for (i, (child, tree)) in self.children.iter_mut().zip(&mut tree.children).enumerate() {
-            let node = child
-                .as_widget_mut()
-                .layout(tree, renderer, &cell_limits)
-                .move_to((x, y));
+            child.as_widget_mut().layout(tree, renderer, &cell_limits);
 
-            let size = node.size();
+            let size = tree.size;
+
+            tree.translation = Vector::new(x, y);
 
             x += size.width + self.spacing;
             row_height = row_height.max(size.height);
@@ -223,8 +218,6 @@ where
                 x = 0.0;
                 row_height = 0.0;
             }
-
-            nodes.push(node);
         }
 
         if x == 0.0 {
@@ -233,13 +226,13 @@ where
             y += cell_height.unwrap_or(row_height);
         }
 
-        layout::Node::with_children(Size::new(available.width, y), nodes)
+        tree.size = Size::new(available.width, y);
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -248,9 +241,8 @@ where
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
-                .zip(&mut tree.children)
-                .zip(layout.children())
-                .for_each(|((child, state), layout)| {
+                .zip(layout.children_mut(tree))
+                .for_each(|(child, (layout, state))| {
                     child
                         .as_widget_mut()
                         .operate(state, layout, viewport, renderer, operation);
@@ -262,18 +254,13 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((child, tree), layout) in self
-            .children
-            .iter_mut()
-            .zip(&mut tree.children)
-            .zip(layout.children())
-        {
+        for (child, (layout, tree)) in self.children.iter_mut().zip(layout.children_mut(tree)) {
             child
                 .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
@@ -283,16 +270,15 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.children
             .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-            .map(|((child, tree), layout)| {
+            .zip(layout.children(tree))
+            .map(|(child, (layout, tree))| {
                 child
                     .as_widget()
                     .mouse_interaction(tree, layout, cursor, viewport, renderer)
@@ -307,17 +293,16 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         if let Some(viewport) = layout.bounds().intersection(viewport) {
-            for ((child, tree), layout) in self
+            for (child, (layout, tree)) in self
                 .children
                 .iter()
-                .zip(&tree.children)
-                .zip(layout.children())
-                .filter(|(_, layout)| layout.bounds().intersects(&viewport))
+                .zip(layout.children(tree))
+                .filter(|(_, (layout, _))| layout.bounds().intersects(&viewport))
             {
                 child
                     .as_widget()
@@ -329,7 +314,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,

@@ -162,12 +162,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         // The raw w/h of the underlying image
         let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
@@ -193,14 +188,14 @@ where
             },
         };
 
-        layout::Node::new(final_size)
+        tree.size = final_size;
     }
 
     fn update(
         &mut self,
         _state: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -225,7 +220,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {

@@ -123,7 +123,7 @@ where
         component,
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
-        layout: layout::Node::new(Size::ZERO),
+        layout: layout::Layout::new(Size::ZERO),
         is_outdated: Cell::new(true),
         has_overlay: false,
     })
@@ -136,7 +136,7 @@ where
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
-    layout: layout::Node,
+    layout: layout::Layout,
     is_outdated: Cell<bool>,
     has_overlay: bool,
 }
@@ -185,28 +185,27 @@ where
         self.view.as_widget().size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         if &self.limits != limits {
             self.limits = *limits;
-            self.layout = self
-                .view
+            self.view
                 .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, limits);
+
+            self.layout = Layout::new(tree.children[0].size).move_to(Point::new(
+                tree.children[0].translation.x,
+                tree.children[0].translation.y,
+            ));
         }
 
-        layout::Node::new(self.layout.size())
+        tree.size = self.layout.size();
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -239,7 +238,8 @@ where
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+                Layout::new(self.layout.size())
+                    .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
                 cursor,
                 renderer,
                 &mut local_shell,
@@ -276,10 +276,14 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.view));
 
         let previous_size = self.layout.size();
-        self.layout =
-            self.view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, &self.limits);
+        self.view
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, &self.limits);
+
+        self.layout = Layout::new(tree.children[0].size).move_to(Point::new(
+            tree.children[0].translation.x,
+            tree.children[0].translation.y,
+        ));
 
         let new_sizing = self.view.as_widget().size();
 
@@ -314,7 +318,8 @@ where
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+                Layout::new(self.layout.size())
+                    .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
                 cursor,
                 renderer,
                 &mut local_shell,
@@ -335,7 +340,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -344,7 +349,8 @@ where
             renderer,
             theme,
             style,
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            Layout::new(self.layout.size())
+                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
             cursor,
             viewport,
         );
@@ -353,7 +359,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -371,7 +377,8 @@ where
 
         self.view.as_widget().mouse_interaction(
             &tree.children[0],
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            Layout::new(self.layout.size())
+                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
             cursor,
             viewport,
             renderer,
@@ -381,7 +388,7 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
@@ -396,7 +403,8 @@ where
 
         self.view.as_widget_mut().operate(
             &mut tree.children[0],
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            Layout::new(self.layout.size())
+                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
             viewport,
             renderer,
             operation,
@@ -406,7 +414,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -414,7 +422,8 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let overlays = self.view.as_widget_mut().overlay(
             &mut tree.children[0],
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            Layout::new(self.layout.size())
+                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
             renderer,
             viewport,
             translation,

@@ -51,7 +51,7 @@ where
     element: Element<'a, Message, Theme, Renderer>,
     next_element: Option<Element<'a, Message, Theme, Renderer>>,
     last_limits: layout::Limits,
-    new_layout: Option<layout::Node>,
+    new_layout: Option<layout::Layout>,
     key: Key,
     id: Option<widget::Id>,
     value: P::Value,
@@ -194,25 +194,22 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.element));
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.last_limits = *limits;
         self.new_layout = None;
 
         self.element
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, &limits.loose())
+            .layout(&mut tree.children[0], renderer, &limits.loose());
+
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -259,11 +256,17 @@ where
                         state.size = Some(new_size);
                     } else {
                         self.element = new;
-                        self.new_layout = Some(self.element.as_widget_mut().layout(
+                        self.element.as_widget_mut().layout(
                             &mut tree.children[0],
                             renderer,
                             &self.last_limits,
-                        ));
+                        );
+
+                        self.new_layout =
+                            Some(Layout::new(tree.children[0].size).move_to(Point::new(
+                                tree.children[0].translation.x,
+                                tree.children[0].translation.y,
+                            )));
                     }
 
                     shell.request_redraw();
@@ -292,7 +295,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -310,7 +313,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -327,7 +330,7 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
@@ -353,7 +356,7 @@ where
     fn overlay<'a>(
         &'a mut self,
         tree: &'a mut Tree,
-        layout: Layout<'a>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -439,9 +442,13 @@ pub fn reset_raw(id: impl Into<widget::Id>) -> impl Operation {
     Reset(id.into())
 }
 
-fn layout<'a>(current: Layout<'a>, animated: &'a Option<layout::Node>) -> Layout<'a> {
+fn layout(current: Layout, animated: &Option<layout::Layout>) -> Layout {
     animated
         .as_ref()
-        .map(|new_layout| Layout::with_offset(current.position() - Point::ORIGIN, new_layout))
+        .map(|new_layout| {
+            let offset = new_layout.position() - Point::ORIGIN;
+
+            Layout::new(new_layout.size()).move_to(current.position() + offset)
+        })
         .unwrap_or(current)
 }

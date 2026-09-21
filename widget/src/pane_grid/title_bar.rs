@@ -137,7 +137,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         inherited_style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         show_controls: bool,
@@ -151,22 +151,19 @@ where
 
         container::draw_background(renderer, &style, bounds);
 
-        let mut children = layout.children();
-        let padded = children.next().unwrap();
-
-        let mut children = padded.children();
-        let title_layout = children.next().unwrap();
+        let mut children = layout.children(tree);
+        let title_layout = children.next().unwrap().0;
+        let controls_layout = children.next().unwrap().0;
+        let compact_layout = children.next().unwrap().0;
         let mut show_title = true;
+
+        let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
         if let Some(controls) = &self.controls
             && (show_controls || self.always_show_controls)
         {
-            let controls_layout = children.next().unwrap();
-            if title_layout.bounds().width + controls_layout.bounds().width > padded.bounds().width
-            {
+            if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_ref() {
-                    let compact_layout = children.next().unwrap();
-
                     compact.as_widget().draw(
                         &tree.children[2],
                         renderer,
@@ -219,22 +216,17 @@ where
     /// [`TitleBar`] or not.
     ///
     /// The whole [`TitleBar`] is a pick area, except its controls.
-    pub fn is_over_pick_area(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+    pub fn is_over_pick_area(&self, tree: &Tree, layout: Layout, cursor_position: Point) -> bool {
         if layout.bounds().contains(cursor_position) {
-            let mut children = layout.children();
-            let padded = children.next().unwrap();
-            let mut children = padded.children();
-            let title_layout = children.next().unwrap();
+            let title_layout = layout.children(tree).next().unwrap().0;
+            let controls_layout = layout.children(tree).nth(1).unwrap().0;
+            let compact_layout = layout.children(tree).nth(2).unwrap().0;
+
+            let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
             if let Some(controls) = self.controls.as_ref() {
-                let controls_layout = children.next().unwrap();
-
-                if title_layout.bounds().width + controls_layout.bounds().width
-                    > padded.bounds().width
-                {
+                if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                     if controls.compact.is_some() {
-                        let compact_layout = children.next().unwrap();
-
                         !compact_layout.bounds().contains(cursor_position)
                             && !title_layout.bounds().contains(cursor_position)
                     } else {
@@ -252,112 +244,86 @@ where
         }
     }
 
-    pub(crate) fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    pub(crate) fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let limits = limits.shrink(self.padding);
         let max_size = limits.max;
 
-        let title_layout = self.content.as_widget_mut().layout(
+        self.content.as_widget_mut().layout(
             &mut tree.children[0],
             renderer,
             &layout::Limits::new(Size::ZERO, max_size),
         );
 
-        let title_size = title_layout.size();
+        let title_size = tree.children[0].size;
 
-        let node = if let Some(controls) = &mut self.controls {
-            let controls_layout = controls.full.as_widget_mut().layout(
+        let inner_size = if let Some(controls) = &mut self.controls {
+            controls.full.as_widget_mut().layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
             );
 
-            if title_layout.bounds().width + controls_layout.bounds().width > max_size.width {
+            let controls_size = tree.children[1].size;
+
+            if title_size.width + controls_size.width > max_size.width {
                 if let Some(compact) = controls.compact.as_mut() {
-                    let compact_layout = compact.as_widget_mut().layout(
+                    compact.as_widget_mut().layout(
                         &mut tree.children[2],
                         renderer,
                         &layout::Limits::new(Size::ZERO, max_size),
                     );
 
-                    let compact_size = compact_layout.size();
+                    let compact_size = tree.children[2].size;
                     let space_before_controls = max_size.width - compact_size.width;
 
-                    let height = title_size.height.max(compact_size.height);
+                    tree.children[1].translation = Vector::ZERO;
+                    tree.children[2].translation = Vector::new(space_before_controls, 0.0);
 
-                    layout::Node::with_children(
-                        Size::new(max_size.width, height),
-                        vec![
-                            title_layout,
-                            controls_layout,
-                            compact_layout.move_to(Point::new(space_before_controls, 0.0)),
-                        ],
-                    )
+                    Size::new(max_size.width, title_size.height.max(compact_size.height))
                 } else {
-                    let controls_size = controls_layout.size();
                     let space_before_controls = max_size.width - controls_size.width;
 
-                    let height = title_size.height.max(controls_size.height);
+                    tree.children[1].translation = Vector::new(space_before_controls, 0.0);
 
-                    layout::Node::with_children(
-                        Size::new(max_size.width, height),
-                        vec![
-                            title_layout,
-                            controls_layout.move_to(Point::new(space_before_controls, 0.0)),
-                        ],
-                    )
+                    Size::new(max_size.width, title_size.height.max(controls_size.height))
                 }
             } else {
-                let controls_size = controls_layout.size();
                 let space_before_controls = max_size.width - controls_size.width;
 
-                let height = title_size.height.max(controls_size.height);
+                tree.children[1].translation = Vector::new(space_before_controls, 0.0);
 
-                layout::Node::with_children(
-                    Size::new(max_size.width, height),
-                    vec![
-                        title_layout,
-                        controls_layout.move_to(Point::new(space_before_controls, 0.0)),
-                    ],
-                )
+                Size::new(max_size.width, title_size.height.max(controls_size.height))
             }
         } else {
-            layout::Node::with_children(
-                Size::new(max_size.width, title_size.height),
-                vec![title_layout],
-            )
+            Size::new(max_size.width, title_size.height)
         };
 
-        layout::Node::container(node, self.padding)
+        tree.children[0].translation = Vector::ZERO;
+
+        for child in &mut tree.children {
+            child.translation += Vector::new(self.padding.left, self.padding.top);
+        }
+
+        tree.size = inner_size.expand(self.padding);
     }
 
     pub(crate) fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let mut children = layout.children();
-        let padded = children.next().unwrap();
-
-        let mut children = padded.children();
-        let title_layout = children.next().unwrap();
+        let title_layout = layout.children(tree).next().unwrap().0;
+        let controls_layout = layout.children(tree).nth(1).unwrap().0;
+        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
         let mut show_title = true;
 
         if let Some(controls) = &mut self.controls {
-            let controls_layout = children.next().unwrap();
-
-            if title_layout.bounds().width + controls_layout.bounds().width > padded.bounds().width
-            {
+            if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_mut() {
-                    let compact_layout = children.next().unwrap();
-
                     compact.as_widget_mut().operate(
                         &mut tree.children[2],
                         compact_layout,
@@ -402,27 +368,21 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let mut children = layout.children();
-        let padded = children.next().unwrap();
-
-        let mut children = padded.children();
-        let title_layout = children.next().unwrap();
+        let title_layout = layout.children(tree).next().unwrap().0;
+        let controls_layout = layout.children(tree).nth(1).unwrap().0;
+        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
         let mut show_title = true;
 
         if let Some(controls) = &mut self.controls {
-            let controls_layout = children.next().unwrap();
-
-            if title_layout.bounds().width + controls_layout.bounds().width > padded.bounds().width
-            {
+            if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_mut() {
-                    let compact_layout = children.next().unwrap();
-
                     compact.as_widget_mut().update(
                         &mut tree.children[2],
                         event,
@@ -474,16 +434,15 @@ where
     pub(crate) fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let mut children = layout.children();
-        let padded = children.next().unwrap();
-
-        let mut children = padded.children();
-        let title_layout = children.next().unwrap();
+        let title_layout = layout.children(tree).next().unwrap().0;
+        let controls_layout = layout.children(tree).nth(1).unwrap().0;
+        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
         let title_interaction = self.content.as_widget().mouse_interaction(
             &tree.children[0],
@@ -494,7 +453,6 @@ where
         );
 
         if let Some(controls) = &self.controls {
-            let controls_layout = children.next().unwrap();
             let controls_interaction = controls.full.as_widget().mouse_interaction(
                 &tree.children[1],
                 controls_layout,
@@ -503,10 +461,8 @@ where
                 renderer,
             );
 
-            if title_layout.bounds().width + controls_layout.bounds().width > padded.bounds().width
-            {
+            if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_ref() {
-                    let compact_layout = children.next().unwrap();
                     let compact_interaction = compact.as_widget().mouse_interaction(
                         &tree.children[2],
                         compact_layout,
@@ -530,21 +486,16 @@ where
     pub(crate) fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let mut children = layout.children();
-        let Some(padded) = children.next() else {
-            return Vec::new();
-        };
-
-        let mut children = padded.children();
-        let Some(title_layout) = children.next() else {
-            return Vec::new();
-        };
+        let title_layout = layout.children(tree).next().unwrap().0;
+        let controls_layout = layout.children(tree).nth(1).unwrap().0;
+        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
         let Self {
             content, controls, ..
@@ -553,6 +504,7 @@ where
         let mut states = tree.children.iter_mut();
         let title_state = states.next().unwrap();
         let controls_state = states.next().unwrap();
+        let compact_state = states.next().unwrap();
 
         let mut overlays = content.as_widget_mut().overlay(
             title_state,
@@ -564,18 +516,8 @@ where
         );
 
         if let Some(controls) = controls {
-            let Some(controls_layout) = children.next() else {
-                return overlays;
-            };
-
-            if title_layout.bounds().width + controls_layout.bounds().width > padded.bounds().width
-            {
+            if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = &mut controls.compact {
-                    let compact_state = states.next().unwrap();
-                    let Some(compact_layout) = children.next() else {
-                        return overlays;
-                    };
-
                     overlays.extend(compact.as_widget_mut().overlay(
                         compact_state,
                         compact_layout,

@@ -132,15 +132,10 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, _limits: &layout::Limits) {
         let side_length = (self.data.width + 2 * QUIET_ZONE) as f32 * self.cell_size;
 
-        layout::Node::new(Size::new(side_length, side_length))
+        tree.size = Size::new(side_length, side_length);
     }
 
     fn draw(
@@ -149,7 +144,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
