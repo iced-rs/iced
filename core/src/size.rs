@@ -73,7 +73,7 @@ impl Size {
     }
 
     /// Returns the offset needed to align this [`Size`] within the given
-    /// [`container`] using the provided alignments.
+    /// `container` using the provided alignments.
     pub fn align(self, container: Size, align_x: Alignment, align_y: Alignment) -> Vector {
         let x = match align_x {
             Alignment::Start => 0.0,

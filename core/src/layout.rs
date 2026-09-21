@@ -91,7 +91,7 @@ impl Layout {
     }
 }
 
-/// Lays out two children side by side in the provided [`Tree`].
+/// Lays out two children side by side in the provided [`widget::Tree`].
 ///
 /// The tree must have exactly two children. The first is placed at the left
 /// edge, and the second to its right after `spacing`, both vertically

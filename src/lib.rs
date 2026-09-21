@@ -324,8 +324,8 @@
 //!
 //! Tasks can also be used to interact with the iced runtime. Some modules
 //! expose functions that create tasks for different purposes—like [changing
-//! window settings](window#functions), [focusing a widget](widget::operation::focus_next), or
-//! [querying its visible bounds](widget::selector::find).
+//! window settings](window#functions), [focusing a widget](widget::operation::focus_next),
+//! or querying the visible bounds of a widget with the `selector` module.
 //!
 //! Like futures and streams, tasks expose [a monadic interface](Task::then)—but they can also be
 //! [mapped](Task::map), [chained](Task::chain), [batched](Task::batch), [canceled](Task::abortable),
@@ -366,7 +366,7 @@
 //! visible widgets of your user interface, at every moment.
 //!
 //! As with tasks, some modules expose convenient functions that build a [`Subscription`] for you—like
-//! [`time::every`] which can be used to listen to time, or [`keyboard::listen`] which will notify you
+//! `time::every` which can be used to listen to time, or [`keyboard::listen`] which will notify you
 //! of any keyboard events. But you can also create your own with [`Subscription::run`] and [`run_with`].
 //!
 //! [`run_with`]: Subscription::run_with
