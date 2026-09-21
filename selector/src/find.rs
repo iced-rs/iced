@@ -1,7 +1,7 @@
 use crate::Selector;
 use crate::core::widget::operation::{Focusable, Outcome, Scrollable, TextInput};
 use crate::core::widget::{Id, Operation};
-use crate::core::{Rectangle, Vector};
+use crate::core::{Rectangle, Size, Vector};
 use crate::target::Candidate;
 
 use std::any::Any;
@@ -183,7 +183,7 @@ where
         &mut self,
         id: Option<&Id>,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
         translation: Vector,
         state: &mut dyn Scrollable,
     ) {
@@ -199,7 +199,7 @@ where
             id,
             bounds,
             visible_bounds,
-            content_bounds,
+            content,
             translation,
             state,
         });

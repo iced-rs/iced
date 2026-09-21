@@ -126,6 +126,36 @@ where
         self.cursor = mouse::Cursor::Available(position.into());
     }
 
+    /// Applies a [`widget::Operation`] to the [`Simulator`]'s widget tree.
+    pub fn operate(&mut self, operation: &mut dyn widget::Operation) {
+        self.raw.operate(&self.renderer, operation);
+    }
+
+    /// Rebuilds the [`Simulator`]'s user interface with a new `element`,
+    /// preserving the state of widgets with an unchanged id.
+    pub fn rebuild(mut self, element: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+        let cache = self.raw.into_cache();
+
+        Self {
+            raw: UserInterface::build(element, self.size, cache, &mut self.renderer),
+            renderer: self.renderer,
+            size: self.size,
+            cursor: self.cursor,
+            messages: self.messages,
+        }
+    }
+
+    /// Resizes the [`Simulator`]'s window to the given `size`, relaying out
+    /// the user interface and preserving widget state.
+    pub fn resize(mut self, size: impl Into<Size>) -> Self {
+        let size = size.into();
+
+        self.raw = self.raw.relayout(size, &mut self.renderer);
+        self.size = size;
+
+        self
+    }
+
     /// Clicks the [`Bounded`] target found by the given [`Selector`], if any.
     ///
     /// This consists in:
@@ -198,8 +228,10 @@ where
         statuses
     }
 
-    /// Draws and takes a [`Snapshot`] of the interface in the [`Simulator`].
-    pub fn snapshot(&mut self, theme: &Theme) -> Result<Snapshot, Error> {
+    /// Draws the interface in the [`Simulator`] with the given theme.
+    ///
+    /// A `RedrawRequested` event is processed before drawing.
+    pub fn draw(&mut self, theme: &Theme) {
         let base = theme.base();
 
         let _ = self.raw.update(
@@ -221,6 +253,13 @@ where
             },
             self.cursor,
         );
+    }
+
+    /// Draws and takes a [`Snapshot`] of the interface in the [`Simulator`].
+    pub fn snapshot(&mut self, theme: &Theme) -> Result<Snapshot, Error> {
+        let base = theme.base();
+
+        self.draw(theme);
 
         let scale_factor = 2.0;
 
@@ -242,6 +281,11 @@ where
     /// Turns the [`Simulator`] into the sequence of messages produced by any interactions.
     pub fn into_messages(self) -> impl Iterator<Item = Message> + use<Message, Theme, Renderer> {
         self.messages.into_iter()
+    }
+
+    /// Returns the messages published so far, clearing the queue.
+    pub fn drain(&mut self) -> impl Iterator<Item = Message> {
+        self.messages.drain().map(|(message, _)| message)
     }
 }
 

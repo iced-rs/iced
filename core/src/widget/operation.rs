@@ -8,7 +8,7 @@ pub use scrollable::Scrollable;
 pub use text_input::TextInput;
 
 use crate::widget::Id;
-use crate::{Rectangle, Vector};
+use crate::{Rectangle, Size, Vector};
 
 use std::any::Any;
 use std::fmt;
@@ -34,7 +34,7 @@ pub trait Operation<T = ()>: Send {
         &mut self,
         _id: Option<&Id>,
         _bounds: Rectangle,
-        _content_bounds: Rectangle,
+        _content: Size,
         _translation: Vector,
         _state: &mut dyn Scrollable,
     ) {
@@ -78,12 +78,12 @@ where
         &mut self,
         id: Option<&Id>,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
         translation: Vector,
         state: &mut dyn Scrollable,
     ) {
         self.as_mut()
-            .scrollable(id, bounds, content_bounds, translation, state);
+            .scrollable(id, bounds, content, translation, state);
     }
 
     fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {
@@ -128,6 +128,25 @@ where
     }
 }
 
+/// The animation to apply to a state change, as requested by an
+/// [`Operation`].
+///
+/// Some widgets can apply a state change either immediately or with an
+/// animation; operations on those widgets take an [`Animation`] to select
+/// which.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Animation {
+    /// Use the default animation of the widget.
+    #[default]
+    Auto,
+
+    /// Apply the change immediately.
+    Instant,
+
+    /// Animate the change towards the new state.
+    Smooth,
+}
+
 /// Wraps the [`Operation`] in a black box, erasing its returning type.
 pub fn black_box<'a, T, O>(operation: &'a mut dyn Operation<T>) -> impl Operation<O> + 'a
 where
@@ -159,12 +178,12 @@ where
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             self.operation
-                .scrollable(id, bounds, content_bounds, translation, state);
+                .scrollable(id, bounds, content, translation, state);
         }
 
         fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {
@@ -229,12 +248,12 @@ where
                     &mut self,
                     id: Option<&Id>,
                     bounds: Rectangle,
-                    content_bounds: Rectangle,
+                    content: Size,
                     translation: Vector,
                     state: &mut dyn Scrollable,
                 ) {
                     self.operation
-                        .scrollable(id, bounds, content_bounds, translation, state);
+                        .scrollable(id, bounds, content, translation, state);
                 }
 
                 fn focusable(
@@ -281,12 +300,12 @@ where
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             translation: Vector,
             state: &mut dyn Scrollable,
         ) {
             self.operation
-                .scrollable(id, bounds, content_bounds, translation, state);
+                .scrollable(id, bounds, content, translation, state);
         }
 
         fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {
@@ -362,12 +381,12 @@ where
             &mut self,
             id: Option<&Id>,
             bounds: Rectangle,
-            content_bounds: Rectangle,
+            content: Size,
             translation: crate::Vector,
             state: &mut dyn Scrollable,
         ) {
             self.operation
-                .scrollable(id, bounds, content_bounds, translation, state);
+                .scrollable(id, bounds, content, translation, state);
         }
 
         fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {

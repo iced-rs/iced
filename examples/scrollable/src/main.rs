@@ -21,6 +21,7 @@ struct ScrollableDemo {
     scroller_width: u32,
     current_scroll_offset: scrollable::RelativeOffset,
     anchor: scrollable::Anchor,
+    last_source: Option<scrollable::Source>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Copy)]
@@ -40,7 +41,7 @@ enum Message {
     ScrollerWidthChanged(u32),
     ScrollToBeginning,
     ScrollToEnd,
-    Scrolled(scrollable::Viewport),
+    Scrolled(scrollable::Scroll),
 }
 
 impl ScrollableDemo {
@@ -53,6 +54,7 @@ impl ScrollableDemo {
             scroller_width: 10,
             current_scroll_offset: scrollable::RelativeOffset::START,
             anchor: scrollable::Anchor::Start,
+            last_source: None,
         }
     }
 
@@ -62,13 +64,21 @@ impl ScrollableDemo {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::AlignmentChanged(alignment) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.anchor = alignment;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::ScrollbarWidthChanged(width) => {
                 self.scrollbar_width = width;
@@ -93,15 +103,24 @@ impl ScrollableDemo {
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::ScrollToEnd => {
                 self.current_scroll_offset = scrollable::RelativeOffset::END;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
-            Message::Scrolled(viewport) => {
-                self.current_scroll_offset = viewport.relative_offset();
+            Message::Scrolled(scroll) => {
+                self.current_scroll_offset = scroll.viewport.relative_offset();
+                self.last_source = Some(scroll.source);
 
                 Task::none()
             }
@@ -313,7 +332,14 @@ impl ScrollableDemo {
             .into(),
         };
 
-        let content: Element<Message> = column![scroll_controls, scrollable_content, progress_bars]
+        let source = match self.last_source {
+            Some(source) => text(format!("Source: {source:?}")),
+            None => text("Source: ?"),
+        };
+
+        let scroll_info = row![progress_bars, source].align_y(Center).spacing(10);
+
+        let content: Element<Message> = column![scroll_controls, scrollable_content, scroll_info]
             .align_x(Center)
             .spacing(10)
             .into();

@@ -579,6 +579,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: core::Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.cells,
@@ -587,6 +588,7 @@ where
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }

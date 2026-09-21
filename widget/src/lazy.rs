@@ -203,6 +203,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let current = tree
             .state
@@ -214,6 +215,7 @@ where
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }

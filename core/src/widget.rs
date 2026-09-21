@@ -131,6 +131,7 @@ where
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: Vector,
+        _window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         Vec::new()
     }

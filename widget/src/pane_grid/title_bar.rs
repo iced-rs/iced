@@ -534,6 +534,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.children();
         let Some(padded) = children.next() else {
@@ -559,6 +560,7 @@ where
             renderer,
             viewport,
             translation,
+            window,
         );
 
         if let Some(controls) = controls {
@@ -580,6 +582,7 @@ where
                         renderer,
                         viewport,
                         translation,
+                        window,
                     ));
                 } else {
                     overlays.extend(controls.full.as_widget_mut().overlay(
@@ -588,6 +591,7 @@ where
                         renderer,
                         viewport,
                         translation,
+                        window,
                     ));
                 }
             } else {
@@ -597,6 +601,7 @@ where
                     renderer,
                     viewport,
                     translation,
+                    window,
                 ));
             }
         }

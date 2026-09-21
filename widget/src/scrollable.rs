@@ -31,7 +31,7 @@ use crate::core::text;
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
-use crate::core::widget::operation::{self, Operation};
+use crate::core::widget::operation::{self, Animation, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -40,6 +40,17 @@ use crate::core::{
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
+
+/// The distance (in logical pixels) scrolled per wheel line.
+///
+/// Chromium scrolls a fixed 120 CSS pixels per classic wheel notch,
+/// independent of the page's line height: the OS delta is normalized to
+/// 120 units (`ui::MouseWheelEvent::kWheelDelta`) and passed through 1:1.
+///
+/// This value assumes the platform reports one line per notch (e.g. X11).
+/// On platforms that report three lines per notch, `40.0` (Chromium's
+/// `cc::kPixelsPerLineStep`) is the equivalent value.
+const WHEEL_PX_PER_LINE: f32 = 120.0;
 
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
@@ -66,15 +77,16 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
+    Renderer: core::Renderer,
 {
     id: Option<widget::Id>,
     width: Length,
     height: Length,
     direction: Direction,
     auto_scroll: bool,
+    smooth_scroll: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Viewport) -> Option<Message> + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Scroll) -> Option<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
@@ -99,6 +111,7 @@ where
             height: Length::Fit,
             direction: direction.into(),
             auto_scroll: false,
+            smooth_scroll: true,
             content: content.into(),
             on_scroll: None,
             class: Theme::default(),
@@ -136,12 +149,14 @@ where
 
     /// Sets a handler to call when the [`Scrollable`] is scrolled.
     ///
-    /// The function takes the [`Viewport`] of the [`Scrollable`]
-    pub fn on_scroll<T>(mut self, f: impl Fn(Viewport) -> T + 'a) -> Self
+    /// The function takes a [`Scroll`], which contains the [`Viewport`] of
+    /// the [`Scrollable`] and the [`Source`] of the scroll that caused the
+    /// notification.
+    pub fn on_scroll<T>(mut self, f: impl Fn(Scroll) -> T + 'a) -> Self
     where
         T: Into<Option<Message>>,
     {
-        self.on_scroll = Some(Box::new(move |viewport| f(viewport).into()));
+        self.on_scroll = Some(Box::new(move |scroll| f(scroll).into()));
         self
     }
 
@@ -238,6 +253,25 @@ where
     /// By default, it is disabled.
     pub fn auto_scroll(mut self, auto_scroll: bool) -> Self {
         self.auto_scroll = auto_scroll;
+        self
+    }
+
+    /// Sets whether wheel scrolling should be smoothed out over time, instead of
+    /// moving the [`Scrollable`] immediately.
+    ///
+    /// When enabled, discrete scrolls (e.g. from a mouse wheel) move a target
+    /// scroll offset — carrying the momentum of the wheel notches — and the
+    /// [`Scrollable`] eases towards it over a few frames. High-precision
+    /// scrolls (e.g. from a touchpad), which are already smooth, are always
+    /// applied immediately.
+    ///
+    /// The setting also acts as the default behavior of the scroll operations
+    /// (`snap_to`, `scroll_to`, `scroll_by`): operations with
+    /// [`Animation::Auto`] scroll smoothly if and only if it is enabled.
+    ///
+    /// By default, it is enabled.
+    pub fn smooth_scroll(mut self, smooth_scroll: bool) -> Self {
+        self.smooth_scroll = smooth_scroll;
         self
     }
 
@@ -561,13 +595,17 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
+        // `Animation::Auto` scroll operations resolve against this
+        state.smooth_scroll = self.smooth_scroll;
+
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
-        let translation = state.translation(self.direction, bounds, content_bounds);
+        let content = content_layout.size();
+        let translation = state.last_translation;
         let viewport = viewport.intersection(&bounds).unwrap_or_default() + translation;
 
-        operation.scrollable(self.id.as_ref(), bounds, content_bounds, translation, state);
+        operation.scrollable(self.id.as_ref(), bounds, content, translation, state);
         operation.container(self.id.as_ref(), content_bounds, &viewport);
 
         operation.traverse(&mut |operation| {
@@ -598,11 +636,11 @@ where
         let bounds = layout.bounds();
         let cursor_over_scrollable = cursor.position_over(bounds);
 
-        let content = layout.children().next().unwrap();
-        let content_bounds = content.bounds();
+        let child = layout.children().next().unwrap();
+        let content = child.size();
 
-        let translation = state.translation(self.direction, bounds, content_bounds);
-        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let mut translation = state.last_translation;
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
 
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
@@ -627,28 +665,113 @@ where
         }
 
         let mut update = || {
+            if let Event::Window(window::Event::RedrawRequested(now)) = event {
+                // Step the smooth scrolling animation, if any;
+                // `last_frame` guards against stepping twice for the
+                // same instant
+                if state.last_frame != Some(*now) && state.step(*now, bounds, content) {
+                    let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
+                }
+
+                if state.target.is_some() {
+                    shell.request_redraw();
+                } else if let Interaction::AutoScrolling {
+                    origin,
+                    current,
+                    last_frame,
+                } = state.interaction
+                {
+                    if last_frame == Some(*now) {
+                        shell.request_redraw();
+                    } else {
+                        state.interaction = Interaction::AutoScrolling {
+                            origin,
+                            current,
+                            last_frame: None,
+                        };
+
+                        let mut delta = current - origin;
+
+                        if delta.x.abs() < AUTOSCROLL_DEADZONE {
+                            delta.x = 0.0;
+                        }
+
+                        if delta.y.abs() < AUTOSCROLL_DEADZONE {
+                            delta.y = 0.0;
+                        }
+
+                        if delta.x != 0.0 || delta.y != 0.0 {
+                            let time_delta = if let Some(last_frame) = last_frame {
+                                *now - last_frame
+                            } else {
+                                Duration::ZERO
+                            };
+
+                            let scroll_factor = time_delta.as_secs_f32();
+
+                            state.scroll(
+                                self.direction.align(Vector::new(
+                                    delta.x.signum()
+                                        * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
+                                    delta.y.signum()
+                                        * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
+                                        * scroll_factor,
+                                )),
+                                bounds,
+                                content,
+                            );
+
+                            state.source = Some(Source::AutoScroll);
+
+                            let has_scrolled =
+                                notify_scroll(state, &self.on_scroll, bounds, content, shell);
+
+                            if has_scrolled || time_delta.is_zero() {
+                                state.interaction = Interaction::AutoScrolling {
+                                    origin,
+                                    current,
+                                    last_frame: Some(*now),
+                                };
+
+                                shell.request_redraw();
+                            }
+                        } else {
+                            let _ = notify_viewport(state, &self.on_scroll, bounds, content, shell);
+                        }
+                    }
+                } else {
+                    let _ = notify_viewport(state, &self.on_scroll, bounds, content, shell);
+                }
+
+                // A source that did not produce a notification must not be
+                // attributed to a later one
+                if state.target.is_none() {
+                    state.source = None;
+                }
+
+                translation = state.translation(self.direction, bounds, content);
+                state.last_translation = translation;
+            }
+
             if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at() {
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
                         if let Some(scrollbar) = scrollbars.y {
-                            let Some(cursor_position) = cursor.land().position() else {
+                            let Some(cursor_position) = cursor.observe().position() else {
                                 return;
                             };
 
                             state.scroll_y_to(
                                 scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            state.source = Some(Source::Scrollbar);
+
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
 
                             shell.capture_event();
                         }
@@ -669,18 +792,13 @@ where
                             state.scroll_y_to(
                                 scrollbar.scroll_percentage_y(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
                             state.interaction = Interaction::YScrollerGrabbed(scroller_grabbed_at);
+                            state.source = Some(Source::Scrollbar);
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
                         }
 
                         shell.capture_event();
@@ -693,7 +811,7 @@ where
                 match event {
                     Event::Mouse(mouse::Event::CursorMoved { .. })
                     | Event::Touch(touch::Event::FingerMoved { .. }) => {
-                        let Some(cursor_position) = cursor.land().position() else {
+                        let Some(cursor_position) = cursor.observe().position() else {
                             return;
                         };
 
@@ -701,16 +819,12 @@ where
                             state.scroll_x_to(
                                 scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            state.source = Some(Source::Scrollbar);
+
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
                         }
 
                         shell.capture_event();
@@ -731,18 +845,13 @@ where
                             state.scroll_x_to(
                                 scrollbar.scroll_percentage_x(scroller_grabbed_at, cursor_position),
                                 bounds,
-                                content_bounds,
+                                content,
                             );
 
                             state.interaction = Interaction::XScrollerGrabbed(scroller_grabbed_at);
+                            state.source = Some(Source::Scrollbar);
 
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
 
                             shell.capture_event();
                         }
@@ -778,7 +887,7 @@ where
                     {
                         mouse::Cursor::Available(cursor_position + translation)
                     }
-                    _ => cursor.levitate() + translation,
+                    _ => cursor.obstruct() + translation,
                 };
 
                 let had_input_method = shell.input_method().is_enabled();
@@ -786,7 +895,7 @@ where
                 self.content.as_widget_mut().update(
                     &mut tree.children[0],
                     event,
-                    content,
+                    child,
                     cursor,
                     renderer,
                     shell,
@@ -821,11 +930,11 @@ where
 
             match event {
                 Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                    if cursor_over_scrollable.is_none() {
+                    if !cursor.land().is_over(bounds) {
                         return;
                     }
 
-                    let delta = match *delta {
+                    let (delta, is_lines) = match *delta {
                         mouse::ScrollDelta::Lines { x, y } => {
                             let is_shift_pressed = state.keyboard_modifiers.shift();
 
@@ -842,21 +951,35 @@ where
                                 Vector::new(y, x)
                             };
 
-                            // TODO: Configurable speed/friction (?)
-                            -movement * 60.0
+                            (-movement * WHEEL_PX_PER_LINE, true)
                         }
-                        mouse::ScrollDelta::Pixels { x, y } => -Vector::new(x, y),
+                        // Pixel deltas (e.g. from high-precision touchpads) are
+                        // already smooth, so scrolling them immediately avoids
+                        // double-smoothing them
+                        mouse::ScrollDelta::Pixels { x, y } => (-Vector::new(x, y), false),
                     };
 
-                    state.scroll(self.direction.align(delta), bounds, content_bounds);
+                    let delta = self.direction.align(delta);
+
+                    if self.smooth_scroll && is_lines {
+                        state.scroll_smoothly(delta, bounds, content, Instant::now());
+                    } else {
+                        state.scroll(delta, bounds, content);
+                    }
+
+                    state.source = Some(Source::Wheel);
 
                     let has_scrolled =
-                        notify_scroll(state, &self.on_scroll, bounds, content_bounds, shell);
+                        notify_scroll(state, &self.on_scroll, bounds, content, shell);
 
-                    let in_transaction = state.last_scrolled.is_some();
+                    let in_transaction = state.last_scrolled.is_some() || state.target.is_some();
 
                     if has_scrolled || in_transaction {
                         shell.capture_event();
+                    }
+
+                    if state.target.is_some() {
+                        shell.request_redraw();
                     }
                 }
                 Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Middle))
@@ -904,18 +1027,13 @@ where
                                 scroll_box_touched_at.y - cursor_position.y,
                             );
 
-                            state.scroll(self.direction.align(delta), bounds, content_bounds);
+                            state.scroll(self.direction.align(delta), bounds, content);
 
                             state.interaction = Interaction::TouchScrolling(cursor_position);
-
                             // TODO: bubble up touch movements if not consumed.
-                            let _ = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
+                            state.source = Some(Source::Touch);
+
+                            let _ = notify_scroll(state, &self.on_scroll, bounds, content, shell);
                         }
                         _ => {}
                     }
@@ -945,80 +1063,6 @@ where
                 }
                 Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
                     state.keyboard_modifiers = *modifiers;
-                }
-                Event::Window(window::Event::RedrawRequested(now)) => {
-                    if let Interaction::AutoScrolling {
-                        origin,
-                        current,
-                        last_frame,
-                    } = state.interaction
-                    {
-                        if last_frame == Some(*now) {
-                            shell.request_redraw();
-                            return;
-                        }
-
-                        state.interaction = Interaction::AutoScrolling {
-                            origin,
-                            current,
-                            last_frame: None,
-                        };
-
-                        let mut delta = current - origin;
-
-                        if delta.x.abs() < AUTOSCROLL_DEADZONE {
-                            delta.x = 0.0;
-                        }
-
-                        if delta.y.abs() < AUTOSCROLL_DEADZONE {
-                            delta.y = 0.0;
-                        }
-
-                        if delta.x != 0.0 || delta.y != 0.0 {
-                            let time_delta = if let Some(last_frame) = last_frame {
-                                *now - last_frame
-                            } else {
-                                Duration::ZERO
-                            };
-
-                            let scroll_factor = time_delta.as_secs_f32();
-
-                            state.scroll(
-                                self.direction.align(Vector::new(
-                                    delta.x.signum()
-                                        * delta.x.abs().powf(AUTOSCROLL_SMOOTHNESS)
-                                        * scroll_factor,
-                                    delta.y.signum()
-                                        * delta.y.abs().powf(AUTOSCROLL_SMOOTHNESS)
-                                        * scroll_factor,
-                                )),
-                                bounds,
-                                content_bounds,
-                            );
-
-                            let has_scrolled = notify_scroll(
-                                state,
-                                &self.on_scroll,
-                                bounds,
-                                content_bounds,
-                                shell,
-                            );
-
-                            if has_scrolled || time_delta.is_zero() {
-                                state.interaction = Interaction::AutoScrolling {
-                                    origin,
-                                    current,
-                                    last_frame: Some(*now),
-                                };
-
-                                shell.request_redraw();
-                            }
-
-                            return;
-                        }
-                    }
-
-                    let _ = notify_viewport(state, &self.on_scroll, bounds, content_bounds, shell);
                 }
                 _ => {}
             }
@@ -1078,10 +1122,10 @@ where
         };
 
         let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
 
-        let translation = state.translation(self.direction, bounds, content_bounds);
-        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let translation = state.last_translation;
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
         let cursor_over_scrollable = cursor.position_over(bounds);
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
@@ -1089,7 +1133,7 @@ where
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => cursor.levitate() + translation,
+            _ => cursor.obstruct() + translation,
         };
 
         let style = theme.style(
@@ -1229,17 +1273,17 @@ where
 
         let cursor_over_scrollable = cursor.position_over(bounds);
         let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
 
-        let translation = state.translation(self.direction, bounds, content_bounds);
-        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content_bounds);
+        let translation = state.last_translation;
+        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) = scrollbars.is_mouse_over(cursor);
 
         let cursor = match cursor_over_scrollable {
             Some(cursor_position) if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) => {
                 mouse::Cursor::Available(cursor_position + translation)
             }
-            _ => cursor.levitate() + translation,
+            _ => cursor.obstruct() + translation,
         };
 
         self.content.as_widget().mouse_interaction(
@@ -1258,14 +1302,15 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
-        let content_bounds = content_layout.bounds();
+        let content = content_layout.size();
         let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
 
-        let offset = state.translation(self.direction, bounds, content_bounds);
+        let offset = state.last_translation;
 
         let overlay = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
@@ -1273,10 +1318,11 @@ where
             renderer,
             &(viewport + offset),
             translation - offset,
+            window,
         );
 
         let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {
-            let scrollbars = Scrollbars::new(offset, self.direction, bounds, content_bounds);
+            let scrollbars = Scrollbars::new(offset, self.direction, bounds, content);
 
             Some(overlay::Element::new(Box::new(AutoScrollIcon {
                 origin,
@@ -1311,20 +1357,18 @@ where
     Renderer: text::Renderer,
     Theme: Catalog,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(Size::new(Self::SIZE, Self::SIZE))
-            .move_to(self.origin - Vector::new(Self::SIZE, Self::SIZE) / 2.0)
-    }
-
     fn draw(
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
         _cursor: mouse::Cursor,
     ) {
-        let bounds = layout.bounds();
+        let bounds = Rectangle::new(
+            self.origin - Vector::new(Self::SIZE, Self::SIZE) / 2.0,
+            Size::new(Self::SIZE, Self::SIZE),
+        );
+
         let style = theme
             .style(
                 self.class,
@@ -1335,7 +1379,7 @@ where
             )
             .auto_scroll;
 
-        renderer.with_layer(Rectangle::INFINITE, |renderer| {
+        renderer.with_layer(bounds, |renderer| {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
@@ -1450,12 +1494,12 @@ where
 
 fn notify_scroll<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
-    content_bounds: Rectangle,
+    content: Size,
     shell: &mut Shell<'_, Message>,
 ) -> bool {
-    if notify_viewport(state, on_scroll, bounds, content_bounds, shell) {
+    if notify_viewport(state, on_scroll, bounds, content, shell) {
         state.last_scrolled = Some(Instant::now());
 
         true
@@ -1466,20 +1510,20 @@ fn notify_scroll<Message>(
 
 fn notify_viewport<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Option<Message> + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Scroll) -> Option<Message> + '_>>,
     bounds: Rectangle,
-    content_bounds: Rectangle,
+    content: Size,
     shell: &mut Shell<'_, Message>,
 ) -> bool {
-    if content_bounds.width <= bounds.width && content_bounds.height <= bounds.height {
+    if content.width <= bounds.width && content.height <= bounds.height {
         return false;
     }
 
     let viewport = Viewport {
-        offset_x: state.offset_x,
-        offset_y: state.offset_y,
+        x: state.offset_x,
+        y: state.offset_y,
         bounds,
-        content_bounds,
+        content,
     };
 
     // Don't publish redundant viewports to shell
@@ -1494,7 +1538,7 @@ fn notify_viewport<Message>(
             |a: f32, b: f32| (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan());
 
         if last_notified.bounds == bounds
-            && last_notified.content_bounds == content_bounds
+            && last_notified.content == content
             && unchanged(last_relative_offset.x, current_relative_offset.x)
             && unchanged(last_relative_offset.y, current_relative_offset.y)
             && unchanged(last_absolute_offset.x, current_absolute_offset.x)
@@ -1504,10 +1548,38 @@ fn notify_viewport<Message>(
         }
     }
 
+    // The notification's source: the scroll in progress or pending, or,
+    // when the scroll position changed on its own, what changed in the
+    // layout
+    let source = if state.target.is_some() {
+        // An in-flight animation: report the segment's source, keeping it
+        // so that the settle notification reports it too
+        state.source
+    } else {
+        // A settled or pending scroll: consume the source
+        state.source.take()
+    }
+    .unwrap_or_else(|| {
+        if let Some(last_notified) = state.last_notified {
+            if last_notified.content != content {
+                Source::Content
+            } else {
+                Source::Resize
+            }
+        } else {
+            // The first notification: the content was laid out
+            Source::Content
+        }
+    });
+
     state.last_notified = Some(viewport);
 
     if let Some(on_scroll) = on_scroll
-        && let Some(message) = on_scroll(viewport)
+        && let Some(message) = on_scroll(Scroll {
+            viewport,
+            source,
+            target: state.target,
+        })
     {
         shell.publish(message);
     }
@@ -1519,6 +1591,12 @@ fn notify_viewport<Message>(
 struct State {
     offset_y: Offset,
     offset_x: Offset,
+    smooth_scroll: bool,
+    target: Option<Target>,
+    source: Option<Source>,
+    segment: Segment,
+    last_frame: Option<Instant>,
+    last_translation: Vector,
     interaction: Interaction,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
@@ -1526,6 +1604,14 @@ struct State {
     is_scrollbar_visible: bool,
     last_status: Option<Status>,
     last_id: Option<widget::Id>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Segment {
+    start: Point,
+    started: Instant,
+    duration: f32,
+    slope: f32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -1546,6 +1632,17 @@ impl Default for State {
         Self {
             offset_y: Offset::Absolute(0.0),
             offset_x: Offset::Absolute(0.0),
+            smooth_scroll: true,
+            target: None,
+            source: None,
+            segment: Segment {
+                start: Point::ORIGIN,
+                started: Instant::now(),
+                duration: 0.0,
+                slope: 0.0,
+            },
+            last_frame: None,
+            last_translation: Vector::ZERO,
             interaction: Interaction::None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
@@ -1558,26 +1655,53 @@ impl Default for State {
 }
 
 impl operation::Scrollable for State {
-    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
-        State::snap_to(self, offset);
+    fn snap_to(
+        &mut self,
+        offset: RelativeOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        State::snap_to(self, offset, animation, bounds, content);
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
-        State::scroll_to(self, offset);
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        State::scroll_to(self, offset, animation, bounds, content);
     }
 
-    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
-        State::scroll_by(self, offset, bounds, content_bounds);
+    fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        animation: Animation,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        State::scroll_by(self, offset, animation, bounds, content);
     }
 }
 
+/// An offset of a [`Scrollable`], in either absolute or relative units.
 #[derive(Debug, Clone, Copy, PartialEq)]
-enum Offset {
+pub enum Offset {
+    /// An absolute offset, in pixels.
     Absolute(f32),
+
+    /// A relative offset, as a fraction of the scrollable range.
     Relative(f32),
 }
 
 impl Offset {
+    /// Returns whether this offset is snapped, i.e. relative.
+    pub fn is_snapped(self) -> bool {
+        matches!(self, Offset::Relative(_))
+    }
+
     fn absolute(self, viewport: f32, content: f32) -> f32 {
         match self {
             Offset::Absolute(absolute) => absolute.min((content - viewport).max(0.0)),
@@ -1595,24 +1719,138 @@ impl Offset {
     }
 }
 
+/// The target of an in-progress smooth scroll.
+///
+/// The offsets are what the scroll settles at, so relative (snapped)
+/// offsets stay snapped.
+#[derive(Debug, Clone, Copy)]
+pub struct Target {
+    /// The X offset of the target, in [`Offset`] units.
+    pub x: Offset,
+
+    /// The Y offset of the target, in [`Offset`] units.
+    pub y: Offset,
+
+    /// The resolution of the offsets at the current bounds, the point the
+    /// running segment eases towards.
+    pub destination: Vector,
+}
+
+impl Target {
+    /// Resolves the given offsets into a [`Target`].
+    fn new(x: Offset, y: Offset, bounds: Rectangle, content: Size) -> Self {
+        let destination = Vector::new(
+            x.absolute(bounds.width, content.width),
+            y.absolute(bounds.height, content.height),
+        );
+
+        Self { x, y, destination }
+    }
+
+    /// A [`Target`] that settles at the given absolute `destination`.
+    fn absolute(destination: Vector) -> Self {
+        Self {
+            x: Offset::Absolute(destination.x),
+            y: Offset::Absolute(destination.y),
+            destination,
+        }
+    }
+}
+
+/// The source of a scroll notification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Source {
+    /// The user scrolled with a mouse wheel or touchpad.
+    Wheel,
+
+    /// The user scrolled by swiping with a touch.
+    Touch,
+
+    /// The user scrolled by dragging the scrollbar's scroller.
+    Scrollbar,
+
+    /// The user scrolled by auto-scrolling with the middle mouse button.
+    AutoScroll,
+
+    /// A scroll operation (`scroll_to`, `snap_to` or `scroll_by`) scrolled.
+    Operation,
+
+    /// The size of the content changed.
+    Content,
+
+    /// The size of the [`Scrollable`] changed.
+    Resize,
+}
+
+/// An event describing a scroll of a [`Scrollable`].
+#[derive(Debug, Clone, Copy)]
+pub struct Scroll {
+    /// The [`Viewport`] of the [`Scrollable`].
+    pub viewport: Viewport,
+
+    /// The [`Source`] of the scroll.
+    pub source: Source,
+
+    /// The [`Target`] of the scroll.
+    pub target: Option<Target>,
+}
+
+impl Scroll {
+    /// Returns the [`Viewport`] that this scroll settles at.
+    ///
+    /// While a smooth scrolling animation is in progress, the returned
+    /// [`Viewport`] carries the [`Target`]'s offsets — the offsets the
+    /// scroll settles at — instead of the current ones.
+    pub fn destination(&self) -> Viewport {
+        Viewport {
+            x: self
+                .target
+                .map(|target| target.x)
+                .unwrap_or(self.viewport.x),
+            y: self
+                .target
+                .map(|target| target.y)
+                .unwrap_or(self.viewport.y),
+            ..self.viewport
+        }
+    }
+}
+
 /// The current [`Viewport`] of the [`Scrollable`].
 #[derive(Debug, Clone, Copy)]
 pub struct Viewport {
-    offset_x: Offset,
-    offset_y: Offset,
-    bounds: Rectangle,
-    content_bounds: Rectangle,
+    /// The current X offset, in [`Offset`] units.
+    pub x: Offset,
+
+    /// The current Y offset, in [`Offset`] units.
+    pub y: Offset,
+
+    /// The bounds of the [`Scrollable`].
+    pub bounds: Rectangle,
+
+    /// The size of the content of the [`Scrollable`].
+    pub content: Size,
 }
 
 impl Viewport {
+    /// Returns the distance from the current scroll position to the end of
+    /// the content, in pixels, per axis.
+    ///
+    /// This is the amount of content that can still be scrolled into view:
+    /// it is zero when the content fits, or when the scroll is at the end.
+    pub fn distance_to_end(&self) -> Vector {
+        let AbsoluteOffset { x, y } = self.absolute_offset();
+
+        Vector::new(
+            (self.content.width - self.bounds.width - x).max(0.0),
+            (self.content.height - self.bounds.height - y).max(0.0),
+        )
+    }
+
     /// Returns the [`AbsoluteOffset`] of the current [`Viewport`].
     pub fn absolute_offset(&self) -> AbsoluteOffset {
-        let x = self
-            .offset_x
-            .absolute(self.bounds.width, self.content_bounds.width);
-        let y = self
-            .offset_y
-            .absolute(self.bounds.height, self.content_bounds.height);
+        let x = self.x.absolute(self.bounds.width, self.content.width);
+        let y = self.y.absolute(self.bounds.height, self.content.height);
 
         AbsoluteOffset { x, y }
     }
@@ -1626,8 +1864,8 @@ impl Viewport {
         let AbsoluteOffset { x, y } = self.absolute_offset();
 
         AbsoluteOffset {
-            x: (self.content_bounds.width - self.bounds.width).max(0.0) - x,
-            y: (self.content_bounds.height - self.bounds.height).max(0.0) - y,
+            x: (self.content.width - self.bounds.width).max(0.0) - x,
+            y: (self.content.height - self.bounds.height).max(0.0) - y,
         }
     }
 
@@ -1635,106 +1873,606 @@ impl Viewport {
     pub fn relative_offset(&self) -> RelativeOffset {
         let AbsoluteOffset { x, y } = self.absolute_offset();
 
-        let x = x / (self.content_bounds.width - self.bounds.width);
-        let y = y / (self.content_bounds.height - self.bounds.height);
+        let x = x / (self.content.width - self.bounds.width);
+        let y = y / (self.content.height - self.bounds.height);
 
         RelativeOffset { x, y }
-    }
-
-    /// Returns the bounds of the current [`Viewport`].
-    pub fn bounds(&self) -> Rectangle {
-        self.bounds
-    }
-
-    /// Returns the content bounds of the current [`Viewport`].
-    pub fn content_bounds(&self) -> Rectangle {
-        self.content_bounds
     }
 }
 
 impl State {
+    // The smooth scrolling behavior below (the easing curve, the animation
+    // durations, and the velocity-preserving retargeting) is derived from
+    // the Chromium project's wheel scroll animation
+    // (`cc/animation/scroll_offset_animation_curve.{h,cc}`), which is
+    // licensed under the BSD 3-Clause license:
+    // <https://chromium.googlesource.com/chromium/src/+/main/LICENSE>
+
+    /// The control points of the smooth scrolling easing curve.
+    ///
+    /// This is the standard ease-in-out cubic bezier, as used by Chromium for
+    /// wheel scrolling: the scroll starts from rest, peaks mid-way, and
+    /// settles on the target at rest.
+    const SMOOTH_SCROLL_BEZIER_X1: f32 = 0.42;
+    const SMOOTH_SCROLL_BEZIER_X2: f32 = 0.58;
+
+    /// The divisor of the smooth scrolling animation duration, matching
+    /// Chromium's.
+    const SMOOTH_SCROLL_DURATION_DIVISOR: f32 = 60.0;
+
+    /// The delay (in seconds) between a wheel event and the next drawn frame.
+    ///
+    /// Wheel events are processed between frames, and the smooth scrolling
+    /// animation is only stepped when the next frame is drawn. Starting the
+    /// animation one nominal frame *before* the event, where a nominal frame
+    /// is one unit of `SMOOTH_SCROLL_DURATION_DIVISOR`, ensures that the
+    /// first drawn frame already shows some progress, instead of repeating
+    /// the previous one.
+    ///
+    /// A full frame is used rather than the mean delay of half a frame: it
+    /// guarantees that the first drawn frame visibly moves, even when the
+    /// event arrives right after a frame. The animation then settles one
+    /// frame early, which is imperceptible since the curve ends at rest.
+    const SMOOTH_SCROLL_FRAME_DELAY: f32 = 1.0 / Self::SMOOTH_SCROLL_DURATION_DIVISOR;
+
+    /// The distances (in pixels) at which the smooth scrolling duration ramp
+    /// starts and ends.
+    const SMOOTH_SCROLL_DURATION_RAMP_START: f32 = WHEEL_PX_PER_LINE;
+    const SMOOTH_SCROLL_DURATION_RAMP_END: f32 = 480.0;
+
+    /// The shortest and longest smooth scrolling animation durations, in
+    /// `SMOOTH_SCROLL_DURATION_DIVISOR` units, matching Chromium's.
+    ///
+    /// The duration is *inversely* proportional to the distance within these
+    /// bounds: short scrolls get a longer (softer) animation, while long
+    /// scrolls get a shorter (snappier) one.
+    const SMOOTH_SCROLL_DURATION_MIN: f32 = 6.0;
+    const SMOOTH_SCROLL_DURATION_MAX: f32 = 12.0;
+
+    /// The factor applied to the time it would take to cover the new distance
+    /// at the current velocity when retargeting a running animation, matching
+    /// Chromium's.
+    ///
+    /// Bounding the new duration by this keeps a fast scroll from "rubber
+    /// banding" when a small new delta is added at high velocity.
+    const SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND: f32 = 2.5;
+
+    /// The clamp for the initial slope of a retargeted animation, matching
+    /// Chromium's.
+    const SMOOTH_SCROLL_SLOPE_CLAMP: f32 = 1000.0;
+
     fn new() -> Self {
         State::default()
     }
 
-    fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content_bounds: Rectangle) {
-        if bounds.height < content_bounds.height {
+    fn scroll(&mut self, delta: Vector<f32>, bounds: Rectangle, content: Size) {
+        self.cancel();
+
+        if bounds.height < content.height {
             self.offset_y = Offset::Absolute(
-                (self.offset_y.absolute(bounds.height, content_bounds.height) + delta.y)
-                    .clamp(0.0, content_bounds.height - bounds.height),
+                (self.offset_y.absolute(bounds.height, content.height) + delta.y)
+                    .clamp(0.0, content.height - bounds.height),
             );
         }
 
-        if bounds.width < content_bounds.width {
+        if bounds.width < content.width {
             self.offset_x = Offset::Absolute(
-                (self.offset_x.absolute(bounds.width, content_bounds.width) + delta.x)
-                    .clamp(0.0, content_bounds.width - bounds.width),
+                (self.offset_x.absolute(bounds.width, content.width) + delta.x)
+                    .clamp(0.0, content.width - bounds.width),
             );
         }
     }
 
-    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
+    /// Moves the *target* scroll offset by `delta`, for smooth scrolling.
+    ///
+    /// The delta is accumulated onto the pending target, if any, so that
+    /// quick wheel movements do not lose their (not yet scrolled) distance;
+    /// the target is then animated via [`State::scroll_smoothly_to`].
+    fn scroll_smoothly(
+        &mut self,
+        delta: Vector<f32>,
+        bounds: Rectangle,
+        content: Size,
+        now: Instant,
+    ) {
+        let current = Point::new(
+            self.offset_x.absolute(bounds.width, content.width),
+            self.offset_y.absolute(bounds.height, content.height),
+        );
+
+        // Accumulate onto the pending target, if any, so that quick wheel
+        // movements do not lose their (not yet scrolled) distance
+        let target = match self.target {
+            Some(target) => Vector::new(
+                Self::clamp_offset(target.destination.x + delta.x, bounds.width, content.width),
+                Self::clamp_offset(
+                    target.destination.y + delta.y,
+                    bounds.height,
+                    content.height,
+                ),
+            ),
+            None => Vector::new(
+                Self::clamp_offset(current.x + delta.x, bounds.width, content.width),
+                Self::clamp_offset(current.y + delta.y, bounds.height, content.height),
+            ),
+        };
+
+        self.scroll_smoothly_to(Target::absolute(target), bounds, content, now);
+    }
+
+    /// Scrolls smoothly to the given `target`.
+    ///
+    /// The target replaces any pending one. If a segment is already running,
+    /// it is retargeted from the current position and velocity, so that
+    /// scrolling flows instead of restarting.
+    ///
+    /// The target is then eased towards on each frame, via [`State::step`],
+    /// with an ease-in-out animation whose duration depends on the distance:
+    /// short scrolls get a longer (softer) animation, while long scrolls get a
+    /// shorter (snappier) one.
+    fn scroll_smoothly_to(
+        &mut self,
+        target: Target,
+        bounds: Rectangle,
+        content: Size,
+        now: Instant,
+    ) {
+        // The scroll is requested between frames; start the animation one
+        // nominal frame early so that the first drawn frame already shows
+        // progress
+        let now = now - Duration::from_secs_f32(Self::SMOOTH_SCROLL_FRAME_DELAY);
+
+        let current = Point::new(
+            self.offset_x.absolute(bounds.width, content.width),
+            self.offset_y.absolute(bounds.height, content.height),
+        );
+
+        // Nothing to animate: the content fits, or we're already at the target
+        if target.destination.x == current.x && target.destination.y == current.y {
+            self.offset_x = target.x;
+            self.offset_y = target.y;
+            self.target = None;
+            self.last_frame = None;
+            return;
+        }
+
+        let Some(ongoing) = self.target else {
+            // A new scroll run: start a fresh segment from rest at the
+            // current position
+            let distance = (target.destination.x - current.x)
+                .abs()
+                .max((target.destination.y - current.y).abs());
+
+            self.target = Some(target);
+            self.segment = Segment {
+                start: current,
+                started: now,
+                duration: Self::smooth_scroll_duration(distance),
+                slope: 0.0,
+            };
+            self.last_frame = Some(now);
+            return;
+        };
+
+        // The target is unchanged: keep the running segment as is
+        if ongoing.destination == target.destination {
+            return;
+        }
+
+        self.retarget(target, now);
+    }
+
+    /// Retargets the running segment towards `target`, from the current
+    /// position and velocity, so that scrolling flows instead of restarting.
+    fn retarget(&mut self, target: Target, now: Instant) {
+        // Retarget the running segment from the current position, preserving
+        // the current velocity
+        let start = self.animated_position(now);
+        let velocity = self.animated_velocity(now);
+        let new = Vector::new(
+            target.destination.x - start.x,
+            target.destination.y - start.y,
+        );
+
+        // The signed dimension with the largest magnitude, like Chromium's
+        let max_dimension = if new.x.abs() > new.y.abs() {
+            new.x
+        } else {
+            new.y
+        };
+
+        // The new duration, bounded so that a small delta added at high
+        // velocity does not "rubber band"; a bound with the wrong sign means
+        // the new delta is against the current motion, and does not apply
+        let mut duration = Self::smooth_scroll_duration(max_dimension.abs());
+        if velocity.abs() > 0.01 {
+            let bound = Self::SMOOTH_SCROLL_RETARGET_VELOCITY_BOUND * max_dimension / velocity;
+
+            if bound > 0.0 {
+                duration = duration.min(bound);
+            }
+        }
+
+        if max_dimension.abs() < 0.01 || duration < 0.01 {
+            // The new target is right on top of us: end the animation now
+            self.offset_x = target.x;
+            self.offset_y = target.y;
+            self.target = None;
+            self.last_frame = None;
+            return;
+        }
+
+        // Adjust the initial slope of the new segment so that it starts with
+        // the current velocity
+        let slope = (velocity * (duration / max_dimension)).clamp(
+            -Self::SMOOTH_SCROLL_SLOPE_CLAMP,
+            Self::SMOOTH_SCROLL_SLOPE_CLAMP,
+        );
+
+        self.target = Some(target);
+        self.segment = Segment {
+            start,
+            started: now,
+            duration,
+            slope,
+        };
+        self.last_frame = Some(now);
+    }
+
+    /// Steps the smooth scrolling animation forward, towards the target
+    /// offset.
+    ///
+    /// Returns `true` if the animation is still in progress.
+    fn step(&mut self, now: Instant, bounds: Rectangle, content: Size) -> bool {
+        let Some(target) = self.target else {
+            return false;
+        };
+
+        // The bounds and content may have changed while the animation is
+        // running; re-resolve the target, and retarget if it moved
+        let resolved = Target::new(target.x, target.y, bounds, content);
+        if resolved.destination != target.destination {
+            self.retarget(resolved, now);
+        }
+
+        let Some(target) = self.target else {
+            return false;
+        };
+        let started = self.segment.started;
+
+        let t = (now - started).as_secs_f32();
+        let progress = (t / self.segment.duration).clamp(0.0, 1.0);
+
+        if progress >= 1.0 {
+            // Settled exactly on the target, keeping relative (snapped)
+            // offsets
+            self.offset_x = target.x;
+            self.offset_y = target.y;
+            self.target = None;
+            self.last_frame = None;
+            return false;
+        }
+
+        let bez = Self::smooth_scroll_progress(progress, self.segment.slope);
+        self.offset_x = Offset::Absolute(
+            self.segment.start.x + (target.destination.x - self.segment.start.x) * bez,
+        );
+        self.offset_y = Offset::Absolute(
+            self.segment.start.y + (target.destination.y - self.segment.start.y) * bez,
+        );
+
+        self.last_frame = Some(now);
+        true
+    }
+
+    /// Cancels any in-progress smooth scrolling animation, keeping the current
+    /// offsets.
+    ///
+    /// This ensures that direct manipulation (scrollbar drags, touch scrolling,
+    /// auto-scrolling, programmatic scrolling) always takes priority over a
+    /// pending wheel animation.
+    fn cancel(&mut self) {
+        self.target = None;
+        self.last_frame = None;
+    }
+
+    /// Clamps an absolute scroll offset to the range in which the given content
+    /// can be scrolled inside the given viewport.
+    fn clamp_offset(offset: f32, viewport: f32, content: f32) -> f32 {
+        if content > viewport {
+            offset.clamp(0.0, content - viewport)
+        } else {
+            0.0
+        }
+    }
+
+    /// The animated position at `now`, or [`Point::ORIGIN`] if a segment is
+    /// not running.
+    fn animated_position(&self, now: Instant) -> Point {
+        let Some(target) = self.target else {
+            return Point::ORIGIN;
+        };
+
+        let started = self.segment.started;
+
+        let t = (now - started).as_secs_f32();
+        let progress = (t / self.segment.duration).clamp(0.0, 1.0);
+        let bez = Self::smooth_scroll_progress(progress, self.segment.slope);
+
+        Point::new(
+            self.segment.start.x + (target.destination.x - self.segment.start.x) * bez,
+            self.segment.start.y + (target.destination.y - self.segment.start.y) * bez,
+        )
+    }
+
+    /// The animated velocity at `now`, in pixels per second along the
+    /// segment's largest dimension, or `0.0` if a segment is not running.
+    fn animated_velocity(&self, now: Instant) -> f32 {
+        let Some(target) = self.target else {
+            return 0.0;
+        };
+
+        let started = self.segment.started;
+
+        let t = (now - started).as_secs_f32();
+        let progress = (t / self.segment.duration).clamp(0.0, 1.0);
+
+        if progress >= 1.0 {
+            return 0.0;
+        }
+
+        let dx = target.destination.x - self.segment.start.x;
+        let dy = target.destination.y - self.segment.start.y;
+        let max_dimension = if dx.abs() > dy.abs() { dx } else { dy };
+
+        Self::smooth_scroll_curve_slope(progress, self.segment.slope) * max_dimension
+            / self.segment.duration
+    }
+
+    /// The duration (in seconds) of a smooth scrolling segment covering the
+    /// given distance (in pixels).
+    ///
+    /// The duration is inversely proportional to the distance within a ramp:
+    /// short scrolls get a longer (softer) animation, while long scrolls get a
+    /// shorter (snappier) one.
+    fn smooth_scroll_duration(distance: f32) -> f32 {
+        let slope = (Self::SMOOTH_SCROLL_DURATION_MIN - Self::SMOOTH_SCROLL_DURATION_MAX)
+            / (Self::SMOOTH_SCROLL_DURATION_RAMP_END - Self::SMOOTH_SCROLL_DURATION_RAMP_START);
+        let offset =
+            Self::SMOOTH_SCROLL_DURATION_MAX - Self::SMOOTH_SCROLL_DURATION_RAMP_START * slope;
+
+        (offset + distance * slope).clamp(
+            Self::SMOOTH_SCROLL_DURATION_MIN,
+            Self::SMOOTH_SCROLL_DURATION_MAX,
+        ) / Self::SMOOTH_SCROLL_DURATION_DIVISOR
+    }
+
+    /// The progress of the smooth scrolling easing curve at the given time
+    /// progress (in `[0, 1]`), with the given initial slope.
+    ///
+    /// The curve is an ease-in-out cubic bezier whose initial control point is
+    /// scaled by `slope` (a slope of `0.0` is the plain ease-in-out curve).
+    fn smooth_scroll_progress(time: f32, slope: f32) -> f32 {
+        if time <= 0.0 {
+            return 0.0;
+        }
+
+        if time >= 1.0 {
+            return 1.0;
+        }
+
+        let s = Self::bezier_solve(time);
+        let y1 = Self::SMOOTH_SCROLL_BEZIER_X1 * slope;
+        let os = 1.0 - s;
+
+        // y(s), with y2 = 1
+        3.0 * y1 * s * os * os + 3.0 * s * s * os + s * s * s
+    }
+
+    /// The slope of the smooth scrolling easing curve (dy/dx) at the given
+    /// time progress (in `[0, 1]`), with the given initial slope.
+    fn smooth_scroll_curve_slope(time: f32, slope: f32) -> f32 {
+        let s = if time <= 0.0 {
+            0.0
+        } else if time >= 1.0 {
+            1.0
+        } else {
+            Self::bezier_solve(time)
+        };
+
+        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+        let y1 = x1 * slope;
+        let os = 1.0 - s;
+
+        // x'(s) and y'(s), with y2 = 1
+        let x_prime =
+            3.0 * x1 * os * (1.0 - 3.0 * s) + 3.0 * x2 * s * (2.0 - 3.0 * s) + 3.0 * s * s;
+        let y_prime = 3.0 * y1 * os * (1.0 - 3.0 * s) + 3.0 * s * (2.0 - 3.0 * s) + 3.0 * s * s;
+
+        y_prime / x_prime
+    }
+
+    /// Solves `x(s) = time` for `s` in `[0, 1]`, for the smooth scrolling
+    /// bezier's x-axis.
+    ///
+    /// The x-axis is strictly increasing for the control points used here, so
+    /// bisection converges unconditionally.
+    fn bezier_solve(time: f32) -> f32 {
+        let x1 = Self::SMOOTH_SCROLL_BEZIER_X1;
+        let x2 = Self::SMOOTH_SCROLL_BEZIER_X2;
+
+        let x = |s: f32| {
+            let os = 1.0 - s;
+            3.0 * x1 * s * os * os + 3.0 * x2 * s * s * os + s * s * s
+        };
+
+        let mut low = 0.0;
+        let mut high = 1.0;
+
+        for _ in 0..40 {
+            let mid = (low + high) / 2.0;
+
+            if x(mid) < time {
+                low = mid;
+            } else {
+                high = mid;
+            }
+        }
+
+        (low + high) / 2.0
+    }
+
+    fn scroll_y_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
+        self.cancel();
         self.offset_y = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap(bounds, content_bounds);
+        self.unsnap_y(bounds, content);
     }
 
-    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content_bounds: Rectangle) {
+    fn scroll_x_to(&mut self, percentage: f32, bounds: Rectangle, content: Size) {
+        self.cancel();
         self.offset_x = Offset::Relative(percentage.clamp(0.0, 1.0));
-        self.unsnap(bounds, content_bounds);
+        self.unsnap_x(bounds, content);
     }
 
-    fn snap_to(&mut self, offset: RelativeOffset<Option<f32>>) {
-        if let Some(x) = offset.x {
-            self.offset_x = Offset::Relative(x.clamp(0.0, 1.0));
+    /// Snaps the scroll to the given [`RelativeOffset`], with the given
+    /// [`Animation`].
+    fn snap_to(
+        &mut self,
+        offset: RelativeOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        self.source = Some(Source::Operation);
+
+        if !self.should_scroll_smoothly(animation) {
+            self.cancel();
+
+            if let Some(x) = offset.x {
+                self.offset_x = Offset::Relative(x.clamp(0.0, 1.0));
+            }
+
+            if let Some(y) = offset.y {
+                self.offset_y = Offset::Relative(y.clamp(0.0, 1.0));
+            }
+
+            return;
         }
 
-        if let Some(y) = offset.y {
-            self.offset_y = Offset::Relative(y.clamp(0.0, 1.0));
+        // Snap the targeted axes relative to the content, and keep the
+        // current offsets of the axes the snap does not target
+        let x = offset
+            .x
+            .map(|x| Offset::Relative(x.clamp(0.0, 1.0)))
+            .unwrap_or(self.offset_x);
+        let y = offset
+            .y
+            .map(|y| Offset::Relative(y.clamp(0.0, 1.0)))
+            .unwrap_or(self.offset_y);
+
+        self.scroll_smoothly_to(
+            Target::new(x, y, bounds, content),
+            bounds,
+            content,
+            Instant::now(),
+        );
+    }
+
+    /// Scrolls to the given [`AbsoluteOffset`], with the given [`Animation`].
+    fn scroll_to(
+        &mut self,
+        offset: AbsoluteOffset<Option<f32>>,
+        animation: Animation,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        self.source = Some(Source::Operation);
+
+        if !self.should_scroll_smoothly(animation) {
+            self.cancel();
+
+            if let Some(x) = offset.x {
+                self.offset_x = Offset::Absolute(x.max(0.0));
+            }
+
+            if let Some(y) = offset.y {
+                self.offset_y = Offset::Absolute(y.max(0.0));
+            }
+
+            return;
+        }
+
+        // Scroll the targeted axes to their clamped absolute offsets, and
+        // keep the current offsets of the axes the scroll does not target
+        let x = offset
+            .x
+            .map(|x| Offset::Absolute(Self::clamp_offset(x, bounds.width, content.width)))
+            .unwrap_or(self.offset_x);
+        let y = offset
+            .y
+            .map(|y| Offset::Absolute(Self::clamp_offset(y, bounds.height, content.height)))
+            .unwrap_or(self.offset_y);
+
+        self.scroll_smoothly_to(
+            Target::new(x, y, bounds, content),
+            bounds,
+            content,
+            Instant::now(),
+        );
+    }
+
+    /// Scrolls by the provided [`AbsoluteOffset`], with the given
+    /// [`Animation`].
+    fn scroll_by(
+        &mut self,
+        offset: AbsoluteOffset,
+        animation: Animation,
+        bounds: Rectangle,
+        content: Size,
+    ) {
+        self.source = Some(Source::Operation);
+
+        let delta = Vector::new(offset.x, offset.y);
+
+        if self.should_scroll_smoothly(animation) {
+            self.scroll_smoothly(delta, bounds, content, Instant::now());
+        } else {
+            self.scroll(delta, bounds, content);
         }
     }
 
-    fn scroll_to(&mut self, offset: AbsoluteOffset<Option<f32>>) {
-        if let Some(x) = offset.x {
-            self.offset_x = Offset::Absolute(x.max(0.0));
-        }
-
-        if let Some(y) = offset.y {
-            self.offset_y = Offset::Absolute(y.max(0.0));
+    /// Whether the given [`Animation`] requests a smooth scroll, given the
+    /// widget's smooth scrolling setting.
+    fn should_scroll_smoothly(&self, animation: Animation) -> bool {
+        match animation {
+            Animation::Auto => self.smooth_scroll,
+            Animation::Instant => false,
+            Animation::Smooth => true,
         }
     }
 
-    /// Scroll by the provided [`AbsoluteOffset`].
-    fn scroll_by(&mut self, offset: AbsoluteOffset, bounds: Rectangle, content_bounds: Rectangle) {
-        self.scroll(Vector::new(offset.x, offset.y), bounds, content_bounds);
+    fn unsnap_x(&mut self, bounds: Rectangle, content: Size) {
+        self.offset_x = Offset::Absolute(self.offset_x.absolute(bounds.width, content.width));
     }
 
-    /// Unsnaps the current scroll position, if snapped, given the bounds of the
-    /// [`Scrollable`] and its contents.
-    fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
-        self.offset_x =
-            Offset::Absolute(self.offset_x.absolute(bounds.width, content_bounds.width));
-        self.offset_y =
-            Offset::Absolute(self.offset_y.absolute(bounds.height, content_bounds.height));
+    fn unsnap_y(&mut self, bounds: Rectangle, content: Size) {
+        self.offset_y = Offset::Absolute(self.offset_y.absolute(bounds.height, content.height));
     }
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
     /// the bounds of the [`Scrollable`] and its contents.
-    fn translation(
-        &self,
-        direction: Direction,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) -> Vector {
+    fn translation(&self, direction: Direction, bounds: Rectangle, content: Size) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
                 self.offset_x
-                    .translation(bounds.width, content_bounds.width, horizontal.alignment)
+                    .translation(bounds.width, content.width, horizontal.alignment)
             } else {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
                 self.offset_y
-                    .translation(bounds.height, content_bounds.height, vertical.alignment)
+                    .translation(bounds.height, content.height, vertical.alignment)
             } else {
                 0.0
             },
@@ -1774,19 +2512,14 @@ struct Scrollbars {
 
 impl Scrollbars {
     /// Create y and/or x scrollbar(s) if content is overflowing the [`Scrollable`] bounds.
-    fn new(
-        translation: Vector,
-        direction: Direction,
-        bounds: Rectangle,
-        content_bounds: Rectangle,
-    ) -> Self {
+    fn new(translation: Vector, direction: Direction, bounds: Rectangle, content: Size) -> Self {
         let show_scrollbar_x = direction
             .horizontal()
-            .filter(|_scrollbar| content_bounds.width > bounds.width);
+            .filter(|_scrollbar| content.width > bounds.width);
 
         let show_scrollbar_y = direction
             .vertical()
-            .filter(|_scrollbar| content_bounds.height > bounds.height);
+            .filter(|_scrollbar| content.height > bounds.height);
 
         let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
             let Scrollbar {
@@ -1825,7 +2558,7 @@ impl Scrollbars {
                 height: scrollbar_height,
             };
 
-            let ratio = bounds.height / content_bounds.height;
+            let ratio = bounds.height / content.height;
 
             let scroller = if ratio >= 1.0 {
                 None
@@ -1852,7 +2585,7 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: vertical.alignment,
-                disabled: content_bounds.height <= bounds.height,
+                disabled: content.height <= bounds.height,
                 floating: spacing.is_none(),
             })
         } else {
@@ -1896,7 +2629,7 @@ impl Scrollbars {
                 height: width,
             };
 
-            let ratio = bounds.width / content_bounds.width;
+            let ratio = bounds.width / content.width;
 
             let scroller = if ratio >= 1.0 {
                 None
@@ -1924,7 +2657,7 @@ impl Scrollbars {
                 bounds: scrollbar_bounds,
                 scroller,
                 alignment: horizontal.alignment,
-                disabled: content_bounds.width <= bounds.width,
+                disabled: content.width <= bounds.width,
                 floating: spacing.is_none(),
             })
         } else {

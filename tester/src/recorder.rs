@@ -210,6 +210,7 @@ where
         renderer: &Renderer,
         _viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.has_overlay = false;
 
@@ -221,6 +222,7 @@ where
                 renderer,
                 &layout.bounds(),
                 translation,
+                window,
             )
             .into_iter()
             .map(|raw| {
@@ -263,21 +265,14 @@ where
     Renderer: core::Renderer + 'a,
     Theme: theme::Base + 'a,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.raw.as_overlay_mut().layout(renderer, bounds)
-    }
-
     fn draw(
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        self.raw
-            .as_overlay()
-            .draw(renderer, theme, style, layout, cursor);
+        self.raw.as_overlay().draw(renderer, theme, style, cursor);
 
         let Some(last_hovered) = self.last_hovered.get() else {
             return;
@@ -294,21 +289,13 @@ where
         });
     }
 
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        self.raw
-            .as_overlay_mut()
-            .operate(layout, renderer, operation);
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
+        self.raw.as_overlay_mut().operate(renderer, operation);
     }
 
     fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -326,32 +313,22 @@ where
                 self.last_hovered,
                 on_event,
                 |operation| {
-                    self.raw
-                        .as_overlay_mut()
-                        .operate(layout, renderer, operation);
+                    self.raw.as_overlay_mut().operate(renderer, operation);
                 },
             );
         }
 
         self.raw
             .as_overlay_mut()
-            .update(event, layout, cursor, renderer, shell);
+            .update(event, cursor, renderer, shell);
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.raw
-            .as_overlay()
-            .mouse_interaction(layout, cursor, renderer)
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        self.raw.as_overlay().mouse_interaction(cursor, renderer)
     }
 
     fn overlay<'b>(
         &'b mut self,
-        layout: Layout<'b>,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let Self {
@@ -362,7 +339,7 @@ where
         } = self;
 
         raw.as_overlay_mut()
-            .overlay(layout, renderer)
+            .overlay(renderer)
             .into_iter()
             .map(|raw| {
                 overlay::Element::new(Box::new(Overlay {

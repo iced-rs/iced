@@ -201,6 +201,7 @@ where
         renderer: &Renderer,
         viewport: &Rectangle,
         offset: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
 
@@ -227,12 +228,13 @@ where
                 state,
                 layout,
                 viewport: *viewport + offset,
+                window,
                 transformation,
             }))]
         } else {
             self.content
                 .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, offset)
+                .overlay(state, layout, renderer, viewport, offset, window)
         }
     }
 }
@@ -257,6 +259,7 @@ where
     state: &'a mut widget::Tree,
     layout: Layout<'a>,
     viewport: Rectangle,
+    window: Size,
     transformation: Transformation,
 }
 
@@ -266,16 +269,9 @@ where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        let bounds = self.layout.bounds() * self.transformation;
-
-        layout::Node::new(bounds.size()).move_to(bounds.position())
-    }
-
     fn update(
         &mut self,
         event: &Event,
-        _layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -298,7 +294,6 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        _layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
         let bounds = self.layout.bounds();
@@ -335,13 +330,10 @@ where
         });
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        if !cursor.is_over(layout.bounds()) {
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        let bounds = self.layout.bounds() * self.transformation;
+
+        if !cursor.is_over(bounds) {
             return mouse::Interaction::None;
         }
 
@@ -362,7 +354,6 @@ where
 
     fn overlay<'a>(
         &'a mut self,
-        _layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.float.content.as_widget_mut().overlay(
@@ -371,6 +362,7 @@ where
             renderer,
             &(self.viewport * self.transformation.inverse()),
             self.transformation.translation(),
+            self.window,
         )
     }
 }

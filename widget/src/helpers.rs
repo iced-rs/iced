@@ -702,10 +702,16 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
+            window: core::Size,
         ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            self.content
-                .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, translation)
+            self.content.as_widget_mut().overlay(
+                state,
+                layout,
+                renderer,
+                viewport,
+                translation,
+                window,
+            )
         }
     }
 
@@ -939,14 +945,20 @@ where
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
+            window: core::Size,
         ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             let mut overlays = [&mut self.base, &mut self.top]
                 .into_iter()
                 .zip(layout.children().zip(tree.children.iter_mut()))
                 .map(|(child, (layout, tree))| {
-                    child
-                        .as_widget_mut()
-                        .overlay(tree, layout, renderer, viewport, translation)
+                    child.as_widget_mut().overlay(
+                        tree,
+                        layout,
+                        renderer,
+                        viewport,
+                        translation,
+                        window,
+                    )
                 });
 
             let base_overlays = overlays.next().unwrap();

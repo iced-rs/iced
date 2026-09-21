@@ -72,7 +72,7 @@ impl WebSocket {
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
 
-                    operation::snap_to_end(MESSAGE_LOG)
+                    operation::snap_to_end(MESSAGE_LOG, operation::Animation::Auto)
                 }
             },
         }
