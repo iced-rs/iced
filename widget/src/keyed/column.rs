@@ -174,6 +174,7 @@ where
     Key: Copy + PartialEq,
 {
     keys: Vec<Key>,
+    cache: layout::flex::Cache,
 }
 
 impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -189,6 +190,7 @@ where
     fn state(&self) -> tree::State {
         tree::State::new(State {
             keys: self.keys.clone(),
+            cache: layout::flex::Cache::default(),
         })
     }
 
@@ -232,7 +234,9 @@ where
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        layout::flex::resolve(
+        let state = tree.state.downcast_mut::<State<Key>>();
+
+        tree.size = layout::flex::resolve(
             layout::flex::Axis::Vertical,
             renderer,
             limits,
@@ -241,8 +245,9 @@ where
             self.padding,
             self.spacing,
             self.align_items,
-            tree,
+            &mut tree.children,
             &mut self.children,
+            &mut state.cache,
         );
     }
 

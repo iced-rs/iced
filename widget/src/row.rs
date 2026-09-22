@@ -4,7 +4,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Operation, Tree};
+use crate::core::widget::{Operation, Tree, tree};
 use crate::core::{
     Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -177,6 +177,14 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<layout::flex::Cache>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(layout::flex::Cache::default())
+    }
+
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(&mut self.children);
 
@@ -198,7 +206,9 @@ where
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        layout::flex::resolve(
+        let cache = tree.state.downcast_mut::<layout::flex::Cache>();
+
+        tree.size = layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
             limits,
@@ -207,8 +217,9 @@ where
             self.padding,
             self.spacing,
             self.align,
-            tree,
+            &mut tree.children,
             &mut self.children,
+            cache,
         );
     }
 
