@@ -562,17 +562,16 @@ where
                 let is_vertical = matches!(self.direction, Direction::Vertical(_));
 
                 let padding = width + margin * 2.0 + spacing;
-                let state_is_scrollbar_visible =
-                    tree.state.downcast_mut::<State>().is_scrollbar_visible;
+                let was_scrollbar_visible = tree.state.downcast_mut::<State>().is_scrollbar_visible;
 
                 layout(
                     tree,
-                    if is_vertical && state_is_scrollbar_visible {
+                    if is_vertical && was_scrollbar_visible {
                         padding
                     } else {
                         0.0
                     },
-                    if !is_vertical && state_is_scrollbar_visible {
+                    if !is_vertical && was_scrollbar_visible {
                         padding
                     } else {
                         0.0
@@ -585,7 +584,7 @@ where
                     tree.children[0].size.width > tree.size.width
                 };
 
-                if state_is_scrollbar_visible != is_scrollbar_visible {
+                if was_scrollbar_visible != is_scrollbar_visible {
                     log::trace!("Scrollbar status quo has changed");
                     tree.state.downcast_mut::<State>().is_scrollbar_visible = is_scrollbar_visible;
 
