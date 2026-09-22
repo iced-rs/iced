@@ -237,7 +237,6 @@ where
             self.vertical_alignment,
             |tree, limits| {
                 self.content.as_widget_mut().layout(tree, renderer, limits);
-
                 tree.size
             },
         );
