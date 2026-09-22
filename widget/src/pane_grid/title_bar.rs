@@ -152,9 +152,9 @@ where
         container::draw_background(renderer, &style, bounds);
 
         let mut children = layout.children(tree);
-        let title_layout = children.next().unwrap().0;
-        let controls_layout = children.next().unwrap().0;
-        let compact_layout = children.next().unwrap().0;
+        let (title_layout, title_tree) = children.next().unwrap();
+        let (controls_layout, controls_tree) = children.next().unwrap();
+        let (compact_layout, compact_tree) = children.next().unwrap();
         let mut show_title = true;
 
         let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
@@ -165,7 +165,7 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_ref() {
                     compact.as_widget().draw(
-                        &tree.children[2],
+                        compact_tree,
                         renderer,
                         theme,
                         &inherited_style,
@@ -177,7 +177,7 @@ where
                     show_title = false;
 
                     controls.full.as_widget().draw(
-                        &tree.children[1],
+                        controls_tree,
                         renderer,
                         theme,
                         &inherited_style,
@@ -188,7 +188,7 @@ where
                 }
             } else {
                 controls.full.as_widget().draw(
-                    &tree.children[1],
+                    controls_tree,
                     renderer,
                     theme,
                     &inherited_style,
@@ -201,7 +201,7 @@ where
 
         if show_title {
             self.content.as_widget().draw(
-                &tree.children[0],
+                title_tree,
                 renderer,
                 theme,
                 &inherited_style,
@@ -218,9 +218,10 @@ where
     /// The whole [`TitleBar`] is a pick area, except its controls.
     pub fn is_over_pick_area(&self, tree: &Tree, layout: Layout, cursor_position: Point) -> bool {
         if layout.bounds().contains(cursor_position) {
-            let title_layout = layout.children(tree).next().unwrap().0;
-            let controls_layout = layout.children(tree).nth(1).unwrap().0;
-            let compact_layout = layout.children(tree).nth(2).unwrap().0;
+            let mut children = layout.children(tree);
+            let (title_layout, _) = children.next().unwrap();
+            let (controls_layout, _) = children.next().unwrap();
+            let (compact_layout, _) = children.next().unwrap();
 
             let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
@@ -315,9 +316,10 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let title_layout = layout.children(tree).next().unwrap().0;
-        let controls_layout = layout.children(tree).nth(1).unwrap().0;
-        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let mut children = layout.children_mut(tree);
+        let (title_layout, title_tree) = children.next().unwrap();
+        let (controls_layout, controls_tree) = children.next().unwrap();
+        let (compact_layout, compact_tree) = children.next().unwrap();
         let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
         let mut show_title = true;
 
@@ -325,7 +327,7 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_mut() {
                     compact.as_widget_mut().operate(
-                        &mut tree.children[2],
+                        compact_tree,
                         compact_layout,
                         viewport,
                         renderer,
@@ -335,7 +337,7 @@ where
                     show_title = false;
 
                     controls.full.as_widget_mut().operate(
-                        &mut tree.children[1],
+                        controls_tree,
                         controls_layout,
                         viewport,
                         renderer,
@@ -344,7 +346,7 @@ where
                 }
             } else {
                 controls.full.as_widget_mut().operate(
-                    &mut tree.children[1],
+                    controls_tree,
                     controls_layout,
                     viewport,
                     renderer,
@@ -355,7 +357,7 @@ where
 
         if show_title {
             self.content.as_widget_mut().operate(
-                &mut tree.children[0],
+                title_tree,
                 title_layout,
                 viewport,
                 renderer,
@@ -374,9 +376,10 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let title_layout = layout.children(tree).next().unwrap().0;
-        let controls_layout = layout.children(tree).nth(1).unwrap().0;
-        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let mut children = layout.children_mut(tree);
+        let (title_layout, title_tree) = children.next().unwrap();
+        let (controls_layout, controls_tree) = children.next().unwrap();
+        let (compact_layout, compact_tree) = children.next().unwrap();
         let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
         let mut show_title = true;
 
@@ -384,7 +387,7 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_mut() {
                     compact.as_widget_mut().update(
-                        &mut tree.children[2],
+                        compact_tree,
                         event,
                         compact_layout,
                         cursor,
@@ -396,7 +399,7 @@ where
                     show_title = false;
 
                     controls.full.as_widget_mut().update(
-                        &mut tree.children[1],
+                        controls_tree,
                         event,
                         controls_layout,
                         cursor,
@@ -407,7 +410,7 @@ where
                 }
             } else {
                 controls.full.as_widget_mut().update(
-                    &mut tree.children[1],
+                    controls_tree,
                     event,
                     controls_layout,
                     cursor,
@@ -420,7 +423,7 @@ where
 
         if show_title {
             self.content.as_widget_mut().update(
-                &mut tree.children[0],
+                title_tree,
                 event,
                 title_layout,
                 cursor,
@@ -439,13 +442,14 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let title_layout = layout.children(tree).next().unwrap().0;
-        let controls_layout = layout.children(tree).nth(1).unwrap().0;
-        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let mut children = layout.children(tree);
+        let (title_layout, title_tree) = children.next().unwrap();
+        let (controls_layout, controls_tree) = children.next().unwrap();
+        let (compact_layout, compact_tree) = children.next().unwrap();
         let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
         let title_interaction = self.content.as_widget().mouse_interaction(
-            &tree.children[0],
+            title_tree,
             title_layout,
             cursor,
             viewport,
@@ -454,7 +458,7 @@ where
 
         if let Some(controls) = &self.controls {
             let controls_interaction = controls.full.as_widget().mouse_interaction(
-                &tree.children[1],
+                controls_tree,
                 controls_layout,
                 cursor,
                 viewport,
@@ -464,7 +468,7 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_ref() {
                     let compact_interaction = compact.as_widget().mouse_interaction(
-                        &tree.children[2],
+                        compact_tree,
                         compact_layout,
                         cursor,
                         viewport,
@@ -492,22 +496,18 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let title_layout = layout.children(tree).next().unwrap().0;
-        let controls_layout = layout.children(tree).nth(1).unwrap().0;
-        let compact_layout = layout.children(tree).nth(2).unwrap().0;
+        let mut children = layout.children_mut(tree);
+        let (title_layout, title_tree) = children.next().unwrap();
+        let (controls_layout, controls_tree) = children.next().unwrap();
+        let (compact_layout, compact_tree) = children.next().unwrap();
         let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
         let Self {
             content, controls, ..
         } = self;
 
-        let mut states = tree.children.iter_mut();
-        let title_state = states.next().unwrap();
-        let controls_state = states.next().unwrap();
-        let compact_state = states.next().unwrap();
-
         let mut overlays = content.as_widget_mut().overlay(
-            title_state,
+            title_tree,
             title_layout,
             renderer,
             viewport,
@@ -519,7 +519,7 @@ where
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = &mut controls.compact {
                     overlays.extend(compact.as_widget_mut().overlay(
-                        compact_state,
+                        compact_tree,
                         compact_layout,
                         renderer,
                         viewport,
@@ -528,7 +528,7 @@ where
                     ));
                 } else {
                     overlays.extend(controls.full.as_widget_mut().overlay(
-                        controls_state,
+                        controls_tree,
                         controls_layout,
                         renderer,
                         viewport,
@@ -538,7 +538,7 @@ where
                 }
             } else {
                 overlays.extend(controls.full.as_widget_mut().overlay(
-                    controls_state,
+                    controls_tree,
                     controls_layout,
                     renderer,
                     viewport,

@@ -111,13 +111,14 @@ where
         }
 
         if let Some(title_bar) = &self.title_bar {
-            let body_layout = layout.children(tree).next().unwrap().0;
-            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
+            let mut children = layout.children(tree);
+            let (body_layout, body_tree) = children.next().unwrap();
+            let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
             let show_controls = cursor.is_over(bounds);
 
             self.body.as_widget().draw(
-                &tree.children[0],
+                body_tree,
                 renderer,
                 theme,
                 style,
@@ -127,7 +128,7 @@ where
             );
 
             title_bar.draw(
-                &tree.children[1],
+                title_bar_tree,
                 renderer,
                 theme,
                 style,
@@ -191,30 +192,27 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let body_layout = if let Some(title_bar) = &mut self.title_bar {
-            let body_layout = layout.children(tree).next().unwrap().0;
-            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
+        let (body_layout, body_tree) = if let Some(title_bar) = &mut self.title_bar {
+            let mut children = layout.children_mut(tree);
+            let (body_layout, body_tree) = children.next().unwrap();
+            let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
             title_bar.operate(
-                &mut tree.children[1],
+                title_bar_tree,
                 title_bar_layout,
                 viewport,
                 renderer,
                 operation,
             );
 
-            body_layout
+            (body_layout, body_tree)
         } else {
-            layout
+            layout.children_mut(tree).next().unwrap()
         };
 
-        self.body.as_widget_mut().operate(
-            &mut tree.children[0],
-            body_layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.body
+            .as_widget_mut()
+            .operate(body_tree, body_layout, viewport, renderer, operation);
     }
 
     pub(crate) fn update(
@@ -228,12 +226,13 @@ where
         viewport: &Rectangle,
         is_picked: bool,
     ) {
-        let body_layout = if let Some(title_bar) = &mut self.title_bar {
-            let body_layout = layout.children(tree).next().unwrap().0;
-            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
+        let (body_layout, body_tree) = if let Some(title_bar) = &mut self.title_bar {
+            let mut children = layout.children_mut(tree);
+            let (body_layout, body_tree) = children.next().unwrap();
+            let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
             title_bar.update(
-                &mut tree.children[1],
+                title_bar_tree,
                 event,
                 title_bar_layout,
                 cursor,
@@ -242,14 +241,14 @@ where
                 viewport,
             );
 
-            body_layout
+            (body_layout, body_tree)
         } else {
-            layout
+            layout.children_mut(tree).next().unwrap()
         };
 
         if !is_picked {
             self.body.as_widget_mut().update(
-                &mut tree.children[0],
+                body_tree,
                 event,
                 body_layout,
                 cursor,
@@ -295,17 +294,14 @@ where
         drag_enabled: bool,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) = if let Some(title_bar) = &self.title_bar {
-            let body_layout = layout.children(tree).next().unwrap().0;
-            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
+            let mut children = layout.children(tree);
+            let (body_layout, _) = children.next().unwrap();
+            let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
             let is_over_pick_area = cursor
                 .position()
                 .map(|cursor_position| {
-                    title_bar.is_over_pick_area(
-                        &tree.children[1],
-                        title_bar_layout,
-                        cursor_position,
-                    )
+                    title_bar.is_over_pick_area(title_bar_tree, title_bar_layout, cursor_position)
                 })
                 .unwrap_or_default();
 
@@ -314,7 +310,7 @@ where
             }
 
             let mouse_interaction = title_bar.mouse_interaction(
-                &tree.children[1],
+                title_bar_tree,
                 title_bar_layout,
                 cursor,
                 viewport,
@@ -342,15 +338,12 @@ where
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
-            let body_layout = layout.children(tree).next().unwrap().0;
-            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
-
-            let mut states = tree.children.iter_mut();
-            let body_state = states.next().unwrap();
-            let title_bar_state = states.next().unwrap();
+            let mut children = layout.children_mut(tree);
+            let (body_layout, body_tree) = children.next().unwrap();
+            let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
             let title_bar_overlays = title_bar.overlay(
-                title_bar_state,
+                title_bar_tree,
                 title_bar_layout,
                 renderer,
                 viewport,
@@ -359,7 +352,7 @@ where
             );
 
             let body_overlays = self.body.as_widget_mut().overlay(
-                body_state,
+                body_tree,
                 body_layout,
                 renderer,
                 viewport,
@@ -372,8 +365,10 @@ where
                 .chain(body_overlays)
                 .collect()
         } else {
+            let (layout, body_tree) = layout.children_mut(tree).next().unwrap();
+
             self.body.as_widget_mut().overlay(
-                &mut tree.children[0],
+                body_tree,
                 layout,
                 renderer,
                 viewport,
