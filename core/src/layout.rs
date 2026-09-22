@@ -180,7 +180,7 @@ pub fn padded(
     padding: impl Into<Padding>,
     layout: impl FnOnce(&mut widget::Tree, &Limits) -> Size,
 ) {
-    positioned(tree, limits, width, height, padding, layout, |_| {
+    positioned(tree, limits, width, height, padding, layout, |_, _| {
         Vector::ZERO
     });
 }
@@ -193,7 +193,7 @@ pub fn positioned(
     height: impl Into<Length>,
     padding: impl Into<Padding>,
     layout: impl FnOnce(&mut widget::Tree, &Limits) -> Size,
-    translate: impl FnOnce(Size) -> Vector,
+    translate: impl FnOnce(Size, Size) -> Vector,
 ) {
     let width = width.into();
     let height = height.into();
@@ -204,10 +204,8 @@ pub fn positioned(
     let content = layout(child, &limits.shrink(padding));
     let padding = padding.fit(content, limits.bounds());
 
-    tree.size = limits
-        .shrink(padding)
-        .resolve(width, height, content)
-        .expand(padding);
+    let container = limits.shrink(padding).resolve(width, height, content);
 
-    child.translation = Vector::new(padding.left, padding.top) + translate(content);
+    tree.size = container.expand(padding);
+    child.translation = Vector::new(padding.left, padding.top) + translate(content, container);
 }

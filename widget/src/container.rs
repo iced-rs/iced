@@ -386,12 +386,9 @@ pub fn layout(
         height,
         padding,
         |tree, limits| layout_content(tree, &limits.loose()),
-        |content| {
-            let padding = padding.fit(content, limits.bounds());
-            let size = limits.shrink(padding).resolve(width, height, content);
-
+        |content, container| {
             content.align(
-                size,
+                container,
                 Alignment::from(horizontal_alignment),
                 Alignment::from(vertical_alignment),
             )
