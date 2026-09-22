@@ -195,8 +195,8 @@ where
         let mut redraw_request = window::RedrawRequest::Wait;
         let mut input_method = InputMethod::Disabled;
         let mut clipboard = Clipboard::new();
+        let mut layout = Layout::new(self.state.size);
         let viewport = Rectangle::with_size(self.bounds);
-        let layout = Layout::new(self.state.size);
 
         let overlay = self.root.as_widget_mut().overlay(
             &mut self.state,
@@ -243,6 +243,8 @@ where
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
                         );
+
+                        layout = Layout::new(self.state.size);
                     }
 
                     maybe_overlay = {
@@ -345,6 +347,8 @@ where
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
                         );
+
+                        layout = Layout::new(self.state.size);
                     }
 
                     let overlay = self.root.as_widget_mut().overlay(
