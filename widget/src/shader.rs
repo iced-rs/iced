@@ -74,20 +74,15 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width, self.height)
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width, self.height);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -115,7 +110,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -132,7 +127,7 @@ where
         renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {

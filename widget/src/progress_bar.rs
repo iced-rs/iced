@@ -153,13 +153,8 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width(), self.height())
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width(), self.height());
     }
 
     fn draw(
@@ -168,7 +163,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {

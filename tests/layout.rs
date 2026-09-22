@@ -385,29 +385,50 @@ fn layout_fill_min_max_takes_leftover_space() {
     );
 }
 
-fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: layout::Node) {
+/// The expected geometry of a widget and its children, with positions
+/// relative to the parent.
+#[derive(Debug, PartialEq)]
+struct Node {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    children: Vec<Node>,
+}
+
+fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: Node) {
     let mut element = element.into();
 
     let mut tree = widget::Tree::new(&element);
     element.as_widget_mut().diff(&mut tree);
 
-    let layout = element
+    element
         .as_widget_mut()
         .layout(&mut tree, &(), &DEFAULT_LIMITS);
 
-    assert_eq!(layout, expect);
+    assert_eq!(to_node(&tree), expect);
 }
 
 fn node(
     (x, y): (impl Into<Pixels>, impl Into<Pixels>),
     (width, height): (impl Into<Pixels>, impl Into<Pixels>),
-    children: impl IntoIterator<Item = layout::Node>,
-) -> layout::Node {
-    let x = x.into().0;
-    let y = y.into().0;
-    let width = width.into().0;
-    let height = height.into().0;
+    children: impl IntoIterator<Item = Node>,
+) -> Node {
+    Node {
+        x: x.into().0,
+        y: y.into().0,
+        width: width.into().0,
+        height: height.into().0,
+        children: children.into_iter().collect(),
+    }
+}
 
-    layout::Node::with_children(Size { width, height }, children.into_iter().collect())
-        .move_to((x, y))
+fn to_node(tree: &widget::Tree) -> Node {
+    Node {
+        x: tree.translation.x,
+        y: tree.translation.y,
+        width: tree.size.width,
+        height: tree.size.height,
+        children: tree.children.iter().map(to_node).collect(),
+    }
 }

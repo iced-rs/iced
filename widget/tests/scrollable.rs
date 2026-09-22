@@ -762,20 +762,15 @@ where
         Size::new(Length::Fill, Length::Fill)
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, Length::Fill, Length::Fixed(1000.0))
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, Length::Fill, Length::Fixed(1000.0));
     }
 
     fn update(
         &mut self,
         _tree: &mut Tree,
         _event: &Event,
-        _layout: Layout<'_>,
+        _layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _shell: &mut core::Shell<'_, Message>,
@@ -790,7 +785,7 @@ where
         _renderer: &mut Renderer,
         _theme: &Theme,
         _style: &core::renderer::Style,
-        _layout: Layout<'_>,
+        _layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {

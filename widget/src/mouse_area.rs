@@ -171,21 +171,18 @@ where
         self.content.as_widget().size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -203,7 +200,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -229,7 +226,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -256,7 +253,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         renderer_style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -274,7 +271,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -311,7 +308,7 @@ fn update<Message: Clone, Theme, Renderer>(
     widget: &mut MouseArea<'_, Message, Theme, Renderer>,
     tree: &mut Tree,
     event: &Event,
-    layout: Layout<'_>,
+    layout: Layout,
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) {

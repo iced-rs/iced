@@ -212,12 +212,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
         let metrics = tree.state.downcast_mut::<Metrics>();
         let columns = self.columns.len();
         let rows = self.cells.len() / columns;
@@ -229,9 +224,6 @@ where
         } else {
             Length::Fill
         };
-
-        let mut cells = Vec::with_capacity(self.cells.len());
-        cells.resize(self.cells.len(), layout::Node::default());
 
         metrics.columns = vec![0.0; self.columns.len()];
         metrics.rows = vec![0.0; rows];
@@ -290,12 +282,11 @@ where
             )
             .width(width);
 
-            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
-            let size = limits.resolve(width, Length::Fit, layout.size());
+            cell.as_widget_mut().layout(state, renderer, &limits);
+            let size = limits.resolve(width, Length::Fit, state.size);
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
             metrics.rows[row] = metrics.rows[row].max(size.height);
-            cells[i] = layout;
 
             x += size.width + spacing_x;
         }
@@ -377,7 +368,7 @@ where
             )
             .width(width);
 
-            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
+            cell.as_widget_mut().layout(state, renderer, &limits);
             let size = limits.resolve(
                 if let Length::Fixed(_) = width {
                     width
@@ -385,12 +376,11 @@ where
                     table_fluid
                 },
                 Length::Fit,
-                layout.size(),
+                state.size,
             );
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
             metrics.rows[row] = metrics.rows[row].max(size.height);
-            cells[i] = layout;
 
             x += size.width + spacing_x;
         }
@@ -400,7 +390,7 @@ where
         let mut x = self.padding_x;
         let mut y = self.padding_y;
 
-        for (i, cell) in cells.iter_mut().enumerate() {
+        for (i, cell) in tree.children.iter_mut().enumerate() {
             let row = i / columns;
             let column = i % columns;
 
@@ -416,12 +406,15 @@ where
                 align_x, align_y, ..
             } = &self.columns[column];
 
-            cell.move_to_mut((x, y));
-            cell.align_mut(
+            let position = core::Vector::new(x, y);
+
+            let alignment = cell.size.align(
+                Size::new(metrics.columns[column], metrics.rows[row]),
                 Alignment::from(*align_x),
                 Alignment::from(*align_y),
-                Size::new(metrics.columns[column], metrics.rows[row]),
             );
+
+            cell.translation = position + alignment;
 
             x += metrics.columns[column] + spacing_x;
         }
@@ -440,24 +433,23 @@ where
             ),
         );
 
-        layout::Node::with_children(intrinsic, cells)
+        tree.size = intrinsic;
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &core::Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((cell, tree), layout) in self
+        for (cell, (layout, tree)) in self
             .cells
             .iter_mut()
-            .zip(&mut tree.children)
-            .zip(layout.children())
+            .zip(layout.iter_mut(&mut tree.children))
         {
             cell.as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
@@ -470,12 +462,11 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        for ((cell, state), layout) in self.cells.iter().zip(&tree.children).zip(layout.children())
-        {
+        for (cell, (layout, state)) in self.cells.iter().zip(layout.iter(&tree.children)) {
             cell.as_widget()
                 .draw(state, renderer, theme, style, layout, cursor, viewport);
         }
@@ -536,16 +527,15 @@ where
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.cells
             .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-            .map(|((cell, tree), layout)| {
+            .zip(layout.iter(&tree.children))
+            .map(|(cell, (layout, tree))| {
                 cell.as_widget()
                     .mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
@@ -556,16 +546,15 @@ where
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        for ((cell, state), layout) in self
+        for (cell, (layout, state)) in self
             .cells
             .iter_mut()
-            .zip(&mut tree.children)
-            .zip(layout.children())
+            .zip(layout.iter_mut(&mut tree.children))
         {
             cell.as_widget_mut()
                 .operate(state, layout, viewport, renderer, operation);
@@ -575,7 +564,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: core::Vector,

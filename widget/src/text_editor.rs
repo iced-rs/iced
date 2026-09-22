@@ -347,12 +347,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> iced_renderer::core::layout::Node {
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_mut::<State<Parser>>();
 
@@ -380,14 +375,14 @@ where
 
         let bounds = limits.resolve(self.width, self.height, internal.editor.min_bounds());
 
-        layout::Node::new(bounds.expand(self.padding))
+        tree.size = bounds.expand(self.padding);
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -485,7 +480,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _defaults: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -569,7 +564,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -590,7 +585,7 @@ where
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,

@@ -140,50 +140,42 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let limits = limits.width(self.width).height(self.height);
 
         if self.children.len() <= self.base_layer {
-            return layout::Node::new(limits.resolve(self.width, self.height, Size::ZERO));
+            tree.size = limits.resolve(self.width, self.height, Size::ZERO);
+            return;
         }
 
-        let base = self.children[self.base_layer].as_widget_mut().layout(
+        self.children[self.base_layer].as_widget_mut().layout(
             &mut tree.children[self.base_layer],
             renderer,
             &limits,
         );
 
-        let size = limits.resolve(self.width, self.height, base.size());
+        let size = limits.resolve(self.width, self.height, tree.children[self.base_layer].size);
         let limits = layout::Limits::new(Size::ZERO, size);
 
         let (under, above) = self.children.split_at_mut(self.base_layer);
         let (tree_under, tree_above) = tree.children.split_at_mut(self.base_layer);
 
-        let nodes = under
-            .iter_mut()
-            .zip(tree_under)
-            .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits))
-            .chain(std::iter::once(base))
-            .chain(
-                above[1..]
-                    .iter_mut()
-                    .zip(&mut tree_above[1..])
-                    .map(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits)),
-            )
-            .collect();
+        under.iter_mut().zip(tree_under).for_each(|(layer, tree)| {
+            layer.as_widget_mut().layout(tree, renderer, &limits);
+        });
 
-        layout::Node::with_children(size, nodes)
+        above[1..]
+            .iter_mut()
+            .zip(&mut tree_above[1..])
+            .for_each(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits));
+
+        tree.size = size;
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -192,9 +184,8 @@ where
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
-                .zip(&mut tree.children)
-                .zip(layout.children())
-                .for_each(|((child, state), layout)| {
+                .zip(layout.iter_mut(&mut tree.children))
+                .for_each(|(child, (layout, state))| {
                     child
                         .as_widget_mut()
                         .operate(state, layout, viewport, renderer, operation);
@@ -206,7 +197,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         mut cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -219,12 +210,11 @@ where
         let is_over = cursor.is_over(layout.bounds());
         let end = self.children.len() - 1;
 
-        for (i, ((child, tree), layout)) in self
+        for (i, (child, (layout, tree))) in self
             .children
             .iter_mut()
             .rev()
-            .zip(tree.children.iter_mut().rev())
-            .zip(layout.children().rev())
+            .zip(layout.iter_mut(&mut tree.children).rev())
             .enumerate()
         {
             child
@@ -250,7 +240,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -258,9 +248,8 @@ where
         self.children
             .iter()
             .rev()
-            .zip(tree.children.iter().rev())
-            .zip(layout.children().rev())
-            .map(|((child, tree), layout)| {
+            .zip(layout.iter(&tree.children).rev())
+            .map(|(child, (layout, tree))| {
                 child
                     .as_widget()
                     .mouse_interaction(tree, layout, cursor, viewport, renderer)
@@ -275,7 +264,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -290,9 +279,8 @@ where
                 self.children
                     .iter()
                     .rev()
-                    .zip(tree.children.iter().rev())
-                    .zip(layout.children().rev())
-                    .position(|((layer, tree), layout)| {
+                    .zip(layout.iter(&tree.children).rev())
+                    .position(|(layer, (layout, tree))| {
                         let interaction = layer
                             .as_widget()
                             .mouse_interaction(tree, layout, cursor, viewport, renderer);
@@ -308,8 +296,7 @@ where
             let mut layers = self
                 .children
                 .iter()
-                .zip(&tree.children)
-                .zip(layout.children())
+                .zip(layout.iter(&tree.children))
                 .enumerate();
 
             let layers = layers.by_ref();
@@ -329,11 +316,11 @@ where
                     }
                 };
 
-            for (i, ((layer, tree), layout)) in layers.take(layers_under) {
+            for (i, (layer, (layout, tree))) in layers.take(layers_under) {
                 draw_layer(i, layer, tree, layout, mouse::Cursor::Unavailable);
             }
 
-            for (i, ((layer, tree), layout)) in layers {
+            for (i, (layer, (layout, tree))) in layers {
                 draw_layer(i, layer, tree, layout, cursor);
             }
         }
@@ -342,7 +329,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,

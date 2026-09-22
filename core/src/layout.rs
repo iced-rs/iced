@@ -1,34 +1,27 @@
 //! Position your widgets properly.
 mod limits;
-mod node;
 
 pub mod flex;
 
 pub use limits::Limits;
-pub use node::Node;
 
+use crate::widget;
 use crate::{Length, Padding, Point, Rectangle, Size, Vector};
 
-/// The bounds of a [`Node`] and its children, using absolute coordinates.
-#[derive(Debug, Clone, Copy)]
-pub struct Layout<'a> {
+/// The bounds of a widget and its children, using absolute coordinates.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Layout {
     position: Point,
-    node: &'a Node,
+    size: Size,
     parent: Option<Rectangle>,
 }
 
-impl<'a> Layout<'a> {
-    /// Creates a new [`Layout`] for the given [`Node`] at the origin.
-    pub fn new(node: &'a Node) -> Self {
-        Self::with_offset(Vector::new(0.0, 0.0), node)
-    }
-
-    /// Creates a new [`Layout`] for the given [`Node`] with the provided offset
-    /// from the origin.
-    pub fn with_offset(offset: Vector, node: &'a Node) -> Self {
+impl Layout {
+    /// Creates a new [`Layout`] for the given [`Size`] at the origin.
+    pub fn new(size: Size) -> Self {
         Self {
-            position: node.position() + offset,
-            node,
+            position: Point::ORIGIN,
+            size,
             parent: None,
         }
     }
@@ -42,22 +35,22 @@ impl<'a> Layout<'a> {
     pub fn move_to(self, position: impl Into<Point>) -> Self {
         Self {
             position: position.into(),
-            node: self.node,
+            size: self.size,
             parent: self.parent,
         }
     }
 
     /// Returns the bounds of the [`Layout`].
     ///
-    /// The returned [`Rectangle`] describes the position and size of a
-    /// [`Node`].
+    /// The returned [`Rectangle`] describes the position and size of the
+    /// laid out widget.
     pub fn bounds(&self) -> Rectangle {
-        Rectangle::new(self.position, self.node.size())
+        Rectangle::new(self.position, self.size)
     }
 
     /// Returns the size of the [`Layout`].
     pub fn size(&self) -> Size {
-        self.node.size()
+        self.size
     }
 
     /// Returns the bounds of the parent of this [`Layout`], if any.
@@ -66,84 +59,72 @@ impl<'a> Layout<'a> {
     }
 
     /// Returns an iterator over the children of this [`Layout`].
-    pub fn children(self) -> impl DoubleEndedIterator<Item = Layout<'a>> + ExactSizeIterator {
-        let parent = self.bounds();
-        let offset = Vector::new(self.position.x, self.position.y);
-
-        self.node.children().iter().map(move |node| Layout {
-            position: node.position() + offset,
-            node,
-            parent: Some(parent),
-        })
+    pub fn iter(
+        self,
+        children: &[widget::Tree],
+    ) -> impl DoubleEndedIterator<Item = (Self, &widget::Tree)> + ExactSizeIterator {
+        children.iter().map(move |child| (self.child(child), child))
     }
 
-    /// Returns the [`Layout`] of the child at the given index.
-    ///
-    /// This can be useful if you ever need to access children out of order
-    /// for layering purposes.
-    ///
-    /// # Panics
-    /// Panics if index is out of bounds.
-    pub fn child(self, index: usize) -> Layout<'a> {
-        let node = &self.node.children()[index];
-        let offset = Vector::new(self.position.x, self.position.y);
+    /// Returns a mutable iterator over the children of this [`Layout`].
+    pub fn iter_mut(
+        self,
+        children: &mut [widget::Tree],
+    ) -> impl DoubleEndedIterator<Item = (Self, &mut widget::Tree)> + ExactSizeIterator {
+        children
+            .iter_mut()
+            .map(move |child| (self.child(child), child))
+    }
 
-        Layout {
-            position: node.position() + offset,
-            node,
+    fn child(&self, child: &widget::Tree) -> Self {
+        Self {
+            position: self.position + child.translation,
+            size: child.size,
             parent: Some(self.bounds()),
         }
     }
 }
 
-/// Produces a [`Node`] with two children nodes one right next to each other.
-pub fn next_to_each_other(
-    limits: &Limits,
-    spacing: f32,
-    left: impl FnOnce(&Limits) -> Node,
-    right: impl FnOnce(&Limits) -> Node,
-) -> Node {
-    let left_node = left(limits);
-    let left_size = left_node.size();
-
-    let right_limits = limits.shrink(Size::new(left_size.width + spacing, 0.0));
-
-    let right_node = right(&right_limits);
-    let right_size = right_node.size();
-
-    let (left_y, right_y) = if left_size.height > right_size.height {
-        (0.0, (left_size.height - right_size.height) / 2.0)
+/// Lays out two children side by side in the provided [`widget::Tree`].
+///
+/// The tree must have exactly two children. The first is placed at the left
+/// edge, and the second to its right after `spacing`, both vertically
+/// centered with respect to each other.
+///
+/// The resulting size is stored in the tree, along with the children's
+/// sizes and translations.
+pub fn next_to_each_other(tree: &mut widget::Tree, left: Size, right: Size, spacing: f32) {
+    let (left_y, right_y) = if left.height > right.height {
+        (0.0, (left.height - right.height) / 2.0)
     } else {
-        ((right_size.height - left_size.height) / 2.0, 0.0)
+        ((right.height - left.height) / 2.0, 0.0)
     };
 
-    Node::with_children(
-        Size::new(
-            left_size.width + spacing + right_size.width,
-            left_size.height.max(right_size.height),
-        ),
-        vec![
-            left_node.move_to(Point::new(0.0, left_y)),
-            right_node.move_to(Point::new(left_size.width + spacing, right_y)),
-        ],
-    )
+    tree.size = Size::new(
+        left.width + spacing + right.width,
+        left.height.max(right.height),
+    );
+
+    tree.children[0].size = left;
+    tree.children[0].translation = Vector::new(0.0, left_y);
+
+    tree.children[1].size = right;
+    tree.children[1].translation = Vector::new(left.width + spacing, right_y);
 }
 
-/// Computes the resulting [`Node`] that fits the [`Limits`] given
+/// Computes the resulting [`Size`] that fits the [`Limits`] given
 /// some width and height requirements and no intrinsic size.
-pub fn atomic(limits: &Limits, width: impl Into<Length>, height: impl Into<Length>) -> Node {
+pub fn atomic(limits: &Limits, width: impl Into<Length>, height: impl Into<Length>) -> Size {
     let width = width.into();
     let height = height.into();
 
-    Node::new(
-        limits
-            .width(width)
-            .height(height)
-            .resolve(width, height, Size::ZERO),
-    )
+    limits
+        .width(width)
+        .height(height)
+        .resolve(width, height, Size::ZERO)
 }
 
-/// Computes the resulting [`Node`] that fits the [`Limits`] given
+/// Computes the resulting [`Size`] that fits the [`Limits`] given
 /// some width and height requirements and a closure that produces
 /// the intrinsic [`Size`] inside the given [`Limits`].
 pub fn sized(
@@ -151,70 +132,74 @@ pub fn sized(
     width: impl Into<Length>,
     height: impl Into<Length>,
     f: impl FnOnce(&Limits) -> Size,
-) -> Node {
+) -> Size {
     let width = width.into();
     let height = height.into();
 
     let limits = limits.width(width).height(height);
     let intrinsic_size = f(&limits);
 
-    Node::new(limits.resolve(width, height, intrinsic_size))
+    limits.resolve(width, height, intrinsic_size)
 }
 
-/// Computes the resulting [`Node`] that fits the [`Limits`] given
+/// Computes the resulting [`Size`] that fits the [`Limits`] given
 /// some width and height requirements and a closure that produces
-/// the content [`Node`] inside the given [`Limits`].
+/// the content inside the given [`Limits`].
 pub fn contained(
+    tree: &mut widget::Tree,
     limits: &Limits,
     width: impl Into<Length>,
     height: impl Into<Length>,
-    f: impl FnOnce(&Limits) -> Node,
-) -> Node {
+    f: impl FnOnce(&mut widget::Tree, &Limits) -> Size,
+) {
     let width = width.into();
     let height = height.into();
-
     let limits = limits.width(width).height(height);
-    let content = f(&limits);
 
-    Node::with_children(limits.resolve(width, height, content.size()), vec![content])
+    let child = &mut tree.children[0];
+    let content = f(child, &limits);
+
+    tree.size = limits.resolve(width, height, content);
+    child.translation = Vector::ZERO;
 }
 
-/// Computes the [`Node`] that fits the [`Limits`] given some width, height, and
-/// [`Padding`] requirements and a closure that produces the content [`Node`]
+/// Computes the [`Size`] that fits the [`Limits`] given some width, height, and
+/// [`Padding`] requirements and a closure that produces the content
 /// inside the given [`Limits`].
 pub fn padded(
+    tree: &mut widget::Tree,
     limits: &Limits,
     width: impl Into<Length>,
     height: impl Into<Length>,
     padding: impl Into<Padding>,
-    layout: impl FnOnce(&Limits) -> Node,
-) -> Node {
-    positioned(limits, width, height, padding, layout, |content, _| content)
+    layout: impl FnOnce(&mut widget::Tree, &Limits) -> Size,
+) {
+    positioned(tree, limits, width, height, padding, layout, |_, _| {
+        Vector::ZERO
+    });
 }
 
-/// Computes a [`padded`] [`Node`] with a positioning step.
+/// Computes a [`padded`] [`Size`] with a positioning step.
 pub fn positioned(
+    tree: &mut widget::Tree,
     limits: &Limits,
     width: impl Into<Length>,
     height: impl Into<Length>,
     padding: impl Into<Padding>,
-    layout: impl FnOnce(&Limits) -> Node,
-    position: impl FnOnce(Node, Size) -> Node,
-) -> Node {
+    layout: impl FnOnce(&mut widget::Tree, &Limits) -> Size,
+    translate: impl FnOnce(Size, Size) -> Vector,
+) {
     let width = width.into();
     let height = height.into();
     let padding = padding.into();
-
     let limits = limits.width(width).height(height);
-    let content = layout(&limits.shrink(padding));
-    let padding = padding.fit(content.size(), limits.bounds());
 
-    let size = limits
-        .shrink(padding)
-        .resolve(width, height, content.size());
+    let child = &mut tree.children[0];
+    let content = layout(child, &limits.shrink(padding));
+    let padding = padding.fit(content, limits.bounds());
 
-    Node::with_children(
-        size.expand(padding),
-        vec![position(content.move_to((padding.left, padding.top)), size)],
-    )
+    let container = limits.shrink(padding).resolve(width, height, content);
+
+    tree.size = container.expand(padding);
+    child.translation = Vector::new(padding.left, padding.top) + translate(content, container);
 }

@@ -78,19 +78,14 @@ where
         self.content.as_widget().size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.content.as_widget_mut().layout(tree, renderer, limits)
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.content.as_widget_mut().layout(tree, renderer, limits);
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -104,7 +99,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -118,7 +113,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -134,7 +129,7 @@ where
         renderer: &mut Renderer,
         theme: &AnyTheme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -168,7 +163,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,

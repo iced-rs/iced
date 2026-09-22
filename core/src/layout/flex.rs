@@ -18,7 +18,7 @@
 // limitations under the License.
 use crate::Element;
 
-use crate::layout::{Limits, Node};
+use crate::layout::{Limits, Vector};
 use crate::length;
 use crate::widget;
 use crate::{Alignment, Length, Padding, Size};
@@ -56,10 +56,43 @@ impl Axis {
     }
 }
 
+/// Per-container retained state for [`resolve`].
+///
+/// [`resolve`] keeps per-child bookkeeping across its multiple passes. To
+/// avoid allocating that bookkeeping on every `layout` call, each flex
+/// container stores a [`Cache`] in its [`widget::Tree`] state, and
+/// [`resolve`] reuses the buffer stored there between layout calls.
+///
+/// The type is opaque: its contents are managed entirely by [`resolve`].
+#[derive(Debug, Default)]
+pub struct Cache {
+    metas: Vec<Meta>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Meta {
+    main: Length,
+    cross: Length,
+    category: Category,
+    resolved: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Category {
+    Static,
+    CrossFluid,
+    CrossFluidDeferred(f32),
+    MainFluid,
+}
+
 /// Computes the flex layout with the given axis and limits, applying spacing,
 /// padding and alignment to the items as needed.
 ///
-/// It returns a new layout [`Node`].
+/// The layout is stored in the provided children [`widget::Tree`]s, and the
+/// resolved size of the container is returned.
+///
+/// The provided [`Cache`] holds the per-child bookkeeping of the algorithm;
+/// it is expected to be reused between calls (see [`Cache`]).
 pub fn resolve<Message, Theme, Renderer>(
     axis: Axis,
     renderer: &Renderer,
@@ -69,9 +102,10 @@ pub fn resolve<Message, Theme, Renderer>(
     padding: Padding,
     spacing: f32,
     align_items: Alignment,
+    children: &mut [widget::Tree],
     items: &mut [Element<'_, Message, Theme, Renderer>],
-    trees: &mut [widget::Tree],
-) -> Node
+    cache: &mut Cache,
+) -> Size
 where
     Renderer: crate::Renderer,
 {
@@ -105,26 +139,8 @@ where
     let mut cross = 0.0f32;
     let mut available = axis.main(limits.max) - total_spacing;
 
-    let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
-    nodes.resize(items.len(), Node::default());
-
-    #[derive(Debug, Clone, Copy)]
-    struct Meta {
-        main: Length,
-        cross: Length,
-        category: Category,
-        resolved: bool,
-    }
-
-    #[derive(Debug, Clone, Copy)]
-    enum Category {
-        Static,
-        CrossFluid,
-        CrossFluidDeferred(f32),
-        MainFluid,
-    }
-
-    let mut metas = Vec::with_capacity(items.len());
+    cache.metas.clear();
+    cache.metas.reserve(items.len());
 
     // STATIC PASS
     // We lay out non-fluid elements in the main axis.
@@ -158,7 +174,7 @@ where
             category,
         };
 
-        metas.push(meta);
+        cache.metas.push(meta);
 
         match meta.main {
             Length::Bounded {
@@ -202,15 +218,14 @@ where
             infinite,
         );
 
-        let layout = child
+        child
             .as_widget_mut()
-            .layout(&mut trees[i], renderer, &child_limits);
+            .layout(&mut children[i], renderer, &child_limits);
 
-        let size = layout.size();
+        let size = children[i].size;
 
         available -= axis.main(size);
         cross = cross.max(axis.cross(size));
-        nodes[i] = layout;
     }
 
     // CROSS FLUID PASS
@@ -225,7 +240,7 @@ where
     // allowing them to use the cross calculations of the next pass.
     if cross_dynamic && some_fill_cross {
         for (i, child) in items.iter_mut().enumerate() {
-            let meta = metas[i];
+            let meta = cache.metas[i];
 
             let Category::CrossFluid = meta.category else {
                 continue;
@@ -241,15 +256,14 @@ where
                 cross_infinite,
             );
 
-            let layout = child
+            child
                 .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits);
+                .layout(&mut children[i], renderer, &child_limits);
 
-            let size = layout.size();
+            let size = children[i].size;
 
             available -= axis.main(size);
             cross = cross.max(axis.cross(size));
-            nodes[i] = layout;
         }
     }
 
@@ -287,7 +301,7 @@ where
         };
 
         for (i, child) in items.iter_mut().enumerate() {
-            let meta = &mut metas[i];
+            let meta = &mut cache.metas[i];
 
             if meta.resolved {
                 continue;
@@ -358,14 +372,15 @@ where
                 infinite,
             );
 
-            let layout = child
+            child
                 .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits);
+                .layout(&mut children[i], renderer, &child_limits);
 
-            cross = cross.max(axis.cross(layout.size()));
-            remaining -= axis.main(layout.size());
+            let size = children[i].size;
+
+            cross = cross.max(axis.cross(size));
+            remaining -= axis.main(size);
             fill_main_sum -= fill_main_factor;
-            nodes[i] = layout;
             meta.resolved = true;
         }
 
@@ -382,7 +397,7 @@ where
     // We use the remaining space to evenly allocate space based on fill factors.
     if !main_compress {
         for (i, child) in items.iter_mut().enumerate() {
-            let meta = &mut metas[i];
+            let meta = cache.metas[i];
 
             if meta.resolved {
                 continue;
@@ -422,12 +437,12 @@ where
                 infinite,
             );
 
-            let layout = child
+            child
                 .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits);
+                .layout(&mut children[i], renderer, &child_limits);
 
-            cross = cross.max(axis.cross(layout.size()));
-            nodes[i] = layout;
+            let size = children[i].size;
+            cross = cross.max(axis.cross(size));
         }
     }
 
@@ -437,7 +452,7 @@ where
     // a fixed length in the main axis.
     if cross_dynamic && some_fill_cross {
         for (i, child) in items.iter_mut().enumerate() {
-            let meta = metas[i];
+            let meta = cache.metas[i];
 
             let Category::CrossFluidDeferred(main) = meta.category else {
                 continue;
@@ -452,14 +467,12 @@ where
                 cross_infinite,
             );
 
-            let layout = child
+            child
                 .as_widget_mut()
-                .layout(&mut trees[i], renderer, &child_limits);
+                .layout(&mut children[i], renderer, &child_limits);
 
-            let size = layout.size();
-
+            let size = children[i].size;
             cross = cross.max(axis.cross(size));
-            nodes[i] = layout;
         }
     }
 
@@ -473,23 +486,30 @@ where
 
     // ALIGNMENT PASS
     // We align all the laid out nodes in the cross axis, if needed.
-    for (i, node) in nodes.iter_mut().enumerate() {
+
+    for (i, tree) in children.iter_mut().enumerate() {
         if i > 0 {
             main += spacing;
         }
 
-        node.move_to_mut(axis.pack(main, pad.1));
+        let position = {
+            let (x, y) = axis.pack(main, pad.1);
 
-        match axis {
+            Vector::new(x, y)
+        };
+
+        let alignment = match axis {
             Axis::Horizontal => {
-                node.align_mut(Alignment::Start, align_items, Size::new(0.0, cross));
+                tree.size
+                    .align(Size::new(0.0, cross), Alignment::Start, align_items)
             }
-            Axis::Vertical => {
-                node.align_mut(align_items, Alignment::Start, Size::new(cross, 0.0));
-            }
-        }
+            Axis::Vertical => tree
+                .size
+                .align(Size::new(cross, 0.0), align_items, Alignment::Start),
+        };
 
-        main += axis.main(node.size());
+        tree.translation = position + alignment;
+        main += axis.main(tree.size);
     }
 
     let main = match axis {
@@ -497,7 +517,5 @@ where
         Axis::Vertical => limits.resolve_height(height, main - pad.0),
     };
 
-    let size = Size::from(axis.pack(main, cross));
-
-    Node::with_children(size.expand(padding), nodes)
+    Size::from(axis.pack(main, cross)).expand(padding)
 }

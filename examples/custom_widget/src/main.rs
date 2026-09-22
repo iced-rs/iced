@@ -34,11 +34,11 @@ mod circle {
 
         fn layout(
             &mut self,
-            _tree: &mut widget::Tree,
+            tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
-        ) -> layout::Node {
-            layout::Node::new(Size::new(self.radius * 2.0, self.radius * 2.0))
+        ) {
+            tree.size = Size::new(self.radius * 2.0, self.radius * 2.0);
         }
 
         fn draw(
@@ -47,7 +47,7 @@ mod circle {
             renderer: &mut Renderer,
             _theme: &Theme,
             _style: &renderer::Style,
-            layout: Layout<'_>,
+            layout: Layout,
             _cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {

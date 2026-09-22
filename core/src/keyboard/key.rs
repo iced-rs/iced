@@ -1101,21 +1101,21 @@ pub enum Code {
     NumpadMemoryStore,
     /// <kbd>M</kbd> Subtract current entry from the value stored in memory.
     NumpadMemorySubtract,
-    /// <kbd>*</kbd> on a keyboard. For use with numpads that provide mathematical
-    /// operations (<kbd>+</kbd>, <kbd>-</kbd> <kbd>*</kbd> and <kbd>/</kbd>).
+    /// <kbd>&ast;</kbd> on a keyboard. For use with numpads that provide mathematical
+    /// operations (<kbd>+</kbd>, <kbd>-</kbd> <kbd>&ast;</kbd> and <kbd>/</kbd>).
     ///
-    /// Use `NumpadStar` for the <kbd>*</kbd> key on phones and remote controls.
+    /// Use `NumpadStar` for the <kbd>&ast;</kbd> key on phones and remote controls.
     NumpadMultiply,
     /// <kbd>(</kbd> Found on the Microsoft Natural Keyboard.
     NumpadParenLeft,
     /// <kbd>)</kbd> Found on the Microsoft Natural Keyboard.
     NumpadParenRight,
-    /// <kbd>*</kbd> on a phone or remote control device.
+    /// <kbd>&ast;</kbd> on a phone or remote control device.
     ///
     /// This key is typically found below the <kbd>7</kbd> key and to the left of
     /// the <kbd>0</kbd> key.
     ///
-    /// Use <kbd>"NumpadMultiply"</kbd> for the <kbd>*</kbd> key on
+    /// Use <kbd>"NumpadMultiply"</kbd> for the <kbd>&ast;</kbd> key on
     /// numeric keypads.
     NumpadStar,
     /// <kbd>-</kbd>

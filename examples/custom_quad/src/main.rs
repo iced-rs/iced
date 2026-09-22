@@ -172,11 +172,11 @@ mod quad {
 
         fn layout(
             &mut self,
-            _tree: &mut widget::Tree,
+            tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
-        ) -> layout::Node {
-            layout::Node::new(Size::new(self.size, self.size))
+        ) {
+            tree.size = Size::new(self.size, self.size);
         }
 
         fn draw(
@@ -185,7 +185,7 @@ mod quad {
             renderer: &mut Renderer,
             _theme: &Theme,
             _style: &renderer::Style,
-            layout: Layout<'_>,
+            layout: Layout,
             _cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {

@@ -20,13 +20,8 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         Size::new(Length::Shrink, Length::Shrink)
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut widget::Tree,
-        _renderer: &Renderer,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::Node::new(Size::ZERO)
+    fn layout(&mut self, tree: &mut widget::Tree, _renderer: &Renderer, _limits: &layout::Limits) {
+        tree.size = Size::ZERO;
     }
 
     fn draw(
@@ -35,7 +30,7 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -45,7 +40,7 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         &mut self,
         _tree: &mut widget::Tree,
         event: &Event,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, ()>,
@@ -59,7 +54,7 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
     fn overlay<'a>(
         &'a mut self,
         _tree: &'a mut widget::Tree,
-        _layout: layout::Layout<'a>,
+        _layout: layout::Layout,
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: core::Vector,
@@ -152,13 +147,8 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         Size::new(Length::Fill, Length::Fill)
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut widget::Tree,
-        _renderer: &Renderer,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::Node::new(Size::new(100.0, 100.0))
+    fn layout(&mut self, tree: &mut widget::Tree, _renderer: &Renderer, _limits: &layout::Limits) {
+        tree.size = Size::new(100.0, 100.0);
     }
 
     fn draw(
@@ -167,7 +157,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -177,7 +167,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         &mut self,
         _tree: &mut widget::Tree,
         _event: &Event,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         _shell: &mut Shell<'_, OverlayMessage>,
@@ -188,7 +178,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
     fn overlay<'a>(
         &'a mut self,
         _tree: &'a mut widget::Tree,
-        _layout: layout::Layout<'a>,
+        _layout: layout::Layout,
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: core::Vector,

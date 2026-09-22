@@ -146,8 +146,8 @@ where
 
         // The tooltip's contents may have changed, so the cached node
         // (if any) is no longer valid
-        if let State::Open { layout, .. } = state {
-            *layout = None;
+        if let State::Open { needs_relayout, .. } = state {
+            *needs_relayout = true;
         }
 
         tree.diff_children(&mut [self.content.as_widget_mut(), self.tooltip.as_widget_mut()]);
@@ -165,22 +165,19 @@ where
         self.content.as_widget().size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.content
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -196,7 +193,7 @@ where
                     if self.delay == Duration::ZERO {
                         *state = State::Open {
                             cursor_position,
-                            layout: None,
+                            needs_relayout: true,
                         };
                         shell.invalidate_overlay();
                     } else {
@@ -214,7 +211,7 @@ where
                 (State::Hovered { .. }, Some(cursor_position)) => {
                     *state = State::Open {
                         cursor_position,
-                        layout: None,
+                        needs_relayout: true,
                     };
                     shell.invalidate_overlay();
                 }
@@ -263,7 +260,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -283,7 +280,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         inherited_style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -301,7 +298,7 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
@@ -324,10 +321,10 @@ where
 
         // (Re)compute the tooltip's node if it was cleared by
         // `Widget::diff` or `Widget::update`
-        if let State::Open { layout, .. } = state
-            && layout.is_none()
+        if let State::Open { needs_relayout, .. } = state
+            && *needs_relayout
         {
-            let tooltip_layout = self.tooltip.as_widget_mut().layout(
+            self.tooltip.as_widget_mut().layout(
                 tooltip_tree,
                 renderer,
                 &layout::Limits::new(
@@ -340,21 +337,16 @@ where
                 ),
             );
 
-            *layout = Some(tooltip_layout);
+            *needs_relayout = false;
         }
 
         let tooltip = if let State::Open {
-            cursor_position,
-            layout: tooltip_layout,
+            cursor_position, ..
         } = state
         {
-            let tooltip_layout = tooltip_layout
-                .as_ref()
-                .expect("the tooltip's node was computed above");
-
             let position = layout.position() + translation;
             let content_bounds = layout.bounds();
-            let tooltip_size = tooltip_layout.size();
+            let tooltip_size = tooltip_tree.size;
 
             let viewport = Rectangle::with_size(window);
 
@@ -401,7 +393,7 @@ where
             }
 
             Some(overlay::Element::new(Box::new(Overlay {
-                layout: Layout::new(tooltip_layout).move_to(tooltip_bounds.position()),
+                layout: Layout::new(tooltip_tree.size).move_to(tooltip_bounds.position()),
                 tooltip: &mut self.tooltip,
                 tree: tooltip_tree,
                 class: &self.class,
@@ -417,7 +409,7 @@ where
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
@@ -474,7 +466,7 @@ enum State {
     },
     Open {
         cursor_position: Point,
-        layout: Option<layout::Node>,
+        needs_relayout: bool,
     },
 }
 
@@ -483,7 +475,7 @@ where
     Theme: container::Catalog,
     Renderer: text::Renderer,
 {
-    layout: Layout<'b>,
+    layout: Layout,
     tooltip: &'b mut Element<'a, Message, Theme, Renderer>,
     tree: &'b mut widget::Tree,
     class: &'b Theme::Class<'a>,
