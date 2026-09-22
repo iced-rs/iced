@@ -474,19 +474,15 @@ where
             &None
         };
 
-        let picked_pane = tree
-            .state
-            .downcast_mut::<Memory>()
-            .action
-            .picked_pane()
-            .map(|(pane, _)| pane);
+        let Memory { action, .. } = tree.state.downcast_mut();
+        let picked_pane = action.picked_pane().map(|(pane, _)| pane);
 
-        for ((pane, content), (layout, tree)) in self
+        for ((pane, content), child) in self
             .panes
             .iter()
             .copied()
             .zip(&mut self.contents)
-            .zip(layout.children_mut(tree))
+            .zip(tree.children.iter_mut())
             .filter(|((pane, _), _)| {
                 self.internal
                     .maximized()
@@ -496,11 +492,16 @@ where
             let is_picked = picked_pane == Some(pane);
 
             content.update(
-                tree, event, layout, cursor, renderer, shell, viewport, is_picked,
+                child,
+                event,
+                layout.child(child.translation, child.size),
+                cursor,
+                renderer,
+                shell,
+                viewport,
+                is_picked,
             );
         }
-
-        let Memory { action, .. } = tree.state.downcast_mut();
 
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
