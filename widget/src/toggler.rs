@@ -393,15 +393,14 @@ where
         );
 
         let mut children = layout.iter(&tree.children);
-
-        let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
-
-        let scale_factor = renderer.hint_factor().unwrap_or(1.0);
-
         let (track_layout, _) = children.next().unwrap();
 
         if self.label.is_some() {
             let (label_layout, _) = children.next().unwrap();
+
+            let state = tree
+                .state
+                .downcast_ref::<widget::text::State<Renderer::Paragraph>>();
 
             crate::text::draw(
                 renderer,
@@ -437,7 +436,8 @@ where
         let toggle_bounds = {
             // Try to align toggle to the pixel grid
             let bounds = if renderer::CRISP {
-                (bounds * scale_factor).round() * (1.0 / scale_factor)
+                let scale_factor = renderer.hint_factor().unwrap_or(1.0);
+                bounds.hint(scale_factor)
             } else {
                 bounds
             };
