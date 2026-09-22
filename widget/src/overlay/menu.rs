@@ -157,7 +157,6 @@ where
 #[derive(Debug)]
 pub struct State {
     tree: Tree,
-    layout: layout::Layout,
 }
 
 impl State {
@@ -165,7 +164,6 @@ impl State {
     pub fn new() -> Self {
         Self {
             tree: Tree::empty(),
-            layout: layout::Layout::new(Size::ZERO),
         }
     }
 }
@@ -258,15 +256,10 @@ where
         state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
         list.layout(&mut state.tree, renderer, &limits);
 
-        state.layout = Layout::new(state.tree.size).move_to(Point::new(
-            state.tree.translation.x,
-            state.tree.translation.y,
-        ));
-
-        let layout = state.layout.move_to(if space_below > space_above {
+        let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
             position + Vector::new(0.0, target_height)
         } else {
-            position - Vector::new(0.0, state.layout.size().height)
+            position - Vector::new(0.0, state.tree.size.height)
         });
 
         Self {
