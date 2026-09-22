@@ -9,7 +9,7 @@ use crate::core::shell;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 use std::cell::{Cell, RefCell};
 
@@ -123,7 +123,6 @@ where
         component,
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
-        layout: layout::Layout::new(Size::ZERO),
         is_outdated: Cell::new(true),
         has_overlay: false,
     })
@@ -136,7 +135,6 @@ where
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
-    layout: layout::Layout,
     is_outdated: Cell<bool>,
     has_overlay: bool,
 }
@@ -191,14 +189,9 @@ where
             self.view
                 .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, limits);
-
-            self.layout = Layout::new(tree.children[0].size).move_to(Point::new(
-                tree.children[0].translation.x,
-                tree.children[0].translation.y,
-            ));
         }
 
-        tree.size = self.layout.size();
+        tree.size = tree.children[0].size;
     }
 
     fn update(
@@ -238,8 +231,7 @@ where
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::new(self.layout.size())
-                    .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
+                layout,
                 cursor,
                 renderer,
                 &mut local_shell,
@@ -275,15 +267,13 @@ where
 
         tree.diff_children(std::slice::from_mut(&mut self.view));
 
-        let previous_size = self.layout.size();
+        let previous_size = tree.size;
+
         self.view
             .as_widget_mut()
             .layout(&mut tree.children[0], renderer, &self.limits);
 
-        self.layout = Layout::new(tree.children[0].size).move_to(Point::new(
-            tree.children[0].translation.x,
-            tree.children[0].translation.y,
-        ));
+        tree.size = tree.children[0].size;
 
         let new_sizing = self.view.as_widget().size();
 
@@ -298,7 +288,7 @@ where
         if new_sizing != previous_sizing {
             shell.invalidate_widgets();
         } else if (new_sizing.width == Length::Shrink || new_sizing.height == Length::Shrink)
-            && previous_size != self.layout.size()
+            && previous_size != tree.size
         {
             shell.invalidate_layout();
         } else {
@@ -318,8 +308,7 @@ where
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::new(self.layout.size())
-                    .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
+                layout,
                 cursor,
                 renderer,
                 &mut local_shell,
@@ -349,8 +338,7 @@ where
             renderer,
             theme,
             style,
-            Layout::new(self.layout.size())
-                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
+            layout,
             cursor,
             viewport,
         );
@@ -377,8 +365,7 @@ where
 
         self.view.as_widget().mouse_interaction(
             &tree.children[0],
-            Layout::new(self.layout.size())
-                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
+            layout,
             cursor,
             viewport,
             renderer,
@@ -393,18 +380,19 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let internal = tree
-            .state
-            .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
-            .borrow();
+        {
+            let internal = tree
+                .state
+                .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
+                .borrow();
 
-        self.component
-            .operate(&internal.state, layout.bounds(), operation);
+            self.component
+                .operate(&internal.state, layout.bounds(), operation);
+        }
 
         self.view.as_widget_mut().operate(
             &mut tree.children[0],
-            Layout::new(self.layout.size())
-                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
+            layout,
             viewport,
             renderer,
             operation,
@@ -422,8 +410,7 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let overlays = self.view.as_widget_mut().overlay(
             &mut tree.children[0],
-            Layout::new(self.layout.size())
-                .move_to(layout.position() + (self.layout.position() - Point::ORIGIN)),
+            layout,
             renderer,
             viewport,
             translation,
