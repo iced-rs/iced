@@ -406,17 +406,7 @@ fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expec
         .as_widget_mut()
         .layout(&mut tree, &(), &DEFAULT_LIMITS);
 
-    assert_eq!(tree_geometry(&tree), expect);
-}
-
-fn tree_geometry(tree: &widget::Tree) -> Node {
-    Node {
-        x: tree.translation.x,
-        y: tree.translation.y,
-        width: tree.size.width,
-        height: tree.size.height,
-        children: tree.children.iter().map(tree_geometry).collect(),
-    }
+    assert_eq!(to_node(&tree), expect);
 }
 
 fn node(
@@ -430,5 +420,15 @@ fn node(
         width: width.into().0,
         height: height.into().0,
         children: children.into_iter().collect(),
+    }
+}
+
+fn to_node(tree: &widget::Tree) -> Node {
+    Node {
+        x: tree.translation.x,
+        y: tree.translation.y,
+        width: tree.size.width,
+        height: tree.size.height,
+        children: tree.children.iter().map(to_node).collect(),
     }
 }
