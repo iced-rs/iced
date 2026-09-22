@@ -111,7 +111,7 @@ where
         }
 
         if let Some(title_bar) = &self.title_bar {
-            let mut children = layout.children(tree);
+            let mut children = layout.iter(&tree.children);
             let (body_layout, body_tree) = children.next().unwrap();
             let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
@@ -193,7 +193,7 @@ where
         operation: &mut dyn widget::Operation,
     ) {
         let (body_layout, body_tree) = if let Some(title_bar) = &mut self.title_bar {
-            let mut children = layout.children_mut(tree);
+            let mut children = layout.iter_mut(&mut tree.children);
             let (body_layout, body_tree) = children.next().unwrap();
             let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
@@ -207,7 +207,7 @@ where
 
             (body_layout, body_tree)
         } else {
-            layout.children_mut(tree).next().unwrap()
+            layout.iter_mut(&mut tree.children).next().unwrap()
         };
 
         self.body
@@ -227,7 +227,7 @@ where
         is_picked: bool,
     ) {
         let (body_layout, body_tree) = if let Some(title_bar) = &mut self.title_bar {
-            let mut children = layout.children_mut(tree);
+            let mut children = layout.iter_mut(&mut tree.children);
             let (body_layout, body_tree) = children.next().unwrap();
             let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
@@ -243,7 +243,7 @@ where
 
             (body_layout, body_tree)
         } else {
-            layout.children_mut(tree).next().unwrap()
+            layout.iter_mut(&mut tree.children).next().unwrap()
         };
 
         if !is_picked {
@@ -268,7 +268,7 @@ where
     ) -> Option<mouse::Interaction> {
         let title_bar = self.title_bar.as_ref()?;
 
-        let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
+        let (title_bar_layout, _) = layout.iter(&tree.children).nth(1).unwrap();
 
         let is_over_pick_area = cursor
             .position()
@@ -294,7 +294,7 @@ where
         drag_enabled: bool,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) = if let Some(title_bar) = &self.title_bar {
-            let mut children = layout.children(tree);
+            let mut children = layout.iter(&tree.children);
             let (body_layout, _) = children.next().unwrap();
             let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
@@ -338,7 +338,7 @@ where
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
-            let mut children = layout.children_mut(tree);
+            let mut children = layout.iter_mut(&mut tree.children);
             let (body_layout, body_tree) = children.next().unwrap();
             let (title_bar_layout, title_bar_tree) = children.next().unwrap();
 
@@ -365,7 +365,7 @@ where
                 .chain(body_overlays)
                 .collect()
         } else {
-            let (layout, body_tree) = layout.children_mut(tree).next().unwrap();
+            let (layout, body_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
             self.body.as_widget_mut().overlay(
                 body_tree,
@@ -386,7 +386,7 @@ where
 {
     fn can_be_dragged_at(&self, tree: &Tree, layout: Layout, cursor_position: Point) -> bool {
         if let Some(title_bar) = &self.title_bar {
-            let title_bar_layout = layout.children(tree).nth(1).unwrap().0;
+            let (title_bar_layout, _) = layout.iter(&tree.children).nth(1).unwrap();
 
             title_bar.is_over_pick_area(&tree.children[1], title_bar_layout, cursor_position)
         } else {

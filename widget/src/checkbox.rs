@@ -386,7 +386,7 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let mut children = layout.children(tree);
+        let mut children = layout.iter(&tree.children);
 
         let style = theme.style(
             &self.class,

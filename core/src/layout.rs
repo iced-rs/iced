@@ -26,18 +26,6 @@ impl Layout {
         }
     }
 
-    /// Creates a new [`Layout`] for a child of the current [`Layout`].
-    ///
-    /// The child [`Layout`] is placed at the given offset from the position
-    /// of the current [`Layout`] and has the given [`Size`].
-    pub fn child(&self, offset: Vector, size: Size) -> Self {
-        Self {
-            position: self.position + offset,
-            size,
-            parent: Some(self.bounds()),
-        }
-    }
-
     /// Returns the position of the [`Layout`].
     pub fn position(&self) -> Point {
         self.position
@@ -71,23 +59,29 @@ impl Layout {
     }
 
     /// Returns an iterator over the children of this [`Layout`].
-    pub fn children(
+    pub fn iter(
         self,
-        tree: &widget::Tree,
+        children: &[widget::Tree],
     ) -> impl DoubleEndedIterator<Item = (Self, &widget::Tree)> + ExactSizeIterator {
-        tree.children
-            .iter()
-            .map(move |child| (self.child(child.translation, child.size), child))
+        children.iter().map(move |child| (self.child(child), child))
     }
 
     /// Returns a mutable iterator over the children of this [`Layout`].
-    pub fn children_mut(
+    pub fn iter_mut(
         self,
-        tree: &mut widget::Tree,
+        children: &mut [widget::Tree],
     ) -> impl DoubleEndedIterator<Item = (Self, &mut widget::Tree)> + ExactSizeIterator {
-        tree.children
+        children
             .iter_mut()
-            .map(move |child| (self.child(child.translation, child.size), child))
+            .map(move |child| (self.child(child), child))
+    }
+
+    fn child(&self, child: &widget::Tree) -> Self {
+        Self {
+            position: self.position + child.translation,
+            size: child.size,
+            parent: Some(self.bounds()),
+        }
     }
 }
 

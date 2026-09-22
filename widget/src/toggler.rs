@@ -392,13 +392,13 @@ where
             }),
         );
 
-        let mut children = layout.children(tree);
+        let mut children = layout.iter(&tree.children);
 
         let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
 
         let scale_factor = renderer.hint_factor().unwrap_or(1.0);
 
-        let track_layout = children.next().unwrap().0;
+        let (track_layout, _) = children.next().unwrap();
 
         if self.label.is_some() {
             let (label_layout, _) = children.next().unwrap();

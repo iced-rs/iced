@@ -93,7 +93,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let (layout, tree) = layout.children_mut(tree).next().unwrap();
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
             .as_widget_mut()
@@ -110,7 +110,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let (layout, tree) = layout.children(tree).next().unwrap();
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
 
         self.content
             .as_widget()
@@ -125,7 +125,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let (layout, tree) = layout.children(tree).next().unwrap();
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
 
         self.content
             .as_widget()
@@ -140,7 +140,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let (layout, tree) = layout.children_mut(tree).next().unwrap();
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
             .as_widget_mut()
@@ -156,7 +156,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        let (layout, tree) = layout.children_mut(tree).next().unwrap();
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
             .as_widget_mut()

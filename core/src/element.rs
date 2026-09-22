@@ -475,7 +475,7 @@ where
                 Color::TRANSPARENT,
             );
 
-            for (layout, tree) in layout.children(tree) {
+            for (layout, tree) in layout.iter(&tree.children) {
                 explain_layout(tree, renderer, color, layout);
             }
         }

@@ -446,7 +446,11 @@ where
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for (cell, (layout, tree)) in self.cells.iter_mut().zip(layout.children_mut(tree)) {
+        for (cell, (layout, tree)) in self
+            .cells
+            .iter_mut()
+            .zip(layout.iter_mut(&mut tree.children))
+        {
             cell.as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
         }
@@ -462,7 +466,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        for (cell, (layout, state)) in self.cells.iter().zip(layout.children(tree)) {
+        for (cell, (layout, state)) in self.cells.iter().zip(layout.iter(&tree.children)) {
             cell.as_widget()
                 .draw(state, renderer, theme, style, layout, cursor, viewport);
         }
@@ -530,7 +534,7 @@ where
     ) -> mouse::Interaction {
         self.cells
             .iter()
-            .zip(layout.children(tree))
+            .zip(layout.iter(&tree.children))
             .map(|(cell, (layout, tree))| {
                 cell.as_widget()
                     .mouse_interaction(tree, layout, cursor, viewport, renderer)
@@ -547,7 +551,11 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        for (cell, (layout, state)) in self.cells.iter_mut().zip(layout.children_mut(tree)) {
+        for (cell, (layout, state)) in self
+            .cells
+            .iter_mut()
+            .zip(layout.iter_mut(&mut tree.children))
+        {
             cell.as_widget_mut()
                 .operate(state, layout, viewport, renderer, operation);
         }

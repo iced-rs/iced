@@ -229,7 +229,7 @@ where
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
-                .zip(layout.children_mut(tree))
+                .zip(layout.iter_mut(&mut tree.children))
                 .for_each(|(child, (layout, state))| {
                     child
                         .as_widget_mut()
@@ -248,7 +248,11 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for (child, (layout, tree)) in self.children.iter_mut().zip(layout.children_mut(tree)) {
+        for (child, (layout, tree)) in self
+            .children
+            .iter_mut()
+            .zip(layout.iter_mut(&mut tree.children))
+        {
             child
                 .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
@@ -265,7 +269,7 @@ where
     ) -> mouse::Interaction {
         self.children
             .iter()
-            .zip(layout.children(tree))
+            .zip(layout.iter(&tree.children))
             .map(|(child, (layout, tree))| {
                 child
                     .as_widget()
@@ -295,7 +299,7 @@ where
             for (child, (layout, tree)) in self
                 .children
                 .iter()
-                .zip(layout.children(tree))
+                .zip(layout.iter(&tree.children))
                 .filter(|(_, (layout, _))| layout.bounds().intersects(viewport))
             {
                 child

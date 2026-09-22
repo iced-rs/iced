@@ -616,7 +616,7 @@ where
         operation: &mut dyn Operation,
     ) {
         let bounds = layout.bounds();
-        let content_layout = layout.children(tree).next().unwrap().0;
+        let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
         let content_bounds = content_layout.bounds();
         let content = content_layout.size();
 
@@ -633,7 +633,7 @@ where
 
         operation.traverse(&mut |operation| {
             self.content.as_widget_mut().operate(
-                &mut tree.children[0],
+                content_tree,
                 content_layout,
                 &viewport,
                 renderer,
@@ -655,8 +655,8 @@ where
         let bounds = layout.bounds();
         let cursor_over_scrollable = cursor.position_over(bounds);
 
-        let child = layout.children(tree).next().unwrap().0;
-        let content = child.size();
+        let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+        let content = content_layout.size();
 
         let state = tree.state.downcast_mut::<State>();
         let translation = state.last_translation;
@@ -701,9 +701,9 @@ where
                 let had_input_method = shell.input_method().is_enabled();
 
                 self.content.as_widget_mut().update(
-                    &mut tree.children[0],
+                    content_tree,
                     event,
-                    child,
+                    content_layout,
                     cursor,
                     renderer,
                     shell,
@@ -800,7 +800,7 @@ where
             return;
         };
 
-        let content_layout = layout.children(tree).next().unwrap().0;
+        let (content_layout, content_tree) = layout.iter(&tree.children).next().unwrap();
         let content = content_layout.size();
 
         let translation = state.last_translation;
@@ -832,7 +832,7 @@ where
                     -translation.hint(renderer.hint_factor().unwrap_or(1.0)),
                     |renderer| {
                         self.content.as_widget().draw(
-                            &tree.children[0],
+                            content_tree,
                             renderer,
                             theme,
                             defaults,
@@ -920,7 +920,7 @@ where
             }
         } else {
             self.content.as_widget().draw(
-                &tree.children[0],
+                content_tree,
                 renderer,
                 theme,
                 defaults,
@@ -951,7 +951,7 @@ where
         };
 
         let cursor_over_scrollable = cursor.position_over(bounds);
-        let content_layout = layout.children(tree).next().unwrap().0;
+        let (content_layout, content_tree) = layout.iter(&tree.children).next().unwrap();
         let content = content_layout.size();
 
         let translation = state.last_translation;
@@ -966,7 +966,7 @@ where
         };
 
         self.content.as_widget().mouse_interaction(
-            &tree.children[0],
+            content_tree,
             content_layout,
             cursor,
             &(viewport + translation),
@@ -985,14 +985,14 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let content_layout = layout.children(tree).next().unwrap().0;
+        let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
         let content = content_layout.size();
         let viewport = viewport.intersection(&bounds).unwrap_or(*viewport);
 
         let offset = state.last_translation;
 
         let overlay = self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
+            content_tree,
             content_layout,
             renderer,
             &(viewport + offset),

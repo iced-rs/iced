@@ -252,7 +252,7 @@ where
     ) {
         operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
-            let (layout, tree) = layout.children_mut(tree).next().unwrap();
+            let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
             self.content
                 .as_widget_mut()
@@ -270,13 +270,17 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        {
-            let (layout, tree) = layout.children_mut(tree).next().unwrap();
+        let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-            self.content
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
-        }
+        self.content.as_widget_mut().update(
+            content_tree,
+            event,
+            content_layout,
+            cursor,
+            renderer,
+            shell,
+            viewport,
+        );
 
         if shell.is_event_captured() {
             return;
@@ -355,7 +359,7 @@ where
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let (layout, tree) = layout.children(tree).next().unwrap();
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
         let style = theme.style(&self.class, self.status.unwrap_or(Status::Disabled));
 
         if style.background.is_some() || style.border.width > 0.0 || style.shadow.color.a > 0.0 {
@@ -417,7 +421,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let (layout, tree) = layout.children_mut(tree).next().unwrap();
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
             .as_widget_mut()

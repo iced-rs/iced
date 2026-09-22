@@ -184,7 +184,7 @@ where
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
-                .zip(layout.children_mut(tree))
+                .zip(layout.iter_mut(&mut tree.children))
                 .for_each(|(child, (layout, state))| {
                     child
                         .as_widget_mut()
@@ -214,7 +214,7 @@ where
             .children
             .iter_mut()
             .rev()
-            .zip(layout.children_mut(tree).rev())
+            .zip(layout.iter_mut(&mut tree.children).rev())
             .enumerate()
         {
             child
@@ -248,7 +248,7 @@ where
         self.children
             .iter()
             .rev()
-            .zip(layout.children(tree).rev())
+            .zip(layout.iter(&tree.children).rev())
             .map(|(child, (layout, tree))| {
                 child
                     .as_widget()
@@ -279,7 +279,7 @@ where
                 self.children
                     .iter()
                     .rev()
-                    .zip(layout.children(tree).rev())
+                    .zip(layout.iter(&tree.children).rev())
                     .position(|(layer, (layout, tree))| {
                         let interaction = layer
                             .as_widget()
@@ -293,7 +293,11 @@ where
                 0
             };
 
-            let mut layers = self.children.iter().zip(layout.children(tree)).enumerate();
+            let mut layers = self
+                .children
+                .iter()
+                .zip(layout.iter(&tree.children))
+                .enumerate();
 
             let layers = layers.by_ref();
 

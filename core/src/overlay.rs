@@ -92,7 +92,7 @@ where
 {
     children
         .iter_mut()
-        .zip(layout.children_mut(tree))
+        .zip(layout.iter_mut(&mut tree.children))
         .flat_map(|(child, (layout, state))| {
             child
                 .as_widget_mut()

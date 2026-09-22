@@ -151,7 +151,7 @@ where
 
         container::draw_background(renderer, &style, bounds);
 
-        let mut children = layout.children(tree);
+        let mut children = layout.iter(&tree.children);
         let (title_layout, title_tree) = children.next().unwrap();
         let (controls_layout, controls_tree) = children.next().unwrap();
         let (compact_layout, compact_tree) = children.next().unwrap();
@@ -218,7 +218,7 @@ where
     /// The whole [`TitleBar`] is a pick area, except its controls.
     pub fn is_over_pick_area(&self, tree: &Tree, layout: Layout, cursor_position: Point) -> bool {
         if layout.bounds().contains(cursor_position) {
-            let mut children = layout.children(tree);
+            let mut children = layout.iter(&tree.children);
             let (title_layout, _) = children.next().unwrap();
             let (controls_layout, _) = children.next().unwrap();
             let (compact_layout, _) = children.next().unwrap();
@@ -316,7 +316,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let mut children = layout.children_mut(tree);
+        let mut children = layout.iter_mut(&mut tree.children);
         let (title_layout, title_tree) = children.next().unwrap();
         let (controls_layout, controls_tree) = children.next().unwrap();
         let (compact_layout, compact_tree) = children.next().unwrap();
@@ -376,7 +376,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let mut children = layout.children_mut(tree);
+        let mut children = layout.iter_mut(&mut tree.children);
         let (title_layout, title_tree) = children.next().unwrap();
         let (controls_layout, controls_tree) = children.next().unwrap();
         let (compact_layout, compact_tree) = children.next().unwrap();
@@ -442,7 +442,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let mut children = layout.children(tree);
+        let mut children = layout.iter(&tree.children);
         let (title_layout, title_tree) = children.next().unwrap();
         let (controls_layout, controls_tree) = children.next().unwrap();
         let (compact_layout, compact_tree) = children.next().unwrap();
@@ -496,7 +496,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let mut children = layout.children_mut(tree);
+        let mut children = layout.iter_mut(&mut tree.children);
         let (title_layout, title_tree) = children.next().unwrap();
         let (controls_layout, controls_tree) = children.next().unwrap();
         let (compact_layout, compact_tree) = children.next().unwrap();

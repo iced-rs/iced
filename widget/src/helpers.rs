@@ -789,7 +789,7 @@ where
             viewport: &Rectangle,
         ) {
             if let Some(bounds) = layout.bounds().intersection(viewport) {
-                let mut children = layout.children(tree);
+                let mut children = layout.iter(&tree.children);
 
                 let (base_layout, base_tree) = children.next().unwrap();
 
@@ -828,7 +828,7 @@ where
         ) {
             let children = [&mut self.base, &mut self.top]
                 .into_iter()
-                .zip(layout.children_mut(tree));
+                .zip(layout.iter_mut(&mut tree.children));
 
             for (child, (layout, tree)) in children {
                 child
@@ -847,7 +847,7 @@ where
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
-            let mut children = layout.children_mut(tree);
+            let mut children = layout.iter_mut(&mut tree.children);
             let (base_layout, base_tree) = children.next().unwrap();
             let (top_layout, top_tree) = children.next().unwrap();
 
@@ -919,7 +919,7 @@ where
             [&self.base, &self.top]
                 .into_iter()
                 .rev()
-                .zip(layout.children(tree).rev())
+                .zip(layout.iter(&tree.children).rev())
                 .map(|(child, (layout, tree))| {
                     child
                         .as_widget()
@@ -940,7 +940,7 @@ where
         ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             let mut overlays = [&mut self.base, &mut self.top]
                 .into_iter()
-                .zip(layout.children_mut(tree))
+                .zip(layout.iter_mut(&mut tree.children))
                 .map(|(child, (layout, tree))| {
                     child.as_widget_mut().overlay(
                         tree,

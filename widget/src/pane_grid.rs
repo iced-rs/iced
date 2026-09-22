@@ -444,7 +444,7 @@ where
             self.panes
                 .iter()
                 .zip(&mut self.contents)
-                .zip(layout.children_mut(tree))
+                .zip(layout.iter_mut(&mut tree.children))
                 .filter(|((pane, _), _)| {
                     self.internal
                         .maximized()
@@ -477,12 +477,12 @@ where
         let Memory { action, .. } = tree.state.downcast_mut();
         let picked_pane = action.picked_pane().map(|(pane, _)| pane);
 
-        for ((pane, content), child) in self
+        for ((pane, content), (layout, child)) in self
             .panes
             .iter()
             .copied()
             .zip(&mut self.contents)
-            .zip(tree.children.iter_mut())
+            .zip(layout.iter_mut(&mut tree.children))
             .filter(|((pane, _), _)| {
                 self.internal
                     .maximized()
@@ -492,14 +492,7 @@ where
             let is_picked = picked_pane == Some(pane);
 
             content.update(
-                child,
-                event,
-                layout.child(child.translation, child.size),
-                cursor,
-                renderer,
-                shell,
-                viewport,
-                is_picked,
+                child, event, layout, cursor, renderer, shell, viewport, is_picked,
             );
         }
 
@@ -540,14 +533,9 @@ where
                                         .iter()
                                         .copied()
                                         .zip(&self.contents)
-                                        .zip(tree.children.iter())
-                                        .map(|((pane, content), child)| {
-                                            (
-                                                pane,
-                                                content,
-                                                layout.child(child.translation, child.size),
-                                                child,
-                                            )
+                                        .zip(layout.iter(&tree.children))
+                                        .map(|((pane, content), (layout, tree))| {
+                                            (pane, content, layout, tree)
                                         }),
                                     &self.on_click,
                                     on_drag,
@@ -563,14 +551,9 @@ where
                                     .iter()
                                     .copied()
                                     .zip(&self.contents)
-                                    .zip(tree.children.iter())
-                                    .map(|((pane, content), child)| {
-                                        (
-                                            pane,
-                                            content,
-                                            layout.child(child.translation, child.size),
-                                            child,
-                                        )
+                                    .zip(layout.iter(&tree.children))
+                                    .map(|((pane, content), (layout, tree))| {
+                                        (pane, content, layout, tree)
                                     }),
                                 &self.on_click,
                                 on_drag,
@@ -598,13 +581,10 @@ where
                                 .iter()
                                 .copied()
                                 .zip(&self.contents)
-                                .zip(tree.children.iter())
-                                .find_map(|(target, child)| {
-                                    layout_region(
-                                        layout.child(child.translation, child.size),
-                                        cursor_position,
-                                    )
-                                    .map(|region| (target, region))
+                                .zip(layout.iter(&tree.children))
+                                .find_map(|(target, (layout, _))| {
+                                    layout_region(layout, cursor_position)
+                                        .map(|region| (target, region))
                                 });
 
                             match dropped_region {
@@ -669,19 +649,14 @@ where
                     self.panes
                         .iter()
                         .zip(&self.contents)
-                        .zip(tree.children.iter())
-                        .filter(|((pane, _content), _child)| {
+                        .zip(layout.iter(&tree.children))
+                        .filter(|((pane, _content), (_layout, _tree))| {
                             self.internal
                                 .maximized()
                                 .is_none_or(|maximized| **pane == maximized)
                         })
-                        .find_map(|((_pane, content), child)| {
-                            content.grid_interaction(
-                                child,
-                                layout.child(child.translation, child.size),
-                                cursor,
-                                on_drag.is_some(),
-                            )
+                        .find_map(|((_pane, content), (layout, tree))| {
+                            content.grid_interaction(tree, layout, cursor, on_drag.is_some())
                         })
                 })
                 .unwrap_or(mouse::Interaction::None);
@@ -715,7 +690,7 @@ where
             .iter()
             .copied()
             .zip(&self.contents)
-            .zip(layout.children(tree))
+            .zip(layout.iter(&tree.children))
             .filter(|((pane, _), _)| {
                 self.internal
                     .maximized()
@@ -805,7 +780,7 @@ where
             .iter()
             .copied()
             .zip(&self.contents)
-            .zip(layout.children(tree))
+            .zip(layout.iter(&tree.children))
             .filter(|((pane, _), _)| {
                 self.internal
                     .maximized()
@@ -921,7 +896,7 @@ where
             .iter()
             .copied()
             .zip(&mut self.contents)
-            .zip(layout.children_mut(tree))
+            .zip(layout.iter_mut(&mut tree.children))
             .flat_map(|((pane, content), (layout, tree))| {
                 if self
                     .internal
