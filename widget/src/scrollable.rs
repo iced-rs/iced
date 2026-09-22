@@ -650,7 +650,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
         let cursor_over_scrollable = cursor.position_over(bounds);
@@ -659,10 +659,8 @@ where
         let content = content_layout.size();
 
         let state = tree.state.downcast_mut::<State>();
-        let translation = state.last_translation;
-        let scrollbars = Scrollbars::new(translation, self.direction, bounds, content);
+        let scrollbars = Scrollbars::new(state.last_translation, self.direction, bounds, content);
         let mouse_over_scrollbar = scrollbars.is_mouse_over(cursor);
-
         let last_offsets = (state.offset_x, state.offset_y);
 
         let interact = state.interact(
@@ -682,6 +680,10 @@ where
             && let Some(on_scroll) = &self.on_scroll
         {
             on_scroll(scroll).perform(state, bounds, content, shell);
+
+            if let Event::Window(window::Event::RedrawRequested(_now)) = event {
+                state.last_translation = state.translation(self.direction, bounds, content);
+            }
         }
 
         if interact.capture {
@@ -697,8 +699,11 @@ where
         }
 
         if !interact.stop {
-            if let Some(Content { cursor, viewport }) = interact.content {
+            if let Some(Content { cursor }) = interact.content {
                 let had_input_method = shell.input_method().is_enabled();
+
+                let viewport =
+                    bounds.intersection(viewport).unwrap_or_default() + state.last_translation;
 
                 self.content.as_widget_mut().update(
                     content_tree,
@@ -1196,9 +1201,6 @@ fn rail_moved(event: &Event, cursor: mouse::Cursor, last: Point) -> Option<Point
 struct Content {
     /// The [`mouse::Cursor`] to pass to the child widget
     cursor: mouse::Cursor,
-
-    /// The viewport to pass to the child widget
-    viewport: Rectangle,
 }
 
 /// The outcome of [`State::interact`]: the [`Shell`] effects to materialize and
@@ -2923,14 +2925,7 @@ impl State {
                 _ => cursor.obstruct() + translation,
             };
 
-            interact.content = Some(Content {
-                cursor,
-                viewport: Rectangle {
-                    y: bounds.y + translation.y,
-                    x: bounds.x + translation.x,
-                    ..bounds
-                },
-            });
+            interact.content = Some(Content { cursor });
         }
 
         interact
