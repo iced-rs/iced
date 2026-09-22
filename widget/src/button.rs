@@ -270,17 +270,13 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let (child_layout, child) = layout.children_mut(tree).next().unwrap();
+        {
+            let (layout, tree) = layout.children_mut(tree).next().unwrap();
 
-        self.content.as_widget_mut().update(
-            child,
-            event,
-            child_layout,
-            cursor,
-            renderer,
-            shell,
-            viewport,
-        );
+            self.content
+                .as_widget_mut()
+                .update(tree, event, layout, cursor, renderer, shell, viewport);
+        }
 
         if shell.is_event_captured() {
             return;
