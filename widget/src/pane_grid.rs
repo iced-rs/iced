@@ -481,8 +481,6 @@ where
             .picked_pane()
             .map(|(pane, _)| pane);
 
-        let child_layouts: Vec<Layout> = layout.children(tree).map(|(layout, _)| layout).collect();
-
         for ((pane, content), (layout, tree)) in self
             .panes
             .iter()
@@ -541,10 +539,14 @@ where
                                         .iter()
                                         .copied()
                                         .zip(&self.contents)
-                                        .zip(child_layouts.iter().copied())
                                         .zip(tree.children.iter())
-                                        .map(|(((pane, content), layout), tree)| {
-                                            (pane, content, layout, tree)
+                                        .map(|((pane, content), child)| {
+                                            (
+                                                pane,
+                                                content,
+                                                layout.child(child.translation, child.size),
+                                                child,
+                                            )
                                         }),
                                     &self.on_click,
                                     on_drag,
@@ -560,10 +562,14 @@ where
                                     .iter()
                                     .copied()
                                     .zip(&self.contents)
-                                    .zip(child_layouts.iter().copied())
                                     .zip(tree.children.iter())
-                                    .map(|(((pane, content), layout), tree)| {
-                                        (pane, content, layout, tree)
+                                    .map(|((pane, content), child)| {
+                                        (
+                                            pane,
+                                            content,
+                                            layout.child(child.translation, child.size),
+                                            child,
+                                        )
                                     }),
                                 &self.on_click,
                                 on_drag,
@@ -591,10 +597,13 @@ where
                                 .iter()
                                 .copied()
                                 .zip(&self.contents)
-                                .zip(child_layouts.iter().copied())
-                                .find_map(|(target, layout)| {
-                                    layout_region(layout, cursor_position)
-                                        .map(|region| (target, region))
+                                .zip(tree.children.iter())
+                                .find_map(|(target, child)| {
+                                    layout_region(
+                                        layout.child(child.translation, child.size),
+                                        cursor_position,
+                                    )
+                                    .map(|region| (target, region))
                                 });
 
                             match dropped_region {
@@ -659,15 +668,19 @@ where
                     self.panes
                         .iter()
                         .zip(&self.contents)
-                        .zip(child_layouts.iter().copied())
                         .zip(tree.children.iter())
-                        .filter(|(((pane, _content), _layout), _tree)| {
+                        .filter(|((pane, _content), _child)| {
                             self.internal
                                 .maximized()
                                 .is_none_or(|maximized| **pane == maximized)
                         })
-                        .find_map(|(((_pane, content), layout), tree)| {
-                            content.grid_interaction(tree, layout, cursor, on_drag.is_some())
+                        .find_map(|((_pane, content), child)| {
+                            content.grid_interaction(
+                                child,
+                                layout.child(child.translation, child.size),
+                                cursor,
+                                on_drag.is_some(),
+                            )
                         })
                 })
                 .unwrap_or(mouse::Interaction::None);
