@@ -1077,7 +1077,7 @@ fn absorb_references(
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
-    offset_: usize,
+    _offset: usize,
 ) -> impl Iterator<Item = (Item, usize, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
@@ -1309,7 +1309,7 @@ fn parse_with<'a>(
                     // key that identifies the block across re-parses,
                     // so that the highlighter's line cache is only
                     // reused for the same block.
-                    let key = offset_ + source.start;
+                    let key = _offset + source.start;
                     let state = state.borrow_mut();
                     let language = language.split(',').next().unwrap_or_default();
 
