@@ -1,4 +1,5 @@
 //! Generate messages when content pops in and out of view.
+use crate::cloneable::Emit;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -19,7 +20,7 @@ pub struct Sensor<'a, Key, Message, Theme = crate::Theme, Renderer = crate::Rend
     key: Key,
     on_show: Option<Box<dyn Fn(Size) -> Message + 'a>>,
     on_resize: Option<Box<dyn Fn(Size) -> Option<Message> + 'a>>,
-    on_hide: Option<Message>,
+    on_hide: Option<Emit<'a, Message>>,
     anticipate: Pixels,
     delay: Duration,
 }
@@ -67,8 +68,17 @@ where
     }
 
     /// Sets the message to be produced when the content pops out of view.
-    pub fn on_hide(mut self, on_hide: Message) -> Self {
-        self.on_hide = Some(on_hide);
+    pub fn on_hide(mut self, on_hide: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_hide = Some(Emit::direct(on_hide));
+        self
+    }
+
+    /// Sets the closure to produce a message when the content pops out of view.
+    pub fn on_hide_with(mut self, on_hide: impl Fn() -> Message + 'a) -> Self {
+        self.on_hide = Some(Emit::closure(on_hide));
         self
     }
 
@@ -232,8 +242,8 @@ where
                         if let Some(on_show) = &self.on_show {
                             shell.publish(on_show(layout.bounds().size()));
                         }
-                    } else if let Some(on_hide) = self.on_hide.take() {
-                        shell.publish(on_hide);
+                    } else if let Some(on_hide) = &self.on_hide {
+                        shell.publish(on_hide.get());
                     }
 
                     state.should_notify_at = None;
