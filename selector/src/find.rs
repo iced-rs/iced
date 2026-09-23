@@ -1,7 +1,7 @@
 use crate::Selector;
 use crate::core::widget::operation::{Focusable, Outcome, Scrollable, TextInput};
 use crate::core::widget::{Id, Operation};
-use crate::core::{Rectangle, Vector};
+use crate::core::{Rectangle, Size, Vector};
 use crate::target::Candidate;
 
 use std::any::Any;
@@ -148,15 +148,19 @@ where
         self.translation = *translation;
     }
 
-    fn container(&mut self, id: Option<&Id>, bounds: Rectangle) {
+    fn container(&mut self, id: Option<&Id>, bounds: Rectangle, viewport: &Rectangle) {
         if self.strategy.is_done() {
             return;
         }
 
+        self.viewport = *viewport;
+
         self.strategy.feed(Candidate::Container {
             id,
             bounds,
-            visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+            visible_bounds: bounds
+                .intersection(&self.viewport)
+                .map(|bounds| bounds + self.translation),
         });
     }
 
@@ -168,7 +172,9 @@ where
         self.strategy.feed(Candidate::Focusable {
             id,
             bounds,
-            visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+            visible_bounds: bounds
+                .intersection(&self.viewport)
+                .map(|bounds| bounds + self.translation),
             state,
         });
     }
@@ -177,7 +183,7 @@ where
         &mut self,
         id: Option<&Id>,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
         translation: Vector,
         state: &mut dyn Scrollable,
     ) {
@@ -185,19 +191,20 @@ where
             return;
         }
 
-        let visible_bounds = self.viewport.intersection(&(bounds + self.translation));
+        let visible_bounds = bounds
+            .intersection(&self.viewport)
+            .map(|bounds| bounds + self.translation);
 
         self.strategy.feed(Candidate::Scrollable {
             id,
             bounds,
             visible_bounds,
-            content_bounds,
+            content,
             translation,
             state,
         });
 
         self.translation -= translation;
-        self.viewport = visible_bounds.unwrap_or_default();
     }
 
     fn text_input(&mut self, id: Option<&Id>, bounds: Rectangle, state: &mut dyn TextInput) {
@@ -208,7 +215,9 @@ where
         self.strategy.feed(Candidate::TextInput {
             id,
             bounds,
-            visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+            visible_bounds: bounds
+                .intersection(&self.viewport)
+                .map(|bounds| bounds + self.translation),
             state,
         });
     }
@@ -221,7 +230,9 @@ where
         self.strategy.feed(Candidate::Text {
             id,
             bounds,
-            visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+            visible_bounds: bounds
+                .intersection(&self.viewport)
+                .map(|bounds| bounds + self.translation),
             content: text,
         });
     }
@@ -234,7 +245,9 @@ where
         self.strategy.feed(Candidate::Custom {
             id,
             bounds,
-            visible_bounds: self.viewport.intersection(&(bounds + self.translation)),
+            visible_bounds: bounds
+                .intersection(&self.viewport)
+                .map(|bounds| bounds + self.translation),
             state,
         });
     }

@@ -45,8 +45,8 @@ where
             spans: Box::new([]),
             size: None,
             line_height: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             font: None,
             align_x: Alignment::Default,
             align_y: alignment::Vertical::Top,
@@ -216,13 +216,8 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout(
             tree.state
                 .downcast_mut::<State<Link, Renderer::Paragraph>>(),
             renderer,
@@ -237,7 +232,7 @@ where
             self.align_y,
             self.wrapping,
             self.ellipsis,
-        )
+        );
     }
 
     fn draw(
@@ -246,7 +241,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         defaults: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -365,7 +360,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -437,7 +432,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        _layout: Layout<'_>,
+        _layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -464,13 +459,13 @@ fn layout<Link, Renderer>(
     align_y: alignment::Vertical,
     wrapping: Wrapping,
     ellipsis: Ellipsis,
-) -> layout::Node
+) -> Size
 where
     Link: Clone,
     Renderer: core::text::Renderer,
 {
     layout::sized(limits, width, height, |limits| {
-        let bounds = limits.max();
+        let bounds = limits.bounds();
 
         let size = size.unwrap_or_else(|| renderer.text_size());
         let font = font.unwrap_or_else(|| renderer.font());

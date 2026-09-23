@@ -20,13 +20,8 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         Size::new(Length::Shrink, Length::Shrink)
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut widget::Tree,
-        _renderer: &Renderer,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::Node::new(Size::ZERO)
+    fn layout(&mut self, tree: &mut widget::Tree, _renderer: &Renderer, _limits: &layout::Limits) {
+        tree.size = Size::ZERO;
     }
 
     fn draw(
@@ -35,7 +30,7 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -45,7 +40,7 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
         &mut self,
         _tree: &mut widget::Tree,
         event: &Event,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, ()>,
@@ -59,10 +54,11 @@ impl widget::Widget<(), core::Theme, Renderer> for Root {
     fn overlay<'a>(
         &'a mut self,
         _tree: &'a mut widget::Tree,
-        _layout: layout::Layout<'a>,
+        _layout: layout::Layout,
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: core::Vector,
+        _window: core::Size,
     ) -> Vec<overlay::Element<'a, (), core::Theme, Renderer>> {
         if self.overlay_visible {
             vec![overlay::Element::new(Box::new(HidingOverlay {
@@ -79,16 +75,11 @@ struct HidingOverlay<'a> {
 }
 
 impl<'a> overlay::Overlay<(), core::Theme, Renderer> for HidingOverlay<'a> {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(Size::new(1.0, 1.0))
-    }
-
     fn draw(
         &self,
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
         _cursor: core::mouse::Cursor,
     ) {
     }
@@ -96,7 +87,6 @@ impl<'a> overlay::Overlay<(), core::Theme, Renderer> for HidingOverlay<'a> {
     fn update(
         &mut self,
         event: &Event,
-        _layout: layout::Layout<'_>,
         _cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, ()>,
@@ -157,13 +147,8 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         Size::new(Length::Fill, Length::Fill)
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut widget::Tree,
-        _renderer: &Renderer,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::Node::new(Size::new(100.0, 100.0))
+    fn layout(&mut self, tree: &mut widget::Tree, _renderer: &Renderer, _limits: &layout::Limits) {
+        tree.size = Size::new(100.0, 100.0);
     }
 
     fn draw(
@@ -172,7 +157,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -182,7 +167,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         &mut self,
         _tree: &mut widget::Tree,
         _event: &Event,
-        _layout: layout::Layout<'_>,
+        _layout: layout::Layout,
         _cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         _shell: &mut Shell<'_, OverlayMessage>,
@@ -193,10 +178,11 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
     fn overlay<'a>(
         &'a mut self,
         _tree: &'a mut widget::Tree,
-        _layout: layout::Layout<'a>,
+        _layout: layout::Layout,
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: core::Vector,
+        _window: core::Size,
     ) -> Vec<overlay::Element<'a, OverlayMessage, core::Theme, Renderer>> {
         vec![
             overlay::Element::new(Box::new(TopOverlay)),
@@ -208,17 +194,16 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
 /// The topmost overlay, covering `(60..80, 0..20)`.
 struct TopOverlay;
 
-impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for TopOverlay {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(Size::new(20.0, 20.0)).translate(core::Vector::new(60.0, 0.0))
-    }
+impl TopOverlay {
+    const BOUNDS: Rectangle = Rectangle::new(core::Point::new(60.0, 0.0), Size::new(20.0, 20.0));
+}
 
+impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for TopOverlay {
     fn draw(
         &self,
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
         _cursor: core::mouse::Cursor,
     ) {
     }
@@ -226,13 +211,12 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for TopOverlay {
     fn update(
         &mut self,
         event: &Event,
-        layout: layout::Layout<'_>,
         cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, OverlayMessage>,
     ) {
         if matches!(event, Event::Mouse(core::mouse::Event::ButtonPressed(_)))
-            && cursor.position_over(layout.bounds()).is_some()
+            && cursor.position_over(Self::BOUNDS).is_some()
         {
             shell.publish(OverlayMessage::Top);
             shell.capture_event();
@@ -248,17 +232,16 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for TopOverlay {
 /// covering `(0..20, 0..20)`.
 struct BottomOverlay;
 
-impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for BottomOverlay {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(Size::new(40.0, 40.0))
-    }
+impl BottomOverlay {
+    const BOUNDS: Rectangle = Rectangle::new(core::Point::ORIGIN, Size::new(40.0, 40.0));
+}
 
+impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for BottomOverlay {
     fn draw(
         &self,
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
         _cursor: core::mouse::Cursor,
     ) {
     }
@@ -266,13 +249,12 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for BottomOverlay {
     fn update(
         &mut self,
         event: &Event,
-        layout: layout::Layout<'_>,
         cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, OverlayMessage>,
     ) {
         if matches!(event, Event::Mouse(core::mouse::Event::ButtonPressed(_)))
-            && cursor.position_over(layout.bounds()).is_some()
+            && cursor.position_over(Self::BOUNDS).is_some()
         {
             shell.publish(OverlayMessage::Bottom);
             shell.capture_event();
@@ -285,7 +267,6 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for BottomOverlay {
 
     fn overlay<'b>(
         &'b mut self,
-        _layout: layout::Layout<'b>,
         _renderer: &Renderer,
     ) -> Vec<overlay::Element<'b, OverlayMessage, core::Theme, Renderer>> {
         vec![overlay::Element::new(Box::new(NestedOverlay))]
@@ -295,17 +276,16 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for BottomOverlay {
 /// The nested overlay of [`BottomOverlay`], covering `(0..20, 0..20)`.
 struct NestedOverlay;
 
-impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for NestedOverlay {
-    fn layout(&mut self, _renderer: &Renderer, _bounds: Size) -> layout::Node {
-        layout::Node::new(Size::new(20.0, 20.0))
-    }
+impl NestedOverlay {
+    const BOUNDS: Rectangle = Rectangle::new(core::Point::ORIGIN, Size::new(20.0, 20.0));
+}
 
+impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for NestedOverlay {
     fn draw(
         &self,
         _renderer: &mut Renderer,
         _theme: &core::Theme,
         _style: &renderer::Style,
-        _layout: layout::Layout<'_>,
         _cursor: core::mouse::Cursor,
     ) {
     }
@@ -313,13 +293,12 @@ impl overlay::Overlay<OverlayMessage, core::Theme, Renderer> for NestedOverlay {
     fn update(
         &mut self,
         event: &Event,
-        layout: layout::Layout<'_>,
         cursor: core::mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, OverlayMessage>,
     ) {
         if matches!(event, Event::Mouse(core::mouse::Event::ButtonPressed(_)))
-            && cursor.position_over(layout.bounds()).is_some()
+            && cursor.position_over(Self::BOUNDS).is_some()
         {
             shell.publish(OverlayMessage::Nested);
             shell.capture_event();

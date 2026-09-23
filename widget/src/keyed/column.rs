@@ -174,6 +174,7 @@ where
     Key: Copy + PartialEq,
 {
     keys: Vec<Key>,
+    cache: layout::flex::Cache,
 }
 
 impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -189,6 +190,7 @@ where
     fn state(&self) -> tree::State {
         tree::State::new(State {
             keys: self.keys.clone(),
+            cache: layout::flex::Cache::default(),
         })
     }
 
@@ -231,13 +233,10 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::flex::resolve(
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let state = tree.state.downcast_mut::<State<Key>>();
+
+        tree.size = layout::flex::resolve(
             layout::flex::Axis::Vertical,
             renderer,
             limits,
@@ -246,28 +245,29 @@ where
             self.padding,
             self.spacing,
             self.align_items,
-            &mut self.children,
             &mut tree.children,
-        )
+            &mut self.children,
+            &mut state.cache,
+        );
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(None, layout.bounds());
+        operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
             self.children
                 .iter_mut()
-                .zip(&mut tree.children)
-                .zip(layout.children())
-                .for_each(|((child, state), layout)| {
+                .zip(layout.iter_mut(&mut tree.children))
+                .for_each(|(child, (layout, state))| {
                     child
                         .as_widget_mut()
-                        .operate(state, layout, renderer, operation);
+                        .operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -276,17 +276,16 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((child, tree), layout) in self
+        for (child, (layout, tree)) in self
             .children
             .iter_mut()
-            .zip(&mut tree.children)
-            .zip(layout.children())
+            .zip(layout.iter_mut(&mut tree.children))
         {
             child
                 .as_widget_mut()
@@ -297,16 +296,15 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.children
             .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-            .map(|((child, tree), layout)| {
+            .zip(layout.iter(&tree.children))
+            .map(|(child, (layout, tree))| {
                 child
                     .as_widget()
                     .mouse_interaction(tree, layout, cursor, viewport, renderer)
@@ -321,16 +319,11 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        for ((child, state), layout) in self
-            .children
-            .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-        {
+        for (child, (layout, state)) in self.children.iter().zip(layout.iter(&tree.children)) {
             child
                 .as_widget()
                 .draw(state, renderer, theme, style, layout, cursor, viewport);
@@ -340,10 +333,11 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
@@ -352,6 +346,7 @@ where
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }

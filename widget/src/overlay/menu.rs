@@ -1,7 +1,7 @@
 //! Build and show dropdown menus.
 use crate::core::alignment;
 use crate::core::border::{self, Border};
-use crate::core::layout::{self, Layout};
+use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
@@ -10,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Event, Font, Length, Padding, Pixels, Point, Rectangle, Shadow, Size, Theme,
-    Vector,
+    Background, Color, Event, Font, Layout, Length, Padding, Pixels, Point, Rectangle, Shadow,
+    Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -29,6 +29,7 @@ where
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
     on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     width: f32,
+    height: Length,
     padding: Padding,
     text_size: Option<Pixels>,
     line_height: Option<text::LineHeight>,
@@ -64,6 +65,7 @@ where
             on_selected: Box::new(on_selected),
             on_option_hovered,
             width: 0.0,
+            height: Length::Shrink,
             padding: Padding::ZERO,
             text_size: None,
             line_height: None,
@@ -77,6 +79,12 @@ where
     /// Sets the width of the [`Menu`].
     pub fn width(mut self, width: f32) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the height of the [`Menu`].
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -119,25 +127,28 @@ where
     /// Turns the [`Menu`] into an overlay [`Element`] at the given target
     /// position.
     ///
+    /// `position` is the target's position in screen coordinates, and
+    /// `window` is the size of the window.
+    ///
     /// The `target_height` will be used to display the menu either on top
     /// of the target or under it, depending on the screen position and the
     /// dimensions of the [`Menu`].
     pub fn overlay<Renderer>(
         self,
+        renderer: &Renderer,
         position: Point,
-        viewport: Rectangle,
+        window: Size,
         target_height: f32,
-        menu_height: Length,
     ) -> overlay::Element<'a, Message, Theme, Renderer>
     where
         Renderer: text::Renderer + 'a,
     {
         overlay::Element::new(Box::new(Overlay::new(
             position,
-            viewport,
+            window,
             self,
             target_height,
-            menu_height,
+            renderer,
         )))
     }
 }
@@ -168,12 +179,10 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    position: Point,
-    viewport: Rectangle,
+    window: Size,
+    layout: Layout,
     tree: &'a mut Tree,
     list: Scrollable<'a, Message, Theme, Renderer>,
-    width: f32,
-    target_height: f32,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
 
@@ -186,10 +195,10 @@ where
 {
     pub fn new<T>(
         position: Point,
-        viewport: Rectangle,
+        window: Size,
         menu: Menu<'a, 'b, T, Message, Theme>,
         target_height: f32,
-        menu_height: Length,
+        renderer: &Renderer,
     ) -> Self
     where
         T: Clone,
@@ -201,7 +210,6 @@ where
             to_string,
             on_selected,
             on_option_hovered,
-            width,
             padding,
             font,
             text_size,
@@ -209,7 +217,8 @@ where
             shaping,
             ellipsis,
             class,
-            ..
+            height,
+            width,
         } = menu;
 
         let mut list = Scrollable::new(List {
@@ -226,17 +235,38 @@ where
             padding,
             class,
         })
-        .height(menu_height);
+        .height(height);
+
+        let space_below = window.height - (position.y + target_height);
+        let space_above = position.y;
+
+        let limits = layout::Limits::new(
+            Size::ZERO,
+            Size::new(
+                window.width - position.x,
+                if space_below > space_above {
+                    space_below
+                } else {
+                    space_above
+                },
+            ),
+        )
+        .width(width);
 
         state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
+        list.layout(&mut state.tree, renderer, &limits);
+
+        let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
+            position + Vector::new(0.0, target_height)
+        } else {
+            position - Vector::new(0.0, state.tree.size.height)
+        });
 
         Self {
-            position,
-            viewport,
+            layout,
+            window,
             tree: &mut state.tree,
             list,
-            width,
-            target_height,
             class,
         }
     }
@@ -248,62 +278,48 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        let space_below = bounds.height - (self.position.y + self.target_height);
-        let space_above = self.position.y;
-
-        let limits = layout::Limits::new(
-            Size::ZERO,
-            Size::new(
-                bounds.width - self.position.x,
-                if space_below > space_above {
-                    space_below
-                } else {
-                    space_above
-                },
-            ),
-        )
-        .width(self.width);
-
-        let node = self.list.layout(self.tree, renderer, &limits);
-        let size = node.size();
-
-        node.move_to(if space_below > space_above {
-            self.position + Vector::new(0.0, self.target_height)
-        } else {
-            self.position - Vector::new(0.0, size.height)
-        })
-    }
-
     fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        let bounds = layout.bounds();
-
-        self.list
-            .update(self.tree, event, layout, cursor, renderer, shell, &bounds);
+        self.list.update(
+            self.tree,
+            event,
+            self.layout,
+            cursor,
+            renderer,
+            shell,
+            &self.layout.bounds(),
+        );
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let interaction =
-            self.list
-                .mouse_interaction(self.tree, layout, cursor, &self.viewport, renderer);
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        let interaction = self.list.mouse_interaction(
+            self.tree,
+            self.layout,
+            cursor,
+            &Rectangle::with_size(self.window),
+            renderer,
+        );
 
-        if interaction == mouse::Interaction::None && cursor.is_over(layout.bounds()) {
+        if interaction == mouse::Interaction::None && cursor.is_over(self.layout.bounds()) {
             mouse::Interaction::Idle
         } else {
             interaction
         }
+    }
+
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn crate::core::widget::Operation) {
+        self.list.operate(
+            self.tree,
+            self.layout,
+            &self.layout.bounds(),
+            renderer,
+            operation,
+        );
     }
 
     fn draw(
@@ -311,26 +327,33 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         defaults: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let bounds = layout.bounds();
+        let bounds = self.layout.bounds();
 
         let style = Catalog::style(theme, self.class);
 
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border: style.border,
-                shadow: style.shadow,
-                ..renderer::Quad::default()
-            },
-            style.background,
-        );
+        renderer.with_layer(bounds, |renderer| {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border: style.border,
+                    shadow: style.shadow,
+                    ..renderer::Quad::default()
+                },
+                style.background,
+            );
 
-        self.list.draw(
-            self.tree, renderer, theme, defaults, layout, cursor, &bounds,
-        );
+            self.list.draw(
+                self.tree,
+                renderer,
+                theme,
+                defaults,
+                self.layout,
+                cursor,
+                &bounds,
+            );
+        });
     }
 }
 
@@ -374,16 +397,11 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Fill,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         use std::f32;
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
@@ -397,17 +415,17 @@ where
                 (f32::from(text_line_height) + self.padding.y()) * self.options.len() as f32,
             );
 
-            limits.resolve(Length::Fill, Length::Shrink, intrinsic)
+            limits.resolve(Length::Fill, Length::Fit, intrinsic)
         };
 
-        layout::Node::new(size)
+        tree.size = size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -418,23 +436,25 @@ where
             .unwrap_or_default()
             .min(self.options.len().saturating_sub(1));
 
+        let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
+        let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
+        let option_height = f32::from(line_height.to_absolute(text_size)) + self.padding.y();
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                if cursor.is_over(layout.bounds())
-                    && let Some(option) = self.options.get(hovered_option)
-                {
-                    shell.publish((self.on_selected)(option.clone()));
-                    shell.capture_event();
+                if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
+                    let option_index = (cursor_position.y / option_height) as usize;
+
+                    *self.hovered_option = Some(option_index);
+
+                    if let Some(option) = self.options.get(option_index) {
+                        shell.publish((self.on_selected)(option.clone()));
+                        shell.capture_event();
+                    }
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
-                    let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
-                    let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
-
-                    let option_height =
-                        f32::from(line_height.to_absolute(text_size)) + self.padding.y();
-
                     let new_hovered_option = (cursor_position.y / option_height) as usize;
 
                     if hovered_option != new_hovered_option
@@ -452,17 +472,11 @@ where
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if let Some(cursor_position) = cursor.position_in(layout.bounds()) {
-                    let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
-                    let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
+                    let option_index = (cursor_position.y / option_height) as usize;
 
-                    let option_height =
-                        f32::from(line_height.to_absolute(text_size)) + self.padding.y();
+                    *self.hovered_option = Some(option_index);
 
-                    *self.hovered_option = Some((cursor_position.y / option_height) as usize);
-
-                    if let Some(index) = *self.hovered_option
-                        && let Some(option) = self.options.get(index)
-                    {
+                    if let Some(option) = self.options.get(option_index) {
                         shell.publish((self.on_selected)(option.clone()));
                         shell.capture_event();
                     }
@@ -483,10 +497,55 @@ where
         }
     }
 
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+        operation: &mut dyn crate::core::widget::Operation,
+    ) {
+        let bounds = layout.bounds();
+
+        let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
+        let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
+        let option_height = f32::from(line_height.to_absolute(text_size)) + self.padding.y();
+
+        let len = self.options.len();
+
+        let start = ((viewport.y - bounds.y) / option_height)
+            .floor()
+            .clamp(0.0, len as f32) as usize;
+        let end = ((viewport.y + viewport.height - bounds.y) / option_height)
+            .ceil()
+            .clamp(0.0, len as f32) as usize;
+
+        for (i, option) in self
+            .options
+            .iter()
+            .enumerate()
+            .skip(start)
+            .take(end - start)
+        {
+            let text = (self.to_string)(option);
+
+            operation.text(
+                None,
+                Rectangle {
+                    x: bounds.x,
+                    y: bounds.y + option_height * i as f32,
+                    width: bounds.width,
+                    height: option_height,
+                },
+                &text,
+            );
+        }
+    }
+
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -506,7 +565,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {

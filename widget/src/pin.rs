@@ -120,7 +120,7 @@ where
     }
 
     fn diff(&mut self, tree: &mut widget::Tree) {
-        self.content.as_widget_mut().diff(tree);
+        tree.diff_children(std::slice::from_mut(&mut self.content));
     }
 
     fn size(&self) -> Size<Length> {
@@ -130,77 +130,66 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
         let limits = limits.width(self.width).height(self.height);
 
-        let available = limits.max() - Size::new(self.position.x, self.position.y);
+        let available = limits.bounds() - Size::new(self.position.x, self.position.y);
 
-        let node = self
-            .content
-            .as_widget_mut()
-            .layout(tree, renderer, &layout::Limits::new(Size::ZERO, available))
-            .move_to(self.position);
+        self.content.as_widget_mut().layout(
+            &mut tree.children[0],
+            renderer,
+            &layout::Limits::new(Size::ZERO, available),
+        );
 
-        let size = limits.resolve(self.width, self.height, node.size());
-        layout::Node::with_children(size, vec![node])
+        tree.children[0].translation = Vector::new(self.position.x, self.position.y);
+        tree.size = limits.resolve(self.width, self.height, tree.children[0].size);
     }
 
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            tree,
-            layout.children().next().unwrap(),
-            renderer,
-            operation,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .as_widget_mut()
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
-            tree,
-            event,
-            layout.children().next().unwrap(),
-            cursor,
-            renderer,
-            shell,
-            viewport,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .as_widget_mut()
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            tree,
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-            renderer,
-        )
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+        self.content
+            .as_widget()
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -209,19 +198,21 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
 
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
+            let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
             self.content.as_widget().draw(
                 tree,
                 renderer,
                 theme,
                 style,
-                layout.children().next().unwrap(),
+                layout,
                 cursor,
                 &clipped_viewport,
             );
@@ -231,18 +222,17 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            tree,
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .as_widget_mut()
+            .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
 

@@ -346,12 +346,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         let font = self.font.unwrap_or_else(|| renderer.font());
@@ -362,7 +357,7 @@ where
         let option_text = Text {
             content: "",
             bounds: Size::new(
-                limits.max().width,
+                limits.bounds().width,
                 line_height.to_absolute(text_size).into(),
             ),
             size: text_size,
@@ -423,14 +418,14 @@ where
                 .expand(self.padding)
         };
 
-        layout::Node::new(size)
+        tree.size = size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -547,7 +542,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -572,7 +567,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -695,13 +690,30 @@ where
         }
     }
 
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+        operation: &mut dyn crate::core::widget::Operation,
+    ) {
+        let selected = self.selected.as_ref().map(Borrow::borrow);
+        let label = selected.map(&self.to_string);
+
+        if let Some(label) = label.or_else(|| self.placeholder.clone()) {
+            operation.text(None, layout.bounds(), &label);
+        }
+    }
+
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         renderer: &Renderer,
-        viewport: &Rectangle,
+        _viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let Some(on_select) = &self.on_select else {
             return Vec::new();
@@ -712,6 +724,7 @@ where
 
         if state.is_open {
             let bounds = layout.bounds();
+            let position = layout.position() + translation;
 
             let mut menu = Menu::new(
                 &mut state.menu,
@@ -727,6 +740,7 @@ where
                 &self.menu_class,
             )
             .width(bounds.width)
+            .height(self.menu_height)
             .padding(self.padding)
             .font(font)
             .ellipsis(self.ellipsis)
@@ -736,12 +750,7 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            vec![menu.overlay(
-                layout.position() + translation,
-                *viewport,
-                bounds.height,
-                self.menu_height,
-            )]
+            vec![menu.overlay(renderer, position, window, bounds.height)]
         } else {
             Vec::new()
         }

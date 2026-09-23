@@ -188,7 +188,7 @@ pub fn layout<Renderer, Handle>(
     content_fit: ContentFit,
     rotation: Rotation,
     expand: bool,
-) -> layout::Node
+) -> Size
 where
     Renderer: image::Renderer<Handle = Handle>,
 {
@@ -200,7 +200,7 @@ where
 
     // The size to be available to the widget prior to `Shrink`ing
     let bounds = if expand {
-        limits.width(width).height(height).max()
+        limits.width(width).height(height).bounds()
     } else {
         limits.resolve(width, height, rotated_size)
     };
@@ -209,7 +209,7 @@ where
     let full_size = content_fit.fit(rotated_size, bounds);
 
     // Shrink the widget to fit the resized image, if requested
-    let final_size = Size {
+    Size {
         width: match width {
             Length::Shrink => f32::min(bounds.width, full_size.width),
             _ => bounds.width,
@@ -218,9 +218,7 @@ where
             Length::Shrink => f32::min(bounds.height, full_size.height),
             _ => bounds.height,
         },
-    };
-
-    layout::Node::new(final_size)
+    }
 }
 
 fn drawing_bounds<Renderer, Handle>(
@@ -306,7 +304,7 @@ fn crop(size: Size<u32>, region: Option<Rectangle<u32>>) -> Size<f32> {
 /// Draws an [`Image`]
 pub fn draw<Renderer, Handle>(
     renderer: &mut Renderer,
-    layout: Layout<'_>,
+    layout: Layout,
     handle: &Handle,
     crop: Option<Rectangle<u32>>,
     border_radius: border::Radius,
@@ -348,13 +346,8 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout(
             renderer,
             limits,
             &self.handle,
@@ -364,7 +357,7 @@ where
             self.content_fit,
             self.rotation,
             self.expand,
-        )
+        );
     }
 
     fn draw(
@@ -373,7 +366,7 @@ where
         renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {

@@ -206,19 +206,14 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout(
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout(
             tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
             renderer,
             limits,
             &self.fragment,
             self.format,
-        )
+        );
     }
 
     fn draw(
@@ -227,7 +222,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         defaults: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -247,7 +242,8 @@ where
     fn operate(
         &mut self,
         _tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
@@ -280,8 +276,8 @@ impl Default for Format {
             size: None,
             line_height: None,
             font: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
             align_x: text::Alignment::Default,
             align_y: alignment::Vertical::Top,
             shaping: Shaping::default(),
@@ -291,19 +287,19 @@ impl Default for Format {
     }
 }
 
-/// Produces the [`layout::Node`] of a [`Text`] widget.
+/// Computes the [`Size`] of a [`Text`] widget.
 pub fn layout<Renderer>(
     paragraph: &mut paragraph::Plain<Renderer::Paragraph>,
     renderer: &Renderer,
     limits: &layout::Limits,
     content: &str,
     format: Format,
-) -> layout::Node
+) -> Size
 where
     Renderer: text::Renderer,
 {
     layout::sized(limits, format.width, format.height, |limits| {
-        let bounds = limits.max();
+        let bounds = limits.bounds();
 
         let size = format.size.unwrap_or_else(|| renderer.text_size());
         let font = format.font.unwrap_or_else(|| renderer.font());

@@ -212,7 +212,7 @@ where
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        self.content.as_widget_mut().diff(tree);
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
         let size = self.content.as_widget().size();
         self.width = self.width.stack(size.width);
@@ -226,38 +226,43 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         layout(
+            tree,
             limits,
             self.width,
             self.height,
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |limits| self.content.as_widget_mut().layout(tree, renderer, limits),
-        )
+            |tree, limits| {
+                self.content.as_widget_mut().layout(tree, renderer, limits);
+                tree.size
+            },
+        );
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
-        operation.container(self.id.as_ref(), layout.bounds());
+        let viewport = if self.clip {
+            layout.bounds().intersection(viewport).unwrap_or_default()
+        } else {
+            *viewport
+        };
+
+        operation.container(self.id.as_ref(), layout.bounds(), &viewport);
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                tree,
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
+            let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+            self.content
+                .as_widget_mut()
+                .operate(tree, layout, &viewport, renderer, operation);
         });
     }
 
@@ -265,38 +270,32 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
-            tree,
-            event,
-            layout.children().next().unwrap(),
-            cursor,
-            renderer,
-            shell,
-            viewport,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .as_widget_mut()
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            tree,
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-            renderer,
-        )
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+        self.content
+            .as_widget()
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -305,7 +304,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         renderer_style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -315,6 +314,8 @@ where
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
             draw_background(renderer, &style, bounds);
 
+            let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
             self.content.as_widget().draw(
                 tree,
                 renderer,
@@ -322,7 +323,7 @@ where
                 &renderer::Style {
                     text_color: style.text_color.unwrap_or(renderer_style.text_color),
                 },
-                layout.children().next().unwrap(),
+                layout,
                 cursor,
                 if self.clip {
                     &clipped_viewport
@@ -336,18 +337,17 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            tree,
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .as_widget_mut()
+            .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
 
@@ -367,28 +367,32 @@ where
 
 /// Computes the layout of a [`Container`].
 pub fn layout(
+    tree: &mut Tree,
     limits: &layout::Limits,
     width: Length,
     height: Length,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
-) -> layout::Node {
+    layout_content: impl FnOnce(&mut Tree, &layout::Limits) -> Size,
+) {
+    let limits = limits.width(width).height(height);
+
     layout::positioned(
-        limits,
+        tree,
+        &limits,
         width,
         height,
         padding,
-        |limits| layout_content(&limits.loose()),
-        |content, size| {
+        |tree, limits| layout_content(tree, &limits.loose()),
+        |content, container| {
             content.align(
+                container,
                 Alignment::from(horizontal_alignment),
                 Alignment::from(vertical_alignment),
-                size,
             )
         },
-    )
+    );
 }
 
 /// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.

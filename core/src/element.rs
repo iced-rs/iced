@@ -292,30 +292,27 @@ where
         self.widget.size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.widget.layout(tree, renderer, limits)
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.widget.layout(tree, renderer, limits);
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.widget.operate(tree, layout, renderer, operation);
+        self.widget
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, B>,
@@ -343,7 +340,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -354,7 +351,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -366,15 +363,16 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, B, Theme, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
-            .overlay(tree, layout, renderer, viewport, translation)
+            .overlay(tree, layout, renderer, viewport, translation, window)
             .into_iter()
             .map(move |overlay| overlay.map(mapper))
             .collect()
@@ -416,32 +414,28 @@ where
         self.element.widget.diff(tree);
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.element.widget.layout(tree, renderer, limits)
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.element.widget.layout(tree, renderer, limits);
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         self.element
             .widget
-            .operate(tree, layout, renderer, operation);
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -458,14 +452,15 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         fn explain_layout<Renderer: crate::Renderer>(
+            tree: &Tree,
             renderer: &mut Renderer,
             color: Color,
-            layout: Layout<'_>,
+            layout: Layout,
         ) {
             renderer.fill_quad(
                 renderer::Quad {
@@ -480,8 +475,8 @@ where
                 Color::TRANSPARENT,
             );
 
-            for child in layout.children() {
-                explain_layout(renderer, color, child);
+            for (layout, tree) in layout.iter(&tree.children) {
+                explain_layout(tree, renderer, color, layout);
             }
         }
 
@@ -490,14 +485,14 @@ where
             .draw(tree, renderer, theme, style, layout, cursor, viewport);
 
         renderer.with_layer(Rectangle::INFINITE, |renderer| {
-            explain_layout(renderer, self.color, layout);
+            explain_layout(tree, renderer, self.color, layout);
         });
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -510,14 +505,15 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.element
             .widget
-            .overlay(tree, layout, renderer, viewport, translation)
+            .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
 

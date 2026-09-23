@@ -117,15 +117,10 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
         let size = <Self as Widget<(), Theme, Renderer>>::size(self);
 
-        layout::atomic(limits, size.width, size.height)
+        tree.size = layout::atomic(limits, size.width, size.height);
     }
 
     fn draw(
@@ -134,7 +129,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {

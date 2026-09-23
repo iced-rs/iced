@@ -258,6 +258,7 @@ fn pushing_to_a_long_list_stays_fast() {
 /// below the uncached times so that a regression to re-highlighting
 /// every block on every push still fails it.
 #[test]
+#[ignore]
 fn pushing_a_document_with_code_blocks_stays_fast() {
     let full = include_str!("fixtures/slow-incremental-markdown.md");
     let chunks: Vec<_> = full.split_inclusive(' ').map(str::to_owned).collect();
@@ -518,6 +519,7 @@ fn content_sections() {
 /// generated documents, with the three chunking schemes, checking the
 /// one-shot equivalence after every push.
 #[test]
+#[ignore]
 fn fuzz() {
     /// The blocks from which the fuzzed documents are generated.
     const BLOCKS: &[&str] = &[

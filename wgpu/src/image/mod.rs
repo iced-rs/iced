@@ -232,12 +232,15 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    let Some(bounds) = nudge::snap(*bounds * scale) else {
-                        continue;
-                    };
+                    // `bounds` and `clip_bounds` can have negative coordinates,
+                    // as content can be scrolled out of view; they are clipped
+                    // by the pass's scissor afterwards.
+                    let bounds = nudge::round(*bounds * scale);
+                    let clip_bounds = nudge::round(*clip_bounds * scale);
 
-                    let clip_bounds = nudge::snap(*clip_bounds * scale)
-                        .map_or(Rectangle::with_size(Size::ZERO), Rectangle::from);
+                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                        continue;
+                    }
 
                     if let Some((atlas_entry, bind_group)) =
                         cache.upload_raster(device, encoder, belt, &image.handle)
@@ -281,12 +284,15 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    let Some(bounds) = nudge::snap(*bounds * scale) else {
-                        continue;
-                    };
+                    // `bounds` and `clip_bounds` can have negative coordinates,
+                    // as content can be scrolled out of view; they are clipped
+                    // by the pass's scissor afterwards.
+                    let bounds = nudge::round(*bounds * scale);
+                    let clip_bounds = nudge::round(*clip_bounds * scale);
 
-                    let clip_bounds = nudge::snap(*clip_bounds * scale)
-                        .map_or(Rectangle::with_size(Size::ZERO), Rectangle::from);
+                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                        continue;
+                    }
 
                     if let Some((atlas_entry, bind_group)) = cache.upload_vector(
                         device,
@@ -294,7 +300,7 @@ impl State {
                         belt,
                         &svg.handle,
                         svg.color,
-                        bounds.size(),
+                        Size::new(bounds.width as u32, bounds.height as u32),
                     ) {
                         match atlas.as_mut() {
                             None => {
@@ -580,7 +586,7 @@ struct Uniforms {
 }
 
 fn add_instances(
-    bounds: Rectangle<u32>,
+    bounds: Rectangle,
     clip_bounds: Rectangle,
     border_radius: border::Radius,
     rotation: f32,
@@ -588,8 +594,6 @@ fn add_instances(
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
-    let bounds: Rectangle<f32> = bounds.into();
-
     let center = [
         bounds.x + bounds.width / 2.0,
         bounds.y + bounds.height / 2.0,

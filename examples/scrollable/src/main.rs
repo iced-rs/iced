@@ -17,9 +17,11 @@ struct ScrollableDemo {
     scrollable_direction: Direction,
     scrollbar_width: u32,
     scrollbar_margin: u32,
+    scrollbar_padding: u32,
     scroller_width: u32,
     current_scroll_offset: scrollable::RelativeOffset,
     anchor: scrollable::Anchor,
+    last_source: Option<scrollable::Source>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Copy)]
@@ -35,10 +37,11 @@ enum Message {
     AlignmentChanged(scrollable::Anchor),
     ScrollbarWidthChanged(u32),
     ScrollbarMarginChanged(u32),
+    ScrollbarPaddingChanged(u32),
     ScrollerWidthChanged(u32),
     ScrollToBeginning,
     ScrollToEnd,
-    Scrolled(scrollable::Viewport),
+    Scrolled(scrollable::Scroll),
 }
 
 impl ScrollableDemo {
@@ -47,9 +50,11 @@ impl ScrollableDemo {
             scrollable_direction: Direction::Vertical,
             scrollbar_width: 10,
             scrollbar_margin: 0,
+            scrollbar_padding: 0,
             scroller_width: 10,
             current_scroll_offset: scrollable::RelativeOffset::START,
             anchor: scrollable::Anchor::Start,
+            last_source: None,
         }
     }
 
@@ -59,13 +64,21 @@ impl ScrollableDemo {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::AlignmentChanged(alignment) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.anchor = alignment;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::ScrollbarWidthChanged(width) => {
                 self.scrollbar_width = width;
@@ -77,6 +90,11 @@ impl ScrollableDemo {
 
                 Task::none()
             }
+            Message::ScrollbarPaddingChanged(padding) => {
+                self.scrollbar_padding = padding;
+
+                Task::none()
+            }
             Message::ScrollerWidthChanged(width) => {
                 self.scroller_width = width;
 
@@ -85,15 +103,24 @@ impl ScrollableDemo {
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
             Message::ScrollToEnd => {
                 self.current_scroll_offset = scrollable::RelativeOffset::END;
 
-                operation::snap_to(SCROLLABLE, self.current_scroll_offset)
+                operation::snap_to(
+                    SCROLLABLE,
+                    self.current_scroll_offset,
+                    operation::Animation::Auto,
+                )
             }
-            Message::Scrolled(viewport) => {
-                self.current_scroll_offset = viewport.relative_offset();
+            Message::Scrolled(scroll) => {
+                self.current_scroll_offset = scroll.viewport.relative_offset();
+                self.last_source = Some(scroll.source);
 
                 Task::none()
             }
@@ -108,6 +135,11 @@ impl ScrollableDemo {
             self.scrollbar_margin,
             Message::ScrollbarMarginChanged,
         );
+        let scrollbar_padding_slider = slider(
+            0..=15,
+            self.scrollbar_padding,
+            Message::ScrollbarPaddingChanged,
+        );
         let scroller_width_slider =
             slider(0..=15, self.scroller_width, Message::ScrollerWidthChanged);
 
@@ -116,6 +148,8 @@ impl ScrollableDemo {
             scrollbar_width_slider,
             text("Scrollbar margin:"),
             scrollbar_margin_slider,
+            text("Scrollbar padding:"),
+            scrollbar_padding_slider,
             text("Scroller width:"),
             scroller_width_slider,
         ]
@@ -199,6 +233,7 @@ impl ScrollableDemo {
                 scrollable::Scrollbar::new()
                     .width(self.scrollbar_width)
                     .margin(self.scrollbar_margin)
+                    .padding(self.scrollbar_padding)
                     .scroller_width(self.scroller_width)
                     .anchor(self.anchor),
             ))
@@ -226,6 +261,7 @@ impl ScrollableDemo {
                 scrollable::Scrollbar::new()
                     .width(self.scrollbar_width)
                     .margin(self.scrollbar_margin)
+                    .padding(self.scrollbar_padding)
                     .scroller_width(self.scroller_width)
                     .anchor(self.anchor),
             ))
@@ -266,6 +302,7 @@ impl ScrollableDemo {
                 let scrollbar = scrollable::Scrollbar::new()
                     .width(self.scrollbar_width)
                     .margin(self.scrollbar_margin)
+                    .padding(self.scrollbar_padding)
                     .scroller_width(self.scroller_width)
                     .anchor(self.anchor);
 
@@ -295,7 +332,14 @@ impl ScrollableDemo {
             .into(),
         };
 
-        let content: Element<Message> = column![scroll_controls, scrollable_content, progress_bars]
+        let source = match self.last_source {
+            Some(source) => text(format!("Source: {source:?}")),
+            None => text("Source: ?"),
+        };
+
+        let scroll_info = row![progress_bars, source].align_y(Center).spacing(10);
+
+        let content: Element<Message> = column![scroll_controls, scrollable_content, scroll_info]
             .align_x(Center)
             .spacing(10)
             .into();

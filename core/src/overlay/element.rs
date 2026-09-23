@@ -1,11 +1,10 @@
 pub use crate::Overlay;
 
-use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::shell;
 use crate::widget;
-use crate::{Event, Layout, Shell, Size};
+use crate::{Event, Shell};
 
 /// A generic [`Overlay`].
 pub struct Element<'a, Message, Theme, Renderer> {
@@ -63,23 +62,13 @@ impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer> for Map<'_, A, B, Theme,
 where
     Renderer: crate::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.content.layout(renderer, bounds)
-    }
-
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        self.content.operate(layout, renderer, operation);
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
+        self.content.operate(renderer, operation);
     }
 
     fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, B>,
@@ -88,18 +77,13 @@ where
         let mut local_shell = shell.local(&mut local_messages);
 
         self.content
-            .update(event, layout, cursor, renderer, &mut local_shell);
+            .update(event, cursor, renderer, &mut local_shell);
 
         shell.merge(local_shell, self.mapper);
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.content.mouse_interaction(layout, cursor, renderer)
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        self.content.mouse_interaction(cursor, renderer)
     }
 
     fn draw(
@@ -107,19 +91,14 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        self.content.draw(renderer, theme, style, layout, cursor);
+        self.content.draw(renderer, theme, style, cursor);
     }
 
-    fn overlay<'a>(
-        &'a mut self,
-        layout: Layout<'a>,
-        renderer: &Renderer,
-    ) -> Vec<Element<'a, B, Theme, Renderer>> {
+    fn overlay<'a>(&'a mut self, renderer: &Renderer) -> Vec<Element<'a, B, Theme, Renderer>> {
         self.content
-            .overlay(layout, renderer)
+            .overlay(renderer)
             .into_iter()
             .map(|overlay| overlay.map(self.mapper))
             .collect()

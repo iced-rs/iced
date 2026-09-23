@@ -94,15 +94,15 @@ mod loupe {
             tree: &mut widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
-        ) -> layout::Node {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+        ) {
+            self.content.as_widget_mut().layout(tree, renderer, limits);
         }
 
         fn update(
             &mut self,
             _tree: &mut widget::Tree,
             _event: &Event,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             _renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
@@ -119,7 +119,7 @@ mod loupe {
             renderer: &mut Renderer,
             theme: &Theme,
             style: &renderer::Style,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
@@ -156,7 +156,7 @@ mod loupe {
         fn mouse_interaction(
             &self,
             _tree: &widget::Tree,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
             _renderer: &Renderer,

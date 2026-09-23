@@ -1,5 +1,5 @@
 //! Store internal widget state in a state tree to ensure continuity.
-use crate::Widget;
+use crate::{Size, Vector, Widget};
 
 use std::any::{self, Any};
 use std::borrow::{Borrow, BorrowMut};
@@ -16,7 +16,13 @@ pub struct Tree {
     /// The [`State`] of the [`Tree`].
     pub state: State,
 
-    /// The children of the root widget of the [`Tree`].
+    /// The translation of the widget, relative to its parent.
+    pub translation: Vector,
+
+    /// The size of the widget.
+    pub size: Size,
+
+    /// The children of the widget.
     pub children: Vec<Tree>,
 }
 
@@ -26,6 +32,8 @@ impl Tree {
         Self {
             tag: Tag::stateless(),
             state: State::None,
+            translation: Vector::ZERO,
+            size: Size::ZERO,
             children: Vec::new(),
         }
     }
@@ -42,6 +50,8 @@ impl Tree {
         Self {
             tag: widget.tag(),
             state: widget.state(),
+            translation: Vector::ZERO,
+            size: Size::ZERO,
             children: Vec::new(),
         }
     }

@@ -78,32 +78,28 @@ where
         self.content.as_widget().size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.content.as_widget_mut().layout(tree, renderer, limits)
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.content.as_widget_mut().layout(tree, renderer, limits);
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
         self.content
             .as_widget_mut()
-            .operate(tree, layout, renderer, operation);
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -117,7 +113,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -133,7 +129,7 @@ where
         renderer: &mut Renderer,
         theme: &AnyTheme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -167,10 +163,11 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, AnyTheme, Renderer>> {
         struct Overlay<'a, Message, Theme, Renderer> {
             theme: &'a Option<Theme>,
@@ -184,16 +181,11 @@ where
             AnyTheme: theme::Base,
             Renderer: crate::core::Renderer,
         {
-            fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-                self.content.as_overlay_mut().layout(renderer, bounds)
-            }
-
             fn draw(
                 &self,
                 renderer: &mut Renderer,
                 theme: &AnyTheme,
                 style: &renderer::Style,
-                layout: Layout<'_>,
                 cursor: mouse::Cursor,
             ) {
                 let default_theme = theme::Base::default(theme.mode());
@@ -201,42 +193,33 @@ where
 
                 self.content
                     .as_overlay()
-                    .draw(renderer, theme, style, layout, cursor);
+                    .draw(renderer, theme, style, cursor);
             }
 
             fn update(
                 &mut self,
                 event: &Event,
-                layout: Layout<'_>,
                 cursor: mouse::Cursor,
                 renderer: &Renderer,
                 shell: &mut Shell<'_, Message>,
             ) {
                 self.content
                     .as_overlay_mut()
-                    .update(event, layout, cursor, renderer, shell);
+                    .update(event, cursor, renderer, shell);
             }
 
-            fn operate(
-                &mut self,
-                layout: Layout<'_>,
-                renderer: &Renderer,
-                operation: &mut dyn Operation,
-            ) {
-                self.content
-                    .as_overlay_mut()
-                    .operate(layout, renderer, operation);
+            fn operate(&mut self, renderer: &Renderer, operation: &mut dyn Operation) {
+                self.content.as_overlay_mut().operate(renderer, operation);
             }
 
             fn mouse_interaction(
                 &self,
-                layout: Layout<'_>,
                 cursor: mouse::Cursor,
                 renderer: &Renderer,
             ) -> mouse::Interaction {
                 self.content
                     .as_overlay()
-                    .mouse_interaction(layout, cursor, renderer)
+                    .mouse_interaction(cursor, renderer)
             }
 
             fn index(&self) -> f32 {
@@ -245,14 +228,13 @@ where
 
             fn overlay<'c>(
                 &'c mut self,
-                layout: Layout<'c>,
                 renderer: &Renderer,
             ) -> Vec<overlay::Element<'c, Message, AnyTheme, Renderer>> {
                 let theme = self.theme;
 
                 self.content
                     .as_overlay_mut()
-                    .overlay(layout, renderer)
+                    .overlay(renderer)
                     .into_iter()
                     .map(|content| overlay::Element::new(Box::new(Overlay { theme, content })))
                     .collect()
@@ -261,7 +243,7 @@ where
 
         self.content
             .as_widget_mut()
-            .overlay(tree, layout, renderer, viewport, translation)
+            .overlay(tree, layout, renderer, viewport, translation, window)
             .into_iter()
             .map(|content| {
                 overlay::Element::new(Box::new(Overlay {

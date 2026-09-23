@@ -33,7 +33,7 @@ where
     }
 
     /// Returns the [`Size`] of the [`Rectangle`].
-    pub fn size(&self) -> Size<T> {
+    pub const fn size(&self) -> Size<T> {
         Size::new(self.width, self.height)
     }
 }
@@ -267,6 +267,12 @@ impl Rectangle<f32> {
         })
     }
 
+    /// Computes the logical [`Rectangle`] that ends up rounded
+    /// after the given `scale_factor` is applied to it.
+    pub fn hint(self, scale_factor: f32) -> Self {
+        (self * scale_factor).round() / scale_factor
+    }
+
     /// Expands the [`Rectangle`] a given amount.
     pub fn expand(self, padding: impl Into<Padding>) -> Self {
         let padding = padding.into();
@@ -376,6 +382,19 @@ impl std::ops::Mul<f32> for Rectangle<f32> {
     }
 }
 
+impl std::ops::Div<f32> for Rectangle<f32> {
+    type Output = Self;
+
+    fn div(self, scale: f32) -> Self {
+        Self {
+            x: self.x / scale,
+            y: self.y / scale,
+            width: self.width / scale,
+            height: self.height / scale,
+        }
+    }
+}
+
 impl From<Rectangle<u32>> for Rectangle<f32> {
     fn from(rectangle: Rectangle<u32>) -> Rectangle<f32> {
         Rectangle {
@@ -383,6 +402,15 @@ impl From<Rectangle<u32>> for Rectangle<f32> {
             y: rectangle.y as f32,
             width: rectangle.width as f32,
             height: rectangle.height as f32,
+        }
+    }
+}
+
+impl<T> From<Rectangle<T>> for Size<T> {
+    fn from(rectangle: Rectangle<T>) -> Size<T> {
+        Size {
+            width: rectangle.width,
+            height: rectangle.height,
         }
     }
 }

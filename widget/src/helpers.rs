@@ -19,6 +19,7 @@ use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
+use crate::sticky::Sticky;
 use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
@@ -615,13 +616,8 @@ where
             self.content.as_widget().size()
         }
 
-        fn layout(
-            &mut self,
-            tree: &mut Tree,
-            renderer: &Renderer,
-            limits: &layout::Limits,
-        ) -> layout::Node {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+        fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+            self.content.as_widget_mut().layout(tree, renderer, limits);
         }
 
         fn draw(
@@ -630,7 +626,7 @@ where
             renderer: &mut Renderer,
             theme: &Theme,
             style: &renderer::Style,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
@@ -642,20 +638,21 @@ where
         fn operate(
             &mut self,
             tree: &mut Tree,
-            layout: Layout<'_>,
+            layout: Layout,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
             self.content
                 .as_widget_mut()
-                .operate(tree, layout, renderer, operation);
+                .operate(tree, layout, viewport, renderer, operation);
         }
 
         fn update(
             &mut self,
             tree: &mut Tree,
             event: &Event,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
@@ -676,7 +673,7 @@ where
         fn mouse_interaction(
             &self,
             state: &core::widget::Tree,
-            layout: core::Layout<'_>,
+            layout: core::Layout,
             cursor: core::mouse::Cursor,
             viewport: &core::Rectangle,
             renderer: &Renderer,
@@ -696,14 +693,20 @@ where
         fn overlay<'b>(
             &'b mut self,
             state: &'b mut core::widget::Tree,
-            layout: core::Layout<'b>,
+            layout: core::Layout,
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
+            window: core::Size,
         ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            self.content
-                .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, translation)
+            self.content.as_widget_mut().overlay(
+                state,
+                layout,
+                renderer,
+                viewport,
+                translation,
+                window,
+            )
         }
     }
 
@@ -759,24 +762,20 @@ where
             self.base.as_widget().size()
         }
 
-        fn layout(
-            &mut self,
-            tree: &mut Tree,
-            renderer: &Renderer,
-            limits: &layout::Limits,
-        ) -> layout::Node {
-            let base = self
-                .base
+        fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+            self.base
                 .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, limits);
 
-            let top = self.top.as_widget_mut().layout(
+            let base_size = tree.children[0].size;
+
+            self.top.as_widget_mut().layout(
                 &mut tree.children[1],
                 renderer,
-                &layout::Limits::new(Size::ZERO, base.size()),
+                &layout::Limits::new(Size::ZERO, base_size),
             );
 
-            layout::Node::with_children(base.size(), vec![base, top])
+            tree.size = base_size;
         }
 
         fn draw(
@@ -785,12 +784,12 @@ where
             renderer: &mut Renderer,
             theme: &Theme,
             style: &renderer::Style,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
             if let Some(bounds) = layout.bounds().intersection(viewport) {
-                let mut children = layout.children().zip(&tree.children);
+                let mut children = layout.iter(&tree.children);
 
                 let (base_layout, base_tree) = children.next().unwrap();
 
@@ -822,18 +821,19 @@ where
         fn operate(
             &mut self,
             tree: &mut Tree,
-            layout: Layout<'_>,
+            layout: Layout,
+            viewport: &Rectangle,
             renderer: &Renderer,
             operation: &mut dyn operation::Operation,
         ) {
             let children = [&mut self.base, &mut self.top]
                 .into_iter()
-                .zip(layout.children().zip(&mut tree.children));
+                .zip(layout.iter_mut(&mut tree.children));
 
             for (child, (layout, tree)) in children {
                 child
                     .as_widget_mut()
-                    .operate(tree, layout, renderer, operation);
+                    .operate(tree, layout, viewport, renderer, operation);
             }
         }
 
@@ -841,13 +841,13 @@ where
             &mut self,
             tree: &mut Tree,
             event: &Event,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
-            let mut children = layout.children().zip(&mut tree.children);
+            let mut children = layout.iter_mut(&mut tree.children);
             let (base_layout, base_tree) = children.next().unwrap();
             let (top_layout, top_tree) = children.next().unwrap();
 
@@ -859,6 +859,7 @@ where
                 self.top.as_widget_mut().operate(
                     top_tree,
                     top_layout,
+                    viewport,
                     renderer,
                     &mut operation::black_box(&mut count_focused),
                 );
@@ -910,7 +911,7 @@ where
         fn mouse_interaction(
             &self,
             tree: &Tree,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
@@ -918,7 +919,7 @@ where
             [&self.base, &self.top]
                 .into_iter()
                 .rev()
-                .zip(layout.children().rev().zip(tree.children.iter().rev()))
+                .zip(layout.iter(&tree.children).rev())
                 .map(|(child, (layout, tree))| {
                     child
                         .as_widget()
@@ -931,18 +932,24 @@ where
         fn overlay<'b>(
             &'b mut self,
             tree: &'b mut core::widget::Tree,
-            layout: core::Layout<'b>,
+            layout: core::Layout,
             renderer: &Renderer,
             viewport: &Rectangle,
             translation: core::Vector,
+            window: core::Size,
         ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
             let mut overlays = [&mut self.base, &mut self.top]
                 .into_iter()
-                .zip(layout.children().zip(tree.children.iter_mut()))
+                .zip(layout.iter_mut(&mut tree.children))
                 .map(|(child, (layout, tree))| {
-                    child
-                        .as_widget_mut()
-                        .overlay(tree, layout, renderer, viewport, translation)
+                    child.as_widget_mut().overlay(
+                        tree,
+                        layout,
+                        renderer,
+                        viewport,
+                        translation,
+                        window,
+                    )
                 });
 
             let base_overlays = overlays.next().unwrap();
@@ -1009,6 +1016,40 @@ where
     Renderer: core::text::Renderer,
 {
     Scrollable::new(content)
+}
+
+/// Creates a new [`Sticky`] for the provided content.
+///
+/// The contents of a [`Sticky`] will be displayed on an overlay, inside the
+/// visible bounds, whenever they would otherwise go out of view.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # pub type State = ();
+/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// use iced::widget::{column, container, scrollable, sticky, space};
+/// use iced::Fill;
+///
+/// enum Message {
+///     // ...
+/// }
+///
+/// fn view(state: &State) -> Element<'_, Message> {
+///     scrollable(column![
+///         sticky(container("I always stay in view!").width(Fill).padding(10)),
+///         space().height(3000),
+///     ]).into()
+/// }
+/// ```
+pub fn sticky<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Sticky<'a, Message, Theme, Renderer>
+where
+    Theme: 'a,
+    Renderer: core::Renderer + 'a,
+{
+    Sticky::new(content)
 }
 
 /// Creates a new [`Button`] with the provided content.

@@ -277,48 +277,48 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::next_to_each_other(
-            &limits.width(self.width),
-            self.spacing,
-            |_| layout::Node::new(Size::new(self.size, self.size)),
-            |limits| {
-                let state = tree
-                    .state
-                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+    fn diff(&mut self, tree: &mut Tree) {
+        // The children of the tree are the radio and the label; they only
+        // carry their geometry, so no state is needed.
+        tree.children.resize_with(2, Tree::empty);
+    }
 
-                widget::text::layout(
-                    state,
-                    renderer,
-                    limits,
-                    &self.label,
-                    widget::text::Format {
-                        width: self.width,
-                        height: Length::Shrink,
-                        line_height: self.line_height,
-                        size: self.text_size,
-                        font: self.font,
-                        align_x: text::Alignment::Default,
-                        align_y: alignment::Vertical::Top,
-                        shaping: self.shaping,
-                        wrapping: self.wrapping,
-                        ellipsis: text::Ellipsis::default(),
-                    },
-                )
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let limits = limits.width(self.width);
+
+        let radio = Size::new(self.size, self.size);
+
+        let state = tree
+            .state
+            .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+
+        let label = widget::text::layout(
+            state,
+            renderer,
+            &limits.shrink(Size::new(radio.width + self.spacing, 0.0)),
+            &self.label,
+            widget::text::Format {
+                width: self.width,
+                height: Length::Shrink,
+                line_height: self.line_height,
+                size: self.text_size,
+                font: self.font,
+                align_x: text::Alignment::Default,
+                align_y: alignment::Vertical::Top,
+                shaping: self.shaping,
+                wrapping: self.wrapping,
+                ellipsis: text::Ellipsis::default(),
             },
-        )
+        );
+
+        layout::next_to_each_other(tree, radio, label, self.spacing);
     }
 
     fn update(
         &mut self,
         _tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -359,7 +359,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -377,11 +377,11 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         defaults: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let mut children = layout.children();
+        let mut children = layout.iter(&tree.children);
 
         let style = theme.style(
             &self.class,
@@ -390,58 +390,55 @@ where
             }),
         );
 
-        {
-            let layout = children.next().unwrap();
-            let bounds = layout.bounds();
+        let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
 
-            let size = bounds.width;
-            let dot_size = size / 2.0;
+        let (radio_layout, _) = children.next().unwrap();
+        let bounds = radio_layout.bounds();
 
+        let size = bounds.width;
+        let dot_size = size / 2.0;
+
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border: Border {
+                    radius: (size / 2.0).into(),
+                    width: style.border_width,
+                    color: style.border_color,
+                },
+                ..renderer::Quad::default()
+            },
+            style.background,
+        );
+
+        if self.is_selected {
             renderer.fill_quad(
                 renderer::Quad {
-                    bounds,
-                    border: Border {
-                        radius: (size / 2.0).into(),
-                        width: style.border_width,
-                        color: style.border_color,
+                    bounds: Rectangle {
+                        x: bounds.x + dot_size / 2.0,
+                        y: bounds.y + dot_size / 2.0,
+                        width: bounds.width - dot_size,
+                        height: bounds.height - dot_size,
                     },
+                    border: border::rounded(dot_size / 2.0),
                     ..renderer::Quad::default()
                 },
-                style.background,
-            );
-
-            if self.is_selected {
-                renderer.fill_quad(
-                    renderer::Quad {
-                        bounds: Rectangle {
-                            x: bounds.x + dot_size / 2.0,
-                            y: bounds.y + dot_size / 2.0,
-                            width: bounds.width - dot_size,
-                            height: bounds.height - dot_size,
-                        },
-                        border: border::rounded(dot_size / 2.0),
-                        ..renderer::Quad::default()
-                    },
-                    style.dot_color,
-                );
-            }
-        }
-
-        {
-            let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
-
-            crate::text::draw(
-                renderer,
-                defaults,
-                label_layout.bounds(),
-                state.raw(),
-                crate::text::Style {
-                    color: style.text_color,
-                },
-                viewport,
+                style.dot_color,
             );
         }
+
+        let (label_layout, _) = children.next().unwrap();
+
+        crate::text::draw(
+            renderer,
+            defaults,
+            label_layout.bounds(),
+            state.raw(),
+            crate::text::Style {
+                color: style.text_color,
+            },
+            viewport,
+        );
     }
 }
 

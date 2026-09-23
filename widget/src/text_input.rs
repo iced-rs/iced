@@ -276,16 +276,11 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let state = tree.state.downcast_mut::<State<Renderer>>();
 
         if state.value != self.value
@@ -298,7 +293,7 @@ where
             state.value = self.value.clone().into_owned();
         }
 
-        state.input.layout(
+        tree.size = state.input.layout(
             renderer,
             limits,
             input::Layout {
@@ -313,13 +308,14 @@ where
                 multiline: self.multiline,
                 is_secure: self.is_secure,
             },
-        )
+        );
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn Operation,
     ) {
@@ -333,7 +329,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -405,7 +401,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -437,7 +433,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -597,7 +593,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.palette();
 
     let active = Style {
-        background: Background::Color(palette.background.base.color),
+        background: Background::Color(palette.background.weakest.color),
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
@@ -612,7 +608,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Active => active,
         Status::Hovered => Style {
             border: Border {
-                color: palette.background.base.text,
+                color: palette.background.weakest.text,
                 ..active.border
             },
             ..active
@@ -627,7 +623,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Disabled => Style {
             background: Background::Color(palette.background.weak.color),
             value: active.placeholder,
-            placeholder: palette.background.strongest.color,
+            placeholder: palette.background.base.color,
             ..active
         },
     }

@@ -1,11 +1,10 @@
 //! Display interactive elements on top of other widgets.
 mod element;
-mod nested;
+mod group;
 
 pub use element::Element;
-pub use nested::Nested;
+pub use group::Group;
 
-use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
@@ -17,32 +16,21 @@ pub trait Overlay<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    /// Returns the layout [`Node`] of the [`Overlay`].
-    ///
-    /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
-    /// user interface.
-    ///
-    /// [`Node`]: layout::Node
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node;
-
     /// Draws the [`Overlay`] using the associated `Renderer`.
+    ///
+    /// Implementors are expected to call
+    /// [`Renderer::with_layer`](renderer::Renderer::with_layer) themselves,
+    /// so that their contents are properly clipped.
     fn draw(
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     );
 
     /// Applies a [`widget::Operation`] to the [`Overlay`].
-    fn operate(
-        &mut self,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _operation: &mut dyn widget::Operation,
-    ) {
-    }
+    fn operate(&mut self, _renderer: &Renderer, _operation: &mut dyn widget::Operation) {}
 
     /// Processes a runtime [`Event`].
     ///
@@ -50,7 +38,6 @@ where
     fn update(
         &mut self,
         _event: &Event,
-        _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _shell: &mut Shell<'_, Message>,
@@ -62,7 +49,6 @@ where
     /// By default, it returns [`mouse::Interaction::None`].
     fn mouse_interaction(
         &self,
-        _layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -72,7 +58,6 @@ where
     /// Returns the nested overlays of the [`Overlay`].
     fn overlay<'a>(
         &'a mut self,
-        _layout: Layout<'a>,
         _renderer: &Renderer,
     ) -> Vec<Element<'a, Message, Theme, Renderer>> {
         Vec::new()
@@ -96,22 +81,22 @@ where
 pub fn from_children<'a, Message, Theme, Renderer>(
     children: &'a mut [crate::Element<'_, Message, Theme, Renderer>],
     tree: &'a mut Tree,
-    layout: Layout<'a>,
+    layout: Layout,
     renderer: &Renderer,
     viewport: &Rectangle,
     translation: Vector,
+    window: Size,
 ) -> Vec<Element<'a, Message, Theme, Renderer>>
 where
     Renderer: crate::Renderer,
 {
     children
         .iter_mut()
-        .zip(&mut tree.children)
-        .zip(layout.children())
-        .flat_map(|((child, state), layout)| {
+        .zip(layout.iter_mut(&mut tree.children))
+        .flat_map(|(child, (layout, state))| {
             child
                 .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, translation)
+                .overlay(state, layout, renderer, viewport, translation, window)
         })
         .collect()
 }

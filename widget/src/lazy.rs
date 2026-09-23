@@ -74,9 +74,11 @@ where
         if current.hash != new_hash {
             current.hash = new_hash;
             current.element = (self.view)(&self.dependency).into();
-
-            self.size = current.element.as_widget().size();
         }
+
+        // The widget value is recreated every frame, so the size hint must be
+        // re-derived from the cached element on every diff
+        self.size = current.element.as_widget().size();
 
         tree::diff_children(
             &mut tree.children,
@@ -88,12 +90,7 @@ where
         self.size
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let cached = tree
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
@@ -101,13 +98,16 @@ where
         cached
             .element
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+            .layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
@@ -115,17 +115,20 @@ where
             .state
             .downcast_mut::<Internal<Message, Theme, Renderer>>();
 
-        cached
-            .element
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        cached.element.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -149,7 +152,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -173,7 +176,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -195,10 +198,11 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let current = tree
             .state
@@ -210,6 +214,7 @@ where
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }

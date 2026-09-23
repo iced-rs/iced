@@ -9,7 +9,7 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Operation, Tree, tree};
-use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::space;
 
 /// The logic of a [`Transition`].
@@ -51,7 +51,6 @@ where
     element: Element<'a, Message, Theme, Renderer>,
     next_element: Option<Element<'a, Message, Theme, Renderer>>,
     last_limits: layout::Limits,
-    new_layout: Option<layout::Node>,
     key: Key,
     id: Option<widget::Id>,
     value: P::Value,
@@ -82,7 +81,6 @@ where
             on_finish: None,
             element: Element::new(space()),
             next_element: None,
-            new_layout: None,
             last_limits: layout::Limits::new(Size::ZERO, Size::ZERO),
             key: Key::default(),
             id: None,
@@ -194,25 +192,21 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.element));
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.last_limits = *limits;
-        self.new_layout = None;
 
         self.element
             .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, &limits.loose())
+            .layout(&mut tree.children[0], renderer, &limits.loose());
+
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -259,11 +253,11 @@ where
                         state.size = Some(new_size);
                     } else {
                         self.element = new;
-                        self.new_layout = Some(self.element.as_widget_mut().layout(
+                        self.element.as_widget_mut().layout(
                             &mut tree.children[0],
                             renderer,
                             &self.last_limits,
-                        ));
+                        );
                     }
 
                     shell.request_redraw();
@@ -278,7 +272,7 @@ where
         self.element.as_widget_mut().update(
             &mut tree.children[0],
             event,
-            self::layout(layout, &self.new_layout),
+            layout,
             cursor,
             renderer,
             shell,
@@ -292,7 +286,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -301,7 +295,7 @@ where
             renderer,
             theme,
             style,
-            self::layout(layout, &self.new_layout),
+            layout,
             cursor,
             viewport,
         );
@@ -310,14 +304,14 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.element.as_widget().mouse_interaction(
             &tree.children[0],
-            self::layout(layout, &self.new_layout),
+            layout,
             cursor,
             viewport,
             renderer,
@@ -327,12 +321,11 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let layout = self::layout(layout, &self.new_layout);
-
         let mut should_reset = ShouldReset(false);
         operation.custom(self.id.as_ref(), layout.bounds(), &mut should_reset);
 
@@ -340,25 +333,31 @@ where
             tree.state.downcast_mut::<State<P>>().should_reset = true;
         }
 
-        self.element
-            .as_widget_mut()
-            .operate(&mut tree.children[0], layout, renderer, operation);
+        self.element.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
     }
 
     fn overlay<'a>(
         &'a mut self,
         tree: &'a mut Tree,
-        layout: Layout<'a>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.element.as_widget_mut().overlay(
             &mut tree.children[0],
-            self::layout(layout, &self.new_layout),
+            layout,
             renderer,
             viewport,
             translation,
+            window,
         )
     }
 }
@@ -430,11 +429,4 @@ pub fn reset_raw(id: impl Into<widget::Id>) -> impl Operation {
     }
 
     Reset(id.into())
-}
-
-fn layout<'a>(current: Layout<'a>, animated: &'a Option<layout::Node>) -> Layout<'a> {
-    animated
-        .as_ref()
-        .map(|new_layout| Layout::with_offset(current.position() - Point::ORIGIN, new_layout))
-        .unwrap_or(current)
 }

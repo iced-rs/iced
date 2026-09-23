@@ -117,7 +117,7 @@ where
             is_toggled,
             on_toggle: None,
             label: None,
-            width: Length::Shrink,
+            width: Length::Fit,
             size: Self::DEFAULT_SIZE,
             text_size: None,
             line_height: None,
@@ -246,72 +246,70 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn diff(&mut self, tree: &mut Tree) {
+        // The children of the tree are the track and the label; they only
+        // carry their geometry, so no state is needed.
+        tree.children.resize_with(2, Tree::empty);
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let limits = limits.width(self.width);
 
-        layout::next_to_each_other(
-            &limits,
-            if self.label.is_some() {
-                self.spacing
-            } else {
-                0.0
-            },
-            |_| {
-                let size = if renderer::CRISP {
-                    let scale_factor = renderer.hint_factor().unwrap_or(1.0);
+        let size = if renderer::CRISP {
+            let scale_factor = renderer.hint_factor().unwrap_or(1.0);
 
-                    (self.size * scale_factor).round() / scale_factor
-                } else {
-                    self.size
-                };
+            (self.size * scale_factor).round() / scale_factor
+        } else {
+            self.size
+        };
 
-                layout::Node::new(Size::new(2.0 * size, size))
-            },
-            |limits| {
-                if let Some(label) = self.label.as_deref() {
-                    let state = tree
-                        .state
-                        .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+        let track = Size::new(2.0 * size, size);
 
-                    widget::text::layout(
-                        state,
-                        renderer,
-                        limits,
-                        label,
-                        widget::text::Format {
-                            width: self.width,
-                            height: Length::Shrink,
-                            line_height: self.line_height,
-                            size: self.text_size,
-                            font: self.font,
-                            align_x: self.alignment,
-                            align_y: alignment::Vertical::Top,
-                            shaping: self.text_shaping,
-                            wrapping: self.wrapping,
-                            ellipsis: text::Ellipsis::None,
-                        },
-                    )
-                } else {
-                    layout::Node::new(Size::ZERO)
-                }
-            },
-        )
+        let label = if let Some(label) = self.label.as_deref() {
+            let state = tree
+                .state
+                .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+
+            widget::text::layout(
+                state,
+                renderer,
+                &limits.shrink(Size::new(track.width + self.spacing, 0.0)),
+                label,
+                widget::text::Format {
+                    width: self.width,
+                    height: Length::Fit,
+                    line_height: self.line_height,
+                    size: self.text_size,
+                    font: self.font,
+                    align_x: self.alignment,
+                    align_y: alignment::Vertical::Top,
+                    shaping: self.text_shaping,
+                    wrapping: self.wrapping,
+                    ellipsis: text::Ellipsis::None,
+                },
+            )
+        } else {
+            Size::ZERO
+        };
+
+        let spacing = if self.label.is_some() {
+            self.spacing
+        } else {
+            0.0
+        };
+
+        layout::next_to_each_other(tree, track, label, spacing);
     }
 
     fn update(
         &mut self,
         _tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -361,7 +359,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -383,13 +381,10 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         defaults: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let mut children = layout.children();
-        let toggler_layout = children.next().unwrap();
-
         let style = theme.style(
             &self.class,
             self.last_status.unwrap_or(Status::Disabled {
@@ -397,9 +392,15 @@ where
             }),
         );
 
+        let mut children = layout.iter(&tree.children);
+        let (track_layout, _) = children.next().unwrap();
+
         if self.label.is_some() {
-            let label_layout = children.next().unwrap();
-            let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
+            let (label_layout, _) = children.next().unwrap();
+
+            let state = tree
+                .state
+                .downcast_ref::<widget::text::State<Renderer::Paragraph>>();
 
             crate::text::draw(
                 renderer,
@@ -413,8 +414,7 @@ where
             );
         }
 
-        let scale_factor = renderer.hint_factor().unwrap_or(1.0);
-        let bounds = toggler_layout.bounds();
+        let bounds = track_layout.bounds();
 
         let border_radius = style
             .border_radius
@@ -436,7 +436,8 @@ where
         let toggle_bounds = {
             // Try to align toggle to the pixel grid
             let bounds = if renderer::CRISP {
-                (bounds * scale_factor).round() * (1.0 / scale_factor)
+                let scale_factor = renderer.hint_factor().unwrap_or(1.0);
+                bounds.hint(scale_factor)
             } else {
                 bounds
             };

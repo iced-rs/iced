@@ -55,7 +55,7 @@ use crate::core::padding;
 use crate::core::text::LineHeight;
 use crate::core::theme;
 use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme};
-use crate::{checkbox, column, container, rich_text, row, rule, scrollable, span, text};
+use crate::{center_x, checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
@@ -1077,7 +1077,7 @@ fn absorb_references(
 fn parse_with<'a>(
     mut state: impl BorrowMut<State> + 'a,
     markdown: &'a str,
-    offset_: usize,
+    _offset: usize,
 ) -> impl Iterator<Item = (Item, usize, HashSet<String>)> + 'a {
     enum Scope {
         List(List),
@@ -1309,7 +1309,7 @@ fn parse_with<'a>(
                     // key that identifies the block across re-parses,
                     // so that the highlighter's line cache is only
                     // reused for the same block.
-                    let key = offset_ + source.start;
+                    let key = _offset + source.start;
                     let state = state.borrow_mut();
                     let language = language.split(',').next().unwrap_or_default();
 
@@ -2079,6 +2079,7 @@ where
                     text("").into()
                 }
             })
+            .width(Length::Fit.max(300))
             .align_x(match column.alignment {
                 pulldown_cmark::Alignment::None | pulldown_cmark::Alignment::Left => {
                     alignment::Horizontal::Left
@@ -2093,12 +2094,14 @@ where
     .padding_y(settings.spacing.0 / 2.0)
     .separator_x(0);
 
-    scrollable(table)
-        .direction(scrollable::Direction::Horizontal(
-            scrollable::Scrollbar::default(),
-        ))
-        .spacing(settings.spacing.0 / 2.0)
-        .into()
+    center_x(
+        scrollable(table)
+            .direction(scrollable::Direction::Horizontal(
+                scrollable::Scrollbar::default(),
+            ))
+            .spacing(settings.spacing.0 / 2.0),
+    )
+    .into()
 }
 
 /// Displays a column of items with the default look.

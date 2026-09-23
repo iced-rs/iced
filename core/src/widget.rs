@@ -41,16 +41,11 @@ where
     /// Returns the [`Size`] of the [`Widget`] in lengths.
     fn size(&self) -> Size<Length>;
 
-    /// Returns the [`layout::Node`] of the [`Widget`].
+    /// Lays out the [`Widget`].
     ///
-    /// This [`layout::Node`] is used by the runtime to compute the [`Layout`] of the
-    /// user interface.
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node;
+    /// This computes the [`Layout`] of the [`Widget`] and stores the result
+    /// in the provided [`Tree`].
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits);
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
@@ -59,7 +54,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     );
@@ -87,7 +82,8 @@ where
     fn operate(
         &mut self,
         _tree: &mut Tree,
-        _layout: Layout<'_>,
+        _layout: Layout,
+        _viewport: &Rectangle,
         _renderer: &Renderer,
         _operation: &mut dyn Operation,
     ) {
@@ -100,7 +96,7 @@ where
         &mut self,
         _tree: &mut Tree,
         _event: &Event,
-        _layout: Layout<'_>,
+        _layout: Layout,
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _shell: &mut Shell<'_, Message>,
@@ -114,7 +110,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        _layout: Layout<'_>,
+        _layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -126,10 +122,11 @@ where
     fn overlay<'a>(
         &'a mut self,
         _tree: &'a mut Tree,
-        _layout: Layout<'a>,
+        _layout: Layout,
         _renderer: &Renderer,
         _viewport: &Rectangle,
         _translation: Vector,
+        _window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         Vec::new()
     }
@@ -154,14 +151,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        _limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::Node::new(Size::ZERO)
-    }
+    fn layout(&mut self, _tree: &mut Tree, _renderer: &Renderer, _limits: &layout::Limits) {}
 
     fn draw(
         &self,
@@ -169,7 +159,7 @@ where
         _renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
-        _layout: Layout<'_>,
+        _layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {

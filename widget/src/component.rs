@@ -9,7 +9,7 @@ use crate::core::shell;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 use std::cell::{Cell, RefCell};
 
@@ -123,7 +123,6 @@ where
         component,
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
-        layout: layout::Node::new(Size::ZERO),
         is_outdated: Cell::new(true),
         has_overlay: false,
     })
@@ -136,7 +135,6 @@ where
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
-    layout: layout::Node,
     is_outdated: Cell<bool>,
     has_overlay: bool,
 }
@@ -185,28 +183,22 @@ where
         self.view.as_widget().size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         if &self.limits != limits {
             self.limits = *limits;
-            self.layout = self
-                .view
+            self.view
                 .as_widget_mut()
                 .layout(&mut tree.children[0], renderer, limits);
         }
 
-        layout::Node::new(self.layout.size())
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -239,7 +231,7 @@ where
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+                layout,
                 cursor,
                 renderer,
                 &mut local_shell,
@@ -250,14 +242,7 @@ where
                 shell.capture_event();
             }
 
-            if let Some(diff) = local_shell.is_layout_invalid() {
-                shell.invalidate_layout_with(diff);
-            }
-
-            if local_shell.are_widgets_invalid() {
-                shell.invalidate_widgets();
-            }
-
+            shell.invalidate(local_shell.invalidation());
             shell.request_redraw_at(local_shell.redraw_request());
             shell.request_input_method(local_shell.input_method());
             shell.clipboard_mut().merge(local_shell.clipboard_mut());
@@ -282,15 +267,17 @@ where
 
         tree.diff_children(std::slice::from_mut(&mut self.view));
 
-        let previous_size = self.layout.size();
-        self.layout =
-            self.view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, &self.limits);
+        let previous_size = tree.size;
+
+        self.view
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, &self.limits);
+
+        tree.size = tree.children[0].size;
 
         let new_sizing = self.view.as_widget().size();
 
-        // We must invalidate application layout in 3 instances:
+        // We must invalidate application layout in 2 instances:
         //
         // 1. The size hint of the component changes. Other widgets
         //    may change layout behavior.
@@ -298,33 +285,14 @@ where
         // 2. The size hint of the component is `Shrink` for any axis
         //    and the component has changed size. The new size may
         //    push other widgets around.
-        //
-        // 3. The overlay status of the component changes. The
-        //    runtime will only call `overlay` again if the layout
-        //    is invalidated.
         if new_sizing != previous_sizing {
             shell.invalidate_widgets();
         } else if (new_sizing.width == Length::Shrink || new_sizing.height == Length::Shrink)
-            && previous_size != self.layout.size()
+            && previous_size != tree.size
         {
             shell.invalidate_layout();
         } else {
-            let has_overlay = !self
-                .view
-                .as_widget_mut()
-                .overlay(
-                    &mut tree.children[0],
-                    Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
-                    renderer,
-                    viewport,
-                    Vector::ZERO,
-                )
-                .is_empty();
-
-            if self.has_overlay != has_overlay {
-                self.has_overlay = has_overlay;
-                shell.invalidate_layout();
-            }
+            shell.invalidate_overlay();
         }
 
         self.is_outdated.set(false);
@@ -340,7 +308,7 @@ where
             self.view.as_widget_mut().update(
                 &mut tree.children[0],
                 event,
-                Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+                layout,
                 cursor,
                 renderer,
                 &mut local_shell,
@@ -361,7 +329,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -370,7 +338,7 @@ where
             renderer,
             theme,
             style,
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            layout,
             cursor,
             viewport,
         );
@@ -379,7 +347,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
@@ -397,7 +365,7 @@ where
 
         self.view.as_widget().mouse_interaction(
             &tree.children[0],
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            layout,
             cursor,
             viewport,
             renderer,
@@ -407,21 +375,25 @@ where
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
+        viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let internal = tree
-            .state
-            .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
-            .borrow();
+        {
+            let internal = tree
+                .state
+                .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
+                .borrow();
 
-        self.component
-            .operate(&internal.state, layout.bounds(), operation);
+            self.component
+                .operate(&internal.state, layout.bounds(), operation);
+        }
 
         self.view.as_widget_mut().operate(
             &mut tree.children[0],
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            layout,
+            viewport,
             renderer,
             operation,
         );
@@ -430,17 +402,19 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let overlays = self.view.as_widget_mut().overlay(
             &mut tree.children[0],
-            Layout::with_offset(layout.position() - Point::ORIGIN, &self.layout),
+            layout,
             renderer,
             viewport,
             translation,
+            window,
         );
 
         self.has_overlay = !overlays.is_empty();
@@ -479,14 +453,9 @@ where
     C: Component<'a, Message, Theme, Renderer>,
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.raw.as_overlay_mut().layout(renderer, bounds)
-    }
-
     fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -496,20 +465,13 @@ where
 
         self.raw
             .as_overlay_mut()
-            .update(event, layout, cursor, renderer, &mut local_shell);
+            .update(event, cursor, renderer, &mut local_shell);
 
         if local_shell.is_event_captured() {
             shell.capture_event();
         }
 
-        if let Some(diff) = local_shell.is_layout_invalid() {
-            shell.invalidate_layout_with(diff);
-        }
-
-        if local_shell.are_widgets_invalid() {
-            shell.invalidate_widgets();
-        }
-
+        shell.invalidate(local_shell.invalidation());
         shell.request_redraw_at(local_shell.redraw_request());
         shell.request_input_method(local_shell.input_method());
         shell.clipboard_mut().merge(local_shell.clipboard_mut());
@@ -537,46 +499,28 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        self.raw
-            .as_overlay()
-            .draw(renderer, theme, style, layout, cursor);
+        self.raw.as_overlay().draw(renderer, theme, style, cursor);
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.raw
-            .as_overlay()
-            .mouse_interaction(layout, cursor, renderer)
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        self.raw.as_overlay().mouse_interaction(cursor, renderer)
     }
 
     fn index(&self) -> f32 {
         self.raw.as_overlay().index()
     }
 
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        self.raw
-            .as_overlay_mut()
-            .operate(layout, renderer, operation);
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
+        self.raw.as_overlay_mut().operate(renderer, operation);
     }
 
     fn overlay<'c>(
         &'c mut self,
-        layout: Layout<'c>,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
-        let overlays = self.raw.as_overlay_mut().overlay(layout, renderer);
+        let overlays = self.raw.as_overlay_mut().overlay(renderer);
 
         if overlays.is_empty() {
             return Vec::new();

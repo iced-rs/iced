@@ -26,20 +26,20 @@ mod rainbow {
 
         fn layout(
             &mut self,
-            _tree: &mut widget::Tree,
+            tree: &mut widget::Tree,
             _renderer: &Renderer,
             limits: &layout::Limits,
-        ) -> layout::Node {
-            let width = limits.max().width;
+        ) {
+            let width = limits.max.width;
 
-            layout::Node::new(Size::new(width, width))
+            tree.size = Size::new(width, width);
         }
 
         fn update(
             &mut self,
             _state: &mut widget::Tree,
             _event: &Event,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             _renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
@@ -56,7 +56,7 @@ mod rainbow {
             renderer: &mut Renderer,
             _theme: &Theme,
             _style: &renderer::Style,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
