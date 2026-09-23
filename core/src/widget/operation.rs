@@ -322,7 +322,7 @@ where
 /// build a new [`Operation`].
 pub fn then<A, B, O>(
     operation: impl Operation<A> + 'static,
-    f: impl Fn(A) -> O + Send + Sync + 'static,
+    next: impl Fn(A) -> O + Send + Sync + 'static,
 ) -> impl Operation<B>
 where
     A: 'static,
@@ -331,7 +331,7 @@ where
 {
     struct Chain<T, O, A> {
         operation: T,
-        f: Arc<dyn Fn(A) -> O + Send + Sync>,
+        next: Arc<dyn Fn(A) -> O + Send + Sync>,
     }
 
     impl<T, O, A, B> Operation<B> for Chain<T, O, A>
@@ -382,10 +382,10 @@ where
         fn finish(&self) -> Outcome<B> {
             match self.operation.finish() {
                 Outcome::None => Outcome::None,
-                Outcome::Some(value) => Outcome::Chain(Box::new((self.f)(value))),
+                Outcome::Some(value) => Outcome::Chain(Box::new((self.next)(value))),
                 Outcome::Chain(next) => Outcome::Chain(Box::new(Chain {
                     operation: next,
-                    f: self.f.clone(),
+                    next: self.next.clone(),
                 })),
             }
         }
@@ -393,7 +393,7 @@ where
 
     Chain {
         operation,
-        f: Arc::new(f),
+        next: Arc::new(next),
     }
 }
 
