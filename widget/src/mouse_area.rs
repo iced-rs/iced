@@ -345,7 +345,7 @@ fn update<Message: Clone, Theme, Renderer>(
         }
     }
 
-    if !cursor.is_over(layout.bounds()) {
+    if !cursor.is_over(layout.bounds()) && touch.last_position().is_none() {
         return;
     }
 
@@ -357,7 +357,7 @@ fn update<Message: Clone, Theme, Renderer>(
                 shell.capture_event();
             }
 
-            if let Some(position) = cursor_position
+            if let Some(position) = touch.position().or(cursor_position)
                 && let Some(message) = widget.on_double_click.as_ref()
             {
                 let new_click =
