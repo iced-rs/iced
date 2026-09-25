@@ -79,6 +79,7 @@ cargo run --package styling
 ## Extras
 A bunch of simpler examples exist:
 
+- [`accent_color`](accent_color), an application that follows the system theme and accent color by listening to system preference changes.
 - [`bezier_tool`](bezier_tool), a Paint-like tool for drawing Bézier curves using the `Canvas` widget.
 - [`clock`](clock), an application that uses the `Canvas` widget to draw a clock and its hands to display the current time.
 - [`color_palette`](color_palette), a color palette generator based on a user-defined root color.
