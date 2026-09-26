@@ -440,8 +440,10 @@ where
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+            e @ (Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. })) => {
+                let is_mouse_event = matches!(e, Event::Mouse(_));
+
                 if state.is_open {
                     // Event wasn't processed by overlay, so cursor was clicked either outside its
                     // bounds or on the drop-down, either way we close the overlay.
@@ -452,7 +454,9 @@ where
                     }
 
                     shell.capture_event();
-                } else if cursor.is_over(layout.bounds()) || touch.is_over(layout.bounds()) {
+                } else if (is_mouse_event && cursor.is_over(layout.bounds()))
+                    || touch.is_over(layout.bounds())
+                {
                     let selected = self.selected.as_ref().map(Borrow::borrow);
 
                     state.is_open = true;
