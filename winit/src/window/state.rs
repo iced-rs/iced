@@ -170,7 +170,9 @@ where
                 );
                 self.surface_version += 1;
             }
-            WindowEvent::PointerMoved { position, .. } => {
+            WindowEvent::PointerMoved { position, .. }
+            | WindowEvent::PointerEntered { position, .. }
+            | WindowEvent::PointerButton { position, .. } => {
                 self.cursor_position = Some(*position);
             }
             WindowEvent::PointerLeft {
