@@ -100,7 +100,7 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
     /// By default, it does nothing.
     fn operate(
         &self,
-        _state: &Self::State,
+        _state: &mut Self::State,
         _bounds: Rectangle,
         _operation: &mut dyn widget::Operation,
     ) {
@@ -383,11 +383,11 @@ where
         {
             let internal = tree
                 .state
-                .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
-                .borrow();
+                .downcast_mut::<RefCell<Internal<C::State, C::Event>>>()
+                .get_mut();
 
             self.component
-                .operate(&internal.state, layout.bounds(), operation);
+                .operate(&mut internal.state, layout.bounds(), operation);
         }
 
         self.view.as_widget_mut().operate(
