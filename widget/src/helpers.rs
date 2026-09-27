@@ -501,21 +501,19 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{row, text};
+/// use iced::widget::{row, text, Widget};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     row((0..5).map(|i| text!("Item {i}").into())).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     row((0..5).map(|i| text!("Item {i}")))
 /// }
 /// ```
-pub fn row<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Row<'a, Message, Theme, Renderer>
+pub fn row<W>(children: impl IntoIterator<Item = W>) -> Row<W>
 where
-    Renderer: core::Renderer,
+    W: Node,
 {
     Row::with_children(children)
 }

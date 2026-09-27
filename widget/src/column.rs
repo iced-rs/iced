@@ -156,12 +156,11 @@ impl<W> Default for Column<W> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> FromIterator<Element<'a, Message, Theme, Renderer>>
-    for Column<Element<'a, Message, Theme, Renderer>>
+impl<W> FromIterator<W> for Column<W>
 where
-    Renderer: crate::core::Renderer,
+    W: Node,
 {
-    fn from_iter<T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }

@@ -31,20 +31,17 @@ use crate::core::{
 ///     ].into()
 /// }
 /// ```
-pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
+pub struct Row<W> {
     spacing: f32,
     padding: Padding,
     width: Length,
     height: Length,
     align: Alignment,
     clip: bool,
-    children: Vec<Element<'a, Message, Theme, Renderer>>,
+    children: Vec<W>,
 }
 
-impl<'a, Message, Theme, Renderer> Row<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<W> Row<W> {
     /// Creates an empty [`Row`].
     pub fn new() -> Self {
         Self::from_vec(Vec::new())
@@ -56,9 +53,10 @@ where
     }
 
     /// Creates a [`Row`] with the given elements.
-    pub fn with_children(
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         let iterator = children.into_iter();
 
         Self::with_capacity(iterator.size_hint().0).extend(iterator)
@@ -71,7 +69,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Row::width`] or [`Row::height`] accordingly.
-    pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn from_vec(children: Vec<W>) -> Self {
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -125,7 +123,10 @@ where
     }
 
     /// Adds an [`Element`] to the [`Row`].
-    pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn push(mut self, child: impl Into<W>) -> Self
+    where
+        W: Node,
+    {
         let child = child.into();
 
         if !child.is_void() {
@@ -136,17 +137,17 @@ where
     }
 
     /// Extends the [`Row`] with the given children.
-    pub fn extend(
-        self,
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         children.into_iter().fold(self, Self::push)
     }
 
     /// Turns the [`Row`] into a [`Wrapping`] row.
     ///
     /// The original alignment of the [`Row`] is preserved per row wrapped.
-    pub fn wrap(self) -> Wrapping<'a, Message, Theme, Renderer> {
+    pub fn wrap(self) -> Wrapping<W> {
         Wrapping {
             row: self,
             vertical_spacing: None,
@@ -155,28 +156,26 @@ where
     }
 }
 
-impl<Message, Renderer> Default for Row<'_, Message, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<W> Default for Row<W> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, Message, Theme, Renderer: crate::core::Renderer>
-    FromIterator<Element<'a, Message, Theme, Renderer>> for Row<'a, Message, Theme, Renderer>
+impl<W> FromIterator<W> for Row<W>
+where
+    W: Node,
 {
-    fn from_iter<T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }
 
-impl<Message, Theme, Renderer> Node for Row<'_, Message, Theme, Renderer> {}
+impl<W> Node for Row<W> {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Row<'_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Row<W>
 where
+    W: Widget<Message, Theme, Renderer>,
     Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -330,14 +329,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Row<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, W, Message, Theme, Renderer> From<Row<W>> for Element<'a, Message, Theme, Renderer>
 where
+    W: Widget<Message, Theme, Renderer> + 'a,
     Message: 'a,
     Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    fn from(row: Row<'a, Message, Theme, Renderer>) -> Self {
+    fn from(row: Row<W>) -> Self {
         row.boxed()
     }
 }
@@ -348,13 +347,13 @@ where
 /// obtain a [`Row`] that wraps its contents.
 ///
 /// The original alignment of the [`Row`] is preserved per row wrapped.
-pub struct Wrapping<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
-    row: Row<'a, Message, Theme, Renderer>,
+pub struct Wrapping<W> {
+    row: Row<W>,
     vertical_spacing: Option<f32>,
     align_x: alignment::Horizontal,
 }
 
-impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
+impl<W> Wrapping<W> {
     /// Sets the vertical spacing _between_ lines.
     pub fn vertical_spacing(mut self, amount: impl Into<Pixels>) -> Self {
         self.vertical_spacing = Some(amount.into().0);
@@ -368,11 +367,11 @@ impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
     }
 }
 
-impl<Message, Theme, Renderer> Node for Wrapping<'_, Message, Theme, Renderer> {}
+impl<W> Node for Wrapping<W> {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Wrapping<'_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Wrapping<W>
 where
+    W: Widget<Message, Theme, Renderer>,
     Renderer: crate::core::Renderer,
 {
     fn diff(&mut self, tree: &mut Tree) {
@@ -555,14 +554,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Wrapping<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, W, Message, Theme, Renderer> From<Wrapping<W>> for Element<'a, Message, Theme, Renderer>
 where
+    W: Widget<Message, Theme, Renderer> + 'a,
     Message: 'a,
     Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    fn from(row: Wrapping<'a, Message, Theme, Renderer>) -> Self {
+    fn from(row: Wrapping<W>) -> Self {
         row.boxed()
     }
 }

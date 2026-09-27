@@ -274,7 +274,6 @@ impl Generator {
                                 container(text(label).size(10).font(Font::MONOSPACE))
                                     .padding(5)
                                     .style(container::rounded_box)
-                                    .into()
                             }))
                             .spacing(10)
                             .wrap();

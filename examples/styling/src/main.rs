@@ -101,13 +101,12 @@ impl Styling {
             column![
                 row(styles.into_iter().map(|(name, style)| styled_button(name)
                     .on_press(Message::ButtonPressed)
-                    .style(style)
-                    .into()))
+                    .style(style)))
                 .spacing(10)
                 .align_y(Center),
                 row(styles
                     .into_iter()
-                    .map(|(name, style)| styled_button(name).style(style).into()))
+                    .map(|(name, style)| styled_button(name).style(style)))
                 .spacing(10)
                 .align_y(Center),
             ]
