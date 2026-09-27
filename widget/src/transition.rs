@@ -10,7 +10,6 @@ use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Operation, Tree, tree};
 use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
-use crate::space;
 
 /// The logic of a [`Transition`].
 pub trait Program: 'static {
@@ -41,24 +40,23 @@ where
 }
 
 /// A widget that can be used to animate its contents.
-pub struct Transition<'a, Message, Theme, Renderer, P>
+pub struct Transition<'a, Message, W, P>
 where
     P: Program,
 {
     init: Box<dyn Fn() -> P + 'a>,
-    view: Box<dyn Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a>,
+    view: Box<dyn Fn(&P, Instant) -> W + 'a>,
     on_finish: Option<Box<dyn Fn() -> Message + 'a>>,
-    element: Element<'a, Message, Theme, Renderer>,
-    next_element: Option<Element<'a, Message, Theme, Renderer>>,
+    element: Option<W>,
+    next_element: Option<W>,
     last_limits: layout::Limits,
     key: Key,
     id: Option<widget::Id>,
     value: P::Value,
 }
 
-impl<'a, Message, Theme, Renderer, P> Transition<'a, Message, Theme, Renderer, P>
+impl<'a, Message, W, P> Transition<'a, Message, W, P>
 where
-    Renderer: core::Renderer,
     P: Program,
 {
     /// Creates a new [`Transition`].
@@ -67,19 +65,16 @@ where
     ///
     /// The `view` closure will receive the animation and an [`Instant`], which can be used for interpolating values.
     /// This will be called every frame until the given `value` is reached.
-    pub fn new<E>(
+    pub fn new(
         init: impl Fn() -> P + 'a,
         value: P::Value,
-        view: impl Fn(&P, Instant) -> E + 'a,
-    ) -> Self
-    where
-        E: Into<Element<'a, Message, Theme, Renderer>>,
-    {
+        view: impl Fn(&P, Instant) -> W + 'a,
+    ) -> Self {
         Self {
             init: Box::new(init),
-            view: Box::new(move |program, at| view(program, at).into()),
+            view: Box::new(view),
             on_finish: None,
-            element: space().boxed(),
+            element: None,
             next_element: None,
             last_limits: layout::Limits::new(Size::ZERO, Size::ZERO),
             key: Key::default(),
@@ -144,16 +139,14 @@ where
     }
 }
 
-impl<Message, Theme, Renderer, P> widget::Node for Transition<'_, Message, Theme, Renderer, P> where
-    P: Program
-{
-}
+impl<Message, W, P> widget::Node for Transition<'_, Message, W, P> where P: Program {}
 
-impl<Message, Theme, Renderer, P> Widget<Message, Theme, Renderer>
-    for Transition<'_, Message, Theme, Renderer, P>
+impl<Message, W, Theme, Renderer, P> Widget<Message, Theme, Renderer>
+    for Transition<'_, Message, W, P>
 where
     Renderer: core::Renderer,
     P: Program,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn size(&self) -> Size<Length> {
         self.element.size()
@@ -189,9 +182,9 @@ where
         }
 
         if let Some(next_element) = self.next_element.take() {
-            self.element = next_element;
+            self.element = Some(next_element);
         } else {
-            self.element = (self.view)(animation, *instant);
+            self.element = Some((self.view)(animation, *instant));
         }
 
         tree.diff_children(std::slice::from_mut(&mut self.element));
@@ -256,7 +249,7 @@ where
                         let state = tree.state.downcast_mut::<State<P>>();
                         state.size = Some(new_size);
                     } else {
-                        self.element = new;
+                        self.element = Some(new);
                         self.element
                             .layout(&mut tree.children[0], renderer, &self.last_limits);
                     }
@@ -353,15 +346,16 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer, P> From<Transition<'a, Message, Theme, Renderer, P>>
+impl<'a, Message, W, Theme, Renderer, P> From<Transition<'a, Message, W, P>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: core::Renderer + 'a,
     P: Program,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(transition: Transition<'a, Message, Theme, Renderer, P>) -> Self {
+    fn from(transition: Transition<'a, Message, W, P>) -> Self {
         transition.boxed()
     }
 }

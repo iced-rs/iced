@@ -7,12 +7,12 @@ use crate::core::widget::{Node, Operation, Tree};
 use crate::core::{Element, Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents on a responsive grid.
-pub struct Grid<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
+pub struct Grid<W> {
     spacing: f32,
     columns: Constraint,
     width: Option<Pixels>,
     height: Sizing,
-    children: Vec<Element<'a, Message, Theme, Renderer>>,
+    children: Vec<W>,
 }
 
 enum Constraint {
@@ -20,10 +20,7 @@ enum Constraint {
     Amount(usize),
 }
 
-impl<'a, Message, Theme, Renderer> Grid<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<W> Grid<W> {
     /// Creates an empty [`Grid`].
     pub fn new() -> Self {
         Self::from_vec(Vec::new())
@@ -35,16 +32,17 @@ where
     }
 
     /// Creates a [`Grid`] with the given elements.
-    pub fn with_children(
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         let iterator = children.into_iter();
 
         Self::with_capacity(iterator.size_hint().0).extend(iterator)
     }
 
     /// Creates a [`Grid`] from an already allocated [`Vec`].
-    pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn from_vec(children: Vec<W>) -> Self {
         Self {
             spacing: 0.0,
             columns: Constraint::Amount(3),
@@ -92,16 +90,19 @@ where
     }
 
     /// Adds an [`Element`] to the [`Grid`].
-    pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn push(mut self, child: impl Into<W>) -> Self
+    where
+        W: Node,
+    {
         self.children.push(child.into());
         self
     }
 
     /// Adds an element to the [`Grid`], if `Some`.
-    pub fn push_maybe(
-        self,
-        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
+    pub fn push_maybe(self, child: Option<impl Into<W>>) -> Self
+    where
+        W: Node,
+    {
         if let Some(child) = child {
             self.push(child)
         } else {
@@ -110,37 +111,35 @@ where
     }
 
     /// Extends the [`Grid`] with the given children.
-    pub fn extend(
-        self,
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         children.into_iter().fold(self, Self::push)
     }
 }
 
-impl<Message, Renderer> Default for Grid<'_, Message, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<W> Default for Grid<W> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, Message, Theme, Renderer: crate::core::Renderer>
-    FromIterator<Element<'a, Message, Theme, Renderer>> for Grid<'a, Message, Theme, Renderer>
+impl<W> FromIterator<W> for Grid<W>
+where
+    W: Node,
 {
-    fn from_iter<T: IntoIterator<Item = Element<'a, Message, Theme, Renderer>>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }
 
-impl<Message, Theme, Renderer> Node for Grid<'_, Message, Theme, Renderer> {}
+impl<W> Node for Grid<W> {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Grid<'_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Grid<W>
 where
     Renderer: crate::core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(&mut self.children);
@@ -330,14 +329,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Grid<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, W, Message, Theme, Renderer> From<Grid<W>> for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(grid: Grid<'a, Message, Theme, Renderer>) -> Self {
+    fn from(grid: Grid<W>) -> Self {
         grid.boxed()
     }
 }

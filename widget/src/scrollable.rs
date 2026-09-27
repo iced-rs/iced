@@ -80,10 +80,9 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///
 /// With [`Self::click_to_scroll`] enabled, the behavior of the rail press
 /// and the `Shift`-click is inverted.
-pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Scrollable<'a, Message, W = crate::Element<'a, Message>, Theme = crate::Theme>
 where
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     id: Option<widget::Id>,
     width: Length,
@@ -92,26 +91,22 @@ where
     auto_scroll: bool,
     smooth_scroll: bool,
     click_to_scroll: bool,
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     on_scroll: Option<Box<dyn Fn(Scroll) -> Action<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme> Scrollable<'a, Message, W, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// Creates a new vertical [`Scrollable`].
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: W) -> Self {
         Self::with_direction(content, Direction::default())
     }
 
     /// Creates a new [`Scrollable`] with the given [`Direction`].
-    pub fn with_direction(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        direction: impl Into<Direction>,
-    ) -> Self {
+    pub fn with_direction(content: W, direction: impl Into<Direction>) -> Self {
         Scrollable {
             id: None,
             width: Length::Fit,
@@ -120,7 +115,7 @@ where
             auto_scroll: false,
             smooth_scroll: true,
             click_to_scroll: false,
-            content: content.into(),
+            content,
             on_scroll: None,
             class: Theme::default(),
         }
@@ -472,18 +467,14 @@ pub enum Anchor {
     End,
 }
 
-impl<Message, Theme, Renderer> widget::Node for Scrollable<'_, Message, Theme, Renderer>
-where
-    Theme: Catalog,
-    Renderer: core::Renderer,
-{
-}
+impl<Message, W, Theme> widget::Node for Scrollable<'_, Message, W, Theme> where Theme: Catalog {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Scrollable<'_, Message, Theme, Renderer>
+impl<Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Scrollable<'_, Message, W, Theme>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -1162,15 +1153,16 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Scrollable<'a, Message, Theme, Renderer>>
+impl<'a, Message, W, Theme, Renderer> From<Scrollable<'a, Message, W, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
     fn from(
-        scrollable: Scrollable<'a, Message, Theme, Renderer>,
+        scrollable: Scrollable<'a, Message, W, Theme>,
     ) -> Element<'a, Message, Theme, Renderer> {
         scrollable.boxed()
     }

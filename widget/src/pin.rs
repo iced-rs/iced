@@ -51,24 +51,18 @@ use crate::core::{
 ///         .into()
 /// }
 /// ```
-pub struct Pin<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
-    Renderer: core::Renderer,
-{
-    content: Element<'a, Message, Theme, Renderer>,
+pub struct Pin<W> {
+    content: W,
     width: Length,
     height: Length,
     position: Point,
 }
 
-impl<'a, Message, Theme, Renderer> Pin<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<W> Pin<W> {
     /// Creates a [`Pin`] widget with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: W) -> Self {
         Self {
-            content: content.into(),
+            content,
             width: Length::Fill,
             height: Length::Fill,
             position: Point::ORIGIN,
@@ -106,14 +100,11 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> widget::Node for Pin<'_, Message, Theme, Renderer> where
-    Renderer: core::Renderer
-{
-}
+impl<W> widget::Node for Pin<W> {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Pin<'_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Pin<W>
 where
+    W: Widget<Message, Theme, Renderer>,
     Renderer: core::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
@@ -237,14 +228,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Pin<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, W, Message, Theme, Renderer> From<Pin<W>> for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(pin: Pin<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(pin: Pin<W>) -> Element<'a, Message, Theme, Renderer> {
         pin.boxed()
     }
 }

@@ -147,14 +147,14 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     .into()
 /// }
 /// ```
-pub struct PaneGrid<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct PaneGrid<'a, Message, W, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
     internal: &'a state::Internal,
     panes: Vec<Pane>,
-    contents: Vec<Content<'a, Message, Theme, Renderer>>,
+    contents: Vec<Content<'a, Message, W, Theme, Renderer>>,
     width: Length,
     height: Length,
     spacing: f32,
@@ -166,7 +166,7 @@ where
     last_mouse_interaction: Option<mouse::Interaction>,
 }
 
-impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme, Renderer> PaneGrid<'a, Message, W, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -177,7 +177,7 @@ where
     /// [`State`]. [`bool`] is set if the pane is maximized.
     pub fn new<T>(
         state: &'a State<T>,
-        view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
+        view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, W, Theme, Renderer>,
     ) -> Self {
         let panes = state.panes.keys().copied().collect();
         let contents = state
@@ -341,18 +341,19 @@ struct Memory {
     order: Vec<Pane>,
 }
 
-impl<Message, Theme, Renderer> widget::Node for PaneGrid<'_, Message, Theme, Renderer>
+impl<Message, W, Theme, Renderer> widget::Node for PaneGrid<'_, Message, W, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for PaneGrid<'_, Message, Theme, Renderer>
+impl<Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for PaneGrid<'_, Message, W, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<Memory>()
@@ -930,18 +931,18 @@ where
     }
 }
 
-struct PickedPane<'a, 'b, Message, Theme, Renderer>
+struct PickedPane<'a, 'b, Message, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    content: &'a Content<'b, Message, Theme, Renderer>,
+    content: &'a Content<'b, Message, W, Theme, Renderer>,
     origin: Point,
     tree: &'a mut Tree,
     layout: Layout,
 }
 
-impl<'a, 'b, Message, Theme, Renderer> PickedPane<'a, 'b, Message, Theme, Renderer>
+impl<'a, 'b, Message, W, Theme, Renderer> PickedPane<'a, 'b, Message, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
@@ -952,11 +953,12 @@ where
     }
 }
 
-impl<'a, 'b, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for PickedPane<'a, 'b, Message, Theme, Renderer>
+impl<'a, 'b, Message, W, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
+    for PickedPane<'a, 'b, Message, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn draw(
         &self,
@@ -993,15 +995,16 @@ fn is_dragging(origin: Point, cursor: Point) -> bool {
     cursor.distance(origin) > DRAG_DEADBAND_DISTANCE
 }
 
-impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
+impl<'a, Message, W, Theme, Renderer> From<PaneGrid<'a, Message, W, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
     fn from(
-        pane_grid: PaneGrid<'a, Message, Theme, Renderer>,
+        pane_grid: PaneGrid<'a, Message, W, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         pane_grid.boxed()
     }

@@ -12,24 +12,24 @@ use crate::core::{
 };
 
 /// A widget that can make its contents float over other widgets.
-pub struct Float<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Float<'a, W, Theme = crate::Theme>
 where
     Theme: Catalog,
 {
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     scale: f32,
     translate: Option<Box<dyn Fn(Rectangle, Rectangle) -> Vector + 'a>>,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Float<'a, Message, Theme, Renderer>
+impl<'a, W, Theme> Float<'a, W, Theme>
 where
     Theme: Catalog,
 {
     /// Creates a new [`Float`] widget with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: W) -> Self {
         Self {
-            content: content.into(),
+            content,
             scale: 1.0,
             translate: None,
             class: Theme::default(),
@@ -79,16 +79,13 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> widget::Node for Float<'_, Message, Theme, Renderer> where
-    Theme: Catalog
-{
-}
+impl<W, Theme> widget::Node for Float<'_, W, Theme> where Theme: Catalog {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Float<'_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Float<'_, W, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         self.content.tag()
@@ -234,23 +231,24 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Float<'a, Message, Theme, Renderer>>
+impl<'a, W, Message, Theme, Renderer> From<Float<'a, W, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(float: Float<'a, Message, Theme, Renderer>) -> Self {
+    fn from(float: Float<'a, W, Theme>) -> Self {
         float.boxed()
     }
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
+struct Overlay<'a, 'b, W, Theme>
 where
     Theme: Catalog,
 {
-    float: &'a mut Float<'b, Message, Theme, Renderer>,
+    float: &'a mut Float<'b, W, Theme>,
     state: &'a mut widget::Tree,
     layout: Layout,
     viewport: Rectangle,
@@ -258,11 +256,12 @@ where
     transformation: Transformation,
 }
 
-impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, W, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn update(
         &mut self,

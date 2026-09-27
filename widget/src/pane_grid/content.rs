@@ -4,32 +4,32 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{self, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Event, Layout, Point, Rectangle, Shell, Size, Vector, Widget};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-pub struct Content<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Content<'a, Message, W, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
     title_bar: Option<TitleBar<'a, Message, Theme, Renderer>>,
-    body: Element<'a, Message, Theme, Renderer>,
+    body: W,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme, Renderer> Content<'a, Message, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
-    pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(body: W) -> Self {
         Self {
             title_bar: None,
-            body: body.into(),
+            body,
             class: Theme::default(),
         }
     }
@@ -59,10 +59,11 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Content<'_, Message, Theme, Renderer>
+impl<Message, W, Theme, Renderer> Content<'_, Message, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     pub(super) fn state(&self) -> Tree {
         let children = if let Some(title_bar) = self.title_bar.as_ref() {
@@ -369,7 +370,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Draggable for &Content<'_, Message, Theme, Renderer>
+impl<Message, W, Theme, Renderer> Draggable for &Content<'_, Message, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
@@ -382,16 +383,5 @@ where
         } else {
             false
         }
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> From<T> for Content<'a, Message, Theme, Renderer>
-where
-    T: Into<Element<'a, Message, Theme, Renderer>>,
-    Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
-{
-    fn from(element: T) -> Self {
-        Self::new(element)
     }
 }

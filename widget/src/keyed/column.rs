@@ -25,11 +25,11 @@ use crate::core::{
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     keyed_column((0..=100).map(|i| {
-///         (i, text!("Item {i}").into())
+///         (i, text!("Item {i}"))
 ///     })).into()
 /// }
 /// ```
-pub struct Column<'a, Key, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Column<Key, W>
 where
     Key: Copy + PartialEq,
 {
@@ -39,13 +39,12 @@ where
     height: Length,
     align_items: Alignment,
     keys: Vec<Key>,
-    children: Vec<Element<'a, Message, Theme, Renderer>>,
+    children: Vec<W>,
 }
 
-impl<'a, Key, Message, Theme, Renderer> Column<'a, Key, Message, Theme, Renderer>
+impl<Key, W> Column<Key, W>
 where
     Key: Copy + PartialEq,
-    Renderer: crate::core::Renderer,
 {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
@@ -59,7 +58,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Column::width`] or [`Column::height`] accordingly.
-    pub fn from_vecs(keys: Vec<Key>, children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn from_vecs(keys: Vec<Key>, children: Vec<W>) -> Self {
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -77,9 +76,10 @@ where
     }
 
     /// Creates a [`Column`] with the given elements.
-    pub fn with_children(
-        children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
-    ) -> Self {
+    pub fn with_children(children: impl IntoIterator<Item = (Key, W)>) -> Self
+    where
+        W: Node,
+    {
         let iterator = children.into_iter();
 
         Self::with_capacity(iterator.size_hint().0).extend(iterator)
@@ -120,11 +120,10 @@ where
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push(
-        mut self,
-        key: Key,
-        child: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn push(mut self, key: Key, child: impl Into<W>) -> Self
+    where
+        W: Node,
+    {
         let child = child.into();
 
         if !child.is_void() {
@@ -136,11 +135,10 @@ where
     }
 
     /// Adds an element to the [`Column`], if `Some`.
-    pub fn push_maybe(
-        self,
-        key: Key,
-        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
+    pub fn push_maybe(self, key: Key, child: Option<impl Into<W>>) -> Self
+    where
+        W: Node,
+    {
         if let Some(child) = child {
             self.push(key, child)
         } else {
@@ -149,20 +147,19 @@ where
     }
 
     /// Extends the [`Column`] with the given children.
-    pub fn extend(
-        self,
-        children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
-    ) -> Self {
+    pub fn extend(self, children: impl IntoIterator<Item = (Key, W)>) -> Self
+    where
+        W: Node,
+    {
         children
             .into_iter()
             .fold(self, |column, (key, child)| column.push(key, child))
     }
 }
 
-impl<Key, Message, Renderer> Default for Column<'_, Key, Message, Renderer>
+impl<Key, W> Default for Column<Key, W>
 where
     Key: Copy + PartialEq,
-    Renderer: crate::core::Renderer,
 {
     fn default() -> Self {
         Self::new()
@@ -177,16 +174,13 @@ where
     cache: layout::flex::Cache,
 }
 
-impl<Key, Message, Theme, Renderer> Node for Column<'_, Key, Message, Theme, Renderer> where
-    Key: Copy + PartialEq
-{
-}
+impl<Key, W> Node for Column<Key, W> where Key: Copy + PartialEq {}
 
-impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Column<'_, Key, Message, Theme, Renderer>
+impl<Key, W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Column<Key, W>
 where
     Renderer: crate::core::Renderer,
     Key: Copy + PartialEq + 'static,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<Key>>()
@@ -348,15 +342,16 @@ where
     }
 }
 
-impl<'a, Key, Message, Theme, Renderer> From<Column<'a, Key, Message, Theme, Renderer>>
+impl<'a, Key, W, Message, Theme, Renderer> From<Column<Key, W>>
     for Element<'a, Message, Theme, Renderer>
 where
     Key: Copy + PartialEq + 'static,
     Message: 'a,
     Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(column: Column<'a, Key, Message, Theme, Renderer>) -> Self {
+    fn from(column: Column<Key, W>) -> Self {
         column.boxed()
     }
 }

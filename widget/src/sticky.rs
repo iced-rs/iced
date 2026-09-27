@@ -85,22 +85,14 @@ use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
 ///     ]).into()
 /// }
 /// ```
-pub struct Sticky<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
-    Renderer: core::Renderer,
-{
-    content: Element<'a, Message, Theme, Renderer>,
+pub struct Sticky<W> {
+    content: W,
 }
 
-impl<'a, Message, Theme, Renderer> Sticky<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<W> Sticky<W> {
     /// Creates a new [`Sticky`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
-        Self {
-            content: content.into(),
-        }
+    pub fn new(content: W) -> Self {
+        Self { content }
     }
 }
 
@@ -108,15 +100,12 @@ struct State {
     is_stuck: bool,
 }
 
-impl<Message, Theme, Renderer> widget::Node for Sticky<'_, Message, Theme, Renderer> where
-    Renderer: core::Renderer
-{
-}
+impl<W> widget::Node for Sticky<W> {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Sticky<'_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Sticky<W>
 where
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> widget::tree::Tag {
         widget::tree::Tag::of::<State>()
@@ -341,33 +330,27 @@ fn stuck_axis(
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Sticky<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, W, Message, Theme, Renderer> From<Sticky<W>> for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(sticky: Sticky<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(sticky: Sticky<W>) -> Element<'a, Message, Theme, Renderer> {
         sticky.boxed()
     }
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
-    content: &'b mut Element<'a, Message, Theme, Renderer>,
+struct Overlay<'b, W> {
+    content: &'b mut W,
     tree: &'b mut widget::Tree,
     layout: Layout,
     viewport: Rectangle,
     window: Size,
 }
 
-impl<Message, Theme, Renderer> Overlay<'_, '_, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<W> Overlay<'_, W> {
     fn bounds(&self) -> Rectangle {
         self.viewport
             .intersection(&self.layout.bounds())
@@ -375,10 +358,10 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer> for Overlay<'_, W>
 where
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         let bounds = self.bounds();

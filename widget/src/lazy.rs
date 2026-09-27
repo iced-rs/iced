@@ -10,75 +10,63 @@ use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
-use std::marker::PhantomData;
 
 /// A widget that only rebuilds its contents when necessary.
-pub struct Lazy<'a, Message, Theme, Renderer, Dependency, View> {
+pub struct Lazy<'a, W, Dependency> {
     dependency: Dependency,
-    view: Box<dyn Fn(&Dependency) -> View + 'a>,
-    phantom: PhantomData<(Message, Theme, Renderer)>,
+    view: Box<dyn Fn(&Dependency) -> W + 'a>,
     size: Size<Length>,
 }
 
-impl<'a, Message, Theme, Renderer, Dependency, View>
-    Lazy<'a, Message, Theme, Renderer, Dependency, View>
+impl<'a, W, Dependency> Lazy<'a, W, Dependency>
 where
     Dependency: Hash + 'a,
-    View: Into<Element<'static, Message, Theme, Renderer>>,
 {
     /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
     /// closure that can turn this data into a widget tree.
-    pub fn new(dependency: Dependency, view: impl Fn(&Dependency) -> View + 'a) -> Self {
+    pub fn new(dependency: Dependency, view: impl Fn(&Dependency) -> W + 'a) -> Self {
         Self {
             dependency,
             view: Box::new(view),
-            phantom: PhantomData,
             size: Size::new(Length::Fit, Length::Fit),
         }
     }
 }
 
-struct Internal<Message, Theme, Renderer> {
-    element: Element<'static, Message, Theme, Renderer>,
+struct Internal<W> {
+    element: W,
     hash: u64,
 }
 
-impl<'a, Message, Theme, Renderer, Dependency, View> widget::Node
-    for Lazy<'a, Message, Theme, Renderer, Dependency, View>
-{
-}
+impl<W, Dependency> widget::Node for Lazy<'_, W, Dependency> {}
 
-impl<'a, Message, Theme, Renderer, Dependency, View> Widget<Message, Theme, Renderer>
-    for Lazy<'a, Message, Theme, Renderer, Dependency, View>
+impl<'a, W, Message, Theme, Renderer, Dependency> Widget<Message, Theme, Renderer>
+    for Lazy<'a, W, Dependency>
 where
-    View: Into<Element<'static, Message, Theme, Renderer>> + 'static,
+    W: Widget<Message, Theme, Renderer> + 'static,
     Dependency: Hash + 'a,
-    Message: 'static,
-    Theme: 'static,
-    Renderer: core::Renderer + 'static,
+    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         struct Tag<T>(T);
-        tree::Tag::of::<Tag<View>>()
+        tree::Tag::of::<Tag<W>>()
     }
 
     fn state(&self) -> tree::State {
         tree::State::new(Internal {
-            element: (self.view)(&self.dependency).into(),
+            element: (self.view)(&self.dependency),
             hash: hash(&self.dependency),
         })
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        let current = tree
-            .state
-            .downcast_mut::<Internal<Message, Theme, Renderer>>();
+        let current = tree.state.downcast_mut::<Internal<W>>();
 
         let new_hash = hash(&self.dependency);
 
         if current.hash != new_hash {
             current.hash = new_hash;
-            current.element = (self.view)(&self.dependency).into();
+            current.element = (self.view)(&self.dependency);
         }
 
         // The widget value is recreated every frame, so the size hint must be
@@ -96,9 +84,7 @@ where
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        let cached = tree
-            .state
-            .downcast_mut::<Internal<Message, Theme, Renderer>>();
+        let cached = tree.state.downcast_mut::<Internal<W>>();
 
         cached
             .element
@@ -115,9 +101,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let cached = tree
-            .state
-            .downcast_mut::<Internal<Message, Theme, Renderer>>();
+        let cached = tree.state.downcast_mut::<Internal<W>>();
 
         cached
             .element
@@ -134,9 +118,7 @@ where
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        let cached = tree
-            .state
-            .downcast_mut::<Internal<Message, Theme, Renderer>>();
+        let cached = tree.state.downcast_mut::<Internal<W>>();
 
         cached.element.update(
             &mut tree.children[0],
@@ -157,9 +139,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let cached = tree
-            .state
-            .downcast_ref::<Internal<Message, Theme, Renderer>>();
+        let cached = tree.state.downcast_ref::<Internal<W>>();
 
         cached
             .element
@@ -176,9 +156,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let current = tree
-            .state
-            .downcast_ref::<Internal<Message, Theme, Renderer>>();
+        let current = tree.state.downcast_ref::<Internal<W>>();
 
         current.element.draw(
             &tree.children[0],
@@ -200,9 +178,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let current = tree
-            .state
-            .downcast_mut::<Internal<Message, Theme, Renderer>>();
+        let current = tree.state.downcast_mut::<Internal<W>>();
 
         current.element.overlay(
             &mut tree.children[0],
@@ -221,17 +197,14 @@ fn hash(data: impl Hash) -> u64 {
     hasher.finish()
 }
 
-impl<'a, Message, Theme, Renderer, Dependency, View>
-    From<Lazy<'a, Message, Theme, Renderer, Dependency, View>>
+impl<'a, W, Message, Theme, Renderer, Dependency> From<Lazy<'a, W, Dependency>>
     for Element<'a, Message, Theme, Renderer>
 where
-    View: Into<Element<'static, Message, Theme, Renderer>> + 'static,
-    Renderer: core::Renderer + 'static,
-    Message: 'static,
-    Theme: 'static,
+    Renderer: core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'static,
     Dependency: Hash + 'a,
 {
-    fn from(lazy: Lazy<'a, Message, Theme, Renderer, Dependency, View>) -> Self {
+    fn from(lazy: Lazy<'a, W, Dependency>) -> Self {
         lazy.boxed()
     }
 }

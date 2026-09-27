@@ -58,13 +58,12 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///     ).into()
 /// }
 /// ```
-pub struct Tooltip<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Tooltip<'a, W, V, Theme = crate::Theme>
 where
     Theme: container::Catalog,
-    Renderer: text::Renderer,
 {
-    content: Element<'a, Message, Theme, Renderer>,
-    tooltip: Element<'a, Message, Theme, Renderer>,
+    content: W,
+    tooltip: V,
     position: Position,
     gap: f32,
     snap_within_viewport: bool,
@@ -72,22 +71,17 @@ where
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
+impl<'a, W, V, Theme> Tooltip<'a, W, V, Theme>
 where
     Theme: container::Catalog,
-    Renderer: text::Renderer,
 {
     /// Creates a new [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
-        position: Position,
-    ) -> Self {
+    pub fn new(content: W, tooltip: V, position: Position) -> Self {
         Tooltip {
-            content: content.into(),
-            tooltip: tooltip.into(),
+            content,
+            tooltip,
             position,
             gap: 0.0,
             snap_within_viewport: true,
@@ -135,18 +129,14 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> widget::Node for Tooltip<'_, Message, Theme, Renderer>
-where
-    Theme: container::Catalog,
-    Renderer: text::Renderer,
-{
-}
+impl<W, V, Theme> widget::Node for Tooltip<'_, W, V, Theme> where Theme: container::Catalog {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Tooltip<'_, Message, Theme, Renderer>
+impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Tooltip<'_, W, V, Theme>
 where
     Theme: container::Catalog,
     Renderer: text::Renderer,
+    W: Widget<Message, Theme, Renderer>,
+    V: Widget<Message, Theme, Renderer>,
 {
     fn diff(&mut self, tree: &mut widget::Tree) {
         let state = tree.state.downcast_mut::<State>();
@@ -157,7 +147,15 @@ where
             *needs_relayout = true;
         }
 
-        tree.diff_children(&mut [&mut self.content, &mut self.tooltip]);
+        if tree.children.len() != 2 {
+            tree.children = vec![
+                widget::Tree::new(&self.content),
+                widget::Tree::new(&self.tooltip),
+            ];
+        }
+
+        tree.children[0].diff(&mut self.content);
+        tree.children[1].diff(&mut self.tooltip);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -422,16 +420,16 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Tooltip<'a, Message, Theme, Renderer>>
+impl<'a, W, V, Message, Theme, Renderer> From<Tooltip<'a, W, V, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: container::Catalog + 'a,
     Renderer: text::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
+    V: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(
-        tooltip: Tooltip<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    fn from(tooltip: Tooltip<'a, W, V, Theme>) -> Element<'a, Message, Theme, Renderer> {
         tooltip.boxed()
     }
 }
@@ -465,23 +463,23 @@ enum State {
     },
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
+struct Overlay<'a, 'b, V, Theme>
 where
     Theme: container::Catalog,
-    Renderer: text::Renderer,
 {
     layout: Layout,
-    tooltip: &'b mut Element<'a, Message, Theme, Renderer>,
+    tooltip: &'b mut V,
     tree: &'b mut widget::Tree,
     class: &'b Theme::Class<'a>,
     window: Size,
 }
 
-impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<V, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, V, Theme>
 where
     Theme: container::Catalog,
     Renderer: text::Renderer,
+    V: Widget<Message, Theme, Renderer>,
 {
     fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         operation.container(None, self.layout.bounds(), &self.layout.bounds());

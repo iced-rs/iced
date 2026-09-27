@@ -16,7 +16,7 @@ use iced_widget::scrollable::{
     AbsoluteOffset, Action, Anchor, Direction, RelativeOffset, Scroll, Scrollable, Scrollbar,
     Source, Viewport,
 };
-use iced_widget::space;
+use iced_widget::{Space, space};
 
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -27,6 +27,17 @@ const FRAME: Duration = Duration::from_millis(16);
 
 /// The distance (in pixels) scrolled per wheel line.
 ///
+/// Creates a [`Simulator`] with the default renderer, inferring the message
+/// type from the provided element.
+fn simulate<M>(
+    element: impl Widget<M, Theme, Renderer> + 'static,
+) -> Simulator<'static, M, Theme, Renderer>
+where
+    M: 'static,
+{
+    Simulator::new(element)
+}
+
 /// Keep in sync with the private `WHEEL_PX_PER_LINE` constant in the
 /// `scrollable` module.
 const PX_PER_LINE: f32 = 120.0;
@@ -39,10 +50,7 @@ fn px(lines: f32) -> f32 {
 
 /// A `Scrollable` with the given content and viewport heights, publishing
 /// its viewport on every scroll.
-fn element(
-    content_height: u32,
-    viewport_height: u32,
-) -> Scrollable<'static, Scroll, Theme, Renderer> {
+fn element(content_height: u32, viewport_height: u32) -> Scrollable<'static, Scroll, Space, Theme> {
     Scrollable::new(space().height(content_height))
         .id("scrollable")
         .width(Length::Fill)
@@ -71,7 +79,7 @@ fn step_frames(simulator: &mut Simulator<'_, Scroll>, instant: &mut Instant, fra
 
 #[test]
 fn wheel_scrolling_is_smooth() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scroll down two lines
@@ -132,7 +140,7 @@ fn wheel_scrolling_is_smooth() {
 
 #[test]
 fn wheel_scrolling_is_immediate_when_smooth_scroll_disabled() {
-    let mut simulator = Simulator::new(element(3000, 200).smooth_scroll(false));
+    let mut simulator = simulate(element(3000, 200).smooth_scroll(false));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scroll down two lines
@@ -150,7 +158,7 @@ fn wheel_scrolling_is_immediate_when_smooth_scroll_disabled() {
 
 #[test]
 fn pixel_scrolling_is_immediate_even_when_smooth_scroll_enabled() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scroll down 120 pixels
@@ -168,7 +176,7 @@ fn pixel_scrolling_is_immediate_even_when_smooth_scroll_enabled() {
 
 #[test]
 fn smooth_scroll_settles_on_target() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scroll down one line
@@ -211,7 +219,7 @@ fn smooth_scroll_settles_on_target() {
 
 #[test]
 fn smooth_scroll_accumulates_pending_delta() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scroll down one line...
@@ -258,7 +266,7 @@ fn smooth_scroll_duration_scales_inversely_with_distance() {
     /// The number of messages (i.e. scrolled frames) a wheel movement of the
     /// given number of lines takes to settle.
     fn settle_frames(lines: f32) -> Vec<f32> {
-        let mut simulator = Simulator::new(element(3000, 200));
+        let mut simulator = simulate(element(3000, 200));
         simulator.point_at(Point::new(500.0, 100.0));
 
         let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -lines });
@@ -305,7 +313,7 @@ fn smooth_scroll_duration_scales_inversely_with_distance() {
 
 #[test]
 fn smooth_scroll_retarget_preserves_velocity() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scrolling down...
@@ -353,7 +361,7 @@ fn smooth_scroll_retarget_preserves_velocity() {
 
 #[test]
 fn smooth_scroll_reversal_carries_momentum() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scrolling down...
@@ -397,7 +405,7 @@ fn smooth_scroll_reversal_carries_momentum() {
 
 #[test]
 fn high_precision_scrolling_cancels_smooth_scroll() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Start a smooth scroll...
@@ -443,7 +451,7 @@ fn high_precision_scrolling_cancels_smooth_scroll() {
 #[test]
 fn smooth_scroll_is_noop_without_overflow() {
     // The content fits: there is nothing to scroll
-    let mut simulator = Simulator::new(element(100, 200));
+    let mut simulator = simulate(element(100, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -1.0 });
@@ -467,7 +475,7 @@ fn smooth_scroll_is_noop_without_overflow() {
 
 #[test]
 fn scroll_to_with_smooth_behavior_is_smooth() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     let mut operation = operation::scrollable::scroll_to(
         ELEMENT_ID,
@@ -521,7 +529,7 @@ fn scroll_to_with_smooth_behavior_is_smooth() {
 
 #[test]
 fn scroll_to_with_instant_behavior_is_immediate() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     let mut operation = operation::scrollable::scroll_to(
         ELEMENT_ID,
@@ -558,7 +566,7 @@ fn scroll_to_with_auto_behavior_follows_smooth_scroll() {
     // With smooth scrolling enabled (the default), `Auto` resolves to a
     // smooth scroll
     {
-        let mut simulator = Simulator::new(element(3000, 200));
+        let mut simulator = simulate(element(3000, 200));
 
         let mut operation = operation::scrollable::scroll_to(
             ELEMENT_ID,
@@ -589,7 +597,7 @@ fn scroll_to_with_auto_behavior_follows_smooth_scroll() {
     // ... while with smooth scrolling disabled, it resolves to an immediate
     // scroll
     {
-        let mut simulator = Simulator::new(element(3000, 200).smooth_scroll(false));
+        let mut simulator = simulate(element(3000, 200).smooth_scroll(false));
 
         let mut operation = operation::scrollable::scroll_to(
             ELEMENT_ID,
@@ -621,7 +629,7 @@ fn scroll_to_with_auto_behavior_follows_smooth_scroll() {
 
 #[test]
 fn snap_to_with_smooth_behavior_settles_at_percentage() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     let mut operation = operation::scrollable::snap_to(
         ELEMENT_ID,
@@ -652,7 +660,7 @@ fn snap_to_with_smooth_behavior_settles_at_percentage() {
 
 #[test]
 fn scroll_by_with_smooth_behavior_accumulates() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Start a smooth scroll of one line...
     let mut operation = operation::scrollable::scroll_by(
@@ -687,7 +695,7 @@ fn scroll_by_with_smooth_behavior_accumulates() {
 
 #[test]
 fn scroll_to_with_smooth_behavior_replaces_pending_target() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Start a smooth scroll of one line...
     let mut operation = operation::scrollable::scroll_by(
@@ -809,13 +817,13 @@ where
 fn content_update_and_draw_see_the_same_translation() {
     let observations = Rc::new(RefCell::new(Vec::new()));
 
-    let element: Scrollable<'static, Viewport, Theme, Renderer> = Scrollable::new(Recorder {
+    let element: Scrollable<'static, Viewport, Recorder, Theme> = Scrollable::new(Recorder {
         observations: observations.clone(),
     })
     .width(Length::Fill)
     .height(200);
 
-    let mut simulator = Simulator::new(element);
+    let mut simulator = simulate(element);
     simulator.point_at(Point::new(500.0, 100.0));
 
     // A smooth scroll moves the content on every redraw frame; within
@@ -856,7 +864,7 @@ fn content_update_and_draw_see_the_same_translation() {
 
 #[test]
 fn snap_to_end_with_smooth_behavior_stays_snapped_when_content_grows() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     let mut operation = operation::scrollable::snap_to(
         ELEMENT_ID,
@@ -894,7 +902,7 @@ fn snap_to_end_with_smooth_behavior_stays_snapped_when_content_grows() {
 
 #[test]
 fn snap_to_end_with_smooth_behavior_tracks_content_growth_mid_scroll() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     let mut operation = operation::scrollable::snap_to(
         ELEMENT_ID,
@@ -936,7 +944,7 @@ fn snap_to_end_with_smooth_behavior_tracks_content_growth_mid_scroll() {
 
 #[test]
 fn wheel_during_smooth_snap_to_end_drops_the_snap() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     let mut operation = operation::scrollable::snap_to(
@@ -979,7 +987,7 @@ fn wheel_during_smooth_snap_to_end_drops_the_snap() {
 
 #[test]
 fn snap_to_end_with_smooth_behavior_stays_snapped_when_already_at_destination() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Scroll to the end with an immediate (absolute) offset
     let mut operation = operation::scrollable::scroll_to(
@@ -1028,7 +1036,7 @@ fn snap_to_end_with_smooth_behavior_stays_snapped_when_already_at_destination() 
 
 #[test]
 fn snap_to_end_with_smooth_behavior_stays_snapped_without_overflow() {
-    let mut simulator = Simulator::new(element(100, 200));
+    let mut simulator = simulate(element(100, 200));
 
     let mut operation = operation::scrollable::snap_to(
         ELEMENT_ID,
@@ -1068,7 +1076,7 @@ fn snap_to_end_with_smooth_behavior_stays_snapped_without_overflow() {
 fn element_xy(
     content_width: u32,
     content_height: u32,
-) -> Scrollable<'static, Scroll, Theme, Renderer> {
+) -> Scrollable<'static, Scroll, Space, Theme> {
     Scrollable::new(
         space()
             .width(Length::Fixed(content_width as f32))
@@ -1086,7 +1094,7 @@ fn element_xy(
 
 #[test]
 fn snap_to_end_with_smooth_behavior_preserves_other_axis_snappedness() {
-    let mut simulator = Simulator::new(element_xy(2000, 3000));
+    let mut simulator = simulate(element_xy(2000, 3000));
 
     // Pin the horizontal scroll to the end (instantly)
     let mut operation = operation::scrollable::snap_to(
@@ -1136,7 +1144,7 @@ fn snap_to_end_with_smooth_behavior_preserves_other_axis_snappedness() {
 
 #[test]
 fn scrollbar_drag_unsnaps_only_the_dragged_axis() {
-    let mut simulator = Simulator::new(element_xy(2000, 3000));
+    let mut simulator = simulate(element_xy(2000, 3000));
 
     // Pin the horizontal scroll to the end (instantly)
     let mut operation = operation::scrollable::snap_to(
@@ -1205,7 +1213,7 @@ fn scrollbar_drag_unsnaps_only_the_dragged_axis() {
 
 /// A `Scrollable` that fills the simulator's window, with content of the
 /// given height.
-fn fill_element(content_height: u32) -> Scrollable<'static, Scroll, Theme, Renderer> {
+fn fill_element(content_height: u32) -> Scrollable<'static, Scroll, Space, Theme> {
     Scrollable::new(space().height(content_height))
         .id("scrollable")
         .width(Length::Fill)
@@ -1215,7 +1223,7 @@ fn fill_element(content_height: u32) -> Scrollable<'static, Scroll, Theme, Rende
 
 #[test]
 fn notifications_report_the_wheel_source() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     let _ = simulator.scroll(ScrollDelta::Lines { x: 0.0, y: -1.0 });
@@ -1240,7 +1248,7 @@ fn notifications_report_the_wheel_source() {
 
 #[test]
 fn notifications_report_the_operation_source() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     let mut instant = Instant::now();
 
@@ -1301,7 +1309,7 @@ fn notifications_report_the_operation_source() {
 
 #[test]
 fn notifications_report_the_scrollbar_source() {
-    let mut simulator = Simulator::new(element_xy(2000, 3000));
+    let mut simulator = simulate(element_xy(2000, 3000));
 
     let mut instant = Instant::now();
     step_frames(&mut simulator, &mut instant, 2);
@@ -1349,7 +1357,7 @@ fn notifications_report_the_auto_scroll_source() {
         .auto_scroll(true)
         .on_scroll(Some);
 
-    let mut simulator = Simulator::new(element);
+    let mut simulator = simulate(element);
 
     let mut instant = Instant::now();
     step_frames(&mut simulator, &mut instant, 2);
@@ -1383,7 +1391,7 @@ fn notifications_report_the_auto_scroll_source() {
 
 #[test]
 fn notifications_report_the_layout_source() {
-    let mut simulator = Simulator::new(fill_element(3000));
+    let mut simulator = simulate(fill_element(3000));
 
     // The first notification reports the initial layout
     let mut instant = Instant::now();
@@ -1421,7 +1429,7 @@ fn notifications_report_the_layout_source() {
 
 #[test]
 fn destination_is_snapped_during_animation() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Smoothly snap to the end: the animation targets a relative offset,
     // so the Y axis is snapped while it is still in flight
@@ -1465,7 +1473,7 @@ fn destination_is_snapped_during_animation() {
 
 #[test]
 fn destination_is_unsnapped_for_absolute_targets() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
     simulator.point_at(Point::new(500.0, 100.0));
 
     // A wheel targets an absolute offset
@@ -1509,7 +1517,7 @@ fn destination_is_unsnapped_for_absolute_targets() {
 /// same gradual easing as a wheel scroll.
 #[test]
 fn rail_click_scrolls_a_page_smoothly() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1572,7 +1580,7 @@ fn rail_click_scrolls_a_page_smoothly() {
 /// disabled, with no in-flight animation.
 #[test]
 fn rail_click_is_immediate_when_smooth_scroll_disabled() {
-    let mut simulator = Simulator::new(element(3000, 200).smooth_scroll(false));
+    let mut simulator = simulate(element(3000, 200).smooth_scroll(false));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1608,7 +1616,7 @@ fn rail_click_is_immediate_when_smooth_scroll_disabled() {
 /// press delay, stopping when the scroller's leading edge reaches it.
 #[test]
 fn rail_hold_autoscrolls_to_pointer() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1650,7 +1658,7 @@ fn rail_hold_autoscrolls_to_pointer() {
 /// with it, so the scroller keeps sliding toward the new position.
 #[test]
 fn rail_hold_follows_pointer_movement() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1700,7 +1708,7 @@ fn rail_hold_follows_pointer_movement() {
 /// the rail above it slides it up, stopping with its top edge at the pointer.
 #[test]
 fn rail_hold_autoscrolls_to_pointer_with_end_anchor() {
-    let mut simulator = Simulator::new(element(3000, 200).anchor_y(Anchor::End));
+    let mut simulator = simulate(element(3000, 200).anchor_y(Anchor::End));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press: with `Anchor::End`, at the top of the
@@ -1743,7 +1751,7 @@ fn rail_hold_autoscrolls_to_pointer_with_end_anchor() {
 /// scroller toward the pointer until its edge reaches it.
 #[test]
 fn rail_hold_autoscrolls_to_pointer_on_horizontal_rail() {
-    let mut simulator = Simulator::new(element_xy(3000, 200));
+    let mut simulator = simulate(element_xy(3000, 200));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1788,7 +1796,7 @@ fn rail_hold_autoscrolls_to_pointer_on_horizontal_rail() {
 /// behaves like a grabbed scroller.
 #[test]
 fn shift_rail_click_jumps_to_pointer() {
-    let mut simulator = Simulator::new(element(3000, 200));
+    let mut simulator = simulate(element(3000, 200));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1827,7 +1835,7 @@ fn shift_rail_click_jumps_to_pointer() {
 /// pointer, and then behaves like a grabbed scroller.
 #[test]
 fn click_to_scroll_rail_click_jumps_to_pointer() {
-    let mut simulator = Simulator::new(element(3000, 200).click_to_scroll(true));
+    let mut simulator = simulate(element(3000, 200).click_to_scroll(true));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1863,7 +1871,7 @@ fn click_to_scroll_rail_click_jumps_to_pointer() {
 /// same gradual easing as a wheel scroll.
 #[test]
 fn click_to_scroll_shift_rail_click_pages() {
-    let mut simulator = Simulator::new(element(3000, 200).click_to_scroll(true));
+    let mut simulator = simulate(element(3000, 200).click_to_scroll(true));
 
     // Render a frame so that the scroller is at its position for the
     // current offset before the press
@@ -1944,7 +1952,7 @@ fn on_scroll_action_can_scroll() {
             }
         });
 
-    let mut simulator = Simulator::new(element);
+    let mut simulator = simulate(element);
     simulator.point_at(Point::new(500.0, 100.0));
 
     // Scroll down two lines (240 px); the handler consumes this notification

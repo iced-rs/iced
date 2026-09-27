@@ -1,7 +1,7 @@
 use iced::widget::{
     button, column, container, operation, progress_bar, radio, row, scrollable, slider, space, text,
 };
-use iced::{Border, Center, Color, Element, Fill, Task, Theme};
+use iced::{Border, Center, Color, Element, Fill, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -214,7 +214,7 @@ impl ScrollableDemo {
                 .on_press(Message::ScrollToBeginning)
         };
 
-        let scrollable_content: Element<Message> = Element::from(match self.scrollable_direction {
+        let scrollable_content = match self.scrollable_direction {
             Direction::Vertical => scrollable(
                 column![
                     scroll_to_end_button(),
@@ -241,7 +241,8 @@ impl ScrollableDemo {
             .height(Fill)
             .id(SCROLLABLE)
             .on_scroll(Message::Scrolled)
-            .auto_scroll(true),
+            .auto_scroll(true)
+            .boxed(),
             Direction::Horizontal => scrollable(
                 row![
                     scroll_to_end_button(),
@@ -269,7 +270,8 @@ impl ScrollableDemo {
             .height(Fill)
             .id(SCROLLABLE)
             .on_scroll(Message::Scrolled)
-            .auto_scroll(true),
+            .auto_scroll(true)
+            .boxed(),
             Direction::Multi => scrollable(
                 //horizontal content
                 row![
@@ -315,8 +317,9 @@ impl ScrollableDemo {
             .height(Fill)
             .id(SCROLLABLE)
             .on_scroll(Message::Scrolled)
-            .auto_scroll(true),
-        });
+            .auto_scroll(true)
+            .boxed(),
+        };
 
         let progress_bars: Element<Message> = match self.scrollable_direction {
             Direction::Vertical => progress_bar(0.0..=1.0, self.current_scroll_offset.y).into(),

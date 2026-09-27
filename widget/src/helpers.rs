@@ -426,12 +426,7 @@ where
 ///         .into()
 /// }
 /// ```
-pub fn pin<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Pin<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub fn pin<W>(content: W) -> Pin<W> {
     Pin::new(content)
 }
 
@@ -478,16 +473,14 @@ where
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     keyed_column((0..=100).map(|i| {
-///         (i, text!("Item {i}").into())
+///         (i, text!("Item {i}"))
 ///     })).into()
 /// }
 /// ```
-pub fn keyed_column<'a, Key, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
-) -> keyed::Column<'a, Key, Message, Theme, Renderer>
+pub fn keyed_column<Key, W>(children: impl IntoIterator<Item = (Key, W)>) -> keyed::Column<Key, W>
 where
     Key: Copy + PartialEq,
-    Renderer: core::Renderer,
+    W: Node,
 {
     keyed::Column::with_children(children)
 }
@@ -519,11 +512,9 @@ where
 }
 
 /// Creates a new [`Grid`] from an iterator.
-pub fn grid<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Grid<'a, Message, Theme, Renderer>
+pub fn grid<W>(children: impl IntoIterator<Item = W>) -> Grid<W>
 where
-    Renderer: core::Renderer,
+    W: Node,
 {
     Grid::with_children(children)
 }
@@ -927,12 +918,7 @@ where
 /// hidden, or resized.
 ///
 /// It can even notify you with anticipation at a given distance!
-pub fn sensor<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Sensor<'a, (), Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub fn sensor<'a, Message, W>(content: W) -> Sensor<'a, (), Message, W> {
     Sensor::new(content)
 }
 
@@ -959,12 +945,9 @@ where
 ///     ]).into()
 /// }
 /// ```
-pub fn scrollable<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Scrollable<'a, Message, Theme, Renderer>
+pub fn scrollable<'a, Message, W, Theme>(content: W) -> Scrollable<'a, Message, W, Theme>
 where
     Theme: scrollable::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Scrollable::new(content)
 }
@@ -993,13 +976,7 @@ where
 ///     ]).into()
 /// }
 /// ```
-pub fn sticky<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Sticky<'a, Message, Theme, Renderer>
-where
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-{
+pub fn sticky<W>(content: W) -> Sticky<W> {
     Sticky::new(content)
 }
 
@@ -1054,14 +1031,13 @@ where
 ///     ).into()
 /// }
 /// ```
-pub fn tooltip<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
+pub fn tooltip<'a, W, V, Theme>(
+    content: W,
+    tooltip: V,
     position: tooltip::Position,
-) -> crate::Tooltip<'a, Message, Theme, Renderer>
+) -> crate::Tooltip<'a, W, V, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Tooltip::new(content, tooltip, position)
 }
@@ -1928,12 +1904,7 @@ where
 }
 
 /// Creates a new [`MouseArea`].
-pub fn mouse_area<'a, Message, Theme, Renderer>(
-    widget: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> MouseArea<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub fn mouse_area<'a, Message, W>(widget: W) -> MouseArea<'a, Message, W> {
     MouseArea::new(widget)
 }
 
@@ -1986,10 +1957,10 @@ where
 ///     .into()
 /// }
 /// ```
-pub fn pane_grid<'a, T, Message, Theme, Renderer>(
+pub fn pane_grid<'a, T, Message, W, Theme, Renderer>(
     state: &'a pane_grid::State<T>,
-    view: impl Fn(pane_grid::Pane, &'a T, bool) -> pane_grid::Content<'a, Message, Theme, Renderer>,
-) -> PaneGrid<'a, Message, Theme, Renderer>
+    view: impl Fn(pane_grid::Pane, &'a T, bool) -> pane_grid::Content<'a, Message, W, Theme, Renderer>,
+) -> PaneGrid<'a, Message, W, Theme, Renderer>
 where
     Theme: pane_grid::Catalog,
     Renderer: core::Renderer,
@@ -1998,12 +1969,9 @@ where
 }
 
 /// Creates a new [`Float`] widget with the given content.
-pub fn float<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Float<'a, Message, Theme, Renderer>
+pub fn float<'a, W, Theme>(content: W) -> Float<'a, W, Theme>
 where
     Theme: float::Catalog,
-    Renderer: core::Renderer,
 {
     Float::new(content)
 }
@@ -2014,13 +1982,7 @@ where
 /// The `view` closure will receive the maximum available space for
 /// the [`Responsive`] during layout. You can use this [`Size`] to
 /// conditionally build the contents.
-pub fn responsive<'a, Message, Theme, Renderer, E>(
-    f: impl Fn(Size) -> E + 'a,
-) -> Responsive<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-    E: Into<Element<'a, Message, Theme, Renderer>>,
-{
+pub fn responsive<'a, W>(f: impl Fn(Size) -> W + 'a) -> Responsive<'a, W> {
     Responsive::new(f)
 }
 
@@ -2051,15 +2013,13 @@ where
 ///     }).into()
 /// }
 /// ```
-pub fn transition<'a, Message, Theme, Renderer, P, E>(
+pub fn transition<'a, Message, W, P>(
     value: P::Value,
     init: impl Fn() -> P + 'a,
-    view: impl Fn(&P, Instant) -> E + 'a,
-) -> Transition<'a, Message, Theme, Renderer, P>
+    view: impl Fn(&P, Instant) -> W + 'a,
+) -> Transition<'a, Message, W, P>
 where
-    Renderer: core::Renderer,
     P: transition::Program,
-    E: Into<Element<'a, Message, Theme, Renderer>>,
 {
     Transition::new(init, value, view)
 }
@@ -2072,13 +2032,12 @@ pub fn void() -> core::widget::Void {
 
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
 /// closure that can turn this data into a widget tree.
-pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
+pub fn lazy<'a, W, Dependency>(
     dependency: Dependency,
-    view: impl Fn(&Dependency) -> View + 'a,
-) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
+    view: impl Fn(&Dependency) -> W + 'a,
+) -> Lazy<'a, W, Dependency>
 where
     Dependency: std::hash::Hash + 'a,
-    View: Into<Element<'static, Message, Theme, Renderer>>,
 {
     Lazy::new(dependency, view)
 }

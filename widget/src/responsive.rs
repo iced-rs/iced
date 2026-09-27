@@ -5,38 +5,31 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::Tree;
 use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
-use crate::space;
 
 /// A widget that is aware of its dimensions.
 ///
 /// A [`Responsive`] widget will always try to fill all the available space of
 /// its parent.
-pub struct Responsive<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
-    view: Box<dyn Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a>,
+pub struct Responsive<'a, W> {
+    view: Box<dyn Fn(Size) -> W + 'a>,
     width: Length,
     height: Length,
-    content: Element<'a, Message, Theme, Renderer>,
+    content: Option<W>,
 }
 
-impl<'a, Message, Theme, Renderer> Responsive<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<'a, W> Responsive<'a, W> {
     /// Creates a new [`Responsive`] widget with a closure that produces its
     /// contents.
     ///
     /// The `view` closure will receive the maximum available space for
     /// the [`Responsive`] during layout. You can use this [`Size`] to
     /// conditionally build the contents.
-    pub fn new<E>(view: impl Fn(Size) -> E + 'a) -> Self
-    where
-        E: Into<Element<'a, Message, Theme, Renderer>>,
-    {
+    pub fn new(view: impl Fn(Size) -> W + 'a) -> Self {
         Self {
-            view: Box::new(move |size| view(size).into()),
+            view: Box::new(view),
             width: Length::Fill,
             height: Length::Fill,
-            content: space().boxed(),
+            content: None,
         }
     }
 
@@ -53,12 +46,12 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> widget::Node for Responsive<'_, Message, Theme, Renderer> {}
+impl<W> widget::Node for Responsive<'_, W> {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Responsive<'_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Responsive<'_, W>
 where
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn diff(&mut self, _tree: &mut Tree) {
         // Diff is deferred to layout
@@ -75,7 +68,7 @@ where
         let limits = limits.width(self.width).height(self.height);
         let size = limits.bounds();
 
-        self.content = (self.view)(size);
+        self.content = Some((self.view)(size));
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
         self.content
@@ -160,14 +153,15 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Responsive<'a, Message, Theme, Renderer>>
+impl<'a, W, Message, Theme, Renderer> From<Responsive<'a, W>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(responsive: Responsive<'a, Message, Theme, Renderer>) -> Self {
+    fn from(responsive: Responsive<'a, W>) -> Self {
         responsive.boxed()
     }
 }

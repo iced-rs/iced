@@ -175,26 +175,25 @@ impl Default for State {
     }
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
+struct Overlay<'a, 'b, T, Message, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     window: Size,
     layout: Layout,
     tree: &'a mut Tree,
-    list: Scrollable<'a, Message, Theme, Renderer>,
+    list: Scrollable<'a, Message, List<'a, 'b, T, Message, Theme>, Theme>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, 'b, Message, Theme, Renderer> Overlay<'a, 'b, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme> Overlay<'a, 'b, T, Message, Theme>
 where
+    T: Clone,
     Message: 'a,
     Theme: Catalog + scrollable::Catalog + 'a,
-    Renderer: text::Renderer + 'a,
     'b: 'a,
 {
-    pub fn new<T>(
+    pub fn new<Renderer>(
         position: Point,
         window: Size,
         menu: Menu<'a, 'b, T, Message, Theme>,
@@ -202,7 +201,7 @@ where
         renderer: &Renderer,
     ) -> Self
     where
-        T: Clone,
+        Renderer: text::Renderer + 'a,
     {
         let Menu {
             state,
@@ -254,7 +253,7 @@ where
         )
         .width(width);
 
-        state.tree.diff(&mut list);
+        state.tree.diff::<_, _, Renderer>(&mut list);
         list.layout(&mut state.tree, renderer, &limits);
 
         let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
@@ -273,10 +272,11 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> crate::core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<T, Message, Theme, Renderer> crate::core::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, T, Message, Theme>
 where
-    Theme: Catalog,
+    T: Clone,
+    Theme: Catalog + scrollable::Catalog,
     Renderer: text::Renderer,
 {
     fn update(
