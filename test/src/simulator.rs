@@ -9,7 +9,7 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Point, Settings, Size, SmolStr};
+use crate::core::{Element, Event, Point, Settings, Size, SmolStr, Widget};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -39,14 +39,14 @@ where
     Renderer: core::Renderer + core::renderer::Headless + 'a,
 {
     /// Creates a new [`Simulator`] with default [`Settings`] and a default size (1024x768).
-    pub fn new(element: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(element: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self::with_settings(Settings::default(), element)
     }
 
     /// Creates a new [`Simulator`] with the given [`Settings`] and a default size (1024x768).
     pub fn with_settings(
         settings: Settings,
-        element: impl Into<Element<'a, Message, Theme, Renderer>>,
+        element: impl Widget<Message, Theme, Renderer> + 'a,
     ) -> Self {
         Self::with_size(settings, window::Settings::default().size, element)
     }
@@ -55,7 +55,7 @@ where
     pub fn with_size(
         settings: Settings,
         size: impl Into<Size>,
-        element: impl Into<Element<'a, Message, Theme, Renderer>>,
+        element: impl Widget<Message, Theme, Renderer> + 'a,
     ) -> Self {
         let size = size.into();
 
@@ -79,7 +79,7 @@ where
         };
 
         let raw = UserInterface::build(
-            element.into(),
+            element.boxed(),
             size,
             user_interface::Cache::default(),
             &mut renderer,
@@ -389,7 +389,7 @@ impl Snapshot {
 ///
 /// This is just a function version of [`Simulator::new`].
 pub fn simulator<'a, Message, Theme, Renderer>(
-    element: impl Into<Element<'a, Message, Theme, Renderer>>,
+    element: impl Widget<Message, Theme, Renderer> + 'a,
 ) -> Simulator<'a, Message, Theme, Renderer>
 where
     Message: 'a,

@@ -688,7 +688,7 @@ pub type Result = std::result::Result<(), Error>;
 ///
 /// # Example
 /// ```no_run,standalone_crate
-/// use iced::widget::{button, column, text, Column};
+/// use iced::widget::{button, column, text, Widget};
 ///
 /// pub fn main() -> iced::Result {
 ///     iced::run(update, view)
@@ -705,7 +705,7 @@ pub type Result = std::result::Result<(), Error>;
 ///     }
 /// }
 ///
-/// fn view(value: &u64) -> Column<Message> {
+/// fn view(value: &u64) -> impl Widget<Message> {
 ///     column![
 ///         text(value),
 ///         button("+").on_press(Message::Increment),

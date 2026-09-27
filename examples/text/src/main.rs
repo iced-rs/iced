@@ -91,7 +91,6 @@ impl Text {
                     )
                     .font(self.font)
                     .size(size)
-                    .into()
                 }))
                 .spacing(10)
             ),

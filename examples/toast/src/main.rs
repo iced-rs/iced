@@ -196,7 +196,6 @@ impl App {
             )
             .style(container::rounded_box)
             .width(Fit.max(200))
-            .into()
         });
 
         stack![content, right(column(toasts).spacing(10))].into()

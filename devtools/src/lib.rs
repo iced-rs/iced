@@ -91,7 +91,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         state.view(&self.program, window)
     }
 
@@ -528,7 +528,7 @@ where
             scrollable(
                 column(
                     logs.iter()
-                        .map(|log| { text(log).size(12).font(Font::MONOSPACE).into() })
+                        .map(|log| text(log).size(12).font(Font::MONOSPACE))
                 )
                 .spacing(3),
             )

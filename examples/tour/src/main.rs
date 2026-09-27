@@ -192,7 +192,7 @@ impl Tour {
         }
     }
 
-    fn welcome(&self) -> Column<'_, Message> {
+    fn welcome(&self) -> Column<Element<'_, Message>> {
         Self::container("Welcome!")
             .push(
                 "This is a simple tour meant to showcase a bunch of \
@@ -230,7 +230,7 @@ impl Tour {
             )
     }
 
-    fn slider(&self) -> Column<'_, Message> {
+    fn slider(&self) -> Column<Element<'_, Message>> {
         Self::container("Slider")
             .push(
                 "A slider allows you to smoothly select a value from a range \
@@ -244,7 +244,7 @@ impl Tour {
             .push(text(self.slider.to_string()).width(Fill).align_x(Center))
     }
 
-    fn rows_and_columns(&self) -> Column<'_, Message> {
+    fn rows_and_columns(&self) -> Column<Element<'_, Message>> {
         let row_radio = radio(
             "Row",
             Layout::Row,
@@ -287,7 +287,7 @@ impl Tour {
             .push(spacing_section)
     }
 
-    fn text(&self) -> Column<'_, Message> {
+    fn text(&self) -> Column<Element<'_, Message>> {
         let size = self.text_size;
         let color = self.text_color;
 
@@ -323,7 +323,7 @@ impl Tour {
             .push(color_section)
     }
 
-    fn radio(&self) -> Column<'_, Message> {
+    fn radio(&self) -> Column<Element<'_, Message>> {
         let question = column![
             text("Iced is written in...").size(24),
             column(
@@ -353,7 +353,7 @@ impl Tour {
             )
     }
 
-    fn toggler(&self) -> Column<'_, Message> {
+    fn toggler(&self) -> Column<Element<'_, Message>> {
         Self::container("Toggler")
             .push("A toggler is mostly used to enable or disable something.")
             .push(
@@ -366,7 +366,7 @@ impl Tour {
             )
     }
 
-    fn image(&self) -> Column<'_, Message> {
+    fn image(&self) -> Column<Element<'_, Message>> {
         let width = self.image_width;
         let filter_method = self.image_filter_method;
 
@@ -383,7 +383,7 @@ impl Tour {
             .align_x(Center)
     }
 
-    fn scrollable(&self) -> Column<'_, Message> {
+    fn scrollable(&self) -> Column<Element<'_, Message>> {
         Self::container("Scrollable")
             .push(
                 "Iced supports scrollable content. Try it out! Find the \
@@ -402,7 +402,7 @@ impl Tour {
             .push(text("You made it!").width(Fill).size(50).align_x(Center))
     }
 
-    fn text_input(&self) -> Column<'_, Message> {
+    fn text_input(&self) -> Column<Element<'_, Message>> {
         let value = &self.input_value;
         let is_secure = self.input_is_secure;
 
@@ -434,7 +434,7 @@ impl Tour {
             )
     }
 
-    fn debugger(&self) -> Column<'_, Message> {
+    fn debugger(&self) -> Column<Element<'_, Message>> {
         Self::container("Debugger")
             .push(
                 "You can ask Iced to visually explain the layouting of the \
@@ -452,13 +452,13 @@ impl Tour {
             .push("Feel free to go back and take a look.")
     }
 
-    fn end(&self) -> Column<'_, Message> {
+    fn end(&self) -> Column<Element<'_, Message>> {
         Self::container("You reached the end!")
             .push("This tour will be updated as more features are added.")
             .push("Make sure to keep an eye on it!")
     }
 
-    fn container(title: &str) -> Column<'_, Message> {
+    fn container(title: &str) -> Column<Element<'_, Message>> {
         column![text(title).size(50)].spacing(20)
     }
 }

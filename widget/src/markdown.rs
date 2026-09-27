@@ -1941,7 +1941,6 @@ where
             )
         ]
         .spacing(settings.text_size / 2.0)
-        .into()
     }))
     .spacing(settings.spacing / 2.0)
     .padding(padding::left(settings.text_size.0))
@@ -1979,7 +1978,6 @@ where
             )
         ]
         .spacing(settings.text_size / 2.0)
-        .into()
     }))
     .spacing(settings.spacing / 2.0)
     .into()
@@ -2006,7 +2004,6 @@ where
                 .font(settings.code_block_font)
                 .size(settings.code_block_size)
                 .line_height(settings.line_height)
-                .into()
         })))
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()
@@ -2121,13 +2118,10 @@ where
                 .iter()
                 .map(|content| item(viewer, settings, content)),
         )
-        .spacing(settings.spacing)
-        .into();
+        .spacing(settings.spacing);
 
         if let Some(heading) = heading {
-            column![item(viewer, settings, heading), contents]
-                .spacing(settings.spacing / 2.0)
-                .into()
+            column![item(viewer, settings, heading), contents].spacing(settings.spacing / 2.0)
         } else {
             contents
         }

@@ -1,5 +1,5 @@
 use iced::event::{self, Event};
-use iced::widget::{Column, button, center, checkbox, text};
+use iced::widget::{button, center, checkbox, column, text};
 use iced::window;
 use iced::{Center, Element, Fill, Subscription, Task};
 
@@ -56,12 +56,7 @@ impl Events {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let events = Column::with_children(
-            self.last
-                .iter()
-                .map(|event| text!("{event:?}").size(40))
-                .map(Element::from),
-        );
+        let events = column(self.last.iter().map(|event| text!("{event:?}").size(40)));
 
         let toggle = checkbox(self.enabled)
             .label("Listen to runtime events")
@@ -72,12 +67,7 @@ impl Events {
             .padding(10)
             .on_press(Message::Exit);
 
-        let content = Column::new()
-            .align_x(Center)
-            .spacing(20)
-            .push(events)
-            .push(toggle)
-            .push(exit);
+        let content = column![events, toggle, exit].align_x(Center).spacing(20);
 
         center(content).into()
     }

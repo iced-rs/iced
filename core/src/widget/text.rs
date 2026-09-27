@@ -191,19 +191,19 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.format.width,
+            height: self.format.height,
+        }
+    }
+
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
         tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
-    }
-
-    fn size(&self) -> Size<Length> {
-        Size {
-            width: self.format.width,
-            height: self.format.height,
-        }
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
@@ -256,14 +256,6 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State<Renderer::Paragraph>>()
-    }
-
-    fn state(&self) -> tree::State {
-        tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
-    }
-
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Fit,

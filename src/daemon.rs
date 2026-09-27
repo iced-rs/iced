@@ -1,5 +1,6 @@
 //! Create and run daemons that run in the background.
 use crate::application;
+use crate::core::Widget;
 use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
@@ -87,7 +88,7 @@ where
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.view.view(state, window)
         }
     }
@@ -312,7 +313,7 @@ impl<P: Program> Program for Daemon<P> {
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.raw.view(state, window)
     }
 
@@ -472,7 +473,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.program.view(state, window)
     }
 
@@ -548,7 +549,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.program.view(state, window)
     }
 
@@ -624,7 +625,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.program.view(state, window)
     }
 

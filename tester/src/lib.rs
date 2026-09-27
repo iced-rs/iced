@@ -89,7 +89,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         state.view(&self.program, window).map(Message).boxed()
     }
 
@@ -718,7 +718,6 @@ impl<P: Program + 'static> Tester<P> {
                                             _ => None,
                                         },
                                     })
-                                    .into()
                             }),
                     )
                     .spacing(5),

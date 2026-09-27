@@ -59,6 +59,18 @@ where
         self.widget.size()
     }
 
+    fn tag(&self) -> tree::Tag {
+        self.widget.tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.widget.state()
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        self.widget.diff(tree);
+    }
+
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.widget.layout(tree, renderer, limits);
     }
@@ -75,18 +87,6 @@ where
     ) {
         self.widget
             .draw(tree, renderer, theme, style, layout, cursor, viewport);
-    }
-
-    fn tag(&self) -> tree::Tag {
-        self.widget.tag()
-    }
-
-    fn state(&self) -> tree::State {
-        self.widget.state()
-    }
-
-    fn diff(&mut self, tree: &mut Tree) {
-        self.widget.diff(tree);
     }
 
     fn operate(
@@ -138,10 +138,6 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.widget
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-
-    fn is_void(&self) -> bool {
-        self.widget.is_void()
     }
 
     fn boxed<'b>(self) -> Element<'b, Message, Theme, Renderer>

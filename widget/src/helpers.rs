@@ -443,22 +443,17 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } }
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, text};
+/// use iced::widget::{column, text, Widget};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     column((0..5).map(|i| text!("Item {i}").into())).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     column((0..5).map(|i| text!("Item {i}")))
 /// }
 /// ```
-pub fn column<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Column<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub fn column<W>(children: impl IntoIterator<Item = W>) -> Column<W> {
     Column::with_children(children)
 }
 

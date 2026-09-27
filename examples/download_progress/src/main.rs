@@ -3,7 +3,7 @@ mod download;
 use download::download;
 
 use iced::task;
-use iced::widget::{Column, button, center, column, progress_bar, text};
+use iced::widget::{button, center, column, progress_bar, text};
 use iced::{Center, Element, Function, Right, Task};
 
 pub fn main() -> iced::Result {
@@ -61,7 +61,7 @@ impl Example {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let downloads = Column::with_children(self.downloads.iter().map(Download::view))
+        let downloads = column(self.downloads.iter().map(Download::view))
             .push(
                 button("Add another download")
                     .on_press(Message::Add)
@@ -178,12 +178,10 @@ impl Download {
             .into(),
         };
 
-        Column::new()
+        column![progress_bar, control]
             .spacing(10)
             .padding(10)
             .align_x(Center)
-            .push(progress_bar)
-            .push(control)
             .into()
     }
 }

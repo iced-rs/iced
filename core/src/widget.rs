@@ -44,24 +44,6 @@ where
     /// Returns the [`Size`] of the [`Widget`] in lengths.
     fn size(&self) -> Size<Length>;
 
-    /// Lays out the [`Widget`].
-    ///
-    /// This computes the [`Layout`] of the [`Widget`] and stores the result
-    /// in the provided [`Tree`].
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits);
-
-    /// Draws the [`Widget`] using the associated `Renderer`.
-    fn draw(
-        &self,
-        tree: &Tree,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        style: &renderer::Style,
-        layout: Layout,
-        cursor: mouse::Cursor,
-        viewport: &Rectangle,
-    );
-
     /// Returns the [`Tag`] of the [`Widget`].
     ///
     /// [`Tag`]: tree::Tag
@@ -80,6 +62,24 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.children.clear();
     }
+
+    /// Lays out the [`Widget`].
+    ///
+    /// This computes the [`Layout`] of the [`Widget`] and stores the result
+    /// in the provided [`Tree`].
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits);
+
+    /// Draws the [`Widget`] using the associated `Renderer`.
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    );
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
@@ -170,6 +170,18 @@ where
         T::size(self)
     }
 
+    fn tag(&self) -> tree::Tag {
+        T::tag(self)
+    }
+
+    fn state(&self) -> tree::State {
+        T::state(self)
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        T::diff(self, tree);
+    }
+
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         T::layout(self, tree, renderer, limits);
     }
@@ -185,18 +197,6 @@ where
         viewport: &Rectangle,
     ) {
         T::draw(self, tree, renderer, theme, style, layout, cursor, viewport);
-    }
-
-    fn tag(&self) -> tree::Tag {
-        T::tag(self)
-    }
-
-    fn state(&self) -> tree::State {
-        T::state(self)
-    }
-
-    fn diff(&mut self, tree: &mut Tree) {
-        T::diff(self, tree);
     }
 
     fn operate(
@@ -244,10 +244,6 @@ where
         window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         T::overlay(self, tree, layout, renderer, viewport, translation, window)
-    }
-
-    fn is_void(&self) -> bool {
-        T::is_void(self)
     }
 }
 
@@ -299,6 +295,10 @@ where
     Theme: 'static,
     Renderer: crate::Renderer + 'static,
 {
+    fn size(&self) -> Size<Length> {
+        self.widget.size()
+    }
+
     fn tag(&self) -> tree::Tag {
         self.widget.tag()
     }
@@ -309,10 +309,6 @@ where
 
     fn diff(&mut self, tree: &mut Tree) {
         self.widget.diff(tree);
-    }
-
-    fn size(&self) -> Size<Length> {
-        self.widget.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
@@ -400,6 +396,10 @@ where
             .map(move |overlay| overlay.map(mapper))
             .collect()
     }
+
+    fn is_void(&self) -> bool {
+        self.widget.is_void()
+    }
 }
 
 impl<'a, W, F, A, Message, Theme, Renderer> From<Map<W, F, A>>
@@ -433,31 +433,6 @@ where
         widget.size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        let Some(widget) = self else {
-            return;
-        };
-
-        widget.layout(tree, renderer, limits);
-    }
-
-    fn draw(
-        &self,
-        tree: &Tree,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        style: &renderer::Style,
-        layout: Layout,
-        cursor: mouse::Cursor,
-        viewport: &Rectangle,
-    ) {
-        let Some(widget) = self else {
-            return;
-        };
-
-        widget.draw(tree, renderer, theme, style, layout, cursor, viewport);
-    }
-
     fn tag(&self) -> tree::Tag {
         let Some(widget) = self else {
             return tree::Tag::stateless();
@@ -481,6 +456,31 @@ where
         };
 
         widget.diff(tree);
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let Some(widget) = self else {
+            return;
+        };
+
+        widget.layout(tree, renderer, limits);
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        let Some(widget) = self else {
+            return;
+        };
+
+        widget.draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
     fn operate(
