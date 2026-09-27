@@ -305,6 +305,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
             code_block,
             right(container(copy).style(container::dark)).padding(settings.spacing / 2),
         )
+        .into()
     }
 }
 

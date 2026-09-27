@@ -11,6 +11,7 @@ pub use core::widget::{Id, Void};
 
 mod action;
 mod column;
+mod hover;
 mod mouse_area;
 mod pin;
 mod responsive;
@@ -67,6 +68,8 @@ pub use container::Container;
 pub use float::Float;
 #[doc(no_inline)]
 pub use grid::Grid;
+#[doc(no_inline)]
+pub use hover::Hover;
 #[doc(no_inline)]
 pub use lazy::Lazy;
 #[doc(no_inline)]
