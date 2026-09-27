@@ -17,18 +17,15 @@ use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector
 ///
 /// Keep in mind that too much layering will normally produce bad UX as well as
 /// introduce certain rendering overhead. Use this widget sparingly!
-pub struct Stack<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
+pub struct Stack<W> {
     width: Length,
     height: Length,
-    children: Vec<Element<'a, Message, Theme, Renderer>>,
+    children: Vec<W>,
     clip: bool,
     base_layer: usize,
 }
 
-impl<'a, Message, Theme, Renderer> Stack<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<W> Stack<W> {
     /// Creates an empty [`Stack`].
     pub fn new() -> Self {
         Self::from_vec(Vec::new())
@@ -40,16 +37,17 @@ where
     }
 
     /// Creates a [`Stack`] with the given elements.
-    pub fn with_children(
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         let iterator = children.into_iter();
 
         Self::with_capacity(iterator.size_hint().0).extend(iterator)
     }
 
     /// Creates a [`Stack`] from an already allocated [`Vec`].
-    pub fn from_vec(children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn from_vec(children: Vec<W>) -> Self {
         Self {
             width: Length::Fit,
             height: Length::Fit,
@@ -72,7 +70,10 @@ where
     }
 
     /// Adds an element on top of the [`Stack`].
-    pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn push(mut self, child: impl Into<W>) -> Self
+    where
+        W: Node,
+    {
         let child = child.into();
 
         if !child.is_void() {
@@ -83,17 +84,17 @@ where
     }
 
     /// Adds an element under the [`Stack`].
-    pub fn push_under(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn push_under(mut self, child: impl Into<W>) -> Self {
         self.children.insert(0, child.into());
         self.base_layer += 1;
         self
     }
 
     /// Extends the [`Stack`] with the given children.
-    pub fn extend(
-        self,
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         children.into_iter().fold(self, Self::push)
     }
 
@@ -108,20 +109,17 @@ where
     }
 }
 
-impl<Message, Renderer> Default for Stack<'_, Message, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<W> Default for Stack<W> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, Message, Theme, Renderer> Node for Stack<'a, Message, Theme, Renderer> {}
+impl<W> Node for Stack<W> {}
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Stack<'a, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Stack<W>
 where
+    W: Widget<Message, Theme, Renderer>,
     Renderer: crate::core::Renderer,
 {
     fn diff(&mut self, tree: &mut Tree) {
@@ -294,16 +292,15 @@ where
 
             let layers = layers.by_ref();
 
-            let mut draw_layer =
-                |i, layer: &Element<'a, Message, Theme, Renderer>, tree, layout, cursor| {
-                    if i > 0 {
-                        renderer.with_layer(*viewport, |renderer| {
-                            layer.draw(tree, renderer, theme, style, layout, cursor, viewport);
-                        });
-                    } else {
+            let mut draw_layer = |i, layer: &W, tree, layout, cursor| {
+                if i > 0 {
+                    renderer.with_layer(*viewport, |renderer| {
                         layer.draw(tree, renderer, theme, style, layout, cursor, viewport);
-                    }
-                };
+                    });
+                } else {
+                    layer.draw(tree, renderer, theme, style, layout, cursor, viewport);
+                }
+            };
 
             for (i, (layer, (layout, tree))) in layers.take(layers_under) {
                 draw_layer(i, layer, tree, layout, mouse::Cursor::Unavailable);
@@ -336,14 +333,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Stack<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, W, Message, Theme, Renderer> From<Stack<W>> for Element<'a, Message, Theme, Renderer>
 where
+    W: Widget<Message, Theme, Renderer> + 'a,
     Message: 'a,
     Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    fn from(stack: Stack<'a, Message, Theme, Renderer>) -> Self {
+    fn from(stack: Stack<W>) -> Self {
         stack.boxed()
     }
 }

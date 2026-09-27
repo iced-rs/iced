@@ -531,11 +531,9 @@ where
 /// Creates a new [`Stack`] with the given children.
 ///
 /// [`Stack`]: crate::Stack
-pub fn stack<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Stack<'a, Message, Theme, Renderer>
+pub fn stack<W>(children: impl IntoIterator<Item = W>) -> Stack<W>
 where
-    Renderer: core::Renderer,
+    W: Node,
 {
     Stack::with_children(children)
 }
