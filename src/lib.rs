@@ -664,19 +664,13 @@ pub use font::Font;
 pub use program::Program;
 pub use renderer::Renderer;
 pub use task::Task;
-pub use widget::Widget;
+pub use widget::{Element, Widget};
 pub use window::Window;
 
 #[doc(inline)]
 pub use application::application;
 #[doc(inline)]
 pub use daemon::daemon;
-
-/// A generic widget.
-///
-/// This is an alias of an `iced_native` element with a default `Renderer`.
-pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
-    crate::core::Element<'a, Message, Theme, Renderer>;
 
 /// The result of running an iced program.
 pub type Result = std::result::Result<(), Error>;

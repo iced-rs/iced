@@ -202,6 +202,6 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-fn button(text: &str) -> widget::Button<'_, Message> {
+fn button(text: &str) -> widget::Button<'_, Message, &str> {
     widget::button(text).padding(10)
 }

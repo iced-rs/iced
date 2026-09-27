@@ -156,8 +156,13 @@ pub use crate::core::theme::{self, Theme};
 pub use action::Action;
 pub use renderer::Renderer;
 
-use crate::core::Element;
 use crate::core::widget;
+
+/// A generic widget.
+///
+/// This is an alias of an `iced_native` element with a default `Renderer`.
+pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
+    crate::core::Element<'a, Message, Theme, Renderer>;
 
 /// TODO
 pub trait Widget<Message, Theme = crate::Theme, Renderer = crate::Renderer>:

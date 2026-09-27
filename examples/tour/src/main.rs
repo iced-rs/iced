@@ -538,8 +538,8 @@ fn ferris<'a>(
     )
 }
 
-fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {
-    button(text(label)).padding([12, 24])
+fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message, &str> {
+    button(label).padding([12, 24])
 }
 
 fn color_slider<'a>(

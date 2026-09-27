@@ -1023,12 +1023,9 @@ where
 ///     button("Press me!").on_press(Message::ButtonPressed).into()
 /// }
 /// ```
-pub fn button<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Button<'a, Message, Theme, Renderer>
+pub fn button<'a, Message, W, Theme>(content: W) -> Button<'a, Message, W, Theme>
 where
     Theme: button::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     Button::new(content)
 }

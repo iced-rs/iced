@@ -68,12 +68,11 @@ use crate::core::{
 ///     button("I am disabled!").into()
 /// }
 /// ```
-pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Button<'a, Message, W = crate::Element<'a, Message>, Theme = crate::Theme>
 where
-    Renderer: crate::core::Renderer,
     Theme: Catalog,
 {
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
@@ -97,15 +96,12 @@ impl<Message: Clone> OnPress<'_, Message> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme> Button<'a, Message, W, Theme>
 where
-    Renderer: crate::core::Renderer,
     Theme: Catalog,
 {
     /// Creates a new [`Button`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
-        let content = content.into();
-
+    pub fn new(content: W) -> Self {
         Button {
             content,
             on_press: None,
@@ -213,17 +209,13 @@ struct State {
     is_pressed: bool,
 }
 
-impl<'a, Message, Theme, Renderer> Node for Button<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-    Theme: Catalog,
-{
-}
+impl<'a, Message, W, Theme> Node for Button<'a, Message, W, Theme> where Theme: Catalog {}
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Button<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Button<'a, Message, W, Theme>
 where
     Message: 'a + Clone,
+    W: Widget<Message, Theme, Renderer>,
     Renderer: 'a + crate::core::Renderer,
     Theme: Catalog,
 {
@@ -450,14 +442,15 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
+impl<'a, Message, W, Theme, Renderer> From<Button<'a, Message, W, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
     Theme: Catalog + 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
+    fn from(button: Button<'a, Message, W, Theme>) -> Self {
         button.boxed()
     }
 }
