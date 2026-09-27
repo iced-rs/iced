@@ -37,7 +37,7 @@ use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 /// [`custom_widget`]: https://github.com/iced-rs/iced/tree/master/examples/custom_widget
 /// [`geometry`]: https://github.com/iced-rs/iced/tree/master/examples/geometry
 /// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/master/wgpu
-pub trait Widget<Message, Theme, Renderer>
+pub trait Widget<Message, Theme, Renderer>: Node
 where
     Renderer: crate::Renderer,
 {
@@ -134,11 +134,6 @@ where
         Vec::new()
     }
 
-    /// Returns whether the [`Widget`] is [`Void`].
-    fn is_void(&self) -> bool {
-        false
-    }
-
     /// TODO
     fn map<F, B>(self, f: F) -> Map<Self, F, Message>
     where
@@ -158,6 +153,23 @@ where
         Self: Sized + 'a,
     {
         Element::new(self)
+    }
+}
+
+/// TODO
+pub trait Node {
+    /// Returns whether the [`Widget`] is [`Void`].
+    fn is_void(&self) -> bool {
+        false
+    }
+}
+
+impl<T> Node for &mut T
+where
+    T: Node,
+{
+    fn is_void(&self) -> bool {
+        T::is_void(self)
     }
 }
 
@@ -250,6 +262,12 @@ where
 /// A zero-sized [`Widget`] that does nothing and will be filtered out by containers.
 pub struct Void;
 
+impl Node for Void {
+    fn is_void(&self) -> bool {
+        true
+    }
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void
 where
     Renderer: crate::Renderer,
@@ -274,10 +292,6 @@ where
         _viewport: &Rectangle,
     ) {
     }
-
-    fn is_void(&self) -> bool {
-        true
-    }
 }
 
 /// TODO
@@ -285,6 +299,15 @@ pub struct Map<W, F, A> {
     widget: W,
     mapper: F,
     _input: std::marker::PhantomData<A>,
+}
+
+impl<W, F, A> Node for Map<W, F, A>
+where
+    W: Node,
+{
+    fn is_void(&self) -> bool {
+        self.widget.is_void()
+    }
 }
 
 impl<W, A, B, F, Theme, Renderer> Widget<B, Theme, Renderer> for Map<W, F, A>
@@ -396,10 +419,6 @@ where
             .map(move |overlay| overlay.map(mapper))
             .collect()
     }
-
-    fn is_void(&self) -> bool {
-        self.widget.is_void()
-    }
 }
 
 impl<'a, W, F, A, Message, Theme, Renderer> From<Map<W, F, A>>
@@ -414,6 +433,15 @@ where
 {
     fn from(map: Map<W, F, A>) -> Self {
         map.boxed()
+    }
+}
+
+impl<T> Node for Option<T>
+where
+    T: Node,
+{
+    fn is_void(&self) -> bool {
+        self.is_none()
     }
 }
 
@@ -544,9 +572,5 @@ where
         };
 
         widget.overlay(tree, layout, renderer, viewport, translation, window)
-    }
-
-    fn is_void(&self) -> bool {
-        self.is_none()
     }
 }

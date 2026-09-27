@@ -6,6 +6,7 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::theme;
 use crate::core::time::Instant;
+use crate::core::widget::Node;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{Element, Length, Size, Widget};
@@ -453,7 +454,10 @@ where
 ///     column((0..5).map(|i| text!("Item {i}")))
 /// }
 /// ```
-pub fn column<W>(children: impl IntoIterator<Item = W>) -> Column<W> {
+pub fn column<W>(children: impl IntoIterator<Item = W>) -> Column<W>
+where
+    W: Node,
+{
     Column::with_children(children)
 }
 
@@ -562,6 +566,8 @@ where
     struct Opaque<'a, Message, Theme, Renderer> {
         content: Element<'a, Message, Theme, Renderer>,
     }
+
+    impl<Message, Theme, Renderer> Node for Opaque<'_, Message, Theme, Renderer> {}
 
     impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
         for Opaque<'_, Message, Theme, Renderer>
@@ -702,6 +708,8 @@ where
         is_top_overlay_active: bool,
         is_hovered: bool,
     }
+
+    impl<Message, Theme, Renderer> Node for Hover<'_, Message, Theme, Renderer> {}
 
     impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
         for Hover<'_, Message, Theme, Renderer>

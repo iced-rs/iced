@@ -320,6 +320,15 @@ struct State<Parser: text::Parser> {
     last_theme: RefCell<Option<String>>,
 }
 
+impl<Parser, Message, Theme, Renderer> widget::Node
+    for TextEditor<'_, Parser, Message, Theme, Renderer>
+where
+    Parser: text::Parser,
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
+}
+
 impl<Parser, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for TextEditor<'_, Parser, Message, Theme, Renderer>
 where

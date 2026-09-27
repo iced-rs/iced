@@ -144,6 +144,11 @@ where
     }
 }
 
+impl<Message, Theme, Renderer, P> widget::Node for Transition<'_, Message, Theme, Renderer, P> where
+    P: Program
+{
+}
+
 impl<Message, Theme, Renderer, P> Widget<Message, Theme, Renderer>
     for Transition<'_, Message, Theme, Renderer, P>
 where

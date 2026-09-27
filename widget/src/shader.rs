@@ -53,6 +53,8 @@ impl<Message, P: Program<Message>> Shader<Message, P> {
     }
 }
 
+impl<Message, P> widget::Node for Shader<Message, P> where P: Program<Message> {}
+
 impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Shader<Message, P>
 where
     P: Program<Message>,

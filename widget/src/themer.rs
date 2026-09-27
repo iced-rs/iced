@@ -4,8 +4,8 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme;
-use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{Node, Operation};
 use crate::core::{
     Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -53,6 +53,11 @@ where
         self.background = Some(f);
         self
     }
+}
+
+impl<Message, Theme, Renderer> Node for Themer<'_, Message, Theme, Renderer> where
+    Renderer: crate::core::Renderer
+{
 }
 
 impl<Message, Theme, Renderer, AnyTheme> Widget<Message, AnyTheme, Renderer>

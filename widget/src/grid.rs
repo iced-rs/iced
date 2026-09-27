@@ -3,7 +3,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Operation, Tree};
+use crate::core::widget::{Node, Operation, Tree};
 use crate::core::{Element, Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents on a responsive grid.
@@ -134,6 +134,8 @@ impl<'a, Message, Theme, Renderer: crate::core::Renderer>
         Self::with_children(iter)
     }
 }
+
+impl<Message, Theme, Renderer> Node for Grid<'_, Message, Theme, Renderer> {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Grid<'_, Message, Theme, Renderer>

@@ -4,7 +4,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Operation, Tree, tree};
+use crate::core::widget::{Node, Operation, Tree, tree};
 use crate::core::{
     Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -171,6 +171,8 @@ impl<'a, Message, Theme, Renderer: crate::core::Renderer>
         Self::with_children(iter)
     }
 }
+
+impl<Message, Theme, Renderer> Node for Row<'_, Message, Theme, Renderer> {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Row<'_, Message, Theme, Renderer>
@@ -365,6 +367,8 @@ impl<Message, Theme, Renderer> Wrapping<'_, Message, Theme, Renderer> {
         self
     }
 }
+
+impl<Message, Theme, Renderer> Node for Wrapping<'_, Message, Theme, Renderer> {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Wrapping<'_, Message, Theme, Renderer>

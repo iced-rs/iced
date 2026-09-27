@@ -159,6 +159,8 @@ mod quad {
         }
     }
 
+    impl widget::Node for CustomQuad {}
+
     impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for CustomQuad
     where
         Renderer: renderer::Renderer,

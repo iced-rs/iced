@@ -106,6 +106,11 @@ where
     }
 }
 
+impl<Message, Theme, Renderer> widget::Node for Pin<'_, Message, Theme, Renderer> where
+    Renderer: core::Renderer
+{
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Pin<'_, Message, Theme, Renderer>
 where

@@ -135,6 +135,13 @@ where
     }
 }
 
+impl<Message, Theme, Renderer> widget::Node for Tooltip<'_, Message, Theme, Renderer>
+where
+    Theme: container::Catalog,
+    Renderer: text::Renderer,
+{
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Tooltip<'_, Message, Theme, Renderer>
 where

@@ -247,6 +247,13 @@ where
     }
 }
 
+impl<Message, Theme, Renderer> widget::Node for Checkbox<'_, Message, Theme, Renderer>
+where
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Checkbox<'_, Message, Theme, Renderer>
 where

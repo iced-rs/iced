@@ -19,7 +19,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::svg;
-use crate::core::widget::Tree;
+use crate::core::widget::{Node, Tree};
 use crate::core::window;
 use crate::core::{
     Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size,
@@ -149,6 +149,8 @@ where
         self
     }
 }
+
+impl<Theme> Node for Svg<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Svg<'_, Theme>
 where

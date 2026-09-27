@@ -108,6 +108,11 @@ struct State {
     is_stuck: bool,
 }
 
+impl<Message, Theme, Renderer> widget::Node for Sticky<'_, Message, Theme, Renderer> where
+    Renderer: core::Renderer
+{
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Sticky<'_, Message, Theme, Renderer>
 where

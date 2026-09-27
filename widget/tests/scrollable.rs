@@ -9,7 +9,7 @@ use iced_widget::Renderer;
 use iced_widget::core::keyboard::{self, Modifiers};
 use iced_widget::core::layout::{self, Layout};
 use iced_widget::core::mouse::{self, ScrollDelta};
-use iced_widget::core::widget::{Id, Tree, operation};
+use iced_widget::core::widget::{Id, Node, Tree, operation};
 use iced_widget::core::window;
 use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme, Widget};
 use iced_widget::scrollable::{
@@ -753,6 +753,8 @@ impl Recorder {
         });
     }
 }
+
+impl Node for Recorder {}
 
 impl<Message, Theme, Renderer> core::Widget<Message, Theme, Renderer> for Recorder
 where

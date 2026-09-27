@@ -47,6 +47,8 @@ struct State {
     last_hovered_overlay: Cell<Option<Rectangle>>,
 }
 
+impl<Message, Theme, Renderer> widget::Node for Recorder<'_, Message, Theme, Renderer> {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Recorder<'_, Message, Theme, Renderer>
 where

@@ -26,6 +26,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
+use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{Color, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
@@ -186,6 +187,8 @@ where
 /// The internal state of a [`Text`] widget.
 pub type State<P> = paragraph::Plain<P>;
 
+impl<Theme> widget::Node for Text<'_, Theme> where Theme: Catalog {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme>
 where
     Theme: Catalog,
@@ -251,6 +254,8 @@ where
     }
 }
 
+impl widget::Node for &str {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for &str
 where
     Theme: Catalog,
@@ -261,6 +266,14 @@ where
             width: Length::Fit,
             height: Length::Fit,
         }
+    }
+
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {

@@ -25,6 +25,7 @@ use crate::canvas;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
+use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Vector, Widget,
@@ -112,6 +113,8 @@ where
         self
     }
 }
+
+impl<Theme> Node for QRCode<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'_, Theme>
 where

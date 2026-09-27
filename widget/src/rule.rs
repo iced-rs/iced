@@ -21,7 +21,7 @@ use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::Tree;
+use crate::core::widget::{Node, Tree};
 use crate::core::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 /// Creates a new horizontal [`Rule`] with the given height.
@@ -97,6 +97,8 @@ where
         self
     }
 }
+
+impl<Theme> Node for Rule<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<'_, Theme>
 where

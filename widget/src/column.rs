@@ -4,7 +4,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Operation, Tree, tree};
+use crate::core::widget::{Node, Operation, Tree, tree};
 use crate::core::{
     Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -53,7 +53,10 @@ impl<W> Column<W> {
     }
 
     /// Creates a [`Column`] with the given elements.
-    pub fn with_children(children: impl IntoIterator<Item = W>) -> Self {
+    pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         let iterator = children.into_iter();
 
         Self::with_capacity(iterator.size_hint().0).extend(iterator)
@@ -114,13 +117,24 @@ impl<W> Column<W> {
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push(mut self, child: impl Into<W>) -> Self {
-        self.children.push(child.into());
+    pub fn push(mut self, child: impl Into<W>) -> Self
+    where
+        W: Node,
+    {
+        let child = child.into();
+
+        if !child.is_void() {
+            self.children.push(child);
+        }
+
         self
     }
 
     /// Extends the [`Column`] with the given children.
-    pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self {
+    pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self
+    where
+        W: Node,
+    {
         children.into_iter().fold(self, Self::push)
     }
 
@@ -151,6 +165,8 @@ where
         Self::with_children(iter)
     }
 }
+
+impl<W> Node for Column<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Column<W>
 where
@@ -346,6 +362,8 @@ impl<W> Wrapping<W> {
         self
     }
 }
+
+impl<W> Node for Wrapping<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Wrapping<W>
 where

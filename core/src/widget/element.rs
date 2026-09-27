@@ -50,6 +50,12 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     }
 }
 
+impl<'a, Message, Theme, Renderer> widget::Node for Element<'a, Message, Theme, Renderer> {
+    fn is_void(&self) -> bool {
+        self.widget.is_void()
+    }
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Element<'a, Message, Theme, Renderer>
 where
@@ -151,6 +157,11 @@ where
 pub struct Explain<'a, Message, Theme, Renderer: crate::Renderer> {
     element: Element<'a, Message, Theme, Renderer>,
     color: Color,
+}
+
+impl<Message, Theme, Renderer> widget::Node for Explain<'_, Message, Theme, Renderer> where
+    Renderer: crate::Renderer
+{
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>

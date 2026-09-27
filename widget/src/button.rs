@@ -23,8 +23,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
-use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{Node, Operation};
 use crate::core::window;
 use crate::core::{
     Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size,
@@ -211,6 +211,13 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
     is_pressed: bool,
+}
+
+impl<'a, Message, Theme, Renderer> Node for Button<'a, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+{
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>

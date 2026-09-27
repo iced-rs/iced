@@ -79,6 +79,11 @@ where
     }
 }
 
+impl<Message, Theme, Renderer> widget::Node for Float<'_, Message, Theme, Renderer> where
+    Theme: Catalog
+{
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Float<'_, Message, Theme, Renderer>
 where

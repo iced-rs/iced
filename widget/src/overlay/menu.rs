@@ -7,6 +7,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text::{self, Text};
 use crate::core::touch;
+use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -378,6 +379,8 @@ where
 struct ListState {
     is_hovered: Option<bool>,
 }
+
+impl<T, Message, Theme> Node for List<'_, '_, T, Message, Theme> where Theme: Catalog {}
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for List<'_, '_, T, Message, Theme>

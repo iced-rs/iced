@@ -24,7 +24,7 @@ use crate::core::image;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::Tree;
+use crate::core::widget::{Node, Tree};
 use crate::core::{
     ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget,
 };
@@ -333,6 +333,8 @@ pub fn draw<Renderer, Handle>(
         bounds,
     );
 }
+
+impl<Handle> Node for Image<Handle> {}
 
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<Handle>
 where

@@ -64,6 +64,7 @@ use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{Element, Length, Rectangle, Shell, Size, Vector, Widget};
@@ -179,6 +180,13 @@ where
         self.height = height.into();
         self
     }
+}
+
+impl<P, Message, Theme, Renderer> Node for Canvas<P, Message, Theme, Renderer>
+where
+    Renderer: geometry::Renderer,
+    P: Program<Message, Theme, Renderer>,
+{
 }
 
 impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer>

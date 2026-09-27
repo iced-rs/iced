@@ -1,6 +1,7 @@
 //! Show a circular progress indicator.
 use iced::advanced::layout;
 use iced::advanced::renderer;
+use iced::advanced::widget::Node;
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
@@ -211,6 +212,8 @@ struct State {
     animation: Animation,
     cache: canvas::Cache,
 }
+
+impl<'a, Theme> Node for Circular<'a, Theme> where Theme: StyleSheet {}
 
 impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for Circular<'a, Theme>
 where

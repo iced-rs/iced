@@ -3,8 +3,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{Node, Operation};
 use crate::core::{
     Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
     Widget,
@@ -175,6 +175,11 @@ where
 {
     keys: Vec<Key>,
     cache: layout::flex::Cache,
+}
+
+impl<Key, Message, Theme, Renderer> Node for Column<'_, Key, Message, Theme, Renderer> where
+    Key: Copy + PartialEq
+{
 }
 
 impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>

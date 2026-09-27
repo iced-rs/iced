@@ -1,6 +1,7 @@
 //! Show a linear progress indicator.
 use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
+use iced::advanced::widget::Node;
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
@@ -136,6 +137,8 @@ impl State {
         }
     }
 }
+
+impl<'a, Theme> Node for Linear<'a, Theme> where Theme: StyleSheet {}
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Linear<'a, Theme>
 where

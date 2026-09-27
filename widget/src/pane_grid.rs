@@ -341,6 +341,13 @@ struct Memory {
     order: Vec<Pane>,
 }
 
+impl<Message, Theme, Renderer> widget::Node for PaneGrid<'_, Message, Theme, Renderer>
+where
+    Theme: Catalog,
+    Renderer: core::Renderer,
+{
+}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for PaneGrid<'_, Message, Theme, Renderer>
 where

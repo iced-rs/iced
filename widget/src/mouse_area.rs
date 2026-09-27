@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
-use crate::core::widget::{Operation, Tree, tree};
+use crate::core::widget::{Node, Operation, Tree, tree};
 use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
 /// Emit messages on mouse events.
@@ -148,6 +148,8 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
         }
     }
 }
+
+impl<Message, Theme, Renderer> Node for MouseArea<'_, Message, Theme, Renderer> {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for MouseArea<'_, Message, Theme, Renderer>

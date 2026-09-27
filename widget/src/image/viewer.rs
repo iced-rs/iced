@@ -4,6 +4,7 @@ use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     ContentFit, Element, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell,
@@ -94,6 +95,8 @@ impl<Handle> Viewer<Handle> {
         self
     }
 }
+
+impl<Handle> Node for Viewer<Handle> {}
 
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<Handle>
 where

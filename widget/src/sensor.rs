@@ -141,6 +141,8 @@ struct State<Key> {
     last_key: Key,
 }
 
+impl<Key, Message, Theme, Renderer> widget::Node for Sensor<'_, Key, Message, Theme, Renderer> {}
+
 impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Sensor<'_, Key, Message, Theme, Renderer>
 where

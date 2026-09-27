@@ -70,6 +70,7 @@ use crate::core::renderer;
 use crate::core::text::paragraph;
 use crate::core::text::{self, Text};
 use crate::core::touch;
+use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -319,6 +320,15 @@ where
         self.menu_class = class.into();
         self
     }
+}
+
+impl<'a, T, L, V, Message, Theme> Node for PickList<'a, T, L, V, Message, Theme>
+where
+    T: PartialEq + Clone,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
+    Theme: Catalog,
+{
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer>

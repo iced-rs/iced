@@ -72,6 +72,8 @@ mod loupe {
         content: Element<'a, Message>,
     }
 
+    impl<Message> widget::Node for Loupe<'_, Message> {}
+
     impl<Message> Widget<Message, Theme, Renderer> for Loupe<'_, Message> {
         fn tag(&self) -> widget::tree::Tag {
             self.content.tag()

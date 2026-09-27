@@ -53,6 +53,8 @@ where
     }
 }
 
+impl<Message, Theme, Renderer> widget::Node for Responsive<'_, Message, Theme, Renderer> {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Responsive<'_, Message, Theme, Renderer>
 where

@@ -3,7 +3,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Operation, Tree};
+use crate::core::widget::{Node, Operation, Tree};
 use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that displays children on top of each other.
@@ -116,6 +116,8 @@ where
         Self::new()
     }
 }
+
+impl<'a, Message, Theme, Renderer> Node for Stack<'a, Message, Theme, Renderer> {}
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Stack<'a, Message, Theme, Renderer>

@@ -23,7 +23,7 @@ use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::Tree;
+use crate::core::widget::{Node, Tree};
 use crate::core::{
     self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme, Widget,
 };
@@ -140,6 +140,8 @@ where
         }
     }
 }
+
+impl<Theme> Node for ProgressBar<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for ProgressBar<'_, Theme>
 where

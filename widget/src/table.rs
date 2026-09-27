@@ -178,6 +178,11 @@ struct Metrics {
     rows: Vec<f32>,
 }
 
+impl<'a, Message, Theme, Renderer> widget::Node for Table<'a, Message, Theme, Renderer> where
+    Theme: Catalog
+{
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Table<'a, Message, Theme, Renderer>
 where

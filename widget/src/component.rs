@@ -145,6 +145,11 @@ struct Internal<State, Event> {
     events: shell::Bus<Event>,
 }
 
+impl<'a, C, Message, Theme, Renderer> widget::Node for Instance<'a, C, Message, Theme, Renderer> where
+    C: Component<'a, Message, Theme, Renderer> + 'a
+{
+}
+
 impl<'a, C, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Instance<'a, C, Message, Theme, Renderer>
 where

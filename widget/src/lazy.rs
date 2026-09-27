@@ -43,6 +43,11 @@ struct Internal<Message, Theme, Renderer> {
     hash: u64,
 }
 
+impl<'a, Message, Theme, Renderer, Dependency, View> widget::Node
+    for Lazy<'a, Message, Theme, Renderer, Dependency, View>
+{
+}
+
 impl<'a, Message, Theme, Renderer, Dependency, View> Widget<Message, Theme, Renderer>
     for Lazy<'a, Message, Theme, Renderer, Dependency, View>
 where

@@ -259,6 +259,8 @@ where
     }
 }
 
+impl<Message, Theme> widget::Node for TextInput<'_, Message, Theme> where Theme: Catalog {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TextInput<'_, Message, Theme>
 where
     Message: Clone,
