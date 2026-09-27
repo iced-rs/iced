@@ -38,7 +38,7 @@ impl Example {
 
 mod numeric_input {
     use iced::widget::{Component, button, component, row, text, text_input};
-    use iced::{Center, Element, Fill, Renderer};
+    use iced::{Center, Element, Fill, Renderer, Widget};
 
     pub struct NumericInput<Message> {
         value: Option<i32>,
@@ -98,7 +98,7 @@ mod numeric_input {
             }
         }
 
-        fn view(&self, _state: &Self::State) -> Element<'a, Event> {
+        fn view(&self, _state: &Self::State) -> impl Widget<Event> + 'a {
             let button = |label, on_press| {
                 button(text(label).width(Fill).height(Fill).center())
                     .width(40)
@@ -118,7 +118,6 @@ mod numeric_input {
             ]
             .align_y(Center)
             .spacing(10)
-            .into()
         }
     }
 

@@ -39,7 +39,10 @@ use std::cell::{Cell, RefCell};
 ///
 /// On the other hand, if a piece of state is only needed by the component itself,
 /// you can store it as part of its internal [`State`][Component::State].
-pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
+pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
+    Renderer: core::Renderer,
+{
     /// The internal state of this [`Component`].
     type State: Default + 'static;
 
@@ -58,7 +61,7 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
 
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
-    fn view(&self, state: &Self::State) -> Element<'a, Self::Event, Theme, Renderer>;
+    fn view(&self, state: &Self::State) -> impl crate::Widget<Self::Event, Theme, Renderer> + 'a;
 
     /// Listens to a runtime [`Event`] and performs an [`Action`] as a result.
     ///
@@ -132,6 +135,7 @@ where
 struct Instance<'a, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
+    Renderer: core::Renderer,
 {
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
@@ -145,8 +149,10 @@ struct Internal<State, Event> {
     events: shell::Bus<Event>,
 }
 
-impl<'a, C, Message, Theme, Renderer> widget::Node for Instance<'a, C, Message, Theme, Renderer> where
-    C: Component<'a, Message, Theme, Renderer> + 'a
+impl<'a, C, Message, Theme, Renderer> widget::Node for Instance<'a, C, Message, Theme, Renderer>
+where
+    C: Component<'a, Message, Theme, Renderer> + 'a,
+    Renderer: core::Renderer,
 {
 }
 
@@ -176,7 +182,7 @@ where
         self.component.diff(&mut internal.state);
 
         if self.is_outdated.get() {
-            self.view = self.component.view(&internal.state);
+            self.view = self.component.view(&internal.state).boxed();
             drop(internal);
 
             tree.diff_children(std::slice::from_mut(&mut self.view));
@@ -266,7 +272,7 @@ where
 
         let previous_sizing = self.view.size();
 
-        self.view = self.component.view(state);
+        self.view = self.component.view(state).boxed();
         drop(internal);
 
         tree.diff_children(std::slice::from_mut(&mut self.view));
@@ -433,6 +439,7 @@ where
 struct Overlay<'a, 'b, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer>,
+    Renderer: core::Renderer,
 {
     component: &'b C,
     internal: &'b RefCell<Internal<C::State, C::Event>>,
