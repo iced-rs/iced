@@ -2,7 +2,7 @@ use iced::keyboard;
 use iced::widget::{button, center_y, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
-use iced::{Center, ContentFit, Element, Fill, FillPortion, Rectangle, Subscription, Task};
+use iced::{Center, ContentFit, Element, Fill, FillPortion, Rectangle, Subscription, Task, Widget};
 
 use ::image as img;
 use ::image::ColorType;

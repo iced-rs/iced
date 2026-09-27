@@ -333,7 +333,7 @@ where
     Theme: StyleSheet + 'a,
 {
     fn from(circular: Circular<'a, Theme>) -> Self {
-        Self::new(circular)
+        circular.boxed()
     }
 }
 

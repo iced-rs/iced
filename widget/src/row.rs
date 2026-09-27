@@ -128,7 +128,7 @@ where
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
 
-        if !child.as_widget().is_void() {
+        if !child.is_void() {
             self.children.push(child);
         }
 
@@ -190,7 +190,7 @@ where
 
         if self.width.is_fit() || self.height.is_fit() {
             for child in &self.children {
-                let size = child.as_widget().size();
+                let size = child.size();
 
                 self.width = self.width.stack(size.width);
                 self.height = self.height.cross(size.height);
@@ -237,9 +237,7 @@ where
                 .iter_mut()
                 .zip(layout.iter_mut(&mut tree.children))
                 .for_each(|(child, (layout, state))| {
-                    child
-                        .as_widget_mut()
-                        .operate(state, layout, viewport, renderer, operation);
+                    child.operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -259,9 +257,7 @@ where
             .iter_mut()
             .zip(layout.iter_mut(&mut tree.children))
         {
-            child
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+            child.update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -277,9 +273,7 @@ where
             .iter()
             .zip(layout.iter(&tree.children))
             .map(|(child, (layout, tree))| {
-                child
-                    .as_widget()
-                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
+                child.mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -308,9 +302,7 @@ where
                 .zip(layout.iter(&tree.children))
                 .filter(|(_, (layout, _))| layout.bounds().intersects(viewport))
             {
-                child
-                    .as_widget()
-                    .draw(tree, renderer, theme, style, layout, cursor, viewport);
+                child.draw(tree, renderer, theme, style, layout, cursor, viewport);
             }
         }
     }
@@ -344,7 +336,7 @@ where
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(row: Row<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(row)
+        row.boxed()
     }
 }
 
@@ -422,9 +414,7 @@ where
             };
 
         for (i, child) in self.row.children.iter_mut().enumerate() {
-            child
-                .as_widget_mut()
-                .layout(&mut tree.children[i], renderer, &child_limits);
+            child.layout(&mut tree.children[i], renderer, &child_limits);
 
             let child_size = tree.children[i].size;
 
@@ -569,6 +559,6 @@ where
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(row: Wrapping<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(row)
+        row.boxed()
     }
 }

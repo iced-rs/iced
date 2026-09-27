@@ -535,6 +535,6 @@ where
     Renderer: core::text::Renderer + 'a,
 {
     fn from(text: Rich<'a, Link, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text)
+        text.boxed()
     }
 }

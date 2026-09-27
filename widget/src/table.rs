@@ -206,7 +206,7 @@ where
         tree.diff_children(&mut self.cells);
 
         for cell in &self.cells {
-            let size = cell.as_widget().size();
+            let size = cell.size();
 
             self.height = self.height.stack(size.height);
         }
@@ -246,7 +246,7 @@ where
             let column = i % columns;
 
             let width = self.columns[column].width;
-            let size = cell.as_widget().size();
+            let size = cell.size();
 
             if column == 0 {
                 x = self.padding_x;
@@ -282,7 +282,7 @@ where
             )
             .width(width);
 
-            cell.as_widget_mut().layout(state, renderer, &limits);
+            cell.layout(state, renderer, &limits);
             let size = limits.resolve(width, Length::Fit, state.size);
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
@@ -321,7 +321,7 @@ where
             let row = i / columns;
             let column = i % columns;
 
-            let size = cell.as_widget().size();
+            let size = cell.size();
 
             let width = self.columns[column].width;
             let width_factor = width.fill_factor();
@@ -368,7 +368,7 @@ where
             )
             .width(width);
 
-            cell.as_widget_mut().layout(state, renderer, &limits);
+            cell.layout(state, renderer, &limits);
             let size = limits.resolve(
                 if let Length::Fixed(_) = width {
                     width
@@ -451,8 +451,7 @@ where
             .iter_mut()
             .zip(layout.iter_mut(&mut tree.children))
         {
-            cell.as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+            cell.update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -467,8 +466,7 @@ where
         viewport: &Rectangle,
     ) {
         for (cell, (layout, state)) in self.cells.iter().zip(layout.iter(&tree.children)) {
-            cell.as_widget()
-                .draw(state, renderer, theme, style, layout, cursor, viewport);
+            cell.draw(state, renderer, theme, style, layout, cursor, viewport);
         }
 
         let bounds = layout.bounds();
@@ -536,8 +534,7 @@ where
             .iter()
             .zip(layout.iter(&tree.children))
             .map(|(cell, (layout, tree))| {
-                cell.as_widget()
-                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
+                cell.mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -556,8 +553,7 @@ where
             .iter_mut()
             .zip(layout.iter_mut(&mut tree.children))
         {
-            cell.as_widget_mut()
-                .operate(state, layout, viewport, renderer, operation);
+            cell.operate(state, layout, viewport, renderer, operation);
         }
     }
 
@@ -590,7 +586,7 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(table: Table<'a, Message, Theme, Renderer>) -> Self {
-        Element::new(table)
+        table.boxed()
     }
 }
 

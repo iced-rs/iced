@@ -3,7 +3,9 @@ use iced::mouse;
 use iced::theme;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{Slider, column, row, text};
-use iced::{Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer, Size, Vector};
+use iced::{
+    Center, Color, Element, Fill, Font, Pixels, Point, Rectangle, Renderer, Size, Vector, Widget,
+};
 
 use palette::{Darken, Hsl, Lighten, ShiftHue, convert::FromColor, rgb::Rgb};
 use std::marker::PhantomData;

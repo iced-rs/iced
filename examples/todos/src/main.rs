@@ -6,7 +6,7 @@ use iced::widget::{
 use iced::window;
 use iced::{
     Application, Center, Element, Fill, Fit, Function, Preset, Program, Subscription,
-    Task as Command, Theme,
+    Task as Command, Theme, Widget,
 };
 
 use serde::{Deserialize, Serialize};
@@ -226,7 +226,10 @@ impl Todos {
                             .enumerate()
                             .filter(|(_, task)| filter.matches(task))
                             .map(|(i, task)| {
-                                (task.id, task.view(i).map(Message::TaskMessage.with(i)))
+                                (
+                                    task.id,
+                                    task.view(i).map(Message::TaskMessage.with(i)).boxed(),
+                                )
                             }),
                     )
                     .spacing(10)
@@ -240,7 +243,7 @@ impl Todos {
                 };
 
                 let content = column![
-                    sticky(container(header).style(|theme| {
+                    sticky(container(header).style(|theme: &Theme| {
                         container::Style::default().background(theme.seed().background)
                     })),
                     tasks

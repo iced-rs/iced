@@ -155,7 +155,7 @@ mod rainbow {
 
     impl<Message> From<Rainbow> for Element<'_, Message> {
         fn from(rainbow: Rainbow) -> Self {
-            Self::new(rainbow)
+            rainbow.boxed()
         }
     }
 }

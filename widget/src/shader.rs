@@ -145,8 +145,8 @@ where
     Renderer: primitive::Renderer,
     P: Program<Message> + 'a,
 {
-    fn from(custom: Shader<Message, P>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(custom)
+    fn from(shader: Shader<Message, P>) -> Element<'a, Message, Theme, Renderer> {
+        shader.boxed()
     }
 }
 

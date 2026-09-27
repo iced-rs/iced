@@ -1,7 +1,7 @@
 use iced::gradient;
 use iced::theme;
 use iced::widget::{checkbox, column, container, row, slider, space, text};
-use iced::{Center, Color, Element, Fill, Radians, Theme, color};
+use iced::{Center, Color, Element, Fill, Radians, Theme, Widget, color};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();

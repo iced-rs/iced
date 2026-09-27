@@ -533,7 +533,7 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(slider: Slider<'a, T, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(slider)
+        slider.boxed()
     }
 }
 

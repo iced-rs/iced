@@ -763,7 +763,7 @@ where
     Renderer: text::Renderer + 'static,
 {
     fn from(combo_box: ComboBox<'a, T, Message, Theme>) -> Self {
-        Self::new(combo_box)
+        combo_box.boxed()
     }
 }
 

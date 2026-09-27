@@ -532,7 +532,7 @@ where
     fn from(
         slider: VerticalSlider<'a, T, Message, Theme>,
     ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(slider)
+        slider.boxed()
     }
 }
 

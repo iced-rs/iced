@@ -498,7 +498,7 @@ where
             };
         }
 
-        let size = self.content.as_widget().size();
+        let size = self.content.size();
 
         self.width = self.width.stack(size.width);
         self.height = self.height.stack(size.height);
@@ -537,9 +537,7 @@ where
                         ),
                     );
 
-                    self.content
-                        .as_widget_mut()
-                        .layout(tree, renderer, &child_limits);
+                    self.content.layout(tree, renderer, &child_limits);
 
                     tree.size
                 },
@@ -632,13 +630,8 @@ where
         operation.container(self.id.as_ref(), content_bounds, &viewport);
 
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                content_tree,
-                content_layout,
-                &viewport,
-                renderer,
-                operation,
-            );
+            self.content
+                .operate(content_tree, content_layout, &viewport, renderer, operation);
         });
     }
 
@@ -705,7 +698,7 @@ where
                 let viewport =
                     bounds.intersection(viewport).unwrap_or_default() + state.last_translation;
 
-                self.content.as_widget_mut().update(
+                self.content.update(
                     content_tree,
                     event,
                     content_layout,
@@ -836,7 +829,7 @@ where
                 renderer.with_translation(
                     -translation.hint(renderer.hint_factor().unwrap_or(1.0)),
                     |renderer| {
-                        self.content.as_widget().draw(
+                        self.content.draw(
                             content_tree,
                             renderer,
                             theme,
@@ -924,7 +917,7 @@ where
                 renderer.end_layer();
             }
         } else {
-            self.content.as_widget().draw(
+            self.content.draw(
                 content_tree,
                 renderer,
                 theme,
@@ -970,7 +963,7 @@ where
             _ => cursor.obstruct() + translation,
         };
 
-        self.content.as_widget().mouse_interaction(
+        self.content.mouse_interaction(
             content_tree,
             content_layout,
             cursor,
@@ -996,7 +989,7 @@ where
 
         let offset = state.last_translation;
 
-        let overlay = self.content.as_widget_mut().overlay(
+        let overlay = self.content.overlay(
             content_tree,
             content_layout,
             renderer,
@@ -1170,9 +1163,9 @@ where
     Renderer: 'a + text::Renderer,
 {
     fn from(
-        text_input: Scrollable<'a, Message, Theme, Renderer>,
+        scrollable: Scrollable<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text_input)
+        scrollable.boxed()
     }
 }
 

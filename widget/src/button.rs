@@ -231,7 +231,7 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
-        let size = self.content.as_widget().size();
+        let size = self.content.size();
         self.width = self.width.stack(size.width);
         self.height = self.height.stack(size.height);
     }
@@ -251,7 +251,7 @@ where
             self.height,
             self.padding,
             |tree, limits| {
-                self.content.as_widget_mut().layout(tree, renderer, limits);
+                self.content.layout(tree, renderer, limits);
 
                 tree.size
             },
@@ -271,7 +271,6 @@ where
             let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         });
     }
@@ -288,7 +287,7 @@ where
     ) {
         let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             content_tree,
             event,
             content_layout,
@@ -398,7 +397,7 @@ where
             *viewport
         };
 
-        self.content.as_widget().draw(
+        self.content.draw(
             tree,
             renderer,
             theme,
@@ -440,7 +439,6 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
@@ -453,7 +451,7 @@ where
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(button)
+        button.boxed()
     }
 }
 

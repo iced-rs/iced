@@ -251,6 +251,71 @@ where
     }
 }
 
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for &str
+where
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
+    }
+
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fit,
+            height: Length::Fit,
+        }
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout(
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            renderer,
+            limits,
+            self,
+            Format::default(),
+        );
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        defaults: &renderer::Style,
+        layout: Layout,
+        _cursor_position: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+        let style = theme.style(&Theme::default());
+
+        draw(
+            renderer,
+            defaults,
+            layout.bounds(),
+            state.raw(),
+            style,
+            viewport,
+        );
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+        operation: &mut dyn super::Operation,
+    ) {
+        operation.text(None, layout.bounds(), self);
+    }
+}
+
 /// The format of some [`Text`].
 ///
 /// Check out the methods of the [`Text`] widget

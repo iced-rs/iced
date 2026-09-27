@@ -1,4 +1,4 @@
-use iced::widget::{Button, Column, Container, Slider};
+use iced::widget::{Button, Column, Container, Image, Slider};
 use iced::widget::{
     button, center_x, center_y, checkbox, column, image, radio, rich_text, row, scrollable, slider,
     space, span, text, text_input, toggler,
@@ -521,7 +521,10 @@ impl Screen {
     }
 }
 
-fn ferris<'a>(width: u32, filter_method: image::FilterMethod) -> Container<'a, Message> {
+fn ferris<'a>(
+    width: u32,
+    filter_method: image::FilterMethod,
+) -> Container<'a, Image<image::Handle>> {
     center_x(
         // This should go away once we unify resource loading on native
         // platforms

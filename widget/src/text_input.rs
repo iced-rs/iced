@@ -458,7 +458,7 @@ where
     Renderer: text::Renderer + 'static,
 {
     fn from(text_input: TextInput<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text_input)
+        text_input.boxed()
     }
 }
 

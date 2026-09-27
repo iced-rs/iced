@@ -253,7 +253,7 @@ where
         )
         .width(width);
 
-        state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
+        state.tree.diff(&mut list);
         list.layout(&mut state.tree, renderer, &limits);
 
         let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
@@ -647,7 +647,7 @@ where
     'b: 'a,
 {
     fn from(list: List<'a, 'b, T, Message, Theme>) -> Self {
-        Element::new(list)
+        list.boxed()
     }
 }
 

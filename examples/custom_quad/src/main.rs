@@ -207,7 +207,7 @@ mod quad {
 
     impl<Message> From<CustomQuad> for Element<'_, Message> {
         fn from(circle: CustomQuad) -> Self {
-            Self::new(circle)
+            circle.boxed()
         }
     }
 }

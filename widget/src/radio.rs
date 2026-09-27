@@ -450,7 +450,7 @@ where
     Renderer: 'a + text::Renderer,
 {
     fn from(radio: Radio<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(radio)
+        radio.boxed()
     }
 }
 

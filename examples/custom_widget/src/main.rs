@@ -67,7 +67,7 @@ mod circle {
         Renderer: renderer::Renderer,
     {
         fn from(circle: Circle) -> Self {
-            Self::new(circle)
+            circle.boxed()
         }
     }
 }

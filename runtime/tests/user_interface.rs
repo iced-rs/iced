@@ -6,7 +6,7 @@ use iced_runtime::core::renderer;
 use iced_runtime::core::shell;
 use iced_runtime::core::widget;
 use iced_runtime::core::window;
-use iced_runtime::core::{Element, Event, Length, Rectangle, Shell, Size};
+use iced_runtime::core::{Event, Length, Rectangle, Shell, Size, Widget};
 use iced_runtime::user_interface::{Cache, UserInterface};
 
 type Renderer = ();
@@ -15,7 +15,7 @@ struct Root {
     overlay_visible: bool,
 }
 
-impl widget::Widget<(), core::Theme, Renderer> for Root {
+impl Widget<(), core::Theme, Renderer> for Root {
     fn size(&self) -> Size<Length> {
         Size::new(Length::Shrink, Length::Shrink)
     }
@@ -103,9 +103,9 @@ fn events_after_an_overlay_disappears_reach_the_base_widget() {
     let mut renderer = ();
 
     let mut user_interface = UserInterface::build(
-        Element::new(Root {
+        Root {
             overlay_visible: true,
-        }),
+        },
         window::Settings::default().size,
         Cache::default(),
         &mut renderer,
@@ -311,7 +311,7 @@ fn multiple_overlays_are_handled_by_index_order_and_nested_overlays_capture_even
     let mut renderer = ();
 
     let mut user_interface = UserInterface::build(
-        Element::new(MultiOverlayRoot),
+        MultiOverlayRoot,
         Size::new(100.0, 100.0),
         Cache::default(),
         &mut renderer,

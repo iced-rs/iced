@@ -7,11 +7,11 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::markdown;
-//! use iced::Theme;
+//! use iced::{Theme, Widget};
 //!
 //! struct State {
 //!    markdown: Vec<markdown::Item>,
@@ -960,11 +960,11 @@ impl Bullet {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::markdown;
-/// use iced::Theme;
+/// use iced::{Theme, Widget};
 ///
 /// struct State {
 ///    markdown: Vec<markdown::Item>,
@@ -1720,11 +1720,11 @@ impl Default for Settings {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::markdown;
-/// use iced::Theme;
+/// use iced::{Theme, Widget};
 ///
 /// struct State {
 ///    markdown: Vec<markdown::Item>,

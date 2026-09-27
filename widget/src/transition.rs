@@ -79,7 +79,7 @@ where
             init: Box::new(init),
             view: Box::new(move |program, at| view(program, at).into()),
             on_finish: None,
-            element: Element::new(space()),
+            element: space().boxed(),
             next_element: None,
             last_limits: layout::Limits::new(Size::ZERO, Size::ZERO),
             key: Key::default(),
@@ -151,7 +151,7 @@ where
     P: Program,
 {
     fn size(&self) -> Size<Length> {
-        self.element.as_widget().size()
+        self.element.size()
     }
 
     fn tag(&self) -> tree::Tag {
@@ -196,7 +196,6 @@ where
         self.last_limits = *limits;
 
         self.element
-            .as_widget_mut()
             .layout(&mut tree.children[0], renderer, &limits.loose());
 
         tree.size = tree.children[0].size;
@@ -241,9 +240,9 @@ where
                     let size = *size;
 
                     let mut new = (self.view)(animation, *instant);
-                    tree.diff_children(&mut [new.as_widget_mut()]);
+                    tree.diff_children(&mut [&mut new]);
 
-                    let new_size = new.as_widget().size();
+                    let new_size = new.size();
 
                     if size != Some(new_size) {
                         self.next_element = Some(new);
@@ -253,11 +252,8 @@ where
                         state.size = Some(new_size);
                     } else {
                         self.element = new;
-                        self.element.as_widget_mut().layout(
-                            &mut tree.children[0],
-                            renderer,
-                            &self.last_limits,
-                        );
+                        self.element
+                            .layout(&mut tree.children[0], renderer, &self.last_limits);
                     }
 
                     shell.request_redraw();
@@ -269,7 +265,7 @@ where
             }
         }
 
-        self.element.as_widget_mut().update(
+        self.element.update(
             &mut tree.children[0],
             event,
             layout,
@@ -290,7 +286,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.element.as_widget().draw(
+        self.element.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -309,13 +305,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.element.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.element
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -333,13 +324,8 @@ where
             tree.state.downcast_mut::<State<P>>().should_reset = true;
         }
 
-        self.element.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.element
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'a>(
@@ -351,7 +337,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.element.as_widget_mut().overlay(
+        self.element.overlay(
             &mut tree.children[0],
             layout,
             renderer,
@@ -371,7 +357,7 @@ where
     P: Program,
 {
     fn from(transition: Transition<'a, Message, Theme, Renderer, P>) -> Self {
-        Self::new(transition)
+        transition.boxed()
     }
 }
 

@@ -18,7 +18,7 @@ use crate::core::border;
 use crate::core::mouse;
 use crate::core::theme;
 use crate::core::window;
-use crate::core::{Color, Element, Font, Settings, Size, Theme};
+use crate::core::{Color, Element, Font, Settings, Size, Theme, Widget};
 use crate::futures::futures::channel::mpsc;
 use crate::program::Program;
 use crate::runtime::task::{self, Task};
@@ -90,7 +90,7 @@ where
         state: &'a Self::State,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-        state.view(&self.program, window).map(Message)
+        state.view(&self.program, window).map(Message).boxed()
     }
 
     fn theme(&self, state: &Self::State, window: window::Id) -> Option<Theme> {
@@ -568,7 +568,7 @@ impl<P: Program + 'static> Tester<P> {
 
         let view = match &self.state {
             State::Empty => Element::from(space()),
-            State::Idle { state } => program.view(state, window).map(Tick::Program),
+            State::Idle { state } => program.view(state, window).map(Tick::Program).boxed(),
             State::Recording { emulator } => recorder(emulator.view(program).map(Tick::Program))
                 .on_record(Tick::Record)
                 .into(),
@@ -577,7 +577,7 @@ impl<P: Program + 'static> Tester<P> {
                     .on_record(Tick::Assert)
                     .into()
             }
-            State::Playing { emulator, .. } => emulator.view(program).map(Tick::Program),
+            State::Playing { emulator, .. } => emulator.view(program).map(Tick::Program).boxed(),
         };
 
         let viewport = container(
@@ -616,7 +616,7 @@ impl<P: Program + 'static> Tester<P> {
             container(self.controls().map(Tick::Tester))
                 .width(250)
                 .padding(10)
-                .style(|theme| container::Style::default()
+                .style(|theme: &Theme| container::Style::default()
                     .background(theme.palette().background.weakest.color)),
         ]
         .into()
@@ -875,7 +875,7 @@ where
                     }
                 })
         )
-        .style(|theme| container::Style::default()
+        .style(|theme: &Theme| container::Style::default()
             .background(theme.palette().background.weak.color)
             .border(border::rounded(2))),
         row![

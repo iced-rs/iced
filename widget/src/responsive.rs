@@ -36,7 +36,7 @@ where
             view: Box::new(move |size| view(size).into()),
             width: Length::Fill,
             height: Length::Fill,
-            content: Element::new(space()),
+            content: space().boxed(),
         }
     }
 
@@ -77,7 +77,6 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
         self.content
-            .as_widget_mut()
             .layout(&mut tree.children[0], renderer, &limits.loose());
 
         tree.size = limits.resolve(self.width, self.height, tree.children[0].size);
@@ -96,7 +95,6 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
@@ -113,7 +111,6 @@ where
         let (layout, tree) = layout.iter(&tree.children).next().unwrap();
 
         self.content
-            .as_widget()
             .draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
@@ -128,7 +125,6 @@ where
         let (layout, tree) = layout.iter(&tree.children).next().unwrap();
 
         self.content
-            .as_widget()
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
@@ -143,7 +139,6 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .operate(tree, layout, viewport, renderer, operation);
     }
 
@@ -159,7 +154,6 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
@@ -172,6 +166,6 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(responsive: Responsive<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(responsive)
+        responsive.boxed()
     }
 }

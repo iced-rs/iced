@@ -34,8 +34,9 @@ pub struct Simulator<'a, Message, Theme = core::Theme, Renderer = renderer::Rend
 
 impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
 where
-    Theme: theme::Base,
-    Renderer: core::Renderer + core::renderer::Headless,
+    Message: 'a,
+    Theme: theme::Base + 'a,
+    Renderer: core::Renderer + core::renderer::Headless + 'a,
 {
     /// Creates a new [`Simulator`] with default [`Settings`] and a default size (1024x768).
     pub fn new(element: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
@@ -78,7 +79,7 @@ where
         };
 
         let raw = UserInterface::build(
-            element,
+            element.into(),
             size,
             user_interface::Cache::default(),
             &mut renderer,
@@ -137,7 +138,7 @@ where
         let cache = self.raw.into_cache();
 
         Self {
-            raw: UserInterface::build(element, self.size, cache, &mut self.renderer),
+            raw: UserInterface::build(element.into(), self.size, cache, &mut self.renderer),
             renderer: self.renderer,
             size: self.size,
             cursor: self.cursor,
@@ -391,8 +392,9 @@ pub fn simulator<'a, Message, Theme, Renderer>(
     element: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Simulator<'a, Message, Theme, Renderer>
 where
-    Theme: theme::Base,
-    Renderer: core::Renderer + core::renderer::Headless,
+    Message: 'a,
+    Theme: theme::Base + 'a,
+    Renderer: core::Renderer + core::renderer::Headless + 'a,
 {
     Simulator::new(element)
 }

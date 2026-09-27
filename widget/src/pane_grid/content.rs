@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{self, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector, Widget};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
@@ -117,7 +117,7 @@ where
 
             let show_controls = cursor.is_over(bounds);
 
-            self.body.as_widget().draw(
+            self.body.draw(
                 body_tree,
                 renderer,
                 theme,
@@ -138,7 +138,7 @@ where
                 show_controls,
             );
         } else {
-            self.body.as_widget().draw(
+            self.body.draw(
                 &tree.children[0],
                 renderer,
                 theme,
@@ -162,7 +162,7 @@ where
 
             let title_bar_size = tree.children[1].size;
 
-            self.body.as_widget_mut().layout(
+            self.body.layout(
                 &mut tree.children[0],
                 renderer,
                 &layout::Limits::new(
@@ -176,9 +176,7 @@ where
 
             tree.size = max_size;
         } else {
-            self.body
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            self.body.layout(&mut tree.children[0], renderer, limits);
 
             tree.size = tree.children[0].size;
         }
@@ -211,7 +209,6 @@ where
         };
 
         self.body
-            .as_widget_mut()
             .operate(body_tree, body_layout, viewport, renderer, operation);
     }
 
@@ -247,7 +244,7 @@ where
         };
 
         if !is_picked {
-            self.body.as_widget_mut().update(
+            self.body.update(
                 body_tree,
                 event,
                 body_layout,
@@ -323,7 +320,6 @@ where
         };
 
         self.body
-            .as_widget()
             .mouse_interaction(&tree.children[0], body_layout, cursor, viewport, renderer)
             .max(title_bar_interaction)
     }
@@ -351,7 +347,7 @@ where
                 window,
             );
 
-            let body_overlays = self.body.as_widget_mut().overlay(
+            let body_overlays = self.body.overlay(
                 body_tree,
                 body_layout,
                 renderer,
@@ -367,14 +363,8 @@ where
         } else {
             let (layout, body_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-            self.body.as_widget_mut().overlay(
-                body_tree,
-                layout,
-                renderer,
-                viewport,
-                translation,
-                window,
-            )
+            self.body
+                .overlay(body_tree, layout, renderer, viewport, translation, window)
         }
     }
 }

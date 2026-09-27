@@ -237,12 +237,9 @@ macro_rules! rich_text {
 ///         .into()
 /// }
 /// ```
-pub fn container<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn container<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     Container::new(content)
 }
@@ -259,12 +256,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn center<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn center<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).center(Length::Fill)
 }
@@ -281,12 +275,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn center_x<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn center_x<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).center_x(Length::Fill)
 }
@@ -303,12 +294,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn center_y<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn center_y<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).center_y(Length::Fill)
 }
@@ -325,12 +313,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn right<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn right<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).align_right(Length::Fill)
 }
@@ -347,12 +332,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn right_center<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn right_center<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content)
         .align_right(Length::Fill)
@@ -371,12 +353,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn bottom<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn bottom<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).align_bottom(Length::Fill)
 }
@@ -393,12 +372,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn bottom_center<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn bottom_center<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content)
         .center_x(Length::Fill)
@@ -417,12 +393,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn bottom_right<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn bottom_right<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content)
         .align_right(Length::Fill)
@@ -601,23 +574,23 @@ where
         Renderer: core::Renderer,
     {
         fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
 
         fn state(&self) -> tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
 
         fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
 
         fn size(&self) -> Size<Length> {
-            self.content.as_widget().size()
+            self.content.size()
         }
 
         fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-            self.content.as_widget_mut().layout(tree, renderer, limits);
+            self.content.layout(tree, renderer, limits);
         }
 
         fn draw(
@@ -631,7 +604,6 @@ where
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget()
                 .draw(tree, renderer, theme, style, layout, cursor, viewport);
         }
 
@@ -644,7 +616,6 @@ where
             operation: &mut dyn operation::Operation,
         ) {
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         }
 
@@ -662,7 +633,6 @@ where
                 matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
 
             self.content
-                .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
@@ -680,7 +650,6 @@ where
         ) -> core::mouse::Interaction {
             let interaction = self
                 .content
-                .as_widget()
                 .mouse_interaction(state, layout, cursor, viewport, renderer);
 
             if interaction == mouse::Interaction::None && cursor.is_over(layout.bounds()) {
@@ -699,20 +668,15 @@ where
             translation: core::Vector,
             window: core::Size,
         ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            self.content.as_widget_mut().overlay(
-                state,
-                layout,
-                renderer,
-                viewport,
-                translation,
-                window,
-            )
+            self.content
+                .overlay(state, layout, renderer, viewport, translation, window)
         }
     }
 
-    Element::new(Opaque {
+    Opaque {
         content: content.into(),
-    })
+    }
+    .boxed()
 }
 
 /// Displays a widget on top of another one, only when the base widget is hovered.
@@ -759,17 +723,15 @@ where
         }
 
         fn size(&self) -> Size<Length> {
-            self.base.as_widget().size()
+            self.base.size()
         }
 
         fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-            self.base
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            self.base.layout(&mut tree.children[0], renderer, limits);
 
             let base_size = tree.children[0].size;
 
-            self.top.as_widget_mut().layout(
+            self.top.layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, base_size),
@@ -793,7 +755,7 @@ where
 
                 let (base_layout, base_tree) = children.next().unwrap();
 
-                self.base.as_widget().draw(
+                self.base.draw(
                     base_tree,
                     renderer,
                     theme,
@@ -810,7 +772,7 @@ where
                     let (top_layout, top_tree) = children.next().unwrap();
 
                     renderer.with_layer(bounds, |renderer| {
-                        self.top.as_widget().draw(
+                        self.top.draw(
                             top_tree, renderer, theme, style, top_layout, cursor, viewport,
                         );
                     });
@@ -831,9 +793,7 @@ where
                 .zip(layout.iter_mut(&mut tree.children));
 
             for (child, (layout, tree)) in children {
-                child
-                    .as_widget_mut()
-                    .operate(tree, layout, viewport, renderer, operation);
+                child.operate(tree, layout, viewport, renderer, operation);
             }
         }
 
@@ -856,7 +816,7 @@ where
             if matches!(event, Event::Window(window::Event::RedrawRequested(_))) {
                 let mut count_focused = operation::focusable::count();
 
-                self.top.as_widget_mut().operate(
+                self.top.operate(
                     top_tree,
                     top_layout,
                     viewport,
@@ -883,7 +843,7 @@ where
             {
                 let redraw_request = shell.redraw_request();
 
-                self.top.as_widget_mut().update(
+                self.top.update(
                     top_tree, event, top_layout, cursor, renderer, shell, viewport,
                 );
 
@@ -897,7 +857,7 @@ where
                 }
             };
 
-            self.base.as_widget_mut().update(
+            self.base.update(
                 base_tree,
                 event,
                 base_layout,
@@ -921,9 +881,7 @@ where
                 .rev()
                 .zip(layout.iter(&tree.children).rev())
                 .map(|(child, (layout, tree))| {
-                    child
-                        .as_widget()
-                        .mouse_interaction(tree, layout, cursor, viewport, renderer)
+                    child.mouse_interaction(tree, layout, cursor, viewport, renderer)
                 })
                 .find(|&interaction| interaction != mouse::Interaction::None)
                 .unwrap_or_default()
@@ -942,14 +900,7 @@ where
                 .into_iter()
                 .zip(layout.iter_mut(&mut tree.children))
                 .map(|(child, (layout, tree))| {
-                    child.as_widget_mut().overlay(
-                        tree,
-                        layout,
-                        renderer,
-                        viewport,
-                        translation,
-                        window,
-                    )
+                    child.overlay(tree, layout, renderer, viewport, translation, window)
                 });
 
             let base_overlays = overlays.next().unwrap();
@@ -961,13 +912,14 @@ where
         }
     }
 
-    Element::new(Hover {
+    Hover {
         base: base.into(),
         top: top.into(),
         is_top_focused: false,
         is_top_overlay_active: false,
         is_hovered: false,
-    })
+    }
+    .boxed()
 }
 
 /// Creates a new [`Sensor`] widget.

@@ -126,13 +126,11 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.content.layout(&mut tree.children[0], renderer, limits);
 
         tree.size = tree.children[0].size;
     }
@@ -151,13 +149,8 @@ where
             return;
         }
 
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.content
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn update(
@@ -193,7 +186,7 @@ where
             return;
         }
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -218,13 +211,8 @@ where
             return mouse::Interaction::None;
         }
 
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -243,7 +231,7 @@ where
             return;
         }
 
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -299,7 +287,7 @@ where
                 window,
             }))]
         } else {
-            self.content.as_widget_mut().overlay(
+            self.content.overlay(
                 &mut tree.children[0],
                 layout,
                 renderer,
@@ -356,7 +344,7 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(sticky: Sticky<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(sticky)
+        sticky.boxed()
     }
 }
 
@@ -391,7 +379,6 @@ where
         let bounds = self.bounds();
 
         self.content
-            .as_widget_mut()
             .operate(self.tree, self.layout, &bounds, renderer, operation);
     }
 
@@ -404,7 +391,7 @@ where
     ) {
         let bounds = self.bounds();
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             self.tree,
             event,
             self.layout,
@@ -418,13 +405,9 @@ where
     fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
         let bounds = self.bounds();
 
-        let interaction = self.content.as_widget().mouse_interaction(
-            self.tree,
-            self.layout,
-            cursor,
-            &bounds,
-            renderer,
-        );
+        let interaction =
+            self.content
+                .mouse_interaction(self.tree, self.layout, cursor, &bounds, renderer);
 
         if interaction == mouse::Interaction::None && cursor.is_over(bounds) {
             mouse::Interaction::Idle
@@ -443,7 +426,7 @@ where
         let bounds = self.bounds();
 
         renderer.with_layer(bounds, |renderer| {
-            self.content.as_widget().draw(
+            self.content.draw(
                 self.tree,
                 renderer,
                 theme,
@@ -459,7 +442,7 @@ where
         &'c mut self,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
+        self.content.overlay(
             self.tree,
             self.layout,
             renderer,

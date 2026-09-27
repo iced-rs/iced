@@ -1,6 +1,6 @@
 //! Layout tests with the built-in widgets.
 use iced::advanced::layout;
-use iced::advanced::widget;
+use iced::advanced::widget::{self, Widget};
 use iced::widget::{column, row, space};
 use iced::{Element, Fill, FillPortion, Never, Pixels, Size, Theme};
 
@@ -400,11 +400,9 @@ fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expec
     let mut element = element.into();
 
     let mut tree = widget::Tree::new(&element);
-    element.as_widget_mut().diff(&mut tree);
+    element.diff(&mut tree);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     assert_eq!(to_node(&tree), expect);
 }

@@ -996,7 +996,7 @@ where
     fn from(
         pane_grid: PaneGrid<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(pane_grid)
+        pane_grid.boxed()
     }
 }
 

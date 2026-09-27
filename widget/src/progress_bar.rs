@@ -230,7 +230,7 @@ where
     Renderer: 'a + core::Renderer,
 {
     fn from(progress_bar: ProgressBar<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(progress_bar)
+        progress_bar.boxed()
     }
 }
 

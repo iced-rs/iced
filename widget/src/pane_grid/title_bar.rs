@@ -4,7 +4,9 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{self, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{
+    self, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector, Widget,
+};
 use crate::pane_grid::controls::Controls;
 
 /// The title bar of a [`Pane`].
@@ -164,7 +166,7 @@ where
         {
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_ref() {
-                    compact.as_widget().draw(
+                    compact.draw(
                         compact_tree,
                         renderer,
                         theme,
@@ -176,7 +178,7 @@ where
                 } else {
                     show_title = false;
 
-                    controls.full.as_widget().draw(
+                    controls.full.draw(
                         controls_tree,
                         renderer,
                         theme,
@@ -187,7 +189,7 @@ where
                     );
                 }
             } else {
-                controls.full.as_widget().draw(
+                controls.full.draw(
                     controls_tree,
                     renderer,
                     theme,
@@ -200,7 +202,7 @@ where
         }
 
         if show_title {
-            self.content.as_widget().draw(
+            self.content.draw(
                 title_tree,
                 renderer,
                 theme,
@@ -249,7 +251,7 @@ where
         let limits = limits.shrink(self.padding);
         let max_size = limits.max;
 
-        self.content.as_widget_mut().layout(
+        self.content.layout(
             &mut tree.children[0],
             renderer,
             &layout::Limits::new(Size::ZERO, max_size),
@@ -258,7 +260,7 @@ where
         let title_size = tree.children[0].size;
 
         let inner_size = if let Some(controls) = &mut self.controls {
-            controls.full.as_widget_mut().layout(
+            controls.full.layout(
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
@@ -268,7 +270,7 @@ where
 
             if title_size.width + controls_size.width > max_size.width {
                 if let Some(compact) = controls.compact.as_mut() {
-                    compact.as_widget_mut().layout(
+                    compact.layout(
                         &mut tree.children[2],
                         renderer,
                         &layout::Limits::new(Size::ZERO, max_size),
@@ -326,17 +328,11 @@ where
         if let Some(controls) = &mut self.controls {
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_mut() {
-                    compact.as_widget_mut().operate(
-                        compact_tree,
-                        compact_layout,
-                        viewport,
-                        renderer,
-                        operation,
-                    );
+                    compact.operate(compact_tree, compact_layout, viewport, renderer, operation);
                 } else {
                     show_title = false;
 
-                    controls.full.as_widget_mut().operate(
+                    controls.full.operate(
                         controls_tree,
                         controls_layout,
                         viewport,
@@ -345,7 +341,7 @@ where
                     );
                 }
             } else {
-                controls.full.as_widget_mut().operate(
+                controls.full.operate(
                     controls_tree,
                     controls_layout,
                     viewport,
@@ -356,13 +352,8 @@ where
         };
 
         if show_title {
-            self.content.as_widget_mut().operate(
-                title_tree,
-                title_layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.content
+                .operate(title_tree, title_layout, viewport, renderer, operation);
         }
     }
 
@@ -386,7 +377,7 @@ where
         if let Some(controls) = &mut self.controls {
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_mut() {
-                    compact.as_widget_mut().update(
+                    compact.update(
                         compact_tree,
                         event,
                         compact_layout,
@@ -398,7 +389,7 @@ where
                 } else {
                     show_title = false;
 
-                    controls.full.as_widget_mut().update(
+                    controls.full.update(
                         controls_tree,
                         event,
                         controls_layout,
@@ -409,7 +400,7 @@ where
                     );
                 }
             } else {
-                controls.full.as_widget_mut().update(
+                controls.full.update(
                     controls_tree,
                     event,
                     controls_layout,
@@ -422,7 +413,7 @@ where
         }
 
         if show_title {
-            self.content.as_widget_mut().update(
+            self.content.update(
                 title_tree,
                 event,
                 title_layout,
@@ -448,16 +439,12 @@ where
         let (compact_layout, compact_tree) = children.next().unwrap();
         let padded_width = layout.bounds().width - self.padding.left + self.padding.right;
 
-        let title_interaction = self.content.as_widget().mouse_interaction(
-            title_tree,
-            title_layout,
-            cursor,
-            viewport,
-            renderer,
-        );
+        let title_interaction =
+            self.content
+                .mouse_interaction(title_tree, title_layout, cursor, viewport, renderer);
 
         if let Some(controls) = &self.controls {
-            let controls_interaction = controls.full.as_widget().mouse_interaction(
+            let controls_interaction = controls.full.mouse_interaction(
                 controls_tree,
                 controls_layout,
                 cursor,
@@ -467,7 +454,7 @@ where
 
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = controls.compact.as_ref() {
-                    let compact_interaction = compact.as_widget().mouse_interaction(
+                    let compact_interaction = compact.mouse_interaction(
                         compact_tree,
                         compact_layout,
                         cursor,
@@ -506,7 +493,7 @@ where
             content, controls, ..
         } = self;
 
-        let mut overlays = content.as_widget_mut().overlay(
+        let mut overlays = content.overlay(
             title_tree,
             title_layout,
             renderer,
@@ -518,7 +505,7 @@ where
         if let Some(controls) = controls {
             if title_layout.bounds().width + controls_layout.bounds().width > padded_width {
                 if let Some(compact) = &mut controls.compact {
-                    overlays.extend(compact.as_widget_mut().overlay(
+                    overlays.extend(compact.overlay(
                         compact_tree,
                         compact_layout,
                         renderer,
@@ -527,7 +514,7 @@ where
                         window,
                     ));
                 } else {
-                    overlays.extend(controls.full.as_widget_mut().overlay(
+                    overlays.extend(controls.full.overlay(
                         controls_tree,
                         controls_layout,
                         renderer,
@@ -537,7 +524,7 @@ where
                     ));
                 }
             } else {
-                overlays.extend(controls.full.as_widget_mut().overlay(
+                overlays.extend(controls.full.overlay(
                     controls_tree,
                     controls_layout,
                     renderer,

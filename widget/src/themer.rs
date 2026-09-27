@@ -63,23 +63,23 @@ where
     Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        self.content.as_widget().tag()
+        self.content.tag()
     }
 
     fn state(&self) -> tree::State {
-        self.content.as_widget().state()
+        self.content.state()
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        self.content.as_widget_mut().diff(tree);
+        self.content.diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.as_widget_mut().layout(tree, renderer, limits);
+        self.content.layout(tree, renderer, limits);
     }
 
     fn operate(
@@ -91,7 +91,6 @@ where
         operation: &mut dyn Operation,
     ) {
         self.content
-            .as_widget_mut()
             .operate(tree, layout, viewport, renderer, operation);
     }
 
@@ -106,7 +105,6 @@ where
         viewport: &Rectangle,
     ) {
         self.content
-            .as_widget_mut()
             .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
@@ -119,7 +117,6 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content
-            .as_widget()
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
@@ -156,7 +153,6 @@ where
         };
 
         self.content
-            .as_widget()
             .draw(tree, renderer, theme, &style, layout, cursor, viewport);
     }
 
@@ -242,7 +238,6 @@ where
         }
 
         self.content
-            .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation, window)
             .into_iter()
             .map(|content| {
@@ -266,6 +261,6 @@ where
     fn from(
         themer: Themer<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, AnyTheme, Renderer> {
-        Element::new(themer)
+        themer.boxed()
     }
 }

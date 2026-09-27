@@ -150,7 +150,7 @@ where
             *needs_relayout = true;
         }
 
-        tree.diff_children(&mut [self.content.as_widget_mut(), self.tooltip.as_widget_mut()]);
+        tree.diff_children(&mut [&mut self.content, &mut self.tooltip]);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -162,13 +162,11 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.content.layout(&mut tree.children[0], renderer, limits);
 
         tree.size = tree.children[0].size;
     }
@@ -246,7 +244,7 @@ where
             }
         }
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -265,13 +263,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -284,7 +277,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -308,7 +301,7 @@ where
 
         let mut children = tree.children.iter_mut();
 
-        let content = self.content.as_widget_mut().overlay(
+        let content = self.content.overlay(
             children.next().unwrap(),
             layout,
             renderer,
@@ -324,7 +317,7 @@ where
         if let State::Open { needs_relayout, .. } = state
             && *needs_relayout
         {
-            self.tooltip.as_widget_mut().layout(
+            self.tooltip.layout(
                 tooltip_tree,
                 renderer,
                 &layout::Limits::new(
@@ -416,13 +409,8 @@ where
     ) {
         operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                &mut tree.children[0],
-                layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.content
+                .operate(&mut tree.children[0], layout, viewport, renderer, operation);
         });
     }
 }
@@ -437,7 +425,7 @@ where
     fn from(
         tooltip: Tooltip<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(tooltip)
+        tooltip.boxed()
     }
 }
 
@@ -492,7 +480,7 @@ where
         operation.container(None, self.layout.bounds(), &self.layout.bounds());
 
         operation.traverse(&mut |operation| {
-            self.tooltip.as_widget_mut().operate(
+            self.tooltip.operate(
                 self.tree,
                 self.layout,
                 &Rectangle::with_size(self.window),
@@ -520,7 +508,7 @@ where
                 text_color: style.text_color.unwrap_or(inherited_style.text_color),
             };
 
-            self.tooltip.as_widget().draw(
+            self.tooltip.draw(
                 self.tree,
                 renderer,
                 theme,

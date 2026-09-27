@@ -768,7 +768,7 @@ where
     Renderer: text::Renderer + 'a,
 {
     fn from(pick_list: PickList<'a, T, L, V, Message, Theme>) -> Self {
-        Self::new(pick_list)
+        pick_list.boxed()
     }
 }
 

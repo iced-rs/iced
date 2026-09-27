@@ -112,11 +112,11 @@ where
     Renderer: core::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
-        self.content.as_widget().tag()
+        self.content.tag()
     }
 
     fn state(&self) -> widget::tree::State {
-        self.content.as_widget().state()
+        self.content.state()
     }
 
     fn diff(&mut self, tree: &mut widget::Tree) {
@@ -135,7 +135,7 @@ where
 
         let available = limits.bounds() - Size::new(self.position.x, self.position.y);
 
-        self.content.as_widget_mut().layout(
+        self.content.layout(
             &mut tree.children[0],
             renderer,
             &layout::Limits::new(Size::ZERO, available),
@@ -156,7 +156,6 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .operate(tree, layout, viewport, renderer, operation);
     }
 
@@ -173,7 +172,6 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
@@ -188,7 +186,6 @@ where
         let (layout, tree) = layout.iter(&tree.children).next().unwrap();
 
         self.content
-            .as_widget()
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
@@ -207,7 +204,7 @@ where
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
             let (layout, tree) = layout.iter(&tree.children).next().unwrap();
 
-            self.content.as_widget().draw(
+            self.content.draw(
                 tree,
                 renderer,
                 theme,
@@ -231,7 +228,6 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
@@ -244,6 +240,6 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(pin: Pin<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(pin)
+        pin.boxed()
     }
 }

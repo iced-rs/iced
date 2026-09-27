@@ -275,11 +275,11 @@ async fn save_file(path: Option<PathBuf>, contents: String) -> Result<PathBuf, E
 }
 
 fn action<'a, Message: Clone + 'a>(
-    content: impl Into<Element<'a, Message>>,
+    content: impl Into<Element<'a, Message>>, // TODO
     label: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let action = button(center_x(content).width(30));
+    let action = button(center_x(content.into()).width(30));
 
     if let Some(on_press) = on_press {
         tooltip(

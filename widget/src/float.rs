@@ -86,23 +86,23 @@ where
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        self.content.as_widget().tag()
+        self.content.tag()
     }
 
     fn state(&self) -> tree::State {
-        self.content.as_widget().state()
+        self.content.state()
     }
 
     fn diff(&mut self, tree: &mut widget::Tree) {
-        self.content.as_widget_mut().diff(tree);
+        self.content.diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.as_widget_mut().layout(tree, renderer, limits);
+        self.content.layout(tree, renderer, limits);
     }
 
     fn update(
@@ -120,7 +120,6 @@ where
         }
 
         self.content
-            .as_widget_mut()
             .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
@@ -155,7 +154,6 @@ where
         }
 
         self.content
-            .as_widget()
             .draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
@@ -172,7 +170,6 @@ where
         }
 
         self.content
-            .as_widget()
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
@@ -185,7 +182,6 @@ where
         operation: &mut dyn widget::Operation,
     ) {
         self.content
-            .as_widget_mut()
             .operate(tree, layout, viewport, renderer, operation);
     }
 
@@ -228,7 +224,6 @@ where
             }))]
         } else {
             self.content
-                .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, offset, window)
         }
     }
@@ -242,7 +237,7 @@ where
     Renderer: core::Renderer + 'a,
 {
     fn from(float: Float<'a, Message, Theme, Renderer>) -> Self {
-        Element::new(float)
+        float.boxed()
     }
 }
 
@@ -273,7 +268,7 @@ where
     ) {
         let inverse = self.transformation.inverse();
 
-        self.float.content.as_widget_mut().update(
+        self.float.content.update(
             self.state,
             event,
             self.layout,
@@ -312,7 +307,7 @@ where
                     }
                 }
 
-                self.float.content.as_widget().draw(
+                self.float.content.draw(
                     self.state,
                     renderer,
                     theme,
@@ -334,7 +329,7 @@ where
 
         let inverse = self.transformation.inverse();
 
-        self.float.content.as_widget().mouse_interaction(
+        self.float.content.mouse_interaction(
             self.state,
             self.layout,
             cursor * inverse,
@@ -351,7 +346,7 @@ where
         &'a mut self,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.float.content.as_widget_mut().overlay(
+        self.float.content.overlay(
             self.state,
             self.layout,
             renderer,

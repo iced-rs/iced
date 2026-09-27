@@ -271,7 +271,7 @@ where
     Renderer: svg::Renderer + 'a,
 {
     fn from(icon: Svg<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(icon)
+        icon.boxed()
     }
 }
 

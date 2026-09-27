@@ -480,7 +480,7 @@ where
     Renderer: text::Renderer + 'a,
 {
     fn from(toggler: Toggler<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(toggler)
+        toggler.boxed()
     }
 }
 

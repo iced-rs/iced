@@ -303,6 +303,6 @@ where
     P: 'a + Program<Message, Theme, Renderer>,
 {
     fn from(canvas: Canvas<P, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(canvas)
+        canvas.boxed()
     }
 }

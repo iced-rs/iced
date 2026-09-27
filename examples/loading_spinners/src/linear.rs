@@ -245,7 +245,7 @@ where
     Renderer: iced::advanced::Renderer + 'a,
 {
     fn from(linear: Linear<'a, Theme>) -> Self {
-        Self::new(linear)
+        linear.boxed()
     }
 }
 

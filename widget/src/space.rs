@@ -93,6 +93,6 @@ where
     Message: 'a,
 {
     fn from(space: Space) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(space)
+        space.boxed()
     }
 }

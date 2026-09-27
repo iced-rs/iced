@@ -18,7 +18,7 @@ use crate::core::{
     Alignment::Center,
     Color, Element, Font,
     Length::{Fill, Fit},
-    Settings,
+    Settings, Widget,
 };
 use crate::futures::Subscription;
 use crate::program::Program;
@@ -314,11 +314,13 @@ where
         let view = {
             let view = program.view(state, window);
 
-            if self.time_machine.is_rewinding() {
-                view.map(|_| Event::Discard)
-            } else {
-                view.map(Event::Program)
-            }
+            view.map(|message| {
+                if self.time_machine.is_rewinding() {
+                    Event::Discard
+                } else {
+                    Event::Program(message)
+                }
+            })
         };
 
         let theme = || {

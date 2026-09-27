@@ -119,13 +119,14 @@ where
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    Element::new(Instance {
+    Instance {
         component,
         view: crate::space().into(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         is_outdated: Cell::new(true),
         has_overlay: false,
-    })
+    }
+    .boxed()
 }
 
 struct Instance<'a, C, Message, Theme, Renderer>
@@ -180,15 +181,13 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.view.as_widget().size()
+        self.view.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         if &self.limits != limits {
             self.limits = *limits;
-            self.view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            self.view.layout(&mut tree.children[0], renderer, limits);
         }
 
         tree.size = tree.children[0].size;
@@ -228,7 +227,7 @@ where
         if !shell.is_event_captured() {
             let mut local_shell = shell.local(&mut internal.events);
 
-            self.view.as_widget_mut().update(
+            self.view.update(
                 &mut tree.children[0],
                 event,
                 layout,
@@ -260,7 +259,7 @@ where
             }
         }
 
-        let previous_sizing = self.view.as_widget().size();
+        let previous_sizing = self.view.size();
 
         self.view = self.component.view(state);
         drop(internal);
@@ -270,12 +269,11 @@ where
         let previous_size = tree.size;
 
         self.view
-            .as_widget_mut()
             .layout(&mut tree.children[0], renderer, &self.limits);
 
         tree.size = tree.children[0].size;
 
-        let new_sizing = self.view.as_widget().size();
+        let new_sizing = self.view.size();
 
         // We must invalidate application layout in 2 instances:
         //
@@ -305,7 +303,7 @@ where
 
             let mut local_shell = shell.local(&mut internal.events);
 
-            self.view.as_widget_mut().update(
+            self.view.update(
                 &mut tree.children[0],
                 event,
                 layout,
@@ -333,7 +331,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.view.as_widget().draw(
+        self.view.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -363,13 +361,8 @@ where
             return interaction;
         }
 
-        self.view.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.view
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -390,13 +383,8 @@ where
                 .operate(&internal.state, layout.bounds(), operation);
         }
 
-        self.view.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.view
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'b>(
@@ -408,7 +396,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let overlays = self.view.as_widget_mut().overlay(
+        let overlays = self.view.overlay(
             &mut tree.children[0],
             layout,
             renderer,

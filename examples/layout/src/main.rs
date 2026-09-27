@@ -95,7 +95,7 @@ impl Layout {
         } else {
             self.example.view()
         })
-        .style(|theme| {
+        .style(|theme: &Theme| {
             let palette = theme.palette();
 
             container::Style::default()
@@ -260,7 +260,7 @@ fn application<'a>() -> Element<'a, Message> {
         .padding(10)
         .align_y(Center),
     )
-    .style(|theme| {
+    .style(|theme: &Theme| {
         let palette = theme.palette();
 
         container::Style::default().border(border::color(palette.background.strong.color).width(1))

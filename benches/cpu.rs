@@ -105,7 +105,7 @@ fn application() -> Element<'static, Never> {
         .padding(10)
         .align_y(Center),
     )
-    .style(|theme| {
+    .style(|theme: &Theme| {
         let palette = theme.palette();
 
         container::Style::default().border(border::color(palette.background.strong.color).width(1))

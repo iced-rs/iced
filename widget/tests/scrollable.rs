@@ -11,7 +11,7 @@ use iced_widget::core::layout::{self, Layout};
 use iced_widget::core::mouse::{self, ScrollDelta};
 use iced_widget::core::widget::{Id, Tree, operation};
 use iced_widget::core::window;
-use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme};
+use iced_widget::core::{self, Event, Length, Point, Rectangle, Size, Theme, Widget};
 use iced_widget::scrollable::{
     AbsoluteOffset, Action, Anchor, Direction, RelativeOffset, Scroll, Scrollable, Scrollbar,
     Source, Viewport,
@@ -799,7 +799,7 @@ where
     Message: 'a,
 {
     fn from(recorder: Recorder) -> core::Element<'a, Message, Theme, Renderer> {
-        core::Element::new(recorder)
+        recorder.boxed()
     }
 }
 

@@ -188,7 +188,7 @@ where
     Renderer: 'a + core::Renderer,
 {
     fn from(rule: Rule<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(rule)
+        rule.boxed()
     }
 }
 

@@ -403,7 +403,7 @@
 //! use contacts::Contacts;
 //! use conversation::Conversation;
 //!
-//! use iced::{Element, Task};
+//! use iced::{Element, Task, Widget};
 //!
 //! struct State {
 //!     screen: Screen,
@@ -452,8 +452,8 @@
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     match &state.screen {
-//!         Screen::Contacts(contacts) => contacts.view().map(Message::Contacts),
-//!         Screen::Conversation(conversation) => conversation.view().map(Message::Conversation),
+//!         Screen::Contacts(contacts) => contacts.view().map(Message::Contacts).boxed(),
+//!         Screen::Conversation(conversation) => conversation.view().map(Message::Conversation).boxed(),
 //!     }
 //! }
 //! ```
@@ -664,6 +664,7 @@ pub use font::Font;
 pub use program::Program;
 pub use renderer::Renderer;
 pub use task::Task;
+pub use widget::Widget;
 pub use window::Window;
 
 #[doc(inline)]

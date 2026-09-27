@@ -7,7 +7,7 @@ use preset::Preset;
 
 use iced::time::{self, milliseconds};
 use iced::widget::{button, checkbox, column, container, pick_list, row, slider, text};
-use iced::{Center, Element, Fill, Function, Subscription, Task, Theme};
+use iced::{Center, Element, Fill, Function, Subscription, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -119,7 +119,7 @@ impl GameOfLife {
         );
 
         let content =
-            column![self.grid.view().map(Message::Grid.with(version)), controls,].height(Fill);
+            column![self.grid.view().map(Message::Grid.with(version)), controls].height(Fill);
 
         container(content).width(Fill).height(Fill).into()
     }

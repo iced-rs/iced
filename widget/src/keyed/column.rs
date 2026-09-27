@@ -127,7 +127,7 @@ where
     ) -> Self {
         let child = child.into();
 
-        if !child.as_widget().is_void() {
+        if !child.is_void() {
             self.keys.push(key);
             self.children.push(child);
         }
@@ -204,12 +204,12 @@ where
         tree::diff_children_custom_with_search(
             children,
             &mut self.children,
-            |tree, child| child.as_widget_mut().diff(tree),
+            |tree, child| child.diff(tree),
             |index| {
                 self.keys.get(index).or_else(|| self.keys.last()).copied()
                     != Some(state.keys[index])
             },
-            |child| Tree::new(child.as_widget()),
+            |child| Tree::new(child),
         );
 
         if state.keys != self.keys {
@@ -218,7 +218,7 @@ where
 
         if self.width.is_fit() || self.height.is_fit() {
             for child in &self.children {
-                let size = child.as_widget().size();
+                let size = child.size();
 
                 self.width = self.width.cross(size.width);
                 self.height = self.height.stack(size.height);
@@ -265,9 +265,7 @@ where
                 .iter_mut()
                 .zip(layout.iter_mut(&mut tree.children))
                 .for_each(|(child, (layout, state))| {
-                    child
-                        .as_widget_mut()
-                        .operate(state, layout, viewport, renderer, operation);
+                    child.operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -287,9 +285,7 @@ where
             .iter_mut()
             .zip(layout.iter_mut(&mut tree.children))
         {
-            child
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+            child.update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -305,9 +301,7 @@ where
             .iter()
             .zip(layout.iter(&tree.children))
             .map(|(child, (layout, tree))| {
-                child
-                    .as_widget()
-                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
+                child.mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -324,9 +318,7 @@ where
         viewport: &Rectangle,
     ) {
         for (child, (layout, state)) in self.children.iter().zip(layout.iter(&tree.children)) {
-            child
-                .as_widget()
-                .draw(state, renderer, theme, style, layout, cursor, viewport);
+            child.draw(state, renderer, theme, style, layout, cursor, viewport);
         }
     }
 
@@ -360,6 +352,6 @@ where
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(column: Column<'a, Key, Message, Theme, Renderer>) -> Self {
-        Self::new(column)
+        column.boxed()
     }
 }

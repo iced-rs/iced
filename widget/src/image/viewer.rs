@@ -393,7 +393,7 @@ where
     Handle: Clone + 'a,
 {
     fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(viewer)
+        viewer.boxed()
     }
 }
 

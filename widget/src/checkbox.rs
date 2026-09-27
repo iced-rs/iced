@@ -483,7 +483,7 @@ where
     fn from(
         checkbox: Checkbox<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(checkbox)
+        checkbox.boxed()
     }
 }
 

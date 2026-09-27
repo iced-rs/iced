@@ -74,19 +74,19 @@ mod loupe {
 
     impl<Message> Widget<Message, Theme, Renderer> for Loupe<'_, Message> {
         fn tag(&self) -> widget::tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
 
         fn state(&self) -> widget::tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
 
         fn diff(&mut self, tree: &mut widget::Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
 
         fn size(&self) -> Size<Length> {
-            self.content.as_widget().size()
+            self.content.size()
         }
 
         fn layout(
@@ -95,7 +95,7 @@ mod loupe {
             renderer: &Renderer,
             limits: &layout::Limits,
         ) {
-            self.content.as_widget_mut().layout(tree, renderer, limits);
+            self.content.layout(tree, renderer, limits);
         }
 
         fn update(
@@ -134,7 +134,7 @@ mod loupe {
                         ) * Transformation::scale(self.zoom)
                             * Transformation::translate(-bounds.x, -bounds.y),
                         |renderer| {
-                            self.content.as_widget().draw(
+                            self.content.draw(
                                 tree,
                                 renderer,
                                 theme,
@@ -148,7 +148,6 @@ mod loupe {
                 });
             } else {
                 self.content
-                    .as_widget()
                     .draw(tree, renderer, theme, style, layout, cursor, viewport);
             }
         }
@@ -174,7 +173,7 @@ mod loupe {
         Message: 'a,
     {
         fn from(loupe: Loupe<'a, Message>) -> Self {
-            Self::new(loupe)
+            loupe.boxed()
         }
     }
 }

@@ -97,9 +97,12 @@ where
             state: &'a Self::State,
             _window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+            use crate::core::Widget;
+
             self.view
                 .view(state)
                 .map(|message| (message, Instant::now()))
+                .boxed()
         }
 
         #[inline]

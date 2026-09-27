@@ -610,7 +610,7 @@ where
     Renderer: text::Renderer,
 {
     fn from(text_editor: TextEditor<'a, Parser, Message, Theme, Renderer>) -> Self {
-        Self::new(text_editor)
+        text_editor.boxed()
     }
 }
 

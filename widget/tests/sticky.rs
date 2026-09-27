@@ -6,7 +6,9 @@ use iced_widget::core::time;
 use iced_widget::core::widget;
 use iced_widget::core::widget::operation;
 use iced_widget::core::window;
-use iced_widget::core::{Event, Length::Fill, Never, Point, Rectangle, Settings, Size, Vector};
+use iced_widget::core::{
+    Event, Length::Fill, Never, Point, Rectangle, Settings, Size, Vector, Widget,
+};
 use iced_widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
 use iced_widget::{Renderer, Theme, column, container, pick_list, row, scrollable, space, sticky};
 
@@ -41,7 +43,7 @@ fn horizontal_view() -> Element {
 
 fn build(element: &mut Element) -> widget::Tree {
     let mut tree = widget::Tree::new(&*element);
-    element.as_widget_mut().diff(&mut tree);
+    element.diff(&mut tree);
 
     tree
 }
@@ -55,7 +57,7 @@ fn scroll(element: &mut Element, tree: &mut widget::Tree, x: f32, y: f32) {
         },
         operation::Animation::Instant,
     );
-    element.as_widget_mut().operate(
+    element.operate(
         tree,
         layout::Layout::new(tree.size),
         &VIEWPORT,
@@ -71,7 +73,7 @@ fn scroll(element: &mut Element, tree: &mut widget::Tree, x: f32, y: f32) {
 fn frame(element: &mut Element, tree: &mut widget::Tree) {
     let mut messages = shell::Bus::new();
 
-    element.as_widget_mut().update(
+    element.update(
         tree,
         &Event::Window(window::Event::RedrawRequested(time::Instant::now())),
         layout::Layout::new(tree.size),
@@ -89,7 +91,7 @@ fn assert_overlay_bounds(
     tree: &mut widget::Tree,
     expected: Option<Rectangle>,
 ) {
-    let mut overlays = element.as_widget_mut().overlay(
+    let mut overlays = element.overlay(
         tree,
         layout::Layout::new(tree.size),
         &(),
@@ -138,9 +140,7 @@ fn sticky_in_view() {
     let mut element = vertical_view();
     let mut tree = build(&mut element);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     // The sticky contents are in view, so they are not displayed on an
     // overlay.
@@ -152,9 +152,7 @@ fn sticky_partially_out_of_view() {
     let mut element = vertical_view();
     let mut tree = build(&mut element);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     // Scroll down a little: the sticky contents are partially out of the
     // visible bounds, so they are displayed on an overlay, inside them.
@@ -171,9 +169,7 @@ fn sticky_out_of_view() {
     let mut element = vertical_view();
     let mut tree = build(&mut element);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     // Scroll down, so that the sticky contents go out of view: they are
     // displayed on an overlay, inside the visible bounds.
@@ -198,9 +194,7 @@ fn sticky_pinned_to_nearest_edge() {
     .into();
     let mut tree = build(&mut element);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     // Scroll a little: the sticky contents are out of the visible bounds on
     // the bottom edge, so they are displayed on an overlay, pinned to it.
@@ -245,9 +239,7 @@ fn sticky_clamped_to_visible_bounds() {
     .into();
     let mut tree = build(&mut element);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     // Scroll down, so that the sticky contents go out of the visible bounds:
     // the overlay is clamped, and the 2000px-wide contents are displayed
@@ -273,9 +265,7 @@ fn sticky_stays_attached_to_parent_bounds() {
     .into();
     let mut tree = build(&mut element);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     // Scroll down: the sticky contents are out of the visible bounds, but
     // their parent is still visible, so they are displayed on an overlay,
@@ -317,9 +307,7 @@ fn sticky_out_of_view_horizontally() {
     let mut element = horizontal_view();
     let mut tree = build(&mut element);
 
-    element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     // Scroll to the right, so that the sticky contents go out of view: they
     // are displayed on an overlay, inside the visible bounds.

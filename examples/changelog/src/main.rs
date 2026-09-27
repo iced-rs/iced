@@ -7,7 +7,7 @@ use iced::widget::{
     button, center, column, container, markdown, pick_list, progress_bar, rich_text, row,
     scrollable, span, stack, text, text_input,
 };
-use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme};
+use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -210,7 +210,7 @@ impl Generator {
 
     fn view(&self) -> Element<'_, Message> {
         match self {
-            Self::Loading => center("Loading...").into(),
+            Self::Loading => center(text("Loading...")).into(),
             Self::Done => center(
                 column![
                     text("Changelog is up-to-date! 🎉").shaping(text::Shaping::Advanced),
@@ -322,6 +322,7 @@ impl Generator {
                             .padding(10)
                             .style(container::rounded_box),
                     )
+                    .boxed()
                 } else {
                     container(
                         scrollable(
@@ -338,6 +339,7 @@ impl Generator {
                     .width(Fill)
                     .padding(10)
                     .style(container::rounded_box)
+                    .boxed()
                 };
 
                 let review = column![container(form).height(Fill), progress]

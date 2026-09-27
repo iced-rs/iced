@@ -27,9 +27,12 @@ impl Example {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        center(numeric_input(self.value, Message::NumericInputChanged))
-            .padding(20)
-            .into()
+        center(Element::from(numeric_input(
+            self.value,
+            Message::NumericInputChanged,
+        )))
+        .padding(20)
+        .into()
     }
 }
 

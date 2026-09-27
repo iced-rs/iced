@@ -2,7 +2,7 @@ use iced::animation;
 use iced::widget::{
     center, center_x, checkbox, column, progress_bar, row, slider, transition, vertical_slider,
 };
-use iced::{Animation, Element};
+use iced::{Animation, Element, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Progress::update, Progress::view)
@@ -48,7 +48,8 @@ impl Progress {
                         bar,
                         vertical_slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01),
                     ]
-                    .spacing(20),
+                    .spacing(20)
+                    .boxed(),
                 )
             } else {
                 center(
@@ -56,7 +57,8 @@ impl Progress {
                         bar,
                         slider(0.0..=100.0, self.value, Message::SliderChanged).step(0.01)
                     ]
-                    .spacing(20),
+                    .spacing(20)
+                    .boxed(),
                 )
             },
             center_x(

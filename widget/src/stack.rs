@@ -75,7 +75,7 @@ where
     pub fn push(mut self, child: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         let child = child.into();
 
-        if !child.as_widget().is_void() {
+        if !child.is_void() {
             self.children.push(child);
         }
 
@@ -126,7 +126,7 @@ where
         tree.diff_children(&mut self.children);
 
         if let Some(base) = self.children.get(self.base_layer) {
-            let size = base.as_widget().size();
+            let size = base.size();
 
             self.width = self.width.cross(size.width);
             self.height = self.height.cross(size.height);
@@ -148,7 +148,7 @@ where
             return;
         }
 
-        self.children[self.base_layer].as_widget_mut().layout(
+        self.children[self.base_layer].layout(
             &mut tree.children[self.base_layer],
             renderer,
             &limits,
@@ -161,13 +161,13 @@ where
         let (tree_under, tree_above) = tree.children.split_at_mut(self.base_layer);
 
         under.iter_mut().zip(tree_under).for_each(|(layer, tree)| {
-            layer.as_widget_mut().layout(tree, renderer, &limits);
+            layer.layout(tree, renderer, &limits);
         });
 
         above[1..]
             .iter_mut()
             .zip(&mut tree_above[1..])
-            .for_each(|(layer, tree)| layer.as_widget_mut().layout(tree, renderer, &limits));
+            .for_each(|(layer, tree)| layer.layout(tree, renderer, &limits));
 
         tree.size = size;
     }
@@ -186,9 +186,7 @@ where
                 .iter_mut()
                 .zip(layout.iter_mut(&mut tree.children))
                 .for_each(|(child, (layout, state))| {
-                    child
-                        .as_widget_mut()
-                        .operate(state, layout, viewport, renderer, operation);
+                    child.operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -217,18 +215,14 @@ where
             .zip(layout.iter_mut(&mut tree.children).rev())
             .enumerate()
         {
-            child
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+            child.update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if shell.is_event_captured() {
                 return;
             }
 
             if i < end && is_over && !cursor.is_levitating() {
-                let interaction = child
-                    .as_widget()
-                    .mouse_interaction(tree, layout, cursor, viewport, renderer);
+                let interaction = child.mouse_interaction(tree, layout, cursor, viewport, renderer);
 
                 if interaction != mouse::Interaction::None {
                     cursor = cursor.levitate();
@@ -250,9 +244,7 @@ where
             .rev()
             .zip(layout.iter(&tree.children).rev())
             .map(|(child, (layout, tree))| {
-                child
-                    .as_widget()
-                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
+                child.mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .find(|&interaction| interaction != mouse::Interaction::None)
             .unwrap_or_default()
@@ -281,9 +273,8 @@ where
                     .rev()
                     .zip(layout.iter(&tree.children).rev())
                     .position(|(layer, (layout, tree))| {
-                        let interaction = layer
-                            .as_widget()
-                            .mouse_interaction(tree, layout, cursor, viewport, renderer);
+                        let interaction =
+                            layer.mouse_interaction(tree, layout, cursor, viewport, renderer);
 
                         interaction != mouse::Interaction::None
                     })
@@ -305,14 +296,10 @@ where
                 |i, layer: &Element<'a, Message, Theme, Renderer>, tree, layout, cursor| {
                     if i > 0 {
                         renderer.with_layer(*viewport, |renderer| {
-                            layer
-                                .as_widget()
-                                .draw(tree, renderer, theme, style, layout, cursor, viewport);
+                            layer.draw(tree, renderer, theme, style, layout, cursor, viewport);
                         });
                     } else {
-                        layer
-                            .as_widget()
-                            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+                        layer.draw(tree, renderer, theme, style, layout, cursor, viewport);
                     }
                 };
 
@@ -355,6 +342,6 @@ where
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(stack: Stack<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(stack)
+        stack.boxed()
     }
 }

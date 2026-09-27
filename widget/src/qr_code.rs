@@ -208,7 +208,7 @@ where
     Theme: Catalog + 'a,
 {
     fn from(qr_code: QRCode<'a, Theme>) -> Self {
-        Self::new(qr_code)
+        qr_code.boxed()
     }
 }
 

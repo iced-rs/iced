@@ -392,6 +392,6 @@ where
     Handle: Clone + 'a,
 {
     fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(image)
+        image.boxed()
     }
 }
