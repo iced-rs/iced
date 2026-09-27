@@ -30,17 +30,17 @@ where
 ///
 /// The view function will be called for each row in a [`Table`] and it must
 /// produce the resulting contents of a cell.
-pub fn column<'a, 'b, T, E, Message, Theme, Renderer>(
-    header: impl Into<Element<'a, Message, Theme, Renderer>>,
-    view: impl Fn(T) -> E + 'b,
+pub fn column<'a, 'b, T, W, Message, Theme, Renderer>(
+    header: impl Widget<Message, Theme, Renderer> + 'a,
+    view: impl Fn(T) -> W + 'b,
 ) -> Column<'a, 'b, T, Message, Theme, Renderer>
 where
     T: 'a,
-    E: Into<Element<'a, Message, Theme, Renderer>>,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
     Column {
-        header: header.into(),
-        view: Box::new(move |data| view(data).into()),
+        header: header.boxed(),
+        view: Box::new(move |data| view(data).boxed()),
         width: Length::Fit,
         align_x: alignment::Horizontal::Left,
         align_y: alignment::Vertical::Top,

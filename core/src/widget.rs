@@ -37,10 +37,7 @@ use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 /// [`custom_widget`]: https://github.com/iced-rs/iced/tree/master/examples/custom_widget
 /// [`geometry`]: https://github.com/iced-rs/iced/tree/master/examples/geometry
 /// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/master/wgpu
-pub trait Widget<Message, Theme, Renderer>: Node
-where
-    Renderer: crate::Renderer,
-{
+pub trait Widget<Message, Theme, Renderer>: Node {
     /// Returns the [`Size`] of the [`Widget`] in lengths.
     fn size(&self) -> Size<Length>;
 
@@ -268,10 +265,7 @@ impl Node for Void {
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void
-where
-    Renderer: crate::Renderer,
-{
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void {
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Shrink,

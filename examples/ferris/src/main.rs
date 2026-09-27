@@ -3,7 +3,7 @@ use iced::widget::{center, checkbox, column, container, image, pick_list, row, s
 use iced::window;
 use iced::{
     Bottom, Center, Color, ContentFit, Degrees, Element, Fill, Radians, Rotation, Subscription,
-    Theme,
+    Theme, Widget,
 };
 
 pub fn main() -> iced::Result {
@@ -85,16 +85,14 @@ impl Image {
     fn view(&self) -> Element<'_, Message> {
         let i_am_ferris = column![
             "Hello!",
-            Element::from(
-                image(concat!(
-                    env!("CARGO_MANIFEST_DIR"),
-                    "/../tour/images/ferris.png",
-                ))
-                .width(self.width)
-                .content_fit(self.content_fit)
-                .rotation(self.rotation)
-                .opacity(self.opacity)
-            )
+            image(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../tour/images/ferris.png",
+            ))
+            .width(self.width)
+            .content_fit(self.content_fit)
+            .rotation(self.rotation)
+            .opacity(self.opacity)
             .explain(Color::WHITE),
             "I am Ferris!"
         ]
@@ -193,9 +191,8 @@ impl std::fmt::Display for RotationStrategy {
     }
 }
 
-fn with_value<'a>(control: impl Into<Element<'a, Message>>, value: String) -> Element<'a, Message> {
-    column![control.into(), text(value).size(12).line_height(1.0)]
+fn with_value<'a>(control: impl Widget<Message> + 'a, value: String) -> impl Widget<Message> + 'a {
+    column![control, text(value).size(12).line_height(1.0)]
         .spacing(2)
         .align_x(Center)
-        .into()
 }

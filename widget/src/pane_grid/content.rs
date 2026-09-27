@@ -3,24 +3,24 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Tree};
+use crate::core::widget::{self, Tree, Void};
 use crate::core::{self, Event, Layout, Point, Rectangle, Shell, Size, Vector, Widget};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-pub struct Content<'a, Message, W, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Content<'a, Message, T, W, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    title_bar: Option<TitleBar<'a, Message, Theme, Renderer>>,
+    title_bar: Option<TitleBar<'a, Message, T, Theme, Renderer>>,
     body: W,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, W, Theme, Renderer> Content<'a, Message, W, Theme, Renderer>
+impl<'a, Message, W, Theme, Renderer> Content<'a, Message, Void, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
@@ -33,11 +33,23 @@ where
             class: Theme::default(),
         }
     }
+}
 
+impl<'a, Message, T, W, Theme, Renderer> Content<'a, Message, T, W, Theme, Renderer>
+where
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
+{
     /// Sets the [`TitleBar`] of the [`Content`].
-    pub fn title_bar(mut self, title_bar: TitleBar<'a, Message, Theme, Renderer>) -> Self {
-        self.title_bar = Some(title_bar);
-        self
+    pub fn title_bar<Title>(
+        self,
+        title_bar: TitleBar<'a, Message, Title, Theme, Renderer>,
+    ) -> Content<'a, Message, Title, W, Theme, Renderer> {
+        Content {
+            title_bar: Some(title_bar),
+            body: self.body,
+            class: self.class,
+        }
     }
 
     /// Sets the style of the [`Content`].
@@ -59,10 +71,11 @@ where
     }
 }
 
-impl<Message, W, Theme, Renderer> Content<'_, Message, W, Theme, Renderer>
+impl<Message, T, W, Theme, Renderer> Content<'_, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
+    T: Widget<Message, Theme, Renderer>,
     W: Widget<Message, Theme, Renderer>,
 {
     pub(super) fn state(&self) -> Tree {
@@ -370,10 +383,11 @@ where
     }
 }
 
-impl<Message, W, Theme, Renderer> Draggable for &Content<'_, Message, W, Theme, Renderer>
+impl<Message, T, W, Theme, Renderer> Draggable for &Content<'_, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
+    T: Widget<Message, Theme, Renderer>,
 {
     fn can_be_dragged_at(&self, tree: &Tree, layout: Layout, cursor_position: Point) -> bool {
         if let Some(title_bar) = &self.title_bar {

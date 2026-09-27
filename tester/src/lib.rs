@@ -793,25 +793,20 @@ impl<P: Program + 'static> Tester<P> {
 
 fn labeled<'a, Message, Renderer>(
     fragment: impl text::IntoFragment<'a>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Element<'a, Message, Theme, Renderer>
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Renderer: program::Renderer + 'a,
 {
-    column![
-        text(fragment).size(14).font(Font::MONOSPACE),
-        content.into()
-    ]
-    .spacing(5)
-    .into()
+    column![text(fragment).size(14).font(Font::MONOSPACE), content].spacing(5)
 }
 
 fn labeled_with<'a, Message, Renderer>(
     fragment: impl text::IntoFragment<'a>,
-    control: impl Into<Element<'a, Message, Theme, Renderer>>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Element<'a, Message, Theme, Renderer>
+    control: impl Widget<Message, Theme, Renderer> + 'a,
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Renderer: program::Renderer + 'a,
@@ -820,14 +815,13 @@ where
         row![
             text(fragment).size(14).font(Font::MONOSPACE),
             space::horizontal(),
-            control.into()
+            control,
         ]
         .spacing(5)
         .align_y(Center),
-        content.into()
+        content
     ]
     .spacing(5)
-    .into()
 }
 
 fn labeled_slider<'a, Message, Renderer>(

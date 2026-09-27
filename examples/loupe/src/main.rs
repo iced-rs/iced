@@ -56,25 +56,28 @@ mod loupe {
 
     pub fn loupe<'a, Message>(
         zoom: f32,
-        content: impl Into<Element<'a, Message>>,
-    ) -> Loupe<'a, Message>
+        content: impl iced::Widget<Message> + 'a,
+    ) -> Loupe<impl iced::Widget<Message> + 'a>
     where
         Message: 'static,
     {
         Loupe {
             zoom,
-            content: content.into().explain(Color::BLACK),
+            content: content.explain(Color::BLACK),
         }
     }
 
-    pub struct Loupe<'a, Message> {
+    pub struct Loupe<W> {
         zoom: f32,
-        content: Element<'a, Message>,
+        content: W,
     }
 
-    impl<Message> widget::Node for Loupe<'_, Message> {}
+    impl<W> widget::Node for Loupe<W> {}
 
-    impl<Message> Widget<Message, Theme, Renderer> for Loupe<'_, Message> {
+    impl<W, Message> Widget<Message, Theme, Renderer> for Loupe<W>
+    where
+        W: Widget<Message, Theme, Renderer>,
+    {
         fn tag(&self) -> widget::tree::Tag {
             self.content.tag()
         }
@@ -170,11 +173,12 @@ mod loupe {
         }
     }
 
-    impl<'a, Message> From<Loupe<'a, Message>> for Element<'a, Message, Theme, Renderer>
+    impl<'a, W, Message> From<Loupe<W>> for Element<'a, Message, Theme, Renderer>
     where
+        W: Widget<Message, Theme, Renderer> + 'a,
         Message: 'a,
     {
-        fn from(loupe: Loupe<'a, Message>) -> Self {
+        fn from(loupe: Loupe<W>) -> Self {
             loupe.boxed()
         }
     }

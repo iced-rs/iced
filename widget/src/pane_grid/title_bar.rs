@@ -4,35 +4,38 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{
-    self, Element, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{self, Event, Layout, Padding, Point, Rectangle, Shell, Size, Vector, Widget};
 use crate::pane_grid::controls::Controls;
 
 /// The title bar of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-pub struct TitleBar<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
+pub struct TitleBar<
+    'a,
+    Message,
+    C = crate::Element<'a, Message>,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    content: Element<'a, Message, Theme, Renderer>,
+    content: C,
     controls: Option<Controls<'a, Message, Theme, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
+impl<'a, Message, C, Theme, Renderer> TitleBar<'a, Message, C, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
     /// Creates a new [`TitleBar`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: C) -> Self {
         Self {
-            content: content.into(),
+            content,
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
@@ -84,8 +87,9 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> TitleBar<'_, Message, Theme, Renderer>
+impl<Message, C, Theme, Renderer> TitleBar<'_, Message, C, Theme, Renderer>
 where
+    C: Widget<Message, Theme, Renderer>,
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {

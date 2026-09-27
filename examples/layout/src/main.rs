@@ -7,7 +7,7 @@ use iced::widget::{
 };
 use iced::{
     Center, Element, Fill, FillPortion, Font, Length, Point, Rectangle, Renderer, Shrink,
-    Subscription, Theme, color,
+    Subscription, Theme, Widget, color,
 };
 
 pub fn main() -> iced::Result {
@@ -91,9 +91,9 @@ impl Layout {
         .align_y(Center);
 
         let example = center(if self.explain {
-            self.example.view().explain(color!(0x0000ff))
+            self.example.view().explain(color!(0x0000ff)).boxed()
         } else {
-            self.example.view()
+            self.example.view().boxed()
         })
         .style(|theme: &Theme| {
             let palette = theme.palette();
@@ -299,18 +299,15 @@ fn application<'a>() -> Element<'a, Message> {
 }
 
 fn quotes<'a>() -> Element<'a, Message> {
-    fn quote<'a>(content: impl Into<Element<'a, Message>>) -> Element<'a, Message> {
-        row![rule::vertical(1), content.into()]
-            .spacing(10)
-            .height(Shrink)
-            .into()
+    fn quote<'a>(content: impl Widget<Message> + 'a) -> impl Widget<Message> + 'a {
+        row![rule::vertical(1), content].spacing(10).height(Shrink)
     }
 
     fn reply<'a>(
-        original: impl Into<Element<'a, Message>>,
-        reply: impl Into<Element<'a, Message>>,
+        original: impl Widget<Message> + 'a,
+        reply: impl Widget<Message> + 'a,
     ) -> Element<'a, Message> {
-        column![quote(original), reply.into()].spacing(10).into()
+        column![quote(original), reply].spacing(10).into()
     }
 
     column![

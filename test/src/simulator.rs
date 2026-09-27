@@ -9,7 +9,7 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Point, Settings, Size, SmolStr, Widget};
+use crate::core::{Event, Point, Settings, Size, SmolStr, Widget};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -134,11 +134,11 @@ where
 
     /// Rebuilds the [`Simulator`]'s user interface with a new `element`,
     /// preserving the state of widgets with an unchanged id.
-    pub fn rebuild(mut self, element: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn rebuild(mut self, element: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         let cache = self.raw.into_cache();
 
         Self {
-            raw: UserInterface::build(element.into(), self.size, cache, &mut self.renderer),
+            raw: UserInterface::build(element, self.size, cache, &mut self.renderer),
             renderer: self.renderer,
             size: self.size,
             cursor: self.cursor,

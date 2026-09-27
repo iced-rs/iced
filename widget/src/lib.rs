@@ -159,7 +159,11 @@ pub use crate::core::theme::{self, Theme};
 pub use action::Action;
 pub use renderer::Renderer;
 
-use crate::core::widget;
+use crate::core::layout::{self, Layout};
+use crate::core::mouse;
+use crate::core::widget::tree;
+use crate::core::widget::{self, Tree};
+use crate::core::{Border, Color, Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A generic widget.
 ///
@@ -328,6 +332,22 @@ where
     {
         core::Widget::boxed(self)
     }
+
+    /// Marks the [`Element`] as _to-be-explained_.
+    ///
+    /// The [`Renderer`] will explain the layout of the [`Element`] graphically.
+    /// This can be very useful for debugging your layout!
+    ///
+    /// [`Renderer`]: crate::Renderer
+    fn explain(self, color: impl Into<Color>) -> impl core::Widget<Message, Theme, Renderer>
+    where
+        Self: Sized,
+    {
+        Explain {
+            widget: self,
+            color: color.into(),
+        }
+    }
 }
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for T
@@ -335,4 +355,131 @@ where
     T: core::Widget<Message, Theme, Renderer>,
     Renderer: core::Renderer,
 {
+}
+
+/// TODO
+pub struct Explain<W> {
+    widget: W,
+    color: Color,
+}
+
+impl<W> widget::Node for Explain<W> {}
+
+impl<W, Message, Theme, Renderer> core::Widget<Message, Theme, Renderer> for Explain<W>
+where
+    W: core::Widget<Message, Theme, Renderer>,
+    Renderer: core::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        self.widget.size()
+    }
+
+    fn tag(&self) -> tree::Tag {
+        self.widget.tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.widget.state()
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        self.widget.diff(tree);
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.widget.layout(tree, renderer, limits);
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        self.widget
+            .operate(tree, layout, viewport, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        self.widget
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &core::renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        fn explain_layout<Renderer: core::Renderer>(
+            tree: &Tree,
+            renderer: &mut Renderer,
+            color: Color,
+            layout: Layout,
+        ) {
+            renderer.fill_quad(
+                core::renderer::Quad {
+                    bounds: layout.bounds(),
+                    border: Border {
+                        color,
+                        width: 1.0,
+                        ..Border::default()
+                    },
+                    ..core::renderer::Quad::default()
+                },
+                Color::TRANSPARENT,
+            );
+
+            for (layout, tree) in layout.iter(&tree.children) {
+                explain_layout(tree, renderer, color, layout);
+            }
+        }
+
+        self.widget
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+
+        renderer.with_layer(Rectangle::INFINITE, |renderer| {
+            explain_layout(tree, renderer, self.color, layout);
+        });
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.widget
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: Vector,
+        window: Size,
+    ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        self.widget
+            .overlay(tree, layout, renderer, viewport, translation, window)
+    }
 }

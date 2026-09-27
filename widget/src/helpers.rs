@@ -65,7 +65,7 @@ macro_rules! column {
         $crate::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Column::with_children([$($crate::core::Element::from($x)),+])
+        $crate::Column::with_children([$($crate::core::Widget::boxed($x)),+])
     );
 }
 
@@ -99,7 +99,7 @@ macro_rules! row {
         $crate::Row::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Row::with_children([$($crate::core::Element::from($x)),+])
+        $crate::Row::with_children([$($crate::core::Widget::boxed($x)),+])
     );
 }
 
@@ -112,7 +112,7 @@ macro_rules! stack {
         $crate::Stack::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Stack::with_children([$($crate::core::Element::from($x)),+])
+        $crate::Stack::with_children([$($crate::core::Widget::boxed($x)),+])
     );
 }
 
@@ -536,7 +536,7 @@ where
 ///
 /// [`Stack`]: crate::Stack
 pub fn opaque<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    content: impl Widget<Message, Theme, Renderer> + 'a,
 ) -> Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -661,7 +661,7 @@ where
     }
 
     Opaque {
-        content: content.into(),
+        content: content.boxed(),
     }
     .boxed()
 }
@@ -1675,7 +1675,7 @@ pub fn mouse_area<'a, Message, W>(widget: W) -> MouseArea<'a, Message, W> {
 /// A widget that applies any `Theme` to its contents.
 pub fn themer<'a, Message, Theme, Renderer>(
     theme: Option<Theme>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    content: impl Widget<Message, Theme, Renderer> + 'a,
 ) -> Themer<'a, Message, Theme, Renderer>
 where
     Theme: theme::Base,
@@ -1721,10 +1721,14 @@ where
 ///     .into()
 /// }
 /// ```
-pub fn pane_grid<'a, T, Message, W, Theme, Renderer>(
+pub fn pane_grid<'a, T, Message, Title, W, Theme, Renderer>(
     state: &'a pane_grid::State<T>,
-    view: impl Fn(pane_grid::Pane, &'a T, bool) -> pane_grid::Content<'a, Message, W, Theme, Renderer>,
-) -> PaneGrid<'a, Message, W, Theme, Renderer>
+    view: impl Fn(
+        pane_grid::Pane,
+        &'a T,
+        bool,
+    ) -> pane_grid::Content<'a, Message, Title, W, Theme, Renderer>,
+) -> PaneGrid<'a, Message, Title, W, Theme, Renderer>
 where
     Theme: pane_grid::Catalog,
     Renderer: core::Renderer,

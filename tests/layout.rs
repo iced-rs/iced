@@ -2,7 +2,7 @@
 use iced::advanced::layout;
 use iced::advanced::widget::{self, Widget};
 use iced::widget::{column, row, space};
-use iced::{Element, Fill, FillPortion, Never, Pixels, Size, Theme};
+use iced::{Fill, FillPortion, Never, Pixels, Size, Theme};
 
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
     Size::ZERO,
@@ -396,13 +396,11 @@ struct Node {
     children: Vec<Node>,
 }
 
-fn assert_layout_eq<'a>(element: impl Into<Element<'a, Never, Theme, ()>>, expect: Node) {
-    let mut element = element.into();
+fn assert_layout_eq<'a>(mut widget: impl Widget<Never, Theme, ()> + 'a, expect: Node) {
+    let mut tree = widget::Tree::new(&widget);
 
-    let mut tree = widget::Tree::new(&element);
-    element.diff(&mut tree);
-
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    widget.diff(&mut tree);
+    widget.layout(&mut tree, &(), &DEFAULT_LIMITS);
 
     assert_eq!(to_node(&tree), expect);
 }

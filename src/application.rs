@@ -676,7 +676,7 @@ where
 /// The view logic of some [`Application`].
 ///
 /// This trait allows the [`application`] builder to take any closure that
-/// returns any `Into<Element<'_, Message>>`.
+/// returns any widget.
 pub trait ViewFn<'a, State, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,

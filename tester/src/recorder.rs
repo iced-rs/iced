@@ -16,8 +16,11 @@ use crate::test::selector;
 use std::cell::Cell;
 
 pub fn recorder<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Recorder<'a, Message, Theme, Renderer> {
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> Recorder<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
     Recorder::new(content)
 }
 
@@ -28,9 +31,9 @@ pub struct Recorder<'a, Message, Theme, Renderer> {
 }
 
 impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            content: content.into(),
+            content: content.boxed(),
             on_record: None,
             has_overlay: false,
         }

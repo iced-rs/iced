@@ -1,5 +1,5 @@
 use crate::container;
-use crate::core::{self, Element};
+use crate::core::{self, Element, Widget};
 
 /// The controls of a [`Pane`].
 ///
@@ -19,9 +19,9 @@ where
     Renderer: core::Renderer,
 {
     /// Creates a new [`Controls`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            full: content.into(),
+            full: content.boxed(),
             compact: None,
         }
     }
@@ -30,12 +30,12 @@ where
     /// If there is not enough room to show the full variant without overlap,
     /// then the compact variant will be shown instead.
     pub fn dynamic(
-        full: impl Into<Element<'a, Message, Theme, Renderer>>,
-        compact: impl Into<Element<'a, Message, Theme, Renderer>>,
+        full: impl Widget<Message, Theme, Renderer> + 'a,
+        compact: impl Widget<Message, Theme, Renderer> + 'a,
     ) -> Self {
         Self {
-            full: full.into(),
-            compact: Some(compact.into()),
+            full: full.boxed(),
+            compact: Some(compact.boxed()),
         }
     }
 }
@@ -43,7 +43,8 @@ where
 impl<'a, Message, Theme, Renderer> From<Element<'a, Message, Theme, Renderer>>
     for Controls<'a, Message, Theme, Renderer>
 where
-    Theme: container::Catalog,
+    Message: 'a,
+    Theme: container::Catalog + 'a,
     Renderer: core::Renderer,
 {
     fn from(value: Element<'a, Message, Theme, Renderer>) -> Self {

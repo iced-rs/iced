@@ -6,7 +6,7 @@ use iced::time::Instant;
 use iced::wgpu;
 use iced::widget::{center, checkbox, column, row, shader, slider, text};
 use iced::window;
-use iced::{Center, Color, Element, Fill, Subscription};
+use iced::{Center, Color, Element, Fill, Subscription, Widget};
 
 fn main() -> iced::Result {
     iced::application(IcedCubes::default, IcedCubes::update, IcedCubes::view)
@@ -139,10 +139,7 @@ impl Default for IcedCubes {
 
 fn control<'a>(
     label: &'static str,
-    control: impl Into<Element<'a, Message>>,
-) -> Element<'a, Message> {
-    row![text(label), control.into()]
-        .spacing(10)
-        .align_y(Center)
-        .into()
+    control: impl Widget<Message> + 'a,
+) -> impl Widget<Message> + 'a {
+    row![text(label), control].spacing(10).align_y(Center)
 }
