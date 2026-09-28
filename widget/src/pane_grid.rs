@@ -19,8 +19,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::{pane_grid, text};
 //!
@@ -38,7 +37,7 @@
 //!     PaneResized(pane_grid::ResizeEvent),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     pane_grid(&state.panes, |pane, state, is_maximized| {
 //!         pane_grid::Content::new(match state {
 //!             Pane::SomePane => text("This is some pane"),
@@ -47,7 +46,6 @@
 //!     })
 //!     .on_drag(Message::PaneDragged)
 //!     .on_resize(10, Message::PaneResized)
-//!     .boxed()
 //! }
 //! ```
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
@@ -118,8 +116,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{pane_grid, text};
 ///
@@ -137,7 +134,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     PaneResized(pane_grid::ResizeEvent),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     pane_grid(&state.panes, |pane, state, is_maximized| {
 ///         pane_grid::Content::new(match state {
 ///             Pane::SomePane => text("This is some pane"),
@@ -146,7 +143,6 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(10, Message::PaneResized)
-///     .boxed()
 /// }
 /// ```
 pub struct PaneGrid<'a, Message, T, W, Theme = crate::Theme, Renderer = crate::Renderer>

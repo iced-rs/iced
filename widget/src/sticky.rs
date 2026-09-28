@@ -19,9 +19,8 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
-//! # use iced::Widget;
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{column, container, scrollable, sticky, space};
 //! use iced::Fill;
 //!
@@ -29,11 +28,11 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     scrollable(column![
 //!         sticky(container("I always stay in view!").width(Fill).padding(10)),
 //!         space().height(3000),
-//!     ]).boxed()
+//!     ])
 //! }
 //! ```
 use crate::core;
@@ -70,9 +69,8 @@ use crate::core::{Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, 
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, container, scrollable, sticky, space};
 /// use iced::Fill;
 ///
@@ -80,11 +78,11 @@ use crate::core::{Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, 
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     scrollable(column![
 ///         sticky(container("I always stay in view!").width(Fill).padding(10)),
 ///         space().height(3000),
-///     ]).boxed()
+///     ])
 /// }
 /// ```
 pub struct Sticky<W> {

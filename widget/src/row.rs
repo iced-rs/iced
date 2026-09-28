@@ -12,9 +12,8 @@ use crate::core::{Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{button, row};
 ///
 /// #[derive(Debug, Clone)]
@@ -22,12 +21,12 @@ use crate::core::{Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     row![
 ///         "I am to the left!",
 ///         button("I am in the middle!"),
 ///         "I am to the right!",
-///     ].boxed()
+///     ]
 /// }
 /// ```
 pub struct Row<W> {

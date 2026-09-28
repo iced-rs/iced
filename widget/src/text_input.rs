@@ -3,8 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::text_input;
 //!
@@ -17,10 +16,9 @@
 //!     ContentChanged(String)
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     text_input("Type something here...", &state.content)
 //!         .on_input(Message::ContentChanged)
-//!         .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -53,8 +51,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_input;
 ///
@@ -67,10 +64,9 @@ use crate::core::{
 ///     ContentChanged(String)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_input("Type something here...", &state.content)
 ///         .on_input(Message::ContentChanged)
-///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {

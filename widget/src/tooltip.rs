@@ -6,23 +6,22 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{container, tooltip};
 //!
 //! enum Message {
 //!     // ...
 //! }
 //!
-//! fn view(_state: &State) -> Element<'_, Message> {
+//! fn view(_state: &State) -> impl Widget<Message> {
 //!     tooltip(
 //!         "Hover me to display the tooltip!",
 //!         container("This is the tooltip contents!")
 //!             .padding(10)
 //!             .style(container::rounded_box),
 //!         tooltip::Position::Bottom,
-//!     ).boxed()
+//!     )
 //! }
 //! ```
 use crate::container;
@@ -41,23 +40,22 @@ use crate::core::{Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{container, tooltip};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(_state: &State) -> Element<'_, Message> {
+/// fn view(_state: &State) -> impl Widget<Message> {
 ///     tooltip(
 ///         "Hover me to display the tooltip!",
 ///         container("This is the tooltip contents!")
 ///             .padding(10)
 ///             .style(container::rounded_box),
 ///         tooltip::Position::Bottom,
-///     ).boxed()
+///     )
 /// }
 /// ```
 pub struct Tooltip<'a, W, V, Theme = crate::Theme>

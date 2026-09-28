@@ -42,9 +42,8 @@ pub use crate::table::table;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{button, column};
 ///
 /// #[derive(Debug, Clone)]
@@ -52,12 +51,12 @@ pub use crate::table::table;
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     column![
 ///         "I am on top!",
 ///         button("I am in the center!"),
 ///         "I am below.",
-///     ].boxed()
+///     ]
 /// }
 /// ```
 #[macro_export]
@@ -77,9 +76,8 @@ macro_rules! column {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{button, row};
 ///
 /// #[derive(Debug, Clone)]
@@ -87,12 +85,12 @@ macro_rules! column {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     row![
 ///         "I am to the left!",
 ///         button("I am in the middle!"),
 ///         "I am to the right!",
-///     ].boxed()
+///     ]
 /// }
 /// ```
 #[macro_export]
@@ -146,11 +144,12 @@ macro_rules! grid {
 /// # mod iced {
 /// #     pub mod widget {
 /// #         macro_rules! text {
-/// #           ($($arg:tt)*) => {unimplemented!()}
+/// #           ($($arg:tt)*) => {iced_widget::text::<iced_widget::Theme>("text")}
 /// #         }
 /// #         pub(crate) use text;
 /// #     }
 /// # }
+/// # use iced_widget::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
 /// use iced::widget::text;
@@ -159,7 +158,7 @@ macro_rules! grid {
 ///     // ...
 /// }
 ///
-/// fn view(_state: &State) -> Element<Message> {
+/// fn view(_state: &State) -> impl Widget<Message> {
 ///     let simple = text!("Hello, world!");
 ///
 ///     let keyword = text!("Hello, {}", "world!");
@@ -167,7 +166,7 @@ macro_rules! grid {
 ///     let planet = "Earth";
 ///     let local_variable = text!("Hello, {planet}!");
 ///     // ...
-///     # unimplemented!()
+///     # simple
 /// }
 /// ```
 #[macro_export]
@@ -184,9 +183,8 @@ macro_rules! text {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
 /// use iced::{color, never, Font};
@@ -196,7 +194,7 @@ macro_rules! text {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     rich_text![
 ///         span("I am red!").color(color!(0xff0000)),
 ///         span(" "),
@@ -204,7 +202,6 @@ macro_rules! text {
 ///     ]
 ///     .on_link_click(never)
 ///     .size(20)
-///     .boxed()
 /// }
 /// ```
 #[macro_export]
@@ -226,19 +223,17 @@ macro_rules! rich_text {
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::container;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     container("This text is centered inside a rounded box!")
 ///         .padding(10)
 ///         .center(800)
 ///         .style(container::rounded_box)
-///         .boxed()
 /// }
 /// ```
 pub fn container<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
@@ -413,9 +408,8 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::pin;
 /// use iced::Fill;
 ///
@@ -423,11 +417,10 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     pin("This text is displayed at coordinates (50, 50)!")
 ///         .x(50)
 ///         .y(50)
-///         .boxed()
 /// }
 /// ```
 pub fn pin<W>(content: W) -> Pin<W> {
@@ -442,7 +435,6 @@ pub fn pin<W>(content: W) -> Pin<W> {
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, text, Widget};
 ///
 /// enum Message {
@@ -469,17 +461,16 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{keyed_column, text};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     keyed_column((0..=100).map(|i| {
 ///         (i, text!("Item {i}"))
-///     })).boxed()
+///     }))
 /// }
 /// ```
 pub fn keyed_column<Key, W>(children: impl IntoIterator<Item = (Key, W)>) -> keyed::Column<Key, W>
@@ -498,7 +489,6 @@ where
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{row, text, Widget};
 ///
 /// enum Message {
@@ -699,21 +689,20 @@ pub fn sensor<'a, Message, W>(content: W) -> Sensor<'a, (), Message, W> {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, scrollable, space};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
 ///         space().height(3000),
 ///         "You did it!",
-///     ]).boxed()
+///     ])
 /// }
 /// ```
 pub fn scrollable<'a, Message, W, Theme>(content: W) -> Scrollable<'a, Message, W, Theme>
@@ -731,9 +720,8 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, container, scrollable, sticky, space};
 /// use iced::Fill;
 ///
@@ -741,11 +729,11 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     scrollable(column![
 ///         sticky(container("I always stay in view!").width(Fill).padding(10)),
 ///         space().height(3000),
-///     ]).boxed()
+///     ])
 /// }
 /// ```
 pub fn sticky<W>(content: W) -> Sticky<W> {
@@ -759,7 +747,6 @@ pub fn sticky<W>(content: W) -> Sticky<W> {
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::button;
 ///
 /// #[derive(Clone)]
@@ -767,8 +754,8 @@ pub fn sticky<W>(content: W) -> Sticky<W> {
 ///     ButtonPressed,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     button("Press me!").on_press(Message::ButtonPressed).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     button("Press me!").on_press(Message::ButtonPressed)
 /// }
 /// ```
 pub fn button<'a, Message, W, Theme>(content: W) -> Button<'a, Message, W, Theme>
@@ -788,21 +775,20 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{container, tooltip};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(_state: &State) -> Element<'_, Message> {
+/// fn view(_state: &State) -> impl Widget<Message> {
 ///     tooltip(
 ///         "Hover me to display the tooltip!",
 ///         container("This is the tooltip contents!")
 ///             .padding(10)
 ///             .style(container::rounded_box),
 ///         tooltip::Position::Bottom,
-///     ).boxed()
+///     )
 /// }
 /// ```
 pub fn tooltip<'a, W, V, Theme>(
@@ -821,7 +807,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
 /// use iced::widget::text;
@@ -831,11 +817,10 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text("Hello, this is iced!")
 ///         .size(20)
 ///         .color(color!(0x0000ff))
-///         .boxed()
 /// }
 /// ```
 pub fn text<'a, Theme>(text: impl text::IntoFragment<'a>) -> Text<'a, Theme>
@@ -860,9 +845,8 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
 /// use iced::{color, never, Font};
@@ -873,7 +857,7 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     rich_text([
 ///         span("I am red!").color(color!(0xff0000)),
 ///         span(" "),
@@ -881,7 +865,6 @@ where
 ///     ])
 ///     .on_link_click(never)
 ///     .size(20)
-///     .boxed()
 /// }
 /// ```
 pub fn rich_text<'a, Link, Message, Theme>(
@@ -904,9 +887,8 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
 /// use iced::{color, never, Font};
@@ -916,7 +898,7 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     rich_text![
 ///         span("I am red!").color(color!(0xff0000)),
 ///         " ",
@@ -924,7 +906,6 @@ where
 ///     ]
 ///     .on_link_click(never)
 ///     .size(20)
-///     .boxed()
 /// }
 /// ```
 pub fn span<'a, Link>(text: impl text::IntoFragment<'a>) -> text::Span<'a, Link> {
@@ -940,8 +921,7 @@ pub use crate::markdown::view as markdown;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::checkbox;
 ///
@@ -953,11 +933,10 @@ pub use crate::markdown::view as markdown;
 ///     CheckboxToggled(bool),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     checkbox(state.is_checked)
 ///         .label("Toggle me!")
 ///         .on_toggle(Message::CheckboxToggled)
-///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -986,8 +965,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{column, radio};
 ///
@@ -1008,7 +986,7 @@ where
 ///     All,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     let a = radio(
 ///         "A",
 ///         Choice::A,
@@ -1037,7 +1015,7 @@ where
 ///         Message::RadioSelected
 ///     );
 ///
-///     column![a, b, c, all].boxed()
+///     column![a, b, c, all]
 /// }
 /// ```
 pub fn radio<'a, Message, Theme, V>(
@@ -1061,8 +1039,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::toggler;
 ///
@@ -1074,11 +1051,10 @@ where
 ///     TogglerToggled(bool),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     toggler(state.is_checked)
 ///         .label("Toggle me!")
 ///         .on_toggle(Message::TogglerToggled)
-///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1103,8 +1079,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_input;
 ///
@@ -1117,10 +1092,9 @@ where
 ///     ContentChanged(String)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_input("Type something here...", &state.content)
 ///         .on_input(Message::ContentChanged)
-///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1149,8 +1123,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_editor;
 ///
@@ -1163,11 +1136,10 @@ where
 ///     Edit(text_editor::Action)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_editor(&state.content)
 ///         .placeholder("Type something here...")
 ///         .on_action(Message::Edit)
-///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1196,8 +1168,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::slider;
 ///
@@ -1210,8 +1181,8 @@ where
 ///     ValueChanged(f32),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     slider(0.0..=100.0, state.value, Message::ValueChanged).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     slider(0.0..=100.0, state.value, Message::ValueChanged)
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1242,8 +1213,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::vertical_slider;
 ///
@@ -1256,8 +1226,8 @@ where
 ///     ValueChanged(f32),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged)
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1288,8 +1258,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::pick_list;
 ///
@@ -1310,7 +1279,7 @@ where
 ///     FruitSelected(Fruit),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     let fruits = [
 ///         Fruit::Apple,
 ///         Fruit::Orange,
@@ -1325,7 +1294,6 @@ where
 ///     )
 ///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
-///     .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1369,8 +1337,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::combo_box;
 ///
@@ -1392,14 +1359,13 @@ where
 ///     FruitSelected(Fruit),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     combo_box(
 ///         &state.fruits,
 ///         "Select your favorite fruit...",
 ///         state.favorite.as_ref(),
 ///         Message::FruitSelected
 ///     )
-///     .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1453,8 +1419,7 @@ pub fn space() -> Space {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::progress_bar;
 ///
@@ -1466,8 +1431,8 @@ pub fn space() -> Space {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     progress_bar(0.0..=100.0, state.progress).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     progress_bar(0.0..=100.0, state.progress)
 /// }
 /// ```
 pub fn progress_bar<'a, Theme>(range: RangeInclusive<f32>, value: f32) -> ProgressBar<'a, Theme>
@@ -1488,15 +1453,14 @@ where
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::image;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     image("ferris.png").boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     image("ferris.png")
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -1517,15 +1481,14 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::svg;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     svg("tiger.svg").boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     svg("tiger.svg")
 /// }
 /// ```
 #[cfg(feature = "svg")]
@@ -1592,9 +1555,8 @@ where
 /// # Example: Drawing a Simple Circle
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::mouse;
 /// use iced::widget::canvas;
@@ -1634,8 +1596,8 @@ where
 /// }
 ///
 /// // Finally, we simply use our `Circle` to create the `Canvas`!
-/// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-///     canvas(Circle { radius: 50.0 }).boxed()
+/// fn view<Message>(_state: &State) -> impl Widget<Message> {
+///     canvas(Circle { radius: 50.0 })
 /// }
 /// ```
 #[cfg(feature = "canvas")]
@@ -1657,8 +1619,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::qr_code;
 ///
@@ -1671,8 +1632,8 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     qr_code(&state.data).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     qr_code(&state.data)
 /// }
 /// ```
 #[cfg(feature = "qr_code")]
@@ -1718,8 +1679,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{pane_grid, text};
 ///
@@ -1737,7 +1697,7 @@ where
 ///     PaneResized(pane_grid::ResizeEvent),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     pane_grid(&state.panes, |pane, state, is_maximized| {
 ///         pane_grid::Content::new(match state {
 ///             Pane::SomePane => text("This is some pane"),
@@ -1746,7 +1706,6 @@ where
 ///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(10, Message::PaneResized)
-///     .boxed()
 /// }
 /// ```
 pub fn pane_grid<'a, T, Message, Title, W, Theme, Renderer>(
@@ -1799,15 +1758,14 @@ pub fn responsive<'a, W>(f: impl Fn(Size) -> W + 'a) -> Responsive<'a, W> {
 ///
 /// ```
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// use iced::widget::{transition, progress_bar};
 /// use iced::Animation;
 ///
-/// fn smooth_progress_bar<'a, Message: 'a>(progress: f32) -> Element<'a, Message> {
+/// fn smooth_progress_bar<Message>(progress: f32) -> impl Widget<Message> {
 ///     transition(progress, || Animation::new(0.).quick(), |animation, now| {
 ///         progress_bar(0.0..=1.0, animation.interpolate_with(std::convert::identity, now))
-///     }).boxed()
+///     })
 /// }
 /// ```
 pub fn transition<'a, Message, W, P>(

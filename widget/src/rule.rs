@@ -3,9 +3,8 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::rule;
 //!
 //! #[derive(Clone)]
@@ -13,8 +12,8 @@
 //!     // ...,
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     rule::horizontal(2).boxed()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     rule::horizontal(2)
 //! }
 //! ```
 use crate::core;
@@ -54,9 +53,8 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::rule;
 ///
 /// #[derive(Clone)]
@@ -64,8 +62,8 @@ where
 ///     // ...,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     rule::horizontal(2).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     rule::horizontal(2)
 /// }
 /// ```
 pub struct Rule<'a, Theme = crate::Theme>

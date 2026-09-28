@@ -48,21 +48,20 @@ pub use column::Column;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::keyed_column;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     keyed_column![
 ///         (0, "Item 0"),
 ///         (1, "Item 1"),
 ///         (2, "Item 2"),
-///     ].boxed()
+///     ]
 /// }
 /// ```
 #[macro_export]

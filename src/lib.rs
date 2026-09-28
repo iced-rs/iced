@@ -35,7 +35,7 @@
 //!     iced::run(update, view)
 //! }
 //! # fn update(state: &mut (), message: ()) {}
-//! # fn view(state: &()) -> iced::Element<'_, ()> { iced::widget::text("").boxed() }
+//! # fn view(state: &()) -> impl Widget<()> { iced::widget::text("") }
 //! ```
 //!
 //! Define an `update` function to __change__ your state:
@@ -55,10 +55,9 @@
 //! ```standalone_crate
 //! # use iced::Widget;
 //! use iced::widget::{button, text};
-//! use iced::Element;
 //!
-//! fn view(counter: &u64) -> Element<'_, Message> {
-//!     button(text(counter)).on_press(Message::Increment).boxed()
+//! fn view(counter: &u64) -> impl Widget<Message> {
+//!     button(text(counter)).on_press(Message::Increment)
 //! }
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
@@ -91,20 +90,19 @@
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
 //! # use iced::widget::{button, text};
-//! # use iced::Element;
 //! fn update(counter: &mut Counter, message: Message) {
 //!     match message {
 //!         Message::Increment => counter.value += 1,
 //!     }
 //! }
 //!
-//! fn view(counter: &Counter) -> Element<'_, Message> {
-//!     button(text(counter.value)).on_press(Message::Increment).boxed()
+//! fn view(counter: &Counter) -> impl Widget<Message> {
+//!     button(text(counter.value)).on_press(Message::Increment)
 //! }
 //! ```
 //!
 //! ## Widgets and Elements
-//! The `view` function must return an [`Element`]. An [`Element`] is just a generic [`widget`].
+//! The `view` function must return a [`Widget`]. An [`Element`] is a boxed [`Widget`], which can be used just as well.
 //!
 //! The [`widget`] module contains a bunch of functions to help you build
 //! and use widgets.
@@ -117,22 +115,20 @@
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
 //! use iced::widget::{button, column, text};
-//! use iced::Element;
 //!
-//! fn view(counter: &Counter) -> Element<'_, Message> {
+//! fn view(counter: &Counter) -> impl Widget<Message> {
 //!     column![
 //!         text(counter.value).size(20),
 //!         button("Increment").on_press(Message::Increment),
 //!     ]
 //!     .spacing(10)
-//!     .boxed()
 //! }
 //! ```
 //!
-//! A widget can be turned into an [`Element`] by calling `into`.
+//! A widget can be turned into an [`Element`] by calling `boxed`.
 //!
 //! Widgets and elements are generic over the message type they produce. The
-//! [`Element`] returned by `view` must have the same `Message` type as
+//! [`Widget`] returned by `view` must have the same `Message` type as
 //! your `update`.
 //!
 //! ## Layout
@@ -147,9 +143,9 @@
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::{column, container, row};
-//! use iced::{Fill, Element};
+//! use iced::Fill;
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     container(
 //!         column![
 //!             "Top",
@@ -161,7 +157,6 @@
 //!     .padding(10)
 //!     .center_x(Fill)
 //!     .center_y(Fill)
-//!     .boxed()
 //! }
 //! ```
 //!
@@ -191,10 +186,9 @@
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::container;
-//! use iced::Element;
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     container("I am 300px tall!").height(300).boxed()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     container("I am 300px tall!").height(300)
 //! }
 //! ```
 //!
@@ -223,7 +217,7 @@
 //!     Theme::TokyoNight
 //! }
 //! # fn update(state: &mut State, message: ()) {}
-//! # fn view(state: &State) -> iced::Element<'_, ()> { iced::widget::text("").boxed() }
+//! # fn view(state: &State) -> impl Widget<()> { iced::widget::text("") }
 //! ```
 //!
 //! The `theme` function takes the current state of the application, allowing the
@@ -243,10 +237,9 @@
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::container;
-//! use iced::Element;
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     container("I am a rounded box!").style(container::rounded_box).boxed()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     container("I am a rounded box!").style(container::rounded_box)
 //! }
 //! ```
 //!
@@ -259,9 +252,9 @@
 //! # #[derive(Clone)]
 //! # enum Message {}
 //! use iced::widget::button;
-//! use iced::{Element, Theme};
+//! use iced::Theme;
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     button("I am a styled button!").style(|theme: &Theme, status| {
 //!         let palette = theme.palette();
 //!
@@ -273,7 +266,6 @@
 //!             _ => button::primary(theme, status),
 //!         }
 //!     })
-//!     .boxed()
 //! }
 //! ```
 //!
@@ -367,7 +359,7 @@
 //! }
 //! # fn new() -> State { State }
 //! # fn update(state: &mut State, message: Message) {}
-//! # fn view(state: &State) -> iced::Element<'_, Message> { iced::widget::text("").boxed() }
+//! # fn view(state: &State) -> impl Widget<Message> { iced::widget::text("") }
 //! ```
 //!
 //! A [`Subscription`] is [a _declarative_ builder of streams](Subscription#the-lifetime-of-a-subscription)
@@ -413,7 +405,7 @@
 //! use contacts::Contacts;
 //! use conversation::Conversation;
 //!
-//! use iced::{Element, Task, Widget};
+//! use iced::{Task, Widget};
 //!
 //! struct State {
 //!     screen: Screen,
@@ -460,7 +452,7 @@
 //!     }
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     match &state.screen {
 //!         Screen::Contacts(contacts) => contacts.view().map(Message::Contacts).boxed(),
 //!         Screen::Conversation(conversation) => conversation.view().map(Message::Conversation).boxed(),

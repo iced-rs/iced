@@ -250,7 +250,7 @@ where
     /// use counter::Counter;
     ///
     /// use iced::widget::row;
-    /// use iced::{Element, Function, Widget};
+    /// use iced::{Function, Widget};
     ///
     /// struct ManyCounters {
     ///     counters: Vec<Counter>,
@@ -262,7 +262,7 @@ where
     /// }
     ///
     /// impl ManyCounters {
-    ///     pub fn view(&self) -> Element<Message> {
+    ///     pub fn view(&self) -> impl Widget<Message, iced_widget::Theme, ()> {
     ///         // We can quickly populate a `row` by mapping our counters
     ///         row(
     ///             self.counters
@@ -276,7 +276,6 @@ where
     ///                     counter.map(Message::Counter.with(index)).boxed()
     ///                 }),
     ///         )
-    ///         .boxed()
     ///     }
     /// }
     /// ```

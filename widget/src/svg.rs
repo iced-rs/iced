@@ -3,17 +3,16 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::svg;
 //!
 //! enum Message {
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     svg("tiger.svg").boxed()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     svg("tiger.svg")
 //! }
 //! ```
 use crate::core::layout;
@@ -41,17 +40,16 @@ pub use crate::core::svg::Handle;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::svg;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     svg("tiger.svg").boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     svg("tiger.svg")
 /// }
 /// ```
 pub struct Svg<'a, Theme = crate::Theme>

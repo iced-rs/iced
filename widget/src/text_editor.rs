@@ -3,8 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::text_editor;
 //!
@@ -17,11 +16,10 @@
 //!     Edit(text_editor::Action)
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     text_editor(&state.content)
 //!         .placeholder("Type something here...")
 //!         .on_action(Message::Edit)
-//!         .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -63,8 +61,7 @@ pub use text::editor::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_editor;
 ///
@@ -77,11 +74,10 @@ pub use text::editor::{
 ///     Edit(text_editor::Action)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_editor(&state.content)
 ///         .placeholder("Type something here...")
 ///         .on_action(Message::Edit)
-///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -152,8 +148,7 @@ where
     ///
     /// ```no_run
     /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-    /// # use iced::Widget;
-    /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+    /// # use iced::widget::Widget;
     /// #
     /// use iced::color;
     /// use iced::widget::text;
@@ -164,10 +159,9 @@ where
     ///    content: text_editor::Content,
     /// }
     ///
-    /// fn view(state: &State) -> Element<'_, ()> {
+    /// fn view(state: &State) -> impl Widget<()> {
     ///     text_editor(&state.content)
     ///         .highlight("rust")
-    ///         .boxed()
     /// }
     /// ```
     #[cfg(feature = "highlighter")]

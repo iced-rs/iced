@@ -3,8 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::combo_box;
 //!
@@ -26,14 +25,13 @@
 //!     FruitSelected(Fruit),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     combo_box(
 //!         &state.fruits,
 //!         "Select your favorite fruit...",
 //!         state.favorite.as_ref(),
 //!         Message::FruitSelected
 //!     )
-//!     .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -80,8 +78,7 @@ use std::sync::atomic::{self, AtomicU64};
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::combo_box;
 ///
@@ -103,14 +100,13 @@ use std::sync::atomic::{self, AtomicU64};
 ///     FruitSelected(Fruit),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     combo_box(
 ///         &state.fruits,
 ///         "Select your favorite fruit...",
 ///         state.favorite.as_ref(),
 ///         Message::FruitSelected
 ///     )
-///     .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {

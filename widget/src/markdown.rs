@@ -8,7 +8,6 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::markdown;
 //! use iced::{Theme, Widget};
@@ -28,14 +27,13 @@
 //!         }
 //!     }
 //!
-//!     fn view(&self) -> Element<'_, Message> {
+//!     fn view(&self) -> impl Widget<Message> {
 //!         markdown::view(
 //!             &self.markdown,
 //!             markdown::Settings::default(),
 //!             Theme::TokyoNight,
 //!         )
 //!             .map(Message::LinkClicked)
-//!             .boxed()
 //!     }
 //!
 //!     fn update(state: &mut State, message: Message) {
@@ -963,7 +961,6 @@ impl Bullet {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::markdown;
 /// use iced::{Theme, Widget};
@@ -983,14 +980,13 @@ impl Bullet {
 ///         }
 ///     }
 ///
-///     fn view(&self) -> Element<'_, Message> {
+///     fn view(&self) -> impl Widget<Message> {
 ///         markdown::view(
 ///             &self.markdown,
 ///             markdown::Settings::default(),
 ///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
-///             .boxed()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -1723,7 +1719,6 @@ impl Default for Settings {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::markdown;
 /// use iced::{Theme, Widget};
@@ -1743,14 +1738,13 @@ impl Default for Settings {
 ///         }
 ///     }
 ///
-///     fn view(&self) -> Element<'_, Message> {
+///     fn view(&self) -> impl Widget<Message> {
 ///         markdown::view(
 ///             &self.markdown,
 ///             markdown::Settings::default(),
 ///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
-///             .boxed()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {

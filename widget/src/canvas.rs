@@ -3,9 +3,8 @@
 //! # Example: Drawing a Simple Circle
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::mouse;
 //! use iced::widget::canvas;
@@ -45,8 +44,8 @@
 //! }
 //!
 //! // Finally, we simply use our `Circle` to create the `Canvas`!
-//! fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-//!     canvas(Circle { radius: 50.0 }).boxed()
+//! fn view<Message>(_state: &State) -> impl Widget<Message> {
+//!     canvas(Circle { radius: 50.0 })
 //! }
 //! ```
 mod program;
@@ -90,9 +89,8 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// # Example: Drawing a Simple Circle
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::mouse;
 /// use iced::widget::canvas;
@@ -132,8 +130,8 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// }
 ///
 /// // Finally, we simply use our `Circle` to create the `Canvas`!
-/// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-///     canvas(Circle { radius: 50.0 }).boxed()
+/// fn view<Message>(_state: &State) -> impl Widget<Message> {
+///     canvas(Circle { radius: 50.0 })
 /// }
 /// ```
 #[derive(Debug)]

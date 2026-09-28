@@ -3,8 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::pick_list;
 //!
@@ -25,7 +24,7 @@
 //!     FruitSelected(Fruit),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     let fruits = [
 //!         Fruit::Apple,
 //!         Fruit::Orange,
@@ -40,7 +39,6 @@
 //!     )
 //!     .on_select(Message::FruitSelected)
 //!     .placeholder("Select your favorite fruit...")
-//!     .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -88,8 +86,7 @@ use std::f32;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::pick_list;
 ///
@@ -110,7 +107,7 @@ use std::f32;
 ///     FruitSelected(Fruit),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     let fruits = [
 ///         Fruit::Apple,
 ///         Fruit::Orange,
@@ -125,7 +122,6 @@ use std::f32;
 ///     )
 ///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
-///     .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {

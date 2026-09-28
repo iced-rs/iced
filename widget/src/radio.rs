@@ -3,8 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::{column, radio};
 //!
@@ -25,7 +24,7 @@
 //!     All,
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     let a = radio(
 //!         "A",
 //!         Choice::A,
@@ -54,7 +53,7 @@
 //!         Message::RadioSelected
 //!     );
 //!
-//!     column![a, b, c, all].boxed()
+//!     column![a, b, c, all]
 //! }
 //! ```
 use crate::core::alignment;
@@ -76,8 +75,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{column, radio};
 ///
@@ -98,7 +96,7 @@ use crate::core::{
 ///     All,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     let a = radio(
 ///         "A",
 ///         Choice::A,
@@ -127,7 +125,7 @@ use crate::core::{
 ///         Message::RadioSelected
 ///     );
 ///
-///     column![a, b, c, all].boxed()
+///     column![a, b, c, all]
 /// }
 /// ```
 pub struct Radio<'a, Message, Theme = crate::Theme>

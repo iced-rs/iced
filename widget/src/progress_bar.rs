@@ -3,8 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::progress_bar;
 //!
@@ -16,8 +15,8 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     progress_bar(0.0..=100.0, state.progress).boxed()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     progress_bar(0.0..=100.0, state.progress)
 //! }
 //! ```
 use crate::core::border::{self, Border};
@@ -34,8 +33,7 @@ use std::ops::RangeInclusive;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::progress_bar;
 ///
@@ -47,8 +45,8 @@ use std::ops::RangeInclusive;
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     progress_bar(0.0..=100.0, state.progress).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     progress_bar(0.0..=100.0, state.progress)
 /// }
 /// ```
 pub struct ProgressBar<'a, Theme = crate::Theme>

@@ -3,8 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # use iced::Widget;
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::qr_code;
 //!
@@ -17,8 +16,8 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     qr_code(&state.data).boxed()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     qr_code(&state.data)
 //! }
 //! ```
 use crate::Renderer;
@@ -42,8 +41,7 @@ const QUIET_ZONE: usize = 2;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # use iced::Widget;
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::qr_code;
 ///
@@ -56,8 +54,8 @@ const QUIET_ZONE: usize = 2;
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     qr_code(&state.data).boxed()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     qr_code(&state.data)
 /// }
 /// ```
 pub struct QRCode<'a, Theme = crate::Theme>
