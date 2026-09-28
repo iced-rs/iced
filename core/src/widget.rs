@@ -131,7 +131,11 @@ pub trait Widget<Message, Theme, Renderer>: Node {
         Vec::new()
     }
 
-    /// TODO
+    /// Applies a transformation to the produced message of this [`Widget`],
+    /// returning a [`Map`].
+    ///
+    /// This method is useful when you want to decouple different parts of your
+    /// UI and make them __composable__.
     fn map<F, B>(self, f: F) -> Map<Self, F, Message>
     where
         Self: Sized,
@@ -144,7 +148,7 @@ pub trait Widget<Message, Theme, Renderer>: Node {
         }
     }
 
-    /// TODO
+    /// Boxes this [`Widget`], turning it into a generic [`Element`].
     fn boxed<'a>(self) -> Element<'a, Message, Theme, Renderer>
     where
         Self: Sized + 'a,
@@ -153,7 +157,12 @@ pub trait Widget<Message, Theme, Renderer>: Node {
     }
 }
 
-/// TODO
+/// A node in the widget tree.
+///
+/// Every [`Widget`] is a node, but so are things that may not hold a widget
+/// at all—like [`Option`] and [`Void`].
+///
+/// A node exposes whether it is [`Void`], so containers can filter it out.
 pub trait Node {
     /// Returns whether the [`Widget`] is [`Void`].
     fn is_void(&self) -> bool {
@@ -288,7 +297,9 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void {
     }
 }
 
-/// TODO
+/// A [`Widget`] that transforms the produced message of another widget.
+///
+/// This widget is returned by [`Widget::map`].
 pub struct Map<W, F, A> {
     widget: W,
     mapper: F,

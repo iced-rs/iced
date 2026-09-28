@@ -8,11 +8,11 @@ use crate::core::{Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget}
 
 /// A container that displays children on top of each other.
 ///
-/// The first [`Element`] dictates the intrinsic [`Size`] of a [`Stack`] and
-/// will be displayed as the base layer. Every consecutive [`Element`] will be
+/// The first [`Widget`] dictates the intrinsic [`Size`] of a [`Stack`] and
+/// will be displayed as the base layer. Every consecutive [`Widget`] will be
 /// rendered on top; on its own layer.
 ///
-/// You can use [`push_under`](Self::push_under) to push an [`Element`] under
+/// You can use [`push_under`](Self::push_under) to push a [`Widget`] under
 /// the current [`Stack`] without affecting its intrinsic [`Size`].
 ///
 /// Keep in mind that too much layering will normally produce bad UX as well as
@@ -36,7 +36,7 @@ impl<W> Stack<W> {
         Self::from_vec(Vec::with_capacity(capacity))
     }
 
-    /// Creates a [`Stack`] with the given elements.
+    /// Creates a [`Stack`] with the given widgets.
     pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
     where
         W: Node,
@@ -69,7 +69,7 @@ impl<W> Stack<W> {
         self
     }
 
-    /// Adds an element on top of the [`Stack`].
+    /// Adds a widget on top of the [`Stack`].
     pub fn push(mut self, child: impl Into<W>) -> Self
     where
         W: Node,
@@ -83,7 +83,7 @@ impl<W> Stack<W> {
         self
     }
 
-    /// Adds an element under the [`Stack`].
+    /// Adds a widget under the [`Stack`].
     pub fn push_under(mut self, child: impl Into<W>) -> Self {
         self.children.insert(0, child.into());
         self.base_layer += 1;

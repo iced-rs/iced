@@ -125,7 +125,7 @@ where
         self
     }
 
-    /// Turns the [`Menu`] into an overlay [`Element`] at the given target
+    /// Turns the [`Menu`] into an [`overlay::Element`] at the given target
     /// position.
     ///
     /// `position` is the target's position in screen coordinates, and

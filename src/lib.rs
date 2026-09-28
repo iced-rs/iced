@@ -468,7 +468,7 @@
 //! Effectively, this approach lets you "tell a story" to connect different screens together in a type safe
 //! way.
 //!
-//! Furthermore, functor methods like [`Task::map`], [`Element::map`], and [`Subscription::map`] make composition
+//! Furthermore, functor methods like [`Task::map`], [`Widget::map`], and [`Subscription::map`] make composition
 //! seamless.
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/bdf0430880f5c29443f5f0a0ae4895866dfef4c6/docs/logo.svg"
@@ -616,7 +616,8 @@ pub mod overlay {
 
     /// A generic overlay.
     ///
-    /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
+    /// This is an alias of an [`overlay::Element`] with default `Theme` and
+    /// `Renderer` parameters.
     ///
     /// [`overlay::Element`]: crate::core::overlay::Element
     pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =

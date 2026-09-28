@@ -766,7 +766,7 @@ where
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given
-/// [`Element`] and [`tooltip::Position`].
+/// [`Widget`] and [`tooltip::Position`].
 ///
 /// Tooltips display a hint of information over some element when hovered.
 ///

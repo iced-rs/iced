@@ -31,7 +31,7 @@ impl<W> Grid<W> {
         Self::from_vec(Vec::with_capacity(capacity))
     }
 
-    /// Creates a [`Grid`] with the given elements.
+    /// Creates a [`Grid`] with the given widgets.
     pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
     where
         W: Node,
@@ -89,7 +89,7 @@ impl<W> Grid<W> {
         self
     }
 
-    /// Adds an [`Element`] to the [`Grid`].
+    /// Adds a [`Widget`] to the [`Grid`].
     pub fn push(mut self, child: impl Into<W>) -> Self
     where
         W: Node,
@@ -98,7 +98,7 @@ impl<W> Grid<W> {
         self
     }
 
-    /// Adds an element to the [`Grid`], if `Some`.
+    /// Adds a widget to the [`Grid`], if `Some`.
     pub fn push_maybe(self, child: Option<impl Into<W>>) -> Self
     where
         W: Node,

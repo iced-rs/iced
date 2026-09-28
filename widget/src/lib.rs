@@ -165,19 +165,24 @@ use crate::core::widget::tree;
 use crate::core::widget::{self, Tree};
 use crate::core::{Border, Color, Event, Length, Rectangle, Shell, Size, Vector};
 
-/// A generic widget.
+/// A boxed [`Widget`].
 ///
-/// This is an alias of an `iced_native` element with a default `Renderer`.
+/// This is an alias of [`core::Element`] with default `Theme` and
+/// `Renderer` parameters.
 pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
     crate::core::Element<'a, Message, Theme, Renderer>;
 
-/// TODO
+/// A widget that can be rendered by iced.
+///
+/// This trait extends [`core::Widget`] with a few convenient methods—like
+/// [`Widget::map`], [`Widget::boxed`], and [`Widget::explain`]—and defaults
+/// the `Theme` and `Renderer` parameters to iced's.
 pub trait Widget<Message, Theme = crate::Theme, Renderer = crate::Renderer>:
     core::Widget<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    /// Applies a transformation to the produced message of the [`Element`].
+    /// Applies a transformation to the produced message of this [`Widget`].
     ///
     /// This method is useful when you want to decouple different parts of your
     /// UI and make them __composable__.
@@ -324,7 +329,7 @@ where
         core::Widget::map(self, f)
     }
 
-    /// TODO
+    /// Boxes this [`Widget`], turning it into a generic [`Element`].
     fn boxed<'a>(self) -> Element<'a, Message, Theme, Renderer>
     where
         Self: Sized + 'a,
@@ -332,9 +337,9 @@ where
         core::Widget::boxed(self)
     }
 
-    /// Marks the [`Element`] as _to-be-explained_.
+    /// Marks this [`Widget`] as _to-be-explained_.
     ///
-    /// The [`Renderer`] will explain the layout of the [`Element`] graphically.
+    /// The [`Renderer`] will explain its layout graphically.
     /// This can be very useful for debugging your layout!
     ///
     /// [`Renderer`]: crate::Renderer
@@ -356,7 +361,14 @@ where
 {
 }
 
-/// TODO
+/// A [`Widget`] that explains the layout of its child.
+///
+/// The [`Renderer`] will explain the layout graphically. This can be very
+/// useful for debugging your layout!
+///
+/// This widget is returned by [`Widget::explain`].
+///
+/// [`Renderer`]: crate::Renderer
 pub struct Explain<W> {
     widget: W,
     color: Color,

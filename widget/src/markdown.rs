@@ -625,7 +625,7 @@ impl Content {
 
     /// Returns the Markdown items, ready to be rendered.
     ///
-    /// You can use [`view`] to turn them into an [`Element`].
+    /// You can use [`view`] to turn them into a [`Widget`].
     pub fn items(&self) -> &[Item] {
         &self.items
     }

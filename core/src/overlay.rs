@@ -74,10 +74,10 @@ where
     }
 }
 
-/// Returns the overlays of the given [`Element`] children.
+/// Returns the overlays of the given [`Widget`] children.
 ///
 /// This method will generally only be used by advanced users that are
-/// implementing the [`Widget`](crate::Widget) trait.
+/// implementing the [`Widget`] trait.
 pub fn from_children<'a, Message, Theme, Renderer>(
     children: &'a mut [impl Widget<Message, Theme, Renderer>],
     tree: &'a mut Tree,

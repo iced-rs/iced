@@ -50,7 +50,7 @@ impl<W> Column<W> {
         Self::from_vec(Vec::with_capacity(capacity))
     }
 
-    /// Creates a [`Column`] with the given elements.
+    /// Creates a [`Column`] with the given widgets.
     pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
     where
         W: Node,
@@ -114,7 +114,7 @@ impl<W> Column<W> {
         self
     }
 
-    /// Adds an element to the [`Column`].
+    /// Adds a [`Widget`] to the [`Column`].
     pub fn push(mut self, child: impl Into<W>) -> Self
     where
         W: Node,
