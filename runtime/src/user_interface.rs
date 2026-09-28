@@ -9,8 +9,7 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Point, PointerInput, Rectangle, Shell, Size, Vector,
-    Window,
+    Clipboard, Element, InputMethod, Layout, PointerInput, Rectangle, Shell, Size, Vector, Window,
 };
 
 /// A set of interactive graphical elements with a specific [`Layout`].

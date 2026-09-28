@@ -6,7 +6,7 @@ use crate::shell;
 use crate::touch;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Border, Color, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::{Border, Color, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
 use std::borrow::{Borrow, BorrowMut};
 

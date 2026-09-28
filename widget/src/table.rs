@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::{
-    Alignment, Background, Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget,
+    Alignment, Background, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
 };
 
 /// Creates a new [`Table`] with the given columns and rows.

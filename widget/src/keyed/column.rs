@@ -7,8 +7,8 @@ use crate::core::touch;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Element, Event, Layout, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 /// A container that distributes its contents vertically while keeping continuity.

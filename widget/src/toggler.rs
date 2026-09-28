@@ -41,7 +41,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, PointerInput,
+    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, PointerInput,
     Rectangle, Shell, Size, Theme, Widget,
 };
 

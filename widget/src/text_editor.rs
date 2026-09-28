@@ -46,7 +46,7 @@ use crate::core::touch;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Point, PointerInput,
+    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, PointerInput,
     Rectangle, Shell, Size, Theme,
 };
 

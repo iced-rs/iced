@@ -7,7 +7,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{self, Event, Length, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};

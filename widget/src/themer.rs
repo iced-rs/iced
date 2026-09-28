@@ -8,8 +8,7 @@ use crate::core::touch;
 use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that applies any `Theme` to its contents.

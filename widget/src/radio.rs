@@ -67,8 +67,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Font, Layout, Length, Pixels, Point, PointerInput,
-    Rectangle, Shell, Size, Theme, Widget,
+    Background, Color, Element, Event, Font, Layout, Length, Pixels, PointerInput, Rectangle,
+    Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.

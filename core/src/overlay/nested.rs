@@ -5,7 +5,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::widget;
-use crate::{Event, Layout, Point, PointerInput, Shell, Size};
+use crate::{Event, Layout, PointerInput, Shell, Size};
 
 /// A container of nested overlays.
 pub struct Nested<'a, Message, Theme, Renderer> {

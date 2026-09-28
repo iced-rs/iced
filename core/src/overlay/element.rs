@@ -6,7 +6,7 @@ use crate::renderer;
 use crate::shell;
 use crate::touch;
 use crate::widget;
-use crate::{Event, Layout, Point, Shell, Size};
+use crate::{Event, Layout, Shell, Size};
 
 /// A generic [`Overlay`].
 pub struct Element<'a, Message, Theme, Renderer> {

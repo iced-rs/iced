@@ -9,7 +9,7 @@ use crate::core::time::Instant;
 use crate::core::touch;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Element, Length, Point, PointerInput, Size, Widget};
+use crate::core::{Element, Length, PointerInput, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::lazy::Lazy;

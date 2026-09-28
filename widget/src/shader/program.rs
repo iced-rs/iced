@@ -1,6 +1,6 @@
+use crate::core::Rectangle;
 use crate::core::mouse;
 use crate::core::touch;
-use crate::core::{Point, Rectangle};
 use crate::renderer::wgpu::Primitive;
 use crate::shader::{self, Action};
 

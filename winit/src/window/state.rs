@@ -1,6 +1,6 @@
 use crate::conversion;
 use crate::core::renderer;
-use crate::core::{Color, Point, Size};
+use crate::core::{Color, Size};
 use crate::core::{mouse, theme, touch, window};
 use crate::graphics::Viewport;
 use crate::program::{self, Program};
@@ -18,18 +18,6 @@ enum TouchState {
     Unavailable(winit::dpi::PhysicalPosition<f64>),
     /// The default state
     Unknown,
-}
-
-impl TouchState {
-    pub fn map<U, F>(self, f: F) -> Option<U>
-    where
-        F: FnOnce(winit::dpi::PhysicalPosition<f64>) -> U,
-    {
-        match self {
-            Self::Available(i) | Self::Unavailable(i) => Some(f(i)),
-            _ => None,
-        }
-    }
 }
 
 /// The state of the window of a [`Program`].

@@ -7,7 +7,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Element, Event, Layout, Length, Padding, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
+    Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically.

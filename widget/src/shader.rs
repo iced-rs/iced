@@ -10,7 +10,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{Element, Event, Length, Point, Rectangle, Shell, Size};
+use crate::core::{Element, Event, Length, Rectangle, Shell, Size};
 use crate::renderer::wgpu::primitive;
 
 use std::marker::PhantomData;

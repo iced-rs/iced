@@ -5,7 +5,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{Operation, Tree};
-use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Element, Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents on a responsive grid.
 pub struct Grid<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {

@@ -11,7 +11,7 @@ use crate::renderer;
 use crate::touch;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Event, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::{Event, Layout, Rectangle, Shell, Size, Vector};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
