@@ -1,6 +1,6 @@
 use iced_wgpu::Renderer;
 use iced_widget::{Widget, bottom, column, row, slider, text, text_input};
-use iced_winit::core::{Color, Element, Theme};
+use iced_winit::core::{Color, Theme};
 
 pub struct Controls {
     background_color: Color,
@@ -38,7 +38,7 @@ impl Controls {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message, Theme, Renderer> {
+    pub fn view(&self) -> impl Widget<Message, Theme, Renderer> {
         let background_color = self.background_color;
 
         let sliders = row![
@@ -77,6 +77,5 @@ impl Controls {
             .spacing(10),
         )
         .padding(10)
-        .boxed()
     }
 }

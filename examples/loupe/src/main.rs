@@ -1,5 +1,5 @@
 use iced::widget::{button, center, column, text};
-use iced::{Center, Element, Widget};
+use iced::{Center, Widget};
 
 use loupe::loupe;
 
@@ -30,7 +30,7 @@ impl Loupe {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         center(loupe(
             3.0,
             column![
@@ -41,7 +41,6 @@ impl Loupe {
             .padding(20)
             .align_x(Center),
         ))
-        .boxed()
     }
 }
 

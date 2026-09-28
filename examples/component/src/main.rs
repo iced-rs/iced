@@ -1,6 +1,6 @@
 use iced::widget::{center, component};
 
-use iced::{Element, Widget};
+use iced::Widget;
 use numeric_input::numeric_input;
 
 pub fn main() -> iced::Result {
@@ -26,13 +26,12 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         center(component(numeric_input(
             self.value,
             Message::NumericInputChanged,
         )))
         .padding(20)
-        .boxed()
     }
 }
 

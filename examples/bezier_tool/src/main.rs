@@ -1,6 +1,6 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
 use iced::widget::{button, container, hover, right};
-use iced::{Element, Theme, Widget};
+use iced::{Theme, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -34,7 +34,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         container(hover(
             self.bezier.view(&self.curves).map(Message::AddCurve),
             if self.curves.is_empty() {
@@ -51,14 +51,13 @@ impl Example {
             },
         ))
         .padding(20)
-        .boxed()
     }
 }
 
 mod bezier {
     use iced::mouse;
     use iced::widget::canvas::{self, Canvas, Event, Frame, Geometry, Path, Stroke};
-    use iced::{Element, Fill, Point, Rectangle, Renderer, Theme, Widget};
+    use iced::{Fill, Point, Rectangle, Renderer, Theme, Widget};
 
     #[derive(Default)]
     pub struct State {
@@ -66,14 +65,13 @@ mod bezier {
     }
 
     impl State {
-        pub fn view<'a>(&'a self, curves: &'a [Curve]) -> Element<'a, Curve> {
+        pub fn view<'a>(&'a self, curves: &'a [Curve]) -> impl Widget<Curve> {
             Canvas::new(Bezier {
                 state: self,
                 curves,
             })
             .width(Fill)
             .height(Fill)
-            .boxed()
         }
 
         pub fn request_redraw(&mut self) {

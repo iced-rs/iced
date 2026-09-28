@@ -7,7 +7,7 @@ use preset::Preset;
 
 use iced::time::{self, milliseconds};
 use iced::widget::{button, checkbox, column, container, pick_list, row, slider, text};
-use iced::{Center, Element, Fill, Function, Subscription, Task, Theme, Widget};
+use iced::{Center, Fill, Function, Subscription, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -108,7 +108,7 @@ impl GameOfLife {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = view_controls(
@@ -121,7 +121,7 @@ impl GameOfLife {
         let content =
             column![self.grid.view().map(Message::Grid.with(version)), controls].height(Fill);
 
-        container(content).width(Fill).height(Fill).boxed()
+        container(content).width(Fill).height(Fill)
     }
 }
 
@@ -131,12 +131,12 @@ impl Default for GameOfLife {
     }
 }
 
-fn view_controls<'a>(
+fn view_controls(
     is_playing: bool,
     is_grid_enabled: bool,
     speed: usize,
     preset: Preset,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> {
     let playback_controls = row![
         button(if is_playing { "Pause" } else { "Play" }).on_press(Message::TogglePlayback),
         button("Next")
@@ -171,7 +171,6 @@ fn view_controls<'a>(
     .padding(10)
     .spacing(20)
     .align_y(Center)
-    .boxed()
 }
 
 mod grid {
@@ -183,7 +182,7 @@ mod grid {
     use iced::widget::canvas;
     use iced::widget::canvas::{Cache, Canvas, Event, Frame, Geometry, Path, Text};
     use iced::widget::text;
-    use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector, Widget};
+    use iced::{Color, Fill, Point, Rectangle, Renderer, Size, Theme, Vector, Widget};
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::ops::RangeInclusive;
 
@@ -310,8 +309,8 @@ mod grid {
             }
         }
 
-        pub fn view(&self) -> Element<'_, Message> {
-            Canvas::new(self).width(Fill).height(Fill).boxed()
+        pub fn view(&self) -> impl Widget<Message> {
+            Canvas::new(self).width(Fill).height(Fill)
         }
 
         pub fn clear(&mut self) {

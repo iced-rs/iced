@@ -188,7 +188,7 @@ impl Todos {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         match self {
             Todos::Loading => loading_message(),
             Todos::Loaded(State {
@@ -344,7 +344,7 @@ impl Task {
         }
     }
 
-    fn view(&self, i: usize) -> Element<'_, TaskMessage> {
+    fn view(&self, i: usize) -> impl Widget<TaskMessage> {
         match &self.state {
             TaskState::Idle => {
                 let checkbox = checkbox(self.completed)
@@ -387,7 +387,7 @@ impl Task {
     }
 }
 
-fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<'_, Message> {
+fn view_controls(tasks: &[Task], current_filter: Filter) -> impl Widget<Message> {
     let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
     let filter_button = |label, filter, current_filter| {
@@ -417,7 +417,6 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<'_, Message>
     ]
     .spacing(20)
     .align_y(Center)
-    .boxed()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]

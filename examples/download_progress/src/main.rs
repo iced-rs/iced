@@ -4,7 +4,7 @@ use download::download;
 
 use iced::task;
 use iced::widget::{button, center, column, progress_bar, text};
-use iced::{Center, Element, Function, Right, Task, Widget};
+use iced::{Center, Function, Right, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view).run()
@@ -60,7 +60,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let downloads = column![
             column(self.downloads.iter().map(Download::view)).spacing(20),
             button("Add another download")
@@ -70,7 +70,7 @@ impl Example {
         .spacing(20)
         .align_x(Right);
 
-        center(downloads).padding(20).boxed()
+        center(downloads).padding(20)
     }
 }
 

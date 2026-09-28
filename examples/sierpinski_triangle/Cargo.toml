@@ -2,7 +2,7 @@
 name = "sierpinski_triangle"
 version = "0.1.0"
 authors = ["xkenmon <xkenmon@gmail.com>"]
-edition = "2018"
+edition = "2024"
 publish = false
 
 [dependencies]

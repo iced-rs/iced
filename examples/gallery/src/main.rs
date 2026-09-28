@@ -243,7 +243,7 @@ impl Gallery {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message> {
+    pub fn view(&self) -> impl Widget<Message> {
         let images = self
             .images
             .iter()
@@ -275,7 +275,7 @@ impl Gallery {
         let content = container(scrollable(gallery).spacing(10).auto_scroll(true)).padding(10);
         let viewer = self.viewer.view(self.now);
 
-        stack![content, viewer].boxed()
+        stack![content, viewer]
     }
 }
 

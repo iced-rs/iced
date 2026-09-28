@@ -1,5 +1,5 @@
 use iced::widget::{center, column, row, slider, text};
-use iced::{Center, Element, Widget};
+use iced::{Center, Widget};
 
 use std::time::Duration;
 
@@ -37,7 +37,7 @@ impl LoadingSpinners {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let column = column(
             [
                 &easing::EMPHASIZED,
@@ -82,7 +82,7 @@ impl LoadingSpinners {
         )
         .spacing(20);
 
-        center(column).boxed()
+        center(column)
     }
 }
 

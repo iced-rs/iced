@@ -1,7 +1,7 @@
 use iced::widget::{
     button, column, container, operation, progress_bar, radio, row, scrollable, slider, space, text,
 };
-use iced::{Border, Center, Color, Element, Fill, Task, Theme, Widget};
+use iced::{Border, Center, Color, Fill, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -127,7 +127,7 @@ impl ScrollableDemo {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let scrollbar_width_slider =
             slider(0..=15, self.scrollbar_width, Message::ScrollbarWidthChanged);
         let scrollbar_margin_slider = slider(
@@ -346,7 +346,7 @@ impl ScrollableDemo {
             .align_x(Center)
             .spacing(10);
 
-        container(content).padding(20).boxed()
+        container(content).padding(20)
     }
 
     fn theme(&self) -> Theme {

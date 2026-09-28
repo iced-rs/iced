@@ -2,8 +2,8 @@ use iced::time::Instant;
 use iced::widget::{center, checkbox, column, container, image, pick_list, row, slider, text};
 use iced::window;
 use iced::{
-    Bottom, Center, Color, ContentFit, Degrees, Element, Fill, Radians, Rotation, Subscription,
-    Theme, Widget,
+    Bottom, Center, Color, ContentFit, Degrees, Fill, Radians, Rotation, Subscription, Theme,
+    Widget,
 };
 
 pub fn main() -> iced::Result {
@@ -82,7 +82,7 @@ impl Image {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let i_am_ferris = column![
             "Hello!",
             image(concat!(
@@ -157,9 +157,7 @@ impl Image {
         .spacing(10)
         .align_y(Bottom);
 
-        container(column![fit, center(i_am_ferris), properties].spacing(10))
-            .padding(10)
-            .boxed()
+        container(column![fit, center(i_am_ferris), properties].spacing(10)).padding(10)
     }
 }
 

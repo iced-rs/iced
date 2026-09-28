@@ -76,7 +76,7 @@ impl Layout {
         })
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
             space::horizontal(),
@@ -117,10 +117,7 @@ impl Layout {
             ),
         ];
 
-        column![header, example, controls]
-            .spacing(10)
-            .padding(20)
-            .boxed()
+        column![header, example, controls].spacing(10).padding(20)
     }
 
     fn theme(&self) -> Option<Theme> {
@@ -197,7 +194,7 @@ impl Example {
         Self::LIST.get(index + 1).copied().unwrap_or(self)
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         (self.view)()
     }
 }
@@ -306,8 +303,8 @@ fn quotes<'a>() -> Element<'a, Message> {
     fn reply<'a>(
         original: impl Widget<Message> + 'a,
         reply: impl Widget<Message> + 'a,
-    ) -> Element<'a, Message> {
-        column![quote(original), reply].spacing(10).boxed()
+    ) -> impl Widget<Message> {
+        column![quote(original), reply].spacing(10)
     }
 
     column![
@@ -373,7 +370,7 @@ fn responsive_<'a>() -> Element<'a, Message> {
     .boxed()
 }
 
-fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
+fn square(size: impl Into<Length> + Copy) -> impl Widget<Message> {
     struct Square;
 
     impl canvas::Program<Message> for Square {
@@ -401,5 +398,5 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
         }
     }
 
-    canvas(Square).width(size).height(size).boxed()
+    canvas(Square).width(size).height(size)
 }

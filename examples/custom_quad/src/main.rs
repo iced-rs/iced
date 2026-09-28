@@ -1,7 +1,7 @@
 //! This example showcases a drawing a quad.
 use iced::border;
 use iced::widget::{center, column, slider, text, toggler};
-use iced::{Center, Color, Element, Fit, Shadow, Vector, Widget};
+use iced::{Center, Color, Fit, Shadow, Vector, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -74,7 +74,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let border::Radius {
             top_left,
             top_right,
@@ -115,7 +115,7 @@ impl Example {
         .width(Fit.max(500))
         .align_x(Center);
 
-        center(content).boxed()
+        center(content)
     }
 }
 

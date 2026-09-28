@@ -172,7 +172,7 @@ impl Markdown {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let settings = markdown::Settings::default().line_height(1.5);
 
         let editor = text_editor(&self.raw)
@@ -217,7 +217,6 @@ impl Markdown {
         ]
         .spacing(settings.spacing)
         .padding(settings.spacing / 2.0)
-        .boxed()
     }
 
     fn theme(&self) -> Theme {

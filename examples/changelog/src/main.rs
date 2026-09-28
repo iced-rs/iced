@@ -7,7 +7,7 @@ use iced::widget::{
     button, center, column, container, markdown, pick_list, progress_bar, rich_text, row,
     scrollable, span, stack, text, text_input,
 };
-use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme, Widget};
+use iced::{Center, Fill, FillPortion, Font, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -208,7 +208,7 @@ impl Generator {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         match self {
             Self::Loading => center(text("Loading...")).boxed(),
             Self::Done => center(

@@ -1,5 +1,5 @@
 use iced::widget::{column, pick_list, scrollable, space};
-use iced::{Center, Element, Fill, Widget};
+use iced::{Center, Fill, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -24,7 +24,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let languages = pick_list(self.selected_language, Language::ALL, Language::to_string)
             .on_select(Message::LanguageSelected)
             .placeholder("Choose a language...");
@@ -39,7 +39,7 @@ impl Example {
         .align_x(Center)
         .spacing(10);
 
-        scrollable(content).boxed()
+        scrollable(content)
     }
 }
 

@@ -3,7 +3,7 @@ use iced::widget::{
     button, center, checkbox, column, container, pick_list, progress_bar, row, rule, scrollable,
     slider, space, text, text_input, toggler,
 };
-use iced::{Center, Element, Fill, Fit, Shrink, Subscription, Theme, Widget};
+use iced::{Center, Fill, Fit, Shrink, Subscription, Theme, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Styling::default, Styling::update, Styling::view)
@@ -72,7 +72,7 @@ impl Styling {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let choose_theme = column![
             text("Theme:"),
             pick_list(self.theme.as_ref(), Theme::ALL, Theme::to_string)
@@ -162,9 +162,7 @@ impl Styling {
         .padding(20)
         .width(Fit.max(600));
 
-        container(scrollable(center(content)).spacing(10))
-            .padding(10)
-            .boxed()
+        container(scrollable(center(content)).spacing(10)).padding(10)
     }
 
     fn subscription(&self) -> Subscription<Message> {

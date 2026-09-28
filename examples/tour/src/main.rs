@@ -134,7 +134,7 @@ impl Tour {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let controls = row![
             self.screen.previous().is_some().then(|| {
                 padded_button("Back")
@@ -174,7 +174,7 @@ impl Tour {
         .spacing(10)
         .auto_scroll(true);
 
-        center_y(scrollable).padding(10).boxed()
+        center_y(scrollable).padding(10)
     }
 
     fn can_continue(&self) -> bool {

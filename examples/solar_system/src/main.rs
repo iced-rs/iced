@@ -13,8 +13,8 @@ use iced::widget::canvas::{Geometry, Path};
 use iced::widget::{canvas, column, container, image, pick_list, stack, text};
 use iced::window;
 use iced::{
-    Backend, Color, Element, Fill, Font, Point, Rectangle, Renderer, Right, Size, Subscription,
-    Task, Theme, Vector, Widget, color,
+    Backend, Color, Fill, Font, Point, Rectangle, Renderer, Right, Size, Subscription, Task, Theme,
+    Vector, Widget, color,
 };
 
 use std::time::Instant;
@@ -83,7 +83,7 @@ impl SolarSystem {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let solar_system = canvas(&self.state).width(Fill).height(Fill);
 
         let backend = {
@@ -110,7 +110,6 @@ impl SolarSystem {
                 .align_bottom(Fill)
                 .padding(10)
         ]
-        .boxed()
     }
 
     fn theme(&self) -> Theme {

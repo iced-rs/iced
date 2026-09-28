@@ -2,7 +2,7 @@ use iced::event;
 use iced::font;
 use iced::widget::{center, column, pick_list, right, stack, text};
 use iced::window;
-use iced::{Element, Event, Font, Subscription, Task, Widget};
+use iced::{Event, Font, Subscription, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Text::new, Text::update, Text::view)
@@ -70,7 +70,7 @@ impl Text {
         })
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let sizes = 5..=32;
 
         let font_selector = pick_list(
@@ -96,6 +96,5 @@ impl Text {
             ),
             right(font_selector).padding(10)
         ]
-        .boxed()
     }
 }

@@ -5,7 +5,7 @@ use iced::mouse;
 use iced::touch;
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
-use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Theme, Widget};
+use iced::{Color, Fill, Point, Rectangle, Renderer, Theme, Widget};
 
 use std::collections::HashMap;
 
@@ -43,8 +43,8 @@ impl Multitouch {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
-        Canvas::new(self).width(Fill).height(Fill).boxed()
+    fn view(&self) -> impl Widget<Message> {
+        Canvas::new(self).width(Fill).height(Fill)
     }
 }
 

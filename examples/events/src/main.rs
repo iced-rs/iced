@@ -1,7 +1,7 @@
 use iced::event::{self, Event};
 use iced::widget::{button, center, checkbox, column, text};
 use iced::window;
-use iced::{Center, Element, Fill, Subscription, Task, Widget};
+use iced::{Center, Fill, Subscription, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Events::default, Events::update, Events::view)
@@ -55,7 +55,7 @@ impl Events {
         event::listen().map(Message::EventOccurred)
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let events = column(self.last.iter().map(|event| text!("{event:?}").size(40)));
 
         let toggle = checkbox(self.enabled)
@@ -69,6 +69,6 @@ impl Events {
 
         let content = column![events, toggle, exit].align_x(Center).spacing(20);
 
-        center(content).boxed()
+        center(content)
     }
 }

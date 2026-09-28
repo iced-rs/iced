@@ -67,7 +67,7 @@ mod circle {
 
 use circle::circle;
 use iced::widget::{center, column, slider, text};
-use iced::{Center, Element, Fit, Widget};
+use iced::{Center, Fit, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -95,7 +95,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let content = column![
             circle(self.radius),
             text!("Radius: {:.2}", self.radius),
@@ -106,7 +106,7 @@ impl Example {
         .width(Fit.max(500))
         .align_x(Center);
 
-        center(content).boxed()
+        center(content)
     }
 }
 

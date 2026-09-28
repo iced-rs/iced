@@ -1,7 +1,7 @@
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
-use iced::{Center, Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Widget};
+use iced::{Center, Color, Fill, Point, Rectangle, Renderer, Size, Theme, Widget};
 
 use rand::Rng;
 use std::fmt::Debug;
@@ -46,7 +46,7 @@ impl SierpinskiEmulator {
         self.graph.redraw();
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         column![
             Canvas::new(&self.graph).width(Fill).height(Fill),
             row![
@@ -57,7 +57,6 @@ impl SierpinskiEmulator {
             .spacing(20),
         ]
         .align_x(Center)
-        .boxed()
     }
 }
 

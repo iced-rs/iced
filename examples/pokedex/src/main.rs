@@ -1,6 +1,6 @@
 use iced::futures;
 use iced::widget::{self, center, column, image, row, text};
-use iced::{Center, Element, Fill, Fit, Right, Task, Widget};
+use iced::{Center, Fill, Fit, Right, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
@@ -63,7 +63,7 @@ impl Pokedex {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let content = match self {
             Pokedex::Loading => text("Searching for Pokémon...").size(40).boxed(),
             Pokedex::Loaded { pokemon } => column![
@@ -83,7 +83,7 @@ impl Pokedex {
             .boxed(),
         };
 
-        center(content).boxed()
+        center(content)
     }
 }
 
@@ -98,7 +98,7 @@ struct Pokemon {
 impl Pokemon {
     const TOTAL: u16 = 807;
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         row![
             image::viewer(self.image.clone()),
             column![
@@ -114,7 +114,6 @@ impl Pokemon {
         ]
         .spacing(20)
         .align_y(Center)
-        .boxed()
     }
 
     async fn search() -> Result<Pokemon, Error> {

@@ -1,6 +1,6 @@
 use iced::system;
 use iced::widget::{button, center, column, text};
-use iced::{Element, Task, Widget};
+use iced::{Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Example::new, Example::update, Example::view).run()
@@ -48,7 +48,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         use bytesize::ByteSize;
 
         let content = match self {
@@ -134,6 +134,6 @@ impl Example {
             }
         };
 
-        center(content).boxed()
+        center(content)
     }
 }

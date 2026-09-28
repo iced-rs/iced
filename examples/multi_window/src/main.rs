@@ -2,7 +2,7 @@ use iced::widget::{
     button, center, center_x, column, container, operation, scrollable, space, text, text_input,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Function, Subscription, Task, Theme, Vector, Widget};
+use iced::{Center, Fill, Function, Subscription, Task, Theme, Vector, Widget};
 
 use std::collections::BTreeMap;
 
@@ -123,7 +123,7 @@ impl Example {
         }
     }
 
-    fn view(&self, window_id: window::Id) -> Element<'_, Message> {
+    fn view(&self, window_id: window::Id) -> impl Widget<Message> {
         if let Some(window) = self.windows.get(&window_id) {
             center(window.view(window_id)).boxed()
         } else {
@@ -157,7 +157,7 @@ impl Window {
         }
     }
 
-    fn view(&self, id: window::Id) -> Element<'_, Message> {
+    fn view(&self, id: window::Id) -> impl Widget<Message> {
         let scale_input = column![
             text("Window scale factor:"),
             text_input("Window Scale", &self.scale_input)
@@ -180,6 +180,6 @@ impl Window {
             .align_x(Center)
             .width(200);
 
-        container(scrollable(center_x(content))).padding(10).boxed()
+        container(scrollable(center_x(content))).padding(10)
     }
 }

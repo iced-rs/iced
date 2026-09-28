@@ -1,5 +1,5 @@
 use iced::widget::{center, checkbox, column, row, text};
-use iced::{Element, Font, Widget};
+use iced::{Font, Widget};
 
 const ICON_FONT: Font = Font::new("icons");
 
@@ -38,7 +38,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let default_checkbox = checkbox(self.default)
             .label("Default")
             .on_toggle(Message::DefaultToggled);
@@ -70,6 +70,6 @@ impl Example {
 
         let content = column![default_checkbox, checkboxes, custom_checkbox].spacing(20);
 
-        center(content).boxed()
+        center(content)
     }
 }
