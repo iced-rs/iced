@@ -136,7 +136,7 @@ pub trait Widget<Message, Theme, Renderer>: Node {
     ///
     /// This method is useful when you want to decouple different parts of your
     /// UI and make them __composable__.
-    fn map<F, B>(self, f: F) -> Map<Self, F, Message>
+    fn _map<F, B>(self, f: F) -> Map<Self, F, Message>
     where
         Self: Sized,
         F: Fn(Message) -> B,
@@ -149,7 +149,7 @@ pub trait Widget<Message, Theme, Renderer>: Node {
     }
 
     /// Boxes this [`Widget`], turning it into a generic [`Element`].
-    fn boxed<'a>(self) -> Element<'a, Message, Theme, Renderer>
+    fn _boxed<'a>(self) -> Element<'a, Message, Theme, Renderer>
     where
         Self: Sized + 'a,
     {
@@ -299,7 +299,7 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void {
 
 /// A [`Widget`] that transforms the produced message of another widget.
 ///
-/// This widget is returned by [`Widget::map`].
+/// This widget is returned by [`Widget::map`](Widget::_map).
 pub struct Map<W, F, A> {
     widget: W,
     mapper: F,

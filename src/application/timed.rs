@@ -100,7 +100,7 @@ where
         ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.view
                 .view(state)
-                .map(|message| (message, Instant::now()))
+                ._map(|message| (message, Instant::now()))
         }
 
         #[inline]

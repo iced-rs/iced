@@ -21,7 +21,7 @@ where
     /// Creates a new [`Controls`] with the given content.
     pub fn new(content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            full: content.boxed(),
+            full: content._boxed(),
             compact: None,
         }
     }
@@ -34,8 +34,8 @@ where
         compact: impl Widget<Message, Theme, Renderer> + 'a,
     ) -> Self {
         Self {
-            full: full.boxed(),
-            compact: Some(compact.boxed()),
+            full: full._boxed(),
+            compact: Some(compact._boxed()),
         }
     }
 }

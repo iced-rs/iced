@@ -11,7 +11,7 @@ use crate::{Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 /// It is useful to build composable user interfaces that do not leak
 /// implementation details in their __view logic__.
 ///
-/// If you have any [`Widget`], you should be able to use [`Widget::boxed`]
+/// If you have any [`Widget`], you should be able to use [`Widget::boxed`](Widget::_boxed)
 /// to turn it into an [`Element`].
 pub struct Element<'a, Message, Theme, Renderer> {
     widget: Box<dyn Widget<Message, Theme, Renderer> + 'a>,
@@ -120,7 +120,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
             .overlay(tree, layout, renderer, viewport, translation, window)
     }
 
-    fn boxed<'b>(self) -> Element<'b, Message, Theme, Renderer>
+    fn _boxed<'b>(self) -> Element<'b, Message, Theme, Renderer>
     where
         Self: Sized + 'b,
     {

@@ -33,7 +33,7 @@ pub struct Recorder<'a, Message, Theme, Renderer> {
 impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
     pub fn new(content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            content: content.boxed(),
+            content: content._boxed(),
             on_record: None,
             has_overlay: false,
         }

@@ -324,7 +324,7 @@ pub trait Widget<Message, Theme = crate::Theme, Renderer = crate::Renderer>:
         Self: Sized,
         F: Fn(Message) -> B,
     {
-        core::Widget::map(self, f)
+        core::Widget::_map(self, f)
     }
 
     /// Boxes this [`Widget`], turning it into a generic [`Element`].
@@ -332,7 +332,7 @@ pub trait Widget<Message, Theme = crate::Theme, Renderer = crate::Renderer>:
     where
         Self: Sized + 'a,
     {
-        core::Widget::boxed(self)
+        core::Widget::_boxed(self)
     }
 
     /// Marks this [`Widget`] as _to-be-explained_.

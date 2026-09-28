@@ -26,8 +26,8 @@ use crate::program::message;
 use crate::runtime::task::{self, Task};
 use crate::time_machine::TimeMachine;
 use crate::widget::{
-    bottom_right, button, center, column, container, opaque, row, scrollable, space, stack, text,
-    themer,
+    Widget as _, bottom_right, button, center, column, container, opaque, row, scrollable, space,
+    stack, text, themer,
 };
 
 use std::fmt;

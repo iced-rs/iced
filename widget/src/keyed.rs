@@ -70,6 +70,6 @@ macro_rules! keyed_column {
         $crate::keyed::Column::new()
     );
     ($(($key:expr, $x:expr)),+ $(,)?) => (
-        $crate::keyed::Column::with_children(vec![$(($key, $crate::core::Widget::boxed($x))),+])
+        $crate::keyed::Column::with_children(vec![$(($key, $crate::core::Widget::_boxed($x))),+])
     );
 }

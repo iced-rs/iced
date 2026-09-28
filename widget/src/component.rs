@@ -114,7 +114,7 @@ where
 /// embedded in any application.
 pub fn component<'a, C, Message, Theme, Renderer>(
     component: C,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
     C::State: 'static,
@@ -124,12 +124,11 @@ where
 {
     Instance {
         component,
-        view: crate::space().boxed(),
+        view: crate::space()._boxed(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         is_outdated: Cell::new(true),
         has_overlay: false,
     }
-    .boxed()
 }
 
 struct Instance<'a, C, Message, Theme, Renderer>
@@ -182,7 +181,7 @@ where
         self.component.diff(&mut internal.state);
 
         if self.is_outdated.get() {
-            self.view = self.component.view(&internal.state).boxed();
+            self.view = self.component.view(&internal.state)._boxed();
             drop(internal);
 
             tree.diff_children(std::slice::from_mut(&mut self.view));
@@ -272,7 +271,7 @@ where
 
         let previous_sizing = self.view.size();
 
-        self.view = self.component.view(state).boxed();
+        self.view = self.component.view(state)._boxed();
         drop(internal);
 
         tree.diff_children(std::slice::from_mut(&mut self.view));

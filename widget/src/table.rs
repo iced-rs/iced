@@ -39,8 +39,8 @@ where
     W: Widget<Message, Theme, Renderer> + 'a,
 {
     Column {
-        header: header.boxed(),
-        view: Box::new(move |data| view(data).boxed()),
+        header: header._boxed(),
+        view: Box::new(move |data| view(data)._boxed()),
         width: Length::Fit,
         align_x: alignment::Horizontal::Left,
         align_y: alignment::Vertical::Top,

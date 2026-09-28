@@ -27,8 +27,8 @@ use crate::test::ice;
 use crate::test::instruction;
 use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
-    button, center, column, combo_box, container, pick_list, row, rule, scrollable, slider, space,
-    stack, text, text_editor, themer,
+    Widget as _, button, center, column, combo_box, container, pick_list, row, rule, scrollable,
+    slider, space, stack, text, text_editor, themer,
 };
 
 use std::ops::RangeInclusive;

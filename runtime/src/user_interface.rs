@@ -95,7 +95,7 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let mut root = root.boxed();
+        let mut root = root._boxed();
 
         let Cache { mut state } = cache;
         state.diff(&mut root);

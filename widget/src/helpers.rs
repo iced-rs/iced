@@ -65,7 +65,7 @@ macro_rules! column {
         $crate::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Column::with_children([$($crate::core::Widget::boxed($x)),+])
+        $crate::Column::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -99,7 +99,7 @@ macro_rules! row {
         $crate::Row::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Row::with_children([$($crate::core::Widget::boxed($x)),+])
+        $crate::Row::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -112,7 +112,7 @@ macro_rules! stack {
         $crate::Stack::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Stack::with_children([$($crate::core::Widget::boxed($x)),+])
+        $crate::Stack::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -125,7 +125,7 @@ macro_rules! grid {
         $crate::Grid::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Grid::with_children([$($crate::core::Widget::boxed($x)),+])
+        $crate::Grid::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -657,7 +657,7 @@ where
     }
 
     Opaque {
-        content: content.boxed(),
+        content: content._boxed(),
     }
 }
 
@@ -1542,7 +1542,6 @@ where
     ]
     .spacing(text_size.0 / 3.0)
     .align_y(Alignment::Center)
-    .boxed()
 }
 
 /// Creates a new [`Canvas`].

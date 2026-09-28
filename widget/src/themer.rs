@@ -32,7 +32,7 @@ where
     /// to the provided `content`.
     pub fn new(theme: Option<Theme>, content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            content: content.boxed(),
+            content: content._boxed(),
             theme,
             text_color: None,
             background: None,
