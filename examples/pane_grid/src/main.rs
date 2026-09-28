@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{button, center_y, column, container, responsive, row, scrollable, text};
-use iced::{Center, Color, Element, Fill, Fit, Size, Subscription};
+use iced::{Center, Color, Element, Fill, Fit, Size, Subscription, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -178,7 +178,7 @@ impl Example {
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 
-        container(pane_grid).padding(10).into()
+        container(pane_grid).padding(10).boxed()
     }
 }
 
@@ -272,7 +272,7 @@ fn view_content<'a>(
         .width(Fill)
         .align_x(Center);
 
-    center_y(scrollable(content)).padding(5).into()
+    center_y(scrollable(content)).padding(5).boxed()
 }
 
 fn view_controls<'a>(
@@ -307,7 +307,7 @@ fn view_controls<'a>(
             None
         });
 
-    row![maximize, close].spacing(5).into()
+    row![maximize, close].spacing(5).boxed()
 }
 
 mod style {

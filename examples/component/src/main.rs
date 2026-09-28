@@ -1,6 +1,6 @@
-use iced::Element;
-use iced::widget::center;
+use iced::widget::{center, component};
 
+use iced::{Element, Widget};
 use numeric_input::numeric_input;
 
 pub fn main() -> iced::Result {
@@ -27,18 +27,18 @@ impl Example {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        center(Element::from(numeric_input(
+        center(component(numeric_input(
             self.value,
             Message::NumericInputChanged,
         )))
         .padding(20)
-        .into()
+        .boxed()
     }
 }
 
 mod numeric_input {
-    use iced::widget::{Component, button, component, row, text, text_input};
-    use iced::{Center, Element, Fill, Renderer, Widget};
+    use iced::widget::{Component, button, row, text, text_input};
+    use iced::{Center, Fill, Renderer, Widget};
 
     pub struct NumericInput<Message> {
         value: Option<i32>,
@@ -118,15 +118,6 @@ mod numeric_input {
             ]
             .align_y(Center)
             .spacing(10)
-        }
-    }
-
-    impl<'a, Message> From<NumericInput<Message>> for Element<'a, Message>
-    where
-        Message: 'a,
-    {
-        fn from(numeric_input: NumericInput<Message>) -> Self {
-            component(numeric_input)
         }
     }
 }

@@ -3,7 +3,7 @@ use iced::widget::{
     button, center, checkbox, column, container, pick_list, progress_bar, row, rule, scrollable,
     slider, space, text, text_input, toggler,
 };
-use iced::{Center, Element, Fill, Fit, Shrink, Subscription, Theme};
+use iced::{Center, Element, Fill, Fit, Shrink, Subscription, Theme, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Styling::default, Styling::update, Styling::view)
@@ -164,7 +164,7 @@ impl Styling {
 
         container(scrollable(center(content)).spacing(10))
             .padding(10)
-            .into()
+            .boxed()
     }
 
     fn subscription(&self) -> Subscription<Message> {

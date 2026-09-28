@@ -4,7 +4,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::Tree;
-use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that is aware of its dimensions.
 ///
@@ -150,18 +150,5 @@ where
 
         self.content
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Responsive<'a, W>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(responsive: Responsive<'a, W>) -> Self {
-        responsive.boxed()
     }
 }

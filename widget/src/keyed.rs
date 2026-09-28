@@ -47,7 +47,8 @@ pub use column::Column;
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::keyed_column;
@@ -61,7 +62,7 @@ pub use column::Column;
 ///         (0, "Item 0"),
 ///         (1, "Item 1"),
 ///         (2, "Item 2"),
-///     ].into()
+///     ].boxed()
 /// }
 /// ```
 #[macro_export]
@@ -70,6 +71,6 @@ macro_rules! keyed_column {
         $crate::keyed::Column::new()
     );
     ($(($key:expr, $x:expr)),+ $(,)?) => (
-        $crate::keyed::Column::with_children(vec![$(($key, $crate::core::Element::from($x))),+])
+        $crate::keyed::Column::with_children(vec![$(($key, $crate::core::Widget::boxed($x))),+])
     );
 }

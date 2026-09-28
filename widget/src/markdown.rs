@@ -35,7 +35,7 @@
 //!             Theme::TokyoNight,
 //!         )
 //!             .map(Message::LinkClicked)
-//!             .into()
+//!             .boxed()
 //!     }
 //!
 //!     fn update(state: &mut State, message: Message) {
@@ -54,7 +54,7 @@ use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::text::LineHeight;
 use crate::core::theme;
-use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme};
+use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme, Widget};
 use crate::{center_x, checkbox, column, container, rich_text, row, rule, scrollable, span, text};
 
 use std::borrow::BorrowMut;
@@ -988,7 +988,7 @@ impl Bullet {
 ///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
-///             .into()
+///             .boxed()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -1748,7 +1748,7 @@ impl Default for Settings {
 ///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
-///             .into()
+///             .boxed()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -1884,7 +1884,7 @@ where
         .size(size)
         .line_height(settings.line_height),
     )
-    .into()
+    .boxed()
 }
 
 /// Displays a paragraph using the default look.
@@ -1903,7 +1903,7 @@ where
         .size(settings.text_size)
         .line_height(settings.line_height)
         .on_link_click(on_link_click)
-        .into()
+        .boxed()
 }
 
 /// Displays an unordered list using the default look and
@@ -1922,13 +1922,12 @@ where
         row![
             match bullet {
                 Bullet::Point { .. } => {
-                    text("•").size(settings.text_size).into()
+                    text("•").size(settings.text_size).boxed()
                 }
                 Bullet::Task { done, .. } => {
-                    Element::from(
-                        container(checkbox(*done).size(settings.text_size))
-                            .center_y(text::LineHeight::default().to_absolute(settings.text_size)),
-                    )
+                    container(checkbox(*done).size(settings.text_size))
+                        .center_y(text::LineHeight::default().to_absolute(settings.text_size))
+                        .boxed()
                 }
             },
             items(
@@ -1944,7 +1943,7 @@ where
     }))
     .spacing(settings.spacing / 2.0)
     .padding(padding::left(settings.text_size.0))
-    .into()
+    .boxed()
 }
 
 /// Displays an ordered list using the default look and
@@ -1980,7 +1979,7 @@ where
         .spacing(settings.text_size / 2.0)
     }))
     .spacing(settings.spacing / 2.0)
-    .into()
+    .boxed()
 }
 
 /// Displays a code block using the default look.
@@ -2015,7 +2014,7 @@ where
     .width(Length::Fill)
     .padding(padding)
     .class(Theme::code_block())
-    .into()
+    .boxed()
 }
 
 /// Displays a quote using the default look.
@@ -2040,7 +2039,7 @@ where
     .width(Length::Fill)
     .padding(settings.spacing.0)
     .class(Theme::quote())
-    .into()
+    .boxed()
 }
 
 /// Displays a rule using the default look.
@@ -2050,7 +2049,7 @@ where
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
-    rule::horizontal(2).into()
+    rule::horizontal(2).boxed()
 }
 
 /// Displays a table using the default look.
@@ -2073,7 +2072,7 @@ where
                 if let Some(cells) = row.cells.get(i) {
                     items(viewer, settings, cells)
                 } else {
-                    text("").into()
+                    text("").boxed()
                 }
             })
             .width(Length::Fit.max(300))
@@ -2098,7 +2097,7 @@ where
             ))
             .spacing(settings.spacing.0 / 2.0),
     )
-    .into()
+    .boxed()
 }
 
 /// Displays a column of items with the default look.
@@ -2127,7 +2126,7 @@ where
         }
     }))
     .spacing(settings.spacing * 1.5)
-    .into()
+    .boxed()
 }
 
 /// A view strategy to display a Markdown [`Item`].
@@ -2169,7 +2168,7 @@ where
         )
         .padding(settings.spacing.0)
         .class(Theme::code_block())
-        .into()
+        .boxed()
     }
 
     /// Displays a heading.

@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::pick_list;
@@ -39,7 +40,7 @@
 //!     )
 //!     .on_select(Message::FruitSelected)
 //!     .placeholder("Select your favorite fruit...")
-//!     .into()
+//!     .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -74,8 +75,8 @@ use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, Theme, Vector, Widget,
+    Background, Border, Color, Event, Font, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Size, Theme, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 
@@ -87,6 +88,7 @@ use std::f32;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::pick_list;
@@ -123,7 +125,7 @@ use std::f32;
 ///     )
 ///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
-///     .into()
+///     .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -764,21 +766,6 @@ where
         } else {
             Vec::new()
         }
-    }
-}
-
-impl<'a, T, L, V, Message, Theme, Renderer> From<PickList<'a, T, L, V, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Clone + PartialEq + 'a,
-    L: Borrow<[T]> + 'a,
-    V: Borrow<T> + 'a,
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(pick_list: PickList<'a, T, L, V, Message, Theme>) -> Self {
-        pick_list.boxed()
     }
 }
 

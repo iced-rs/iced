@@ -2,7 +2,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::svg;
@@ -12,7 +13,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     svg("tiger.svg").into()
+//!     svg("tiger.svg").boxed()
 //! }
 //! ```
 use crate::core::layout;
@@ -22,8 +23,8 @@ use crate::core::svg;
 use crate::core::widget::{Node, Tree};
 use crate::core::window;
 use crate::core::{
-    Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size,
-    Theme, Vector, Widget,
+    Color, ContentFit, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size, Theme,
+    Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -39,7 +40,8 @@ pub use crate::core::svg::Handle;
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::svg;
@@ -49,7 +51,7 @@ pub use crate::core::svg::Handle;
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     svg("tiger.svg").into()
+///     svg("tiger.svg").boxed()
 /// }
 /// ```
 pub struct Svg<'a, Theme = crate::Theme>
@@ -264,16 +266,6 @@ where
             drawing_bounds,
             bounds,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: svg::Renderer + 'a,
-{
-    fn from(icon: Svg<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        icon.boxed()
     }
 }
 

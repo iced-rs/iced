@@ -2,7 +2,9 @@ use iced::event::{self, Event};
 use iced::mouse;
 use iced::widget::{self, column, container, row, scrollable, selector, space, text};
 use iced::window;
-use iced::{Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task, Theme};
+use iced::{
+    Center, Color, Element, Fill, Font, Point, Rectangle, Subscription, Task, Theme, Widget,
+};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -132,7 +134,7 @@ impl Example {
         ]
         .spacing(10)
         .padding(20)
-        .into()
+        .boxed()
     }
 
     fn subscription(&self) -> Subscription<Message> {

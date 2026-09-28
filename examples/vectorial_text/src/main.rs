@@ -1,7 +1,7 @@
 use iced::alignment;
 use iced::mouse;
 use iced::widget::{canvas, checkbox, column, row, slider, space, text};
-use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector};
+use iced::{Center, Element, Fill, Point, Rectangle, Renderer, Theme, Vector, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(
@@ -88,7 +88,7 @@ impl VectorialText {
         ]
         .spacing(10)
         .padding(20)
-        .into()
+        .boxed()
     }
 }
 

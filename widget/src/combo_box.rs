@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::combo_box;
@@ -32,7 +33,7 @@
 //!         state.favorite.as_ref(),
 //!         Message::FruitSelected
 //!     )
-//!     .into()
+//!     .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -66,9 +67,7 @@ use crate::core::text::input;
 use crate::core::widget::operation::Focusable as _;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{
-    Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector,
-};
+use crate::core::{Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector};
 use crate::overlay::menu::{self, Menu};
 use crate::text::LineHeight;
 use crate::text_input;
@@ -81,6 +80,7 @@ use std::sync::atomic::{self, AtomicU64};
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::combo_box;
@@ -110,7 +110,7 @@ use std::sync::atomic::{self, AtomicU64};
 ///         state.favorite.as_ref(),
 ///         Message::FruitSelected
 ///     )
-///     .into()
+///     .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -753,19 +753,6 @@ where
 
         operation.focusable(self.id.as_ref(), bounds, &mut state.editor.input);
         operation.text_input(self.id.as_ref(), bounds, &mut state.editor.input);
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> From<ComboBox<'a, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Display + Clone + 'static,
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'static,
-{
-    fn from(combo_box: ComboBox<'a, T, Message, Theme>) -> Self {
-        combo_box.boxed()
     }
 }
 

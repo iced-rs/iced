@@ -1,8 +1,8 @@
-use iced::Element;
 use iced::alignment;
 use iced::time::seconds;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, center, checkbox, column, container, tooltip};
+use iced::{Element, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Tooltip::update, Tooltip::view)
@@ -59,7 +59,7 @@ impl Tooltip {
                 .align_x(alignment::Horizontal::Center)
                 .spacing(10),
         )
-        .into()
+        .boxed()
     }
 }
 

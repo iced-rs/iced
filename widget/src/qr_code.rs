@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::qr_code;
@@ -17,7 +18,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     qr_code(&state.data).into()
+//!     qr_code(&state.data).boxed()
 //! }
 //! ```
 use crate::Renderer;
@@ -27,9 +28,7 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Vector, Widget,
-};
+use crate::core::{Color, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Vector, Widget};
 
 use std::cell::RefCell;
 use thiserror::Error;
@@ -43,6 +42,7 @@ const QUIET_ZONE: usize = 2;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::qr_code;
@@ -57,7 +57,7 @@ const QUIET_ZONE: usize = 2;
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     qr_code(&state.data).into()
+///     qr_code(&state.data).boxed()
 /// }
 /// ```
 pub struct QRCode<'a, Theme = crate::Theme>
@@ -203,15 +203,6 @@ where
 
             renderer.draw_geometry(geometry);
         });
-    }
-}
-
-impl<'a, Message, Theme> From<QRCode<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-{
-    fn from(qr_code: QRCode<'a, Theme>) -> Self {
-        qr_code.boxed()
     }
 }
 

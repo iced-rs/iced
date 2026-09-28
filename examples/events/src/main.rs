@@ -1,7 +1,7 @@
 use iced::event::{self, Event};
 use iced::widget::{button, center, checkbox, column, text};
 use iced::window;
-use iced::{Center, Element, Fill, Subscription, Task};
+use iced::{Center, Element, Fill, Subscription, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Events::default, Events::update, Events::view)
@@ -69,6 +69,6 @@ impl Events {
 
         let content = column![events, toggle, exit].align_x(Center).spacing(20);
 
-        center(content).into()
+        center(content).boxed()
     }
 }

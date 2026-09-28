@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::{column, radio};
@@ -53,7 +54,7 @@
 //!         Message::RadioSelected
 //!     );
 //!
-//!     column![a, b, c, all].into()
+//!     column![a, b, c, all].boxed()
 //! }
 //! ```
 use crate::core::alignment;
@@ -67,8 +68,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
-    Widget,
+    Background, Color, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -76,6 +76,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::{column, radio};
@@ -126,7 +127,7 @@ use crate::core::{
 ///         Message::RadioSelected
 ///     );
 ///
-///     column![a, b, c, all].into()
+///     column![a, b, c, all].boxed()
 /// }
 /// ```
 pub struct Radio<'a, Message, Theme = crate::Theme>
@@ -441,18 +442,6 @@ where
             },
             viewport,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a + Clone,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-{
-    fn from(radio: Radio<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        radio.boxed()
     }
 }
 

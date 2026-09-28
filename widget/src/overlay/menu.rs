@@ -14,7 +14,7 @@ use crate::core::{
     Background, Color, Event, Font, Layout, Length, Padding, Pixels, Point, Rectangle, Shadow,
     Size, Theme, Vector,
 };
-use crate::core::{Element, Shell, Widget};
+use crate::core::{Shell, Widget};
 use crate::scrollable::{self, Scrollable};
 
 /// A list of selectable options.
@@ -637,20 +637,6 @@ where
                 *viewport,
             );
         }
-    }
-}
-
-impl<'a, 'b, T, Message, Theme, Renderer> From<List<'a, 'b, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Clone,
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-    'b: 'a,
-{
-    fn from(list: List<'a, 'b, T, Message, Theme>) -> Self {
-        list.boxed()
     }
 }
 

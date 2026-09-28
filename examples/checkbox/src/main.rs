@@ -1,5 +1,5 @@
 use iced::widget::{center, checkbox, column, row, text};
-use iced::{Element, Font};
+use iced::{Element, Font, Widget};
 
 const ICON_FONT: Font = Font::new("icons");
 
@@ -70,6 +70,6 @@ impl Example {
 
         let content = column![default_checkbox, checkboxes, custom_checkbox].spacing(20);
 
-        center(content).into()
+        center(content).boxed()
     }
 }

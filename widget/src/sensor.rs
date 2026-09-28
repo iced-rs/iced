@@ -7,9 +7,7 @@ use crate::core::time::{Duration, Instant};
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{
-    self, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{self, Event, Layout, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that can generate messages when its content pops in and out of view.
 ///
@@ -327,20 +325,6 @@ where
             translation,
             window,
         )
-    }
-}
-
-impl<'a, Key, Message, W, Theme, Renderer> From<Sensor<'a, Key, Message, W>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Key: self::Key + 'a,
-    Renderer: core::Renderer + 'a,
-    Theme: 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(sensor: Sensor<'a, Key, Message, W>) -> Self {
-        sensor.boxed()
     }
 }
 

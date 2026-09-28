@@ -332,7 +332,7 @@ where
         };
 
         let setup = if let Mode::Setup(setup) = &self.mode {
-            let stage: Element<'_, _, Theme, P::Renderer> = match setup {
+            let stage = match setup {
                 Setup::Idle { goal } => self::setup(goal),
                 Setup::Running { logs } => installation(logs),
             };
@@ -370,7 +370,7 @@ where
         stack![view, setup, notification]
             .width(Fill)
             .height(Fill)
-            .into()
+            .boxed()
     }
 
     pub fn subscription(&self, program: &P) -> Subscription<Event<P::Message>> {
@@ -467,7 +467,7 @@ where
     .padding(5)
     .style(container::dark);
 
-    Element::from(match goal {
+    match goal {
         Goal::Installation => column![
             text("comet is not installed!").size(20),
             "In order to display performance \
@@ -515,7 +515,8 @@ where
             ]
             .spacing(20)
         }
-    })
+    }
+    .boxed()
 }
 
 fn installation<'a, Renderer>(logs: &'a [String]) -> Element<'a, Message, Theme, Renderer>
@@ -541,7 +542,7 @@ where
         .style(container::dark)
     ]
     .spacing(20)
-    .into()
+    .boxed()
 }
 
 fn inline_code<'a, Renderer>(
@@ -557,5 +558,5 @@ where
                 .border(border::rounded(2))
         })
         .padding([2, 4])
-        .into()
+        .boxed()
 }

@@ -2,7 +2,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::button;
@@ -13,7 +14,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     button("Press me!").on_press(Message::ButtonPressed).into()
+//!     button("Press me!").on_press(Message::ButtonPressed).boxed()
 //! }
 //! ```
 use crate::core::border::{self, Border};
@@ -27,15 +28,16 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{Node, Operation};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size,
-    Theme, Vector, Widget,
+    Background, Color, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size, Theme,
+    Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::button;
@@ -46,7 +48,7 @@ use crate::core::{
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     button("Press me!").on_press(Message::ButtonPressed).into()
+///     button("Press me!").on_press(Message::ButtonPressed).boxed()
 /// }
 /// ```
 ///
@@ -54,7 +56,8 @@ use crate::core::{
 /// be disabled:
 ///
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::button;
@@ -65,7 +68,7 @@ use crate::core::{
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     button("I am disabled!").into()
+///     button("I am disabled!").boxed()
 /// }
 /// ```
 pub struct Button<'a, Message, W = crate::Element<'a, Message>, Theme = crate::Theme>
@@ -439,19 +442,6 @@ where
 
         self.content
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, Message, W, Theme, Renderer> From<Button<'a, Message, W, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: Clone + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-    Theme: Catalog + 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(button: Button<'a, Message, W, Theme>) -> Self {
-        button.boxed()
     }
 }
 

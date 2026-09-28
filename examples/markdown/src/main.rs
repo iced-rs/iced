@@ -9,7 +9,9 @@ use iced::widget::{
     scrollable, sensor, space, text_editor, toggler,
 };
 use iced::window;
-use iced::{Animation, Center, Code, Element, Fill, Font, Function, Subscription, Task, Theme};
+use iced::{
+    Animation, Center, Code, Element, Fill, Font, Function, Subscription, Task, Theme, Widget,
+};
 
 use std::collections::HashMap;
 use std::io;
@@ -215,7 +217,7 @@ impl Markdown {
         ]
         .spacing(settings.spacing)
         .padding(settings.spacing / 2.0)
-        .into()
+        .boxed()
     }
 
     fn theme(&self) -> Theme {
@@ -277,13 +279,13 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
                     .opacity(fade_in.interpolate(0.0, 1.0, self.now))
                     .scale(fade_in.interpolate(1.2, 1.0, self.now)),
             )
-            .into()
+            .boxed()
         } else {
             sensor(space())
                 .key_ref(url.as_str())
                 .delay(milliseconds(500))
                 .on_show(|_size| Message::ImageShown(url.clone()))
-                .into()
+                .boxed()
         }
     }
 
@@ -305,7 +307,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
             code_block,
             right(container(copy).style(container::dark)).padding(settings.spacing / 2),
         )
-        .into()
+        .boxed()
     }
 }
 

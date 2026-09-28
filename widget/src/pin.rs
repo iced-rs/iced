@@ -2,7 +2,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::pin;
@@ -16,7 +17,7 @@
 //!     pin("This text is displayed at coordinates (50, 50)!")
 //!         .x(50)
 //!         .y(50)
-//!         .into()
+//!         .boxed()
 //! }
 //! ```
 use crate::core::layout;
@@ -25,7 +26,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    self, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
+    self, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
@@ -34,7 +35,8 @@ use crate::core::{
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::pin;
@@ -48,7 +50,7 @@ use crate::core::{
 ///     pin("This text is displayed at coordinates (50, 50)!")
 ///         .x(50)
 ///         .y(50)
-///         .into()
+///         .boxed()
 /// }
 /// ```
 pub struct Pin<W> {
@@ -225,17 +227,5 @@ where
 
         self.content
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Pin<W>> for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(pin: Pin<W>) -> Element<'a, Message, Theme, Renderer> {
-        pin.boxed()
     }
 }

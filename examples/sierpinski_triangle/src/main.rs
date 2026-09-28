@@ -1,7 +1,7 @@
 use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
-use iced::{Center, Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme};
+use iced::{Center, Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Widget};
 
 use rand::Rng;
 use std::fmt::Debug;
@@ -57,7 +57,7 @@ impl SierpinskiEmulator {
             .spacing(20),
         ]
         .align_x(Center)
-        .into()
+        .boxed()
     }
 }
 

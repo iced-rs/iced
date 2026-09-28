@@ -5,7 +5,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{container, tooltip};
@@ -21,7 +22,7 @@
 //!             .padding(10)
 //!             .style(container::rounded_box),
 //!         tooltip::Position::Bottom,
-//!     ).into()
+//!     ).boxed()
 //! }
 //! ```
 use crate::container;
@@ -33,13 +34,14 @@ use crate::core::text;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 
 /// An element to display a widget over another.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{container, tooltip};
@@ -55,7 +57,7 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///             .padding(10)
 ///             .style(container::rounded_box),
 ///         tooltip::Position::Bottom,
-///     ).into()
+///     ).boxed()
 /// }
 /// ```
 pub struct Tooltip<'a, W, V, Theme = crate::Theme>
@@ -417,20 +419,6 @@ where
             self.content
                 .operate(&mut tree.children[0], layout, viewport, renderer, operation);
         });
-    }
-}
-
-impl<'a, W, V, Message, Theme, Renderer> From<Tooltip<'a, W, V, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: container::Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-    V: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(tooltip: Tooltip<'a, W, V, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        tooltip.boxed()
     }
 }
 

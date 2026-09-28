@@ -114,14 +114,14 @@ impl Example {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let image: Element<Message> = if let Some((_screenshot, handle)) = &self.screenshot {
+        let image = if let Some((_screenshot, handle)) = &self.screenshot {
             image(handle)
                 .content_fit(ContentFit::Contain)
                 .width(Fill)
                 .height(Fill)
-                .into()
+                .boxed()
         } else {
-            text("Press the button to take a screenshot!").into()
+            text("Press the button to take a screenshot!").boxed()
         };
 
         let image = center_y(image)
@@ -208,7 +208,7 @@ impl Example {
             .height(Fill)
             .align_y(Center);
 
-        container(content).padding(10).into()
+        container(content).padding(10).boxed()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -261,9 +261,9 @@ fn numeric_input<'a>(value: Option<u32>) -> Element<'a, Option<u32>> {
             }
         })
         .width(40)
-        .into()
+        .boxed()
 }
 
 fn centered_text(content: &str) -> Element<'_, Message> {
-    text(content).width(Fill).align_x(Center).into()
+    text(content).width(Fill).align_x(Center).boxed()
 }

@@ -2,7 +2,7 @@
 //!
 //! [`lazy`]: iced_widget::lazy
 use iced_test::Simulator;
-use iced_widget::core::{Element, Length};
+use iced_widget::core::{Element, Length, Widget};
 use iced_widget::{lazy, row, text};
 
 /// A row with a [`lazy`] child whose cached content fills the main axis,
@@ -20,7 +20,7 @@ fn view(dependency: u8) -> Element<'static, (), iced_widget::Theme, iced_widget:
         lazy(dependency, |_| text("fill").width(Length::Fill)),
         text("anchor"),
     ]
-    .into()
+    .boxed()
 }
 
 /// Asserts that the static text keeps a non-zero intrinsic width, which only

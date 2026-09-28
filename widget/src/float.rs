@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
+    Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
@@ -228,19 +228,6 @@ where
             self.content
                 .overlay(state, layout, renderer, viewport, offset, window)
         }
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Float<'a, W, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(float: Float<'a, W, Theme>) -> Self {
-        float.boxed()
     }
 }
 

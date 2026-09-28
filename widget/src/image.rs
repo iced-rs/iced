@@ -2,7 +2,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::image;
@@ -12,7 +13,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     image("ferris.png").into()
+//!     image("ferris.png").boxed()
 //! }
 //! ```
 //! <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -25,9 +26,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::{Node, Tree};
-use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget,
-};
+use crate::core::{ContentFit, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget};
 
 pub use image::{FilterMethod, Handle};
 
@@ -40,7 +39,8 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::image;
@@ -50,7 +50,7 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     image("ferris.png").into()
+///     image("ferris.png").boxed()
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -384,16 +384,5 @@ where
             self.opacity,
             self.scale,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + 'a,
-{
-    fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
-        image.boxed()
     }
 }

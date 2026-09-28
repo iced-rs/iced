@@ -2,7 +2,7 @@ use iced::event;
 use iced::font;
 use iced::widget::{center, column, pick_list, right, stack, text};
 use iced::window;
-use iced::{Element, Event, Font, Subscription, Task};
+use iced::{Element, Event, Font, Subscription, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Text::new, Text::update, Text::view)
@@ -96,6 +96,6 @@ impl Text {
             ),
             right(font_selector).padding(10)
         ]
-        .into()
+        .boxed()
     }
 }

@@ -1,7 +1,7 @@
 //! This example showcases a drawing a quad.
 use iced::border;
 use iced::widget::{center, column, slider, text, toggler};
-use iced::{Center, Color, Element, Fit, Shadow, Vector};
+use iced::{Center, Color, Element, Fit, Shadow, Vector, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -115,7 +115,7 @@ impl Example {
         .width(Fit.max(500))
         .align_x(Center);
 
-        center(content).into()
+        center(content).boxed()
     }
 }
 
@@ -131,7 +131,7 @@ mod quad {
     use iced::advanced::widget::{self, Widget};
     use iced::border;
     use iced::mouse;
-    use iced::{Border, Color, Element, Length, Rectangle, Shadow, Size};
+    use iced::{Border, Color, Length, Rectangle, Shadow, Size};
 
     pub struct CustomQuad {
         size: f32,
@@ -204,12 +204,6 @@ mod quad {
                 },
                 Color::BLACK,
             );
-        }
-    }
-
-    impl<Message> From<CustomQuad> for Element<'_, Message> {
-        fn from(circle: CustomQuad) -> Self {
-            circle.boxed()
         }
     }
 }

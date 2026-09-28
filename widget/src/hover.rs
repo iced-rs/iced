@@ -10,7 +10,7 @@ use crate::core::widget::operation;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{Node, Operation};
 use crate::core::window;
-use crate::core::{Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that displays another widget on top of it.
 ///
@@ -265,18 +265,5 @@ where
         self.is_top_overlay_active = !top_overlays.is_empty();
 
         base_overlays.into_iter().chain(top_overlays).collect()
-    }
-}
-
-impl<'a, W, V, Message, Theme, Renderer> From<Hover<W, V>> for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-    V: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(hover: Hover<W, V>) -> Element<'a, Message, Theme, Renderer> {
-        hover.boxed()
     }
 }

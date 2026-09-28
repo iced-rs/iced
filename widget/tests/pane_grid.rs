@@ -2,7 +2,7 @@
 //!
 //! [`PaneGrid`]: iced_widget::pane_grid::PaneGrid
 use iced_test::Simulator;
-use iced_widget::core::{self, Element, Size, mouse};
+use iced_widget::core::{self, Element, Size, Widget, mouse};
 use iced_widget::{Renderer, Theme, pane_grid, text};
 
 #[derive(Debug, Clone, Copy)]
@@ -30,7 +30,7 @@ fn view(panes: &pane_grid::State<u8>) -> Element<'_, Message, Theme, Renderer> {
     })
     .on_click(Message::PaneClicked)
     .on_drag(Message::PaneDragged)
-    .into()
+    .boxed()
 }
 
 #[test]

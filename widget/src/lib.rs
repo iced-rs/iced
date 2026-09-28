@@ -276,7 +276,7 @@ where
     ///                     counter.map(Message::Counter.with(index)).boxed()
     ///                 }),
     ///         )
-    ///         .into()
+    ///         .boxed()
     ///     }
     /// }
     /// ```

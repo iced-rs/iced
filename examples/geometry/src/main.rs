@@ -7,7 +7,7 @@ mod rainbow {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
+    use iced::{Event, Length, Rectangle, Renderer, Size, Theme, Transformation, Vector};
 
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
@@ -154,16 +154,10 @@ mod rainbow {
             });
         }
     }
-
-    impl<Message> From<Rainbow> for Element<'_, Message> {
-        fn from(rainbow: Rainbow) -> Self {
-            rainbow.boxed()
-        }
-    }
 }
 
 use iced::widget::{center_x, center_y, column, scrollable};
-use iced::{Element, Fit, Never};
+use iced::{Element, Fit, Never, Widget};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
@@ -188,5 +182,5 @@ fn view(_state: &()) -> Element<'_, Never> {
 
     let scrollable = scrollable(center_x(content));
 
-    center_y(scrollable).into()
+    center_y(scrollable).boxed()
 }

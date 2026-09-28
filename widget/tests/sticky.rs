@@ -10,7 +10,7 @@ use iced_widget::core::{
     Event, Length::Fill, Never, Point, Rectangle, Settings, Size, Vector, Widget,
 };
 use iced_widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
-use iced_widget::{Renderer, Theme, column, container, pick_list, row, scrollable, space, sticky};
+use iced_widget::{Theme, column, container, pick_list, row, scrollable, space, sticky};
 
 type Element<Message = Never, Renderer = ()> =
     iced_widget::core::Element<'static, Message, Theme, Renderer>;
@@ -26,7 +26,7 @@ fn vertical_view() -> Element {
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .into()
+    .boxed()
 }
 
 fn horizontal_view() -> Element {
@@ -38,7 +38,7 @@ fn horizontal_view() -> Element {
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .into()
+    .boxed()
 }
 
 fn build(element: &mut Element) -> widget::Tree {
@@ -183,7 +183,7 @@ fn sticky_out_of_view() {
 
 #[test]
 fn sticky_pinned_to_nearest_edge() {
-    let mut element: Element = scrollable(column![
+    let mut element = scrollable(column![
         space().height(1000),
         sticky(container("Header").width(Fill).height(50)),
         space().height(1000),
@@ -191,7 +191,7 @@ fn sticky_pinned_to_nearest_edge() {
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .into();
+    .boxed();
     let mut tree = build(&mut element);
 
     element.layout(&mut tree, &(), &DEFAULT_LIMITS);
@@ -222,7 +222,7 @@ fn sticky_pinned_to_nearest_edge() {
 fn sticky_clamped_to_visible_bounds() {
     // The sticky contents are clamped so that their edges never go out of
     // the visible bounds, even when they are larger than the viewport.
-    let mut element: Element = scrollable(
+    let mut element = scrollable(
         column![
             sticky(container("Header").width(2000).height(50)),
             space().height(1000),
@@ -236,7 +236,7 @@ fn sticky_clamped_to_visible_bounds() {
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .into();
+    .boxed();
     let mut tree = build(&mut element);
 
     element.layout(&mut tree, &(), &DEFAULT_LIMITS);
@@ -254,7 +254,7 @@ fn sticky_clamped_to_visible_bounds() {
 
 #[test]
 fn sticky_stays_attached_to_parent_bounds() {
-    let mut element: Element = scrollable(column![
+    let mut element = scrollable(column![
         space().height(300),
         container(sticky(container("Header").width(Fill).height(50))).center_y(500),
         space().height(1000),
@@ -262,7 +262,7 @@ fn sticky_stays_attached_to_parent_bounds() {
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .into();
+    .boxed();
     let mut tree = build(&mut element);
 
     element.layout(&mut tree, &(), &DEFAULT_LIMITS);
@@ -337,7 +337,7 @@ fn sticky_pick_list_menu_opens_at_floating_position() -> Result<(), iced_test::E
     .on_open(Message::Opened)
     .on_select(Message::Selected);
 
-    let view: Element<Message, Renderer> = scrollable(column![
+    let view = scrollable(column![
         space().height(300),
         sticky(pick_list_widget),
         space().height(1000),
@@ -345,9 +345,10 @@ fn sticky_pick_list_menu_opens_at_floating_position() -> Result<(), iced_test::E
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .into();
+    .boxed();
 
-    let mut ui = Simulator::with_size(Settings::default(), VIEWPORT.size(), view);
+    let mut ui: Simulator<'_, Message> =
+        Simulator::with_size(Settings::default(), VIEWPORT.size(), view);
 
     // Scroll down, so that the sticky contents go out of the visible bounds.
     ui.point_at(VIEWPORT.center());

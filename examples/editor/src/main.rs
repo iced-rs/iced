@@ -215,7 +215,7 @@ impl Editor {
         ]
         .spacing(10)
         .padding(10)
-        .into()
+        .boxed()
     }
 
     fn theme(&self) -> Theme {
@@ -312,7 +312,7 @@ fn icon<'a, Message>(codepoint: char) -> Element<'a, Message> {
     text(codepoint)
         .font(ICON_FONT)
         .shaping(text::Shaping::Basic)
-        .into()
+        .boxed()
 }
 
 const EDITOR: &str = "editor";

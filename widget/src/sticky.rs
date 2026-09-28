@@ -18,7 +18,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{column, container, scrollable, sticky, space};
@@ -32,7 +33,7 @@
 //!     scrollable(column![
 //!         sticky(container("I always stay in view!").width(Fill).padding(10)),
 //!         space().height(3000),
-//!     ]).into()
+//!     ]).boxed()
 //! }
 //! ```
 use crate::core;
@@ -42,7 +43,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that keeps its contents in view.
 ///
@@ -68,7 +69,8 @@ use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, container, scrollable, sticky, space};
@@ -82,7 +84,7 @@ use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
 ///     scrollable(column![
 ///         sticky(container("I always stay in view!").width(Fill).padding(10)),
 ///         space().height(3000),
-///     ]).into()
+///     ]).boxed()
 /// }
 /// ```
 pub struct Sticky<W> {
@@ -327,18 +329,6 @@ fn stuck_axis(
     } else {
         // The contents are attached to the lower edge of the parent
         parent_min
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Sticky<W>> for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(sticky: Sticky<W>) -> Element<'a, Message, Theme, Renderer> {
-        sticky.boxed()
     }
 }
 

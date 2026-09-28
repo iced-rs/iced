@@ -1,5 +1,5 @@
 use iced::widget::{button, column, lazy, pick_list, row, scrollable, space, text, text_input};
-use iced::{Element, Fill};
+use iced::{Element, Fill, Widget};
 
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -189,7 +189,7 @@ impl App {
         ]
         .spacing(20)
         .padding(20)
-        .into()
+        .boxed()
     }
 }
 

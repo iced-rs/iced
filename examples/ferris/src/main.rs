@@ -159,7 +159,7 @@ impl Image {
 
         container(column![fit, center(i_am_ferris), properties].spacing(10))
             .padding(10)
-            .into()
+            .boxed()
     }
 }
 

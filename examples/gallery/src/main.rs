@@ -14,7 +14,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Animation, Color, ContentFit, Element, Fill, Function, Shadow, Subscription, Task, Theme, color,
+    Animation, Color, ContentFit, Element, Fill, Function, Shadow, Subscription, Task, Theme,
+    Widget, color,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -274,7 +275,7 @@ impl Gallery {
         let content = container(scrollable(gallery).spacing(10).auto_scroll(true)).padding(10);
         let viewer = self.viewer.view(self.now);
 
-        stack![content, viewer].into()
+        stack![content, viewer].boxed()
     }
 }
 
@@ -284,7 +285,7 @@ fn card<'a>(
     now: Instant,
 ) -> Element<'a, Message> {
     let image = if let Some(preview) = preview {
-        let thumbnail: Element<'_, _> = if let Preview::Ready { thumbnail, .. } = &preview
+        let thumbnail = if let Preview::Ready { thumbnail, .. } = &preview
             && let Some(allocation) = &thumbnail.allocation
         {
             float(
@@ -307,9 +308,9 @@ fn card<'a>(
                 },
                 shadow_border_radius: border::radius(BORDER_RADIUS),
             })
-            .into()
+            .boxed()
         } else {
-            space::horizontal().into()
+            space::horizontal().boxed()
         };
 
         if let Some(blurhash) = preview.blurhash(now) {
@@ -319,38 +320,38 @@ fn card<'a>(
                 .opacity(blurhash.fade_in.interpolate(0.0, 1.0, now))
                 .border_radius(BORDER_RADIUS);
 
-            stack![blurhash, thumbnail].into()
+            stack![blurhash, thumbnail].boxed()
         } else {
             thumbnail
         }
     } else {
-        space::horizontal().into()
+        space::horizontal().boxed()
     };
 
     let card = mouse_area(container(image).style(rounded))
         .on_enter(Message::ThumbnailHovered(metadata.id, true))
         .on_exit(Message::ThumbnailHovered(metadata.id, false));
 
-    let card: Element<'_, _> = if let Some(preview) = preview {
+    let card = if let Some(preview) = preview {
         let is_thumbnail = matches!(preview, Preview::Ready { .. });
 
         button(card)
             .on_press_maybe(is_thumbnail.then_some(Message::Open(metadata.id)))
             .padding(0)
             .style(button::text)
-            .into()
+            .boxed()
     } else {
-        card.into()
+        card.boxed()
     };
 
     sensor(card)
         .on_show(|_| Message::ImagePoppedIn(metadata.id))
         .on_hide(Message::ImagePoppedOut(metadata.id))
-        .into()
+        .boxed()
 }
 
 fn placeholder<'a>() -> Element<'a, Message> {
-    container(space()).style(rounded).into()
+    container(space()).style(rounded).boxed()
 }
 
 enum Preview {

@@ -3,6 +3,7 @@
 //! # Example: Drawing a Simple Circle
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
@@ -45,7 +46,7 @@
 //!
 //! // Finally, we simply use our `Circle` to create the `Canvas`!
 //! fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-//!     canvas(Circle { radius: 50.0 }).into()
+//!     canvas(Circle { radius: 50.0 }).boxed()
 //! }
 //! ```
 mod program;
@@ -67,7 +68,7 @@ use crate::core::renderer;
 use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{Element, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
@@ -89,6 +90,7 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// # Example: Drawing a Simple Circle
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
@@ -131,7 +133,7 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 ///
 /// // Finally, we simply use our `Circle` to create the `Canvas`!
 /// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-///     canvas(Circle { radius: 50.0 }).into()
+///     canvas(Circle { radius: 50.0 }).boxed()
 /// }
 /// ```
 #[derive(Debug)]
@@ -299,18 +301,5 @@ where
                 renderer.draw_geometry(layer);
             }
         });
-    }
-}
-
-impl<'a, P, Message, Theme, Renderer> From<Canvas<P, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + geometry::Renderer,
-    P: 'a + Program<Message, Theme, Renderer>,
-{
-    fn from(canvas: Canvas<P, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
-        canvas.boxed()
     }
 }

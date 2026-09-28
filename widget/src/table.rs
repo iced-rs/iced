@@ -583,18 +583,6 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Table<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(table: Table<'a, Message, Theme, Renderer>) -> Self {
-        table.boxed()
-    }
-}
-
 /// A vertical visualization of some data with a header.
 pub struct Column<'a, 'b, T, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     header: Element<'a, Message, Theme, Renderer>,

@@ -118,7 +118,7 @@ impl App {
             title: &'a str,
             content: impl Widget<Message> + 'a,
         ) -> Element<'a, Message> {
-            column![text(title).size(14), content].spacing(5).into()
+            column![text(title).size(14), content].spacing(5).boxed()
         }
 
         let add_toast = button("Add Toast").on_press_maybe(
@@ -196,7 +196,7 @@ impl App {
             .width(Fit.max(200))
         });
 
-        stack![content, right(column(toasts).spacing(10))].into()
+        stack![content, right(column(toasts).spacing(10))].boxed()
     }
 }
 

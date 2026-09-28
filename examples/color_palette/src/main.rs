@@ -78,7 +78,7 @@ impl ColorPalette {
         ]
         .padding(10)
         .spacing(10)
-        .into()
+        .boxed()
     }
 
     fn theme(&self) -> iced::Theme {
@@ -151,7 +151,7 @@ impl Theme {
     }
 
     pub fn view(&self) -> Element<'_, Message> {
-        Canvas::new(self).width(Fill).height(Fill).into()
+        Canvas::new(self).width(Fill).height(Fill).boxed()
     }
 
     fn draw(&self, frame: &mut Frame, text_color: Color) {
@@ -318,7 +318,7 @@ impl<C: ColorSpace + Copy> ColorPicker<C> {
         ]
         .spacing(10)
         .align_y(Center)
-        .into()
+        .boxed()
     }
 }
 

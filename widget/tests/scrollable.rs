@@ -803,16 +803,6 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Recorder> for core::Element<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-    Message: 'a,
-{
-    fn from(recorder: Recorder) -> core::Element<'a, Message, Theme, Renderer> {
-        recorder.boxed()
-    }
-}
-
 #[test]
 fn content_update_and_draw_see_the_same_translation() {
     let observations = Rc::new(RefCell::new(Vec::new()));

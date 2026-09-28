@@ -1,7 +1,7 @@
 mod echo;
 
 use iced::widget::{button, center, column, operation, row, scrollable, text, text_input};
-use iced::{Center, Element, Fill, Subscription, Task, color};
+use iced::{Center, Element, Fill, Subscription, Task, Widget, color};
 
 pub fn main() -> iced::Result {
     iced::application(WebSocket::new, WebSocket::update, WebSocket::view)
@@ -83,14 +83,14 @@ impl WebSocket {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let message_log: Element<_> = if self.messages.is_empty() {
-            center(text("Your messages will appear here...").color(color!(0x888888))).into()
+        let message_log = if self.messages.is_empty() {
+            center(text("Your messages will appear here...").color(color!(0x888888))).boxed()
         } else {
-            scrollable(column(self.messages.iter().map(text).map(Element::from)).spacing(10))
+            scrollable(column(self.messages.iter().map(text)).spacing(10))
                 .id(MESSAGE_LOG)
                 .height(Fill)
                 .spacing(10)
-                .into()
+                .boxed()
         };
 
         let new_message_input = {
@@ -114,7 +114,7 @@ impl WebSocket {
             .height(Fill)
             .padding(20)
             .spacing(10)
-            .into()
+            .boxed()
     }
 }
 

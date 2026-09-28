@@ -3,7 +3,7 @@ use iced::widget::{canvas, column, container, row, slider, text};
 use iced::window;
 use iced::{
     Center, Element, Event, Fill, Font, Point, Rectangle, Renderer, Size, Subscription, Theme,
-    Vector,
+    Vector, Widget,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -95,7 +95,7 @@ impl Sandpiles {
         .align_x(Center)
         .style(container::dark);
 
-        column![viewer, speed].into()
+        column![viewer, speed].boxed()
     }
 
     fn subscription(&self) -> Subscription<Message> {

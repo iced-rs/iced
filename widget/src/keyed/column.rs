@@ -6,15 +6,15 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{Node, Operation};
 use crate::core::{
-    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
-    Widget,
+    Alignment, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically while keeping continuity.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{keyed_column, text};
@@ -26,7 +26,7 @@ use crate::core::{
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     keyed_column((0..=100).map(|i| {
 ///         (i, text!("Item {i}"))
-///     })).into()
+///     })).boxed()
 /// }
 /// ```
 pub struct Column<Key, W>
@@ -339,19 +339,5 @@ where
             translation,
             window,
         )
-    }
-}
-
-impl<'a, Key, W, Message, Theme, Renderer> From<Column<Key, W>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Key: Copy + PartialEq + 'static,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(column: Column<Key, W>) -> Self {
-        column.boxed()
     }
 }

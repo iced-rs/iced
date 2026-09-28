@@ -2,7 +2,7 @@ use iced::widget::{
     button, center, center_x, column, container, operation, scrollable, space, text, text_input,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Function, Subscription, Task, Theme, Vector};
+use iced::{Center, Element, Fill, Function, Subscription, Task, Theme, Vector, Widget};
 
 use std::collections::BTreeMap;
 
@@ -125,9 +125,9 @@ impl Example {
 
     fn view(&self, window_id: window::Id) -> Element<'_, Message> {
         if let Some(window) = self.windows.get(&window_id) {
-            center(window.view(window_id)).into()
+            center(window.view(window_id)).boxed()
         } else {
-            space().into()
+            space().boxed()
         }
     }
 
@@ -180,6 +180,6 @@ impl Window {
             .align_x(Center)
             .width(200);
 
-        container(scrollable(center_x(content))).padding(10).into()
+        container(scrollable(center_x(content))).padding(10).boxed()
     }
 }

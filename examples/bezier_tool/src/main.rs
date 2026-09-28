@@ -51,14 +51,14 @@ impl Example {
             },
         ))
         .padding(20)
-        .into()
+        .boxed()
     }
 }
 
 mod bezier {
     use iced::mouse;
     use iced::widget::canvas::{self, Canvas, Event, Frame, Geometry, Path, Stroke};
-    use iced::{Element, Fill, Point, Rectangle, Renderer, Theme};
+    use iced::{Element, Fill, Point, Rectangle, Renderer, Theme, Widget};
 
     #[derive(Default)]
     pub struct State {
@@ -73,7 +73,7 @@ mod bezier {
             })
             .width(Fill)
             .height(Fill)
-            .into()
+            .boxed()
         }
 
         pub fn request_redraw(&mut self) {

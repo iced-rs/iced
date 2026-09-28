@@ -1,5 +1,5 @@
 use iced::widget::{center, column, pick_list, qr_code, row, slider, text, text_input, toggler};
-use iced::{Center, Element, Theme};
+use iced::{Center, Element, Theme, Widget};
 
 use std::ops::RangeInclusive;
 
@@ -98,7 +98,7 @@ impl QRGenerator {
         .spacing(20)
         .align_x(Center);
 
-        center(content).padding(20).into()
+        center(content).padding(20).boxed()
     }
 
     fn theme(&self) -> Option<Theme> {

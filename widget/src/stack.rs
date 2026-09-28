@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Node, Operation, Tree};
-use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that displays children on top of each other.
 ///
@@ -330,17 +330,5 @@ where
             translation,
             window,
         )
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Stack<W>> for Element<'a, Message, Theme, Renderer>
-where
-    W: Widget<Message, Theme, Renderer> + 'a,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(stack: Stack<W>) -> Self {
-        stack.boxed()
     }
 }

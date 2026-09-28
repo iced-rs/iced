@@ -1,5 +1,5 @@
 use iced::widget::{button, center, column, text};
-use iced::{Center, Element};
+use iced::{Center, Element, Widget};
 
 use loupe::loupe;
 
@@ -41,7 +41,7 @@ impl Loupe {
             .padding(20)
             .align_x(Center),
         ))
-        .into()
+        .boxed()
     }
 }
 
@@ -52,7 +52,7 @@ mod loupe {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Color, Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation};
+    use iced::{Color, Event, Length, Rectangle, Renderer, Size, Theme, Transformation};
 
     pub fn loupe<'a, Message>(
         zoom: f32,
@@ -170,16 +170,6 @@ mod loupe {
             } else {
                 mouse::Interaction::None
             }
-        }
-    }
-
-    impl<'a, W, Message> From<Loupe<W>> for Element<'a, Message, Theme, Renderer>
-    where
-        W: Widget<Message, Theme, Renderer> + 'a,
-        Message: 'a,
-    {
-        fn from(loupe: Loupe<W>) -> Self {
-            loupe.boxed()
         }
     }
 }

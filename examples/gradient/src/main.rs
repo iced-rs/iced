@@ -90,7 +90,7 @@ impl Gradient {
             transparency_toggle,
             gradient_box,
         ]
-        .into()
+        .boxed()
     }
 
     fn style(&self, theme: &Theme) -> theme::Style {
@@ -122,5 +122,5 @@ fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
     .spacing(8)
     .padding(8)
     .align_y(Center)
-    .into()
+    .boxed()
 }

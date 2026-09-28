@@ -4,6 +4,7 @@
 //! ```no_run
 //! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 //! #            pub use iced_core::color; }
+//! # use iced_core::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
 //! use iced::widget::text;
@@ -17,7 +18,7 @@
 //!     text("Hello, this is iced!")
 //!         .size(20)
 //!         .color(color!(0x0000ff))
-//!         .into()
+//!         .boxed()
 //! }
 //! ```
 use crate::alignment;
@@ -28,7 +29,7 @@ use crate::text;
 use crate::text::paragraph::{self, Paragraph};
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::{Color, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 
@@ -38,6 +39,7 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 /// ```no_run
 /// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 /// #            pub use iced_core::color; }
+/// # use iced_core::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
 /// use iced::widget::text;
@@ -51,7 +53,7 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 ///     text("Hello, this is iced!")
 ///         .size(20)
 ///         .color(color!(0x0000ff))
-///         .into()
+///         .boxed()
 /// }
 /// ```
 #[must_use]
@@ -418,32 +420,12 @@ pub fn draw<Renderer>(
     );
 }
 
-impl<'a, Message, Theme, Renderer> From<Text<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(text: Text<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text)
-    }
-}
-
 impl<'a, Theme> From<&'a str> for Text<'a, Theme>
 where
     Theme: Catalog + 'a,
 {
     fn from(content: &'a str) -> Self {
         Self::new(content)
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<&'a str> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(content: &'a str) -> Self {
-        Text::from(content).into()
     }
 }
 

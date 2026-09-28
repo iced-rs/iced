@@ -120,7 +120,7 @@ impl Layout {
         column![header, example, controls]
             .spacing(10)
             .padding(20)
-            .into()
+            .boxed()
     }
 
     fn theme(&self) -> Option<Theme> {
@@ -215,7 +215,7 @@ impl PartialEq for Example {
 }
 
 fn centered<'a>() -> Element<'a, Message> {
-    center(text("I am centered!").size(50)).into()
+    center(text("I am centered!").size(50)).boxed()
 }
 
 fn column_<'a>() -> Element<'a, Message> {
@@ -229,7 +229,7 @@ fn column_<'a>() -> Element<'a, Message> {
         "elements can be configured!",
     ]
     .spacing(40)
-    .into()
+    .boxed()
 }
 
 fn row_<'a>() -> Element<'a, Message> {
@@ -241,11 +241,11 @@ fn row_<'a>() -> Element<'a, Message> {
         "but lays out widgets horizontally!",
     ]
     .spacing(40)
-    .into()
+    .boxed()
 }
 
 fn space_<'a>() -> Element<'a, Message> {
-    row!["Left!", space::horizontal(), "Right!"].into()
+    row!["Left!", space::horizontal(), "Right!"].boxed()
 }
 
 fn application<'a>() -> Element<'a, Message> {
@@ -295,7 +295,7 @@ fn application<'a>() -> Element<'a, Message> {
     .padding(10)
     .width(FillPortion(3));
 
-    column![header, row![sidebar, content]].into()
+    column![header, row![sidebar, content]].boxed()
 }
 
 fn quotes<'a>() -> Element<'a, Message> {
@@ -307,7 +307,7 @@ fn quotes<'a>() -> Element<'a, Message> {
         original: impl Widget<Message> + 'a,
         reply: impl Widget<Message> + 'a,
     ) -> Element<'a, Message> {
-        column![quote(original), reply].spacing(10).into()
+        column![quote(original), reply].spacing(10).boxed()
     }
 
     column![
@@ -320,7 +320,7 @@ fn quotes<'a>() -> Element<'a, Message> {
     ]
     .width(Shrink)
     .spacing(10)
-    .into()
+    .boxed()
 }
 
 fn pinning<'a>() -> Element<'a, Message> {
@@ -337,7 +337,7 @@ fn pinning<'a>() -> Element<'a, Message> {
     ]
     .align_x(Center)
     .spacing(10)
-    .into()
+    .boxed()
 }
 
 fn responsive_<'a>() -> Element<'a, Message> {
@@ -370,7 +370,7 @@ fn responsive_<'a>() -> Element<'a, Message> {
     .align_x(Center)
     .spacing(10)
     .padding(10)
-    .into()
+    .boxed()
 }
 
 fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
@@ -401,5 +401,5 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
         }
     }
 
-    canvas(Square).width(size).height(size).into()
+    canvas(Square).width(size).height(size).boxed()
 }

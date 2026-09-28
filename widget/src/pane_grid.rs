@@ -19,6 +19,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::{pane_grid, text};
@@ -46,7 +47,7 @@
 //!     })
 //!     .on_drag(Message::PaneDragged)
 //!     .on_resize(10, Message::PaneResized)
-//!     .into()
+//!     .boxed()
 //! }
 //! ```
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
@@ -88,8 +89,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Border, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Theme, Vector, Widget,
+    self, Background, Border, Color, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Theme, Vector, Widget,
 };
 
 const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
@@ -117,6 +118,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::{pane_grid, text};
@@ -144,7 +146,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(10, Message::PaneResized)
-///     .into()
+///     .boxed()
 /// }
 /// ```
 pub struct PaneGrid<'a, Message, T, W, Theme = crate::Theme, Renderer = crate::Renderer>
@@ -995,22 +997,6 @@ where
 
 fn is_dragging(origin: Point, cursor: Point) -> bool {
     cursor.distance(origin) > DRAG_DEADBAND_DISTANCE
-}
-
-impl<'a, Message, T, W, Theme, Renderer> From<PaneGrid<'a, Message, T, W, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-    T: Widget<Message, Theme, Renderer> + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(
-        pane_grid: PaneGrid<'a, Message, T, W, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        pane_grid.boxed()
-    }
 }
 
 fn layout_region(layout: Layout, cursor_position: Point) -> Option<Region> {

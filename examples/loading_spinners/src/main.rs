@@ -1,5 +1,5 @@
 use iced::widget::{center, column, row, slider, text};
-use iced::{Center, Element};
+use iced::{Center, Element, Widget};
 
 use std::time::Duration;
 
@@ -68,25 +68,21 @@ impl LoadingSpinners {
                 ]
                 .align_y(Center)
                 .spacing(20.0)
-            }),
+            })
+            .chain([row![
+                text("Cycle duration:"),
+                slider(1.0..=1000.0, self.cycle_duration * 100.0, |x| {
+                    Message::CycleDurationChanged(x / 100.0)
+                })
+                .width(200.0),
+                text!("{:.2}s", self.cycle_duration),
+            ]
+            .align_y(Center)
+            .spacing(20.0)]),
         )
         .spacing(20);
 
-        center(
-            column.push(
-                row![
-                    text("Cycle duration:"),
-                    slider(1.0..=1000.0, self.cycle_duration * 100.0, |x| {
-                        Message::CycleDurationChanged(x / 100.0)
-                    })
-                    .width(200.0),
-                    text!("{:.2}s", self.cycle_duration),
-                ]
-                .align_y(Center)
-                .spacing(20.0),
-            ),
-        )
-        .into()
+        center(column).boxed()
     }
 }
 

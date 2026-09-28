@@ -2,7 +2,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::container;
@@ -16,7 +17,7 @@
 //!         .padding(10)
 //!         .center(800)
 //!         .style(container::rounded_box)
-//!         .into()
+//!         .boxed()
 //! }
 //! ```
 use crate::core::alignment::{self, Alignment};
@@ -30,15 +31,16 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell,
-    Size, Theme, Vector, Widget, color,
+    self, Background, Color, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size, Theme,
+    Vector, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::container;
@@ -52,7 +54,7 @@ use crate::core::{
 ///         .padding(10)
 ///         .center(800)
 ///         .style(container::rounded_box)
-///         .into()
+///         .boxed()
 /// }
 /// ```
 pub struct Container<'a, W, Theme = crate::Theme>
@@ -342,19 +344,6 @@ where
 
         self.content
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Container<'a, W, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(container: Container<'a, W, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        container.boxed()
     }
 }
 

@@ -1,6 +1,6 @@
 use iced::widget::{button, center, column};
 use iced::window;
-use iced::{Center, Element, Task};
+use iced::{Center, Element, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Exit::update, Exit::view)
@@ -46,6 +46,6 @@ impl Exit {
         .spacing(10)
         .align_x(Center);
 
-        center(content).padding(20).into()
+        center(content).padding(20).boxed()
     }
 }

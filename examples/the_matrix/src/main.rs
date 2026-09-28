@@ -1,7 +1,7 @@
 use iced::mouse;
 use iced::time::{self, milliseconds};
 use iced::widget::canvas;
-use iced::{Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::{Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme, Widget};
 
 use std::cell::RefCell;
 
@@ -33,7 +33,7 @@ impl TheMatrix {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        canvas(self).width(Fill).height(Fill).into()
+        canvas(self).width(Fill).height(Fill).boxed()
     }
 
     fn subscription(&self) -> Subscription<Message> {

@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::time::{self, Duration, Instant, milliseconds};
 use iced::widget::{button, center, column, row, text};
-use iced::{Center, Element, Subscription};
+use iced::{Center, Element, Subscription, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Stopwatch::default, Stopwatch::update, Stopwatch::view)
@@ -113,6 +113,6 @@ impl Stopwatch {
 
         let content = column![duration, controls].align_x(Center).spacing(20);
 
-        center(content).into()
+        center(content).boxed()
     }
 }

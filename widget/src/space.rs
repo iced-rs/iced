@@ -4,7 +4,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::{Node, Tree};
-use crate::core::{Element, Layout, Length, Rectangle, Size, Widget};
+use crate::core::{Layout, Length, Rectangle, Size, Widget};
 
 /// Creates a new [`Space`] widget that fills the available
 /// horizontal space.
@@ -86,15 +86,5 @@ where
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Space> for Element<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-    Message: 'a,
-{
-    fn from(space: Space) -> Element<'a, Message, Theme, Renderer> {
-        space.boxed()
     }
 }

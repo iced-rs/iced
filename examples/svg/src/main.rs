@@ -1,5 +1,5 @@
 use iced::widget::{center, center_x, checkbox, column, svg};
-use iced::{Element, Fill, color};
+use iced::{Element, Fill, Widget, color};
 
 pub fn main() -> iced::Result {
     iced::run(Tiger::update, Tiger::view)
@@ -42,6 +42,6 @@ impl Tiger {
 
         center(column![svg, center_x(apply_color_filter)].spacing(20))
             .padding(20)
-            .into()
+            .boxed()
     }
 }

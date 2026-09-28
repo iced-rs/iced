@@ -5,15 +5,14 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Node, Operation, Tree, tree};
-use crate::core::{
-    Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents vertically.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{button, column};
@@ -28,7 +27,7 @@ use crate::core::{
 ///         "I am on top!",
 ///         button("I am in the center!"),
 ///         "I am below.",
-///     ].into()
+///     ].boxed()
 /// }
 /// ```
 pub struct Column<W> {
@@ -323,18 +322,6 @@ where
     }
 }
 
-impl<'a, W, Message, Theme, Renderer> From<Column<W>> for Element<'a, Message, Theme, Renderer>
-where
-    W: Widget<Message, Theme, Renderer> + 'a,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(column: Column<W>) -> Self {
-        column.boxed()
-    }
-}
-
 /// A [`Column`] that wraps its contents.
 ///
 /// Create a [`Column`] first, and then call [`Column::wrap`] to
@@ -547,17 +534,5 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.column
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Wrapping<W>> for Element<'a, Message, Theme, Renderer>
-where
-    W: Widget<Message, Theme, Renderer> + 'a,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(column: Wrapping<W>) -> Self {
-        column.boxed()
     }
 }

@@ -4,7 +4,7 @@ use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 use iced::alignment;
 use iced::mouse;
 use iced::widget::{canvas, scrollable, stack, text};
-use iced::{Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme};
+use iced::{Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme, Widget};
 use iced_wgpu::Renderer;
 use iced_wgpu::wgpu;
 
@@ -199,14 +199,14 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
     canvas(Scene { n })
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 fn layered_text<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
     stack((0..n).map(|i| text!("I am paragraph {i}!")))
         .width(Length::Fill)
         .height(Length::Fill)
-        .into()
+        .boxed()
 }
 
 fn dynamic_text<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message, Theme, Renderer> {
@@ -222,7 +222,7 @@ fn dynamic_text<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message, The
         )
         .size(10),
     )
-    .into()
+    .boxed()
 }
 
 fn advanced_shaping<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message, Theme, Renderer> {
@@ -239,5 +239,5 @@ fn advanced_shaping<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message,
         .shaping(text::Shaping::Advanced)
         .size(10),
     )
-    .into()
+    .boxed()
 }

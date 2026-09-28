@@ -321,18 +321,18 @@ impl ScrollableDemo {
             .boxed(),
         };
 
-        let progress_bars: Element<Message> = match self.scrollable_direction {
-            Direction::Vertical => progress_bar(0.0..=1.0, self.current_scroll_offset.y).into(),
+        let progress_bars = match self.scrollable_direction {
+            Direction::Vertical => progress_bar(0.0..=1.0, self.current_scroll_offset.y).boxed(),
             Direction::Horizontal => progress_bar(0.0..=1.0, self.current_scroll_offset.x)
                 .style(progress_bar_custom_style)
-                .into(),
+                .boxed(),
             Direction::Multi => column![
                 progress_bar(0.0..=1.0, self.current_scroll_offset.y),
                 progress_bar(0.0..=1.0, self.current_scroll_offset.x)
                     .style(progress_bar_custom_style)
             ]
             .spacing(10)
-            .into(),
+            .boxed(),
         };
 
         let source = match self.last_source {
@@ -342,12 +342,11 @@ impl ScrollableDemo {
 
         let scroll_info = row![progress_bars, source].align_y(Center).spacing(10);
 
-        let content: Element<Message> = column![scroll_controls, scrollable_content, scroll_info]
+        let content = column![scroll_controls, scrollable_content, scroll_info]
             .align_x(Center)
-            .spacing(10)
-            .into();
+            .spacing(10);
 
-        container(content).padding(20).into()
+        container(content).padding(20).boxed()
     }
 
     fn theme(&self) -> Theme {

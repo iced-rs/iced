@@ -123,7 +123,7 @@ impl IcedCubes {
 
         let shader = shader(&self.scene).width(Fill).height(Fill);
 
-        center(column![shader, controls].align_x(Center)).into()
+        center(column![shader, controls].align_x(Center)).boxed()
     }
 
     fn subscription(&self) -> Subscription<Message> {

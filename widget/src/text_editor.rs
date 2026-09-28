@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::text_editor;
@@ -20,7 +21,7 @@
 //!     text_editor(&state.content)
 //!         .placeholder("Type something here...")
 //!         .on_action(Message::Edit)
-//!         .into()
+//!         .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -44,8 +45,7 @@ use crate::core::theme;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell,
-    Size, Theme,
+    Background, Border, Color, Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme,
 };
 
 use std::borrow::Cow;
@@ -63,6 +63,7 @@ pub use text::editor::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::text_editor;
@@ -80,7 +81,7 @@ pub use text::editor::{
 ///     text_editor(&state.content)
 ///         .placeholder("Type something here...")
 ///         .on_action(Message::Edit)
-///         .into()
+///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -151,6 +152,7 @@ where
     ///
     /// ```no_run
     /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+    /// # use iced::Widget;
     /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
     /// #
     /// use iced::color;
@@ -165,7 +167,7 @@ where
     /// fn view(state: &State) -> Element<'_, ()> {
     ///     text_editor(&state.content)
     ///         .highlight("rust")
-    ///         .into()
+    ///         .boxed()
     /// }
     /// ```
     #[cfg(feature = "highlighter")]
@@ -607,19 +609,6 @@ where
             layout.bounds(),
             &mut self.content.0.borrow_mut().editor,
         );
-    }
-}
-
-impl<'a, Parser, Message, Theme, Renderer> From<TextEditor<'a, Parser, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Parser: text::Parser,
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer,
-{
-    fn from(text_editor: TextEditor<'a, Parser, Message, Theme, Renderer>) -> Self {
-        text_editor.boxed()
     }
 }
 

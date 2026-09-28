@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::progress_bar;
@@ -16,7 +17,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     progress_bar(0.0..=100.0, state.progress).into()
+//!     progress_bar(0.0..=100.0, state.progress).boxed()
 //! }
 //! ```
 use crate::core::border::{self, Border};
@@ -24,9 +25,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::{Node, Tree};
-use crate::core::{
-    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme, Widget,
-};
+use crate::core::{self, Background, Color, Layout, Length, Rectangle, Size, Theme, Widget};
 
 use std::ops::RangeInclusive;
 
@@ -35,6 +34,7 @@ use std::ops::RangeInclusive;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::progress_bar;
@@ -48,7 +48,7 @@ use std::ops::RangeInclusive;
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     progress_bar(0.0..=100.0, state.progress).into()
+///     progress_bar(0.0..=100.0, state.progress).boxed()
 /// }
 /// ```
 pub struct ProgressBar<'a, Theme = crate::Theme>
@@ -221,18 +221,6 @@ where
                 style.bar,
             );
         }
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<ProgressBar<'a, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + core::Renderer,
-{
-    fn from(progress_bar: ProgressBar<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        progress_bar.boxed()
     }
 }
 

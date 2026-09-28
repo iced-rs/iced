@@ -30,11 +30,12 @@
 //! Start by calling [`run`]:
 //!
 //! ```no_run,standalone_crate
+//! # use iced::Widget;
 //! pub fn main() -> iced::Result {
 //!     iced::run(update, view)
 //! }
 //! # fn update(state: &mut (), message: ()) {}
-//! # fn view(state: &()) -> iced::Element<'_, ()> { iced::widget::text("").into() }
+//! # fn view(state: &()) -> iced::Element<'_, ()> { iced::widget::text("").boxed() }
 //! ```
 //!
 //! Define an `update` function to __change__ your state:
@@ -52,11 +53,12 @@
 //! Define a `view` function to __display__ your state:
 //!
 //! ```standalone_crate
+//! # use iced::Widget;
 //! use iced::widget::{button, text};
 //! use iced::Element;
 //!
 //! fn view(counter: &u64) -> Element<'_, Message> {
-//!     button(text(counter)).on_press(Message::Increment).into()
+//!     button(text(counter)).on_press(Message::Increment).boxed()
 //! }
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
@@ -84,6 +86,7 @@
 //! But you have to change `update` and `view` accordingly:
 //!
 //! ```standalone_crate
+//! # use iced::Widget;
 //! # struct Counter { value: u64 }
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
@@ -96,7 +99,7 @@
 //! }
 //!
 //! fn view(counter: &Counter) -> Element<'_, Message> {
-//!     button(text(counter.value)).on_press(Message::Increment).into()
+//!     button(text(counter.value)).on_press(Message::Increment).boxed()
 //! }
 //! ```
 //!
@@ -109,6 +112,7 @@
 //! Widgets are configured using the builder pattern:
 //!
 //! ```standalone_crate
+//! # use iced::Widget;
 //! # struct Counter { value: u64 }
 //! # #[derive(Clone)]
 //! # enum Message { Increment }
@@ -121,7 +125,7 @@
 //!         button("Increment").on_press(Message::Increment),
 //!     ]
 //!     .spacing(10)
-//!     .into()
+//!     .boxed()
 //! }
 //! ```
 //!
@@ -139,6 +143,7 @@
 //! [rows], [columns], and [containers]:
 //!
 //! ```standalone_crate
+//! # use iced::Widget;
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::{column, container, row};
@@ -156,7 +161,7 @@
 //!     .padding(10)
 //!     .center_x(Fill)
 //!     .center_y(Fill)
-//!     .into()
+//!     .boxed()
 //! }
 //! ```
 //!
@@ -182,13 +187,14 @@
 //! A fixed numeric [`Length`] in [`Pixels`] can also be used:
 //!
 //! ```standalone_crate
+//! # use iced::Widget;
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::container;
 //! use iced::Element;
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     container("I am 300px tall!").height(300).into()
+//!     container("I am 300px tall!").height(300).boxed()
 //! }
 //! ```
 //!
@@ -198,6 +204,7 @@
 //! calling [`run`]:
 //!
 //! ```no_run,standalone_crate
+//! # use iced::Widget;
 //! # struct State;
 //! use iced::Theme;
 //!
@@ -216,7 +223,7 @@
 //!     Theme::TokyoNight
 //! }
 //! # fn update(state: &mut State, message: ()) {}
-//! # fn view(state: &State) -> iced::Element<'_, ()> { iced::widget::text("").into() }
+//! # fn view(state: &State) -> iced::Element<'_, ()> { iced::widget::text("").boxed() }
 //! ```
 //!
 //! The `theme` function takes the current state of the application, allowing the
@@ -232,13 +239,14 @@
 //! The appearance of a widget can be changed by calling its `style` method:
 //!
 //! ```standalone_crate
+//! # use iced::Widget;
 //! # struct State;
 //! # enum Message {}
 //! use iced::widget::container;
 //! use iced::Element;
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     container("I am a rounded box!").style(container::rounded_box).into()
+//!     container("I am a rounded box!").style(container::rounded_box).boxed()
 //! }
 //! ```
 //!
@@ -246,6 +254,7 @@
 //! [`Theme`], returns the widget style:
 //!
 //! ```standalone_crate
+//! # use iced::Widget;
 //! # struct State;
 //! # #[derive(Clone)]
 //! # enum Message {}
@@ -264,7 +273,7 @@
 //!             _ => button::primary(theme, status),
 //!         }
 //!     })
-//!     .into()
+//!     .boxed()
 //! }
 //! ```
 //!
@@ -337,6 +346,7 @@
 //! You will need to define a `subscription` function and use the [`Application`] builder:
 //!
 //! ```no_run,standalone_crate
+//! # use iced::Widget;
 //! # struct State;
 //! use iced::window;
 //! use iced::{Size, Subscription};
@@ -357,7 +367,7 @@
 //! }
 //! # fn new() -> State { State }
 //! # fn update(state: &mut State, message: Message) {}
-//! # fn view(state: &State) -> iced::Element<'_, Message> { iced::widget::text("").into() }
+//! # fn view(state: &State) -> iced::Element<'_, Message> { iced::widget::text("").boxed() }
 //! ```
 //!
 //! A [`Subscription`] is [a _declarative_ builder of streams](Subscription#the-lifetime-of-a-subscription)

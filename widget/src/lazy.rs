@@ -1,5 +1,4 @@
 //! A widget that only rebuilds its contents when necessary.
-use crate::core::Element;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -195,16 +194,4 @@ fn hash(data: impl Hash) -> u64 {
     let mut hasher = FxHasher::default();
     data.hash(&mut hasher);
     hasher.finish()
-}
-
-impl<'a, W, Message, Theme, Renderer, Dependency> From<Lazy<'a, W, Dependency>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'static,
-    Dependency: Hash + 'a,
-{
-    fn from(lazy: Lazy<'a, W, Dependency>) -> Self {
-        lazy.boxed()
-    }
 }

@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::toggler;
@@ -19,7 +20,7 @@
 //!     toggler(state.is_checked)
 //!         .label("Toggle me!")
 //!         .on_toggle(Message::TogglerToggled)
-//!         .into()
+//!         .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -41,8 +42,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell,
-    Size, Theme, Widget,
+    Background, Border, Color, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
+    Widget,
 };
 
 /// A toggler widget.
@@ -50,6 +51,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::toggler;
@@ -66,7 +68,7 @@ use crate::core::{
 ///     toggler(state.is_checked)
 ///         .label("Toggle me!")
 ///         .on_toggle(Message::TogglerToggled)
-///         .into()
+///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -471,18 +473,6 @@ where
             },
             style.foreground,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(toggler: Toggler<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        toggler.boxed()
     }
 }
 

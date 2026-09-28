@@ -219,7 +219,7 @@ impl Todos {
 
                 let filtered_tasks = tasks.iter().filter(|task| filter.matches(task));
 
-                let tasks: Element<_> = if filtered_tasks.count() > 0 {
+                let tasks = if filtered_tasks.count() > 0 {
                     keyed_column(
                         tasks
                             .iter()
@@ -233,7 +233,7 @@ impl Todos {
                             }),
                     )
                     .spacing(10)
-                    .into()
+                    .boxed()
                 } else {
                     empty_message(match filter {
                         Filter::All => "You have not created a task yet...",
@@ -253,7 +253,7 @@ impl Todos {
 
                 container(scrollable(center_x(content)).spacing(10))
                     .padding(10)
-                    .into()
+                    .boxed()
             }
         }
     }
@@ -363,7 +363,7 @@ impl Task {
                 ]
                 .spacing(20)
                 .align_y(Center)
-                .into()
+                .boxed()
             }
             TaskState::Editing => {
                 let text_input = text_input("Describe your task...", &self.description)
@@ -381,7 +381,7 @@ impl Task {
                 ]
                 .spacing(20)
                 .align_y(Center)
-                .into()
+                .boxed()
             }
         }
     }
@@ -417,7 +417,7 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<'_, Message>
     ]
     .spacing(20)
     .align_y(Center)
-    .into()
+    .boxed()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -439,7 +439,7 @@ impl Filter {
 }
 
 fn loading_message<'a>() -> Element<'a, Message> {
-    center(text("Loading...").width(Fill).align_x(Center).size(50)).into()
+    center(text("Loading...").width(Fill).align_x(Center).size(50)).boxed()
 }
 
 fn empty_message(message: &str) -> Element<'_, Message> {
@@ -451,7 +451,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .style(subtle),
     )
     .height(200)
-    .into()
+    .boxed()
 }
 
 // Fonts

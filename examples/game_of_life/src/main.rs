@@ -121,7 +121,7 @@ impl GameOfLife {
         let content =
             column![self.grid.view().map(Message::Grid.with(version)), controls].height(Fill);
 
-        container(content).width(Fill).height(Fill).into()
+        container(content).width(Fill).height(Fill).boxed()
     }
 }
 
@@ -171,7 +171,7 @@ fn view_controls<'a>(
     .padding(10)
     .spacing(20)
     .align_y(Center)
-    .into()
+    .boxed()
 }
 
 mod grid {
@@ -183,7 +183,7 @@ mod grid {
     use iced::widget::canvas;
     use iced::widget::canvas::{Cache, Canvas, Event, Frame, Geometry, Path, Text};
     use iced::widget::text;
-    use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector};
+    use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector, Widget};
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::ops::RangeInclusive;
 
@@ -311,7 +311,7 @@ mod grid {
         }
 
         pub fn view(&self) -> Element<'_, Message> {
-            Canvas::new(self).width(Fill).height(Fill).into()
+            Canvas::new(self).width(Fill).height(Fill).boxed()
         }
 
         pub fn clear(&mut self) {

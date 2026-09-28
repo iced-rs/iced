@@ -210,7 +210,7 @@ impl Generator {
 
     fn view(&self) -> Element<'_, Message> {
         match self {
-            Self::Loading => center(text("Loading...")).into(),
+            Self::Loading => center(text("Loading...")).boxed(),
             Self::Done => center(
                 column![
                     text("Changelog is up-to-date! 🎉").shaping(text::Shaping::Advanced),
@@ -219,7 +219,7 @@ impl Generator {
                 .spacing(10)
                 .align_x(Center),
             )
-            .into(),
+            .boxed(),
             Self::Reviewing {
                 changelog,
                 pending,
@@ -243,8 +243,10 @@ impl Generator {
                     stack![bar, center(label)]
                 };
 
-                let form: Element<_> = match state {
-                    State::Loading(contribution) => text!("Loading #{}...", contribution.id).into(),
+                let form = match state {
+                    State::Loading(contribution) => {
+                        text!("Loading #{}...", contribution.id).boxed()
+                    }
                     State::Loaded {
                         pull_request,
                         description,
@@ -311,7 +313,7 @@ impl Generator {
 
                         column![details, row![title, category, next].spacing(10)]
                             .spacing(10)
-                            .into()
+                            .boxed()
                     }
                 };
 
@@ -345,7 +347,7 @@ impl Generator {
                     .spacing(10)
                     .width(FillPortion(2));
 
-                row![review, preview].spacing(10).padding(10).into()
+                row![review, preview].spacing(10).padding(10).boxed()
             }
         }
     }

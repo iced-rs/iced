@@ -229,18 +229,6 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Recorder<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: theme::Base + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(recorder: Recorder<'a, Message, Theme, Renderer>) -> Self {
-        recorder.boxed()
-    }
-}
-
 struct Overlay<'a, Message, Theme, Renderer> {
     raw: overlay::Element<'a, Message, Theme, Renderer>,
     bounds: Rectangle,

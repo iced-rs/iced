@@ -9,7 +9,7 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Operation, Tree, tree};
-use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// The logic of a [`Transition`].
 pub trait Program: 'static {
@@ -343,20 +343,6 @@ where
             translation,
             window,
         )
-    }
-}
-
-impl<'a, Message, W, Theme, Renderer, P> From<Transition<'a, Message, W, P>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-    P: Program,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(transition: Transition<'a, Message, W, P>) -> Self {
-        transition.boxed()
     }
 }
 

@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::text_input;
@@ -19,7 +20,7 @@
 //! fn view(state: &State) -> Element<'_, Message> {
 //!     text_input("Type something here...", &state.content)
 //!         .on_input(Message::ContentChanged)
-//!         .into()
+//!         .boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -43,8 +44,8 @@ use crate::core::widget::operation::{self, Focusable, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Theme, Widget,
+    Background, Border, Color, Event, Font, Layout, Length, Padding, Pixels, Rectangle, Shell,
+    Size, Theme, Widget,
 };
 
 /// A field that can be filled with text.
@@ -52,6 +53,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::text_input;
@@ -68,7 +70,7 @@ use crate::core::{
 /// fn view(state: &State) -> Element<'_, Message> {
 ///     text_input("Type something here...", &state.content)
 ///         .on_input(Message::ContentChanged)
-///         .into()
+///         .boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -449,18 +451,6 @@ where
         } else {
             mouse::Interaction::default()
         }
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<TextInput<'a, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'static,
-{
-    fn from(text_input: TextInput<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        text_input.boxed()
     }
 }
 

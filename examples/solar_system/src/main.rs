@@ -14,7 +14,7 @@ use iced::widget::{canvas, column, container, image, pick_list, stack, text};
 use iced::window;
 use iced::{
     Backend, Color, Element, Fill, Font, Point, Rectangle, Renderer, Right, Size, Subscription,
-    Task, Theme, Vector, color,
+    Task, Theme, Vector, Widget, color,
 };
 
 use std::time::Instant;
@@ -110,7 +110,7 @@ impl SolarSystem {
                 .align_bottom(Fill)
                 .padding(10)
         ]
-        .into()
+        .boxed()
     }
 
     fn theme(&self) -> Theme {

@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Node, Operation, Tree};
-use crate::core::{Element, Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents on a responsive grid.
 pub struct Grid<W> {
@@ -326,18 +326,6 @@ where
             translation,
             window,
         )
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Grid<W>> for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(grid: Grid<W>) -> Self {
-        grid.boxed()
     }
 }
 

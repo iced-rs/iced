@@ -1,5 +1,5 @@
 use iced::widget::{column, container, iced, slider, text, vertical_slider};
-use iced::{Center, Element, Fill};
+use iced::{Center, Element, Fill, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Slider::update, Slider::view)
@@ -49,7 +49,7 @@ impl Slider {
             .align_x(Center)
             .spacing(20)
             .padding(20)
-            .into()
+            .boxed()
     }
 }
 

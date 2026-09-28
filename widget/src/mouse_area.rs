@@ -5,7 +5,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{Node, Operation, Tree, tree};
-use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
 /// Emit messages on mouse events.
 pub struct MouseArea<'a, Message, W = crate::Element<'a, Message>> {
@@ -276,19 +276,6 @@ where
             translation,
             window,
         )
-    }
-}
-
-impl<'a, Message, W, Theme, Renderer> From<MouseArea<'a, Message, W>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a + Clone,
-    Theme: 'a,
-    Renderer: 'a + renderer::Renderer,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(area: MouseArea<'a, Message, W>) -> Element<'a, Message, Theme, Renderer> {
-        area.boxed()
     }
 }
 

@@ -124,7 +124,7 @@ where
 {
     Instance {
         component,
-        view: crate::space().into(),
+        view: crate::space().boxed(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         is_outdated: Cell::new(true),
         has_overlay: false,

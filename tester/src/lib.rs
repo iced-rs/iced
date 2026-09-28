@@ -567,15 +567,15 @@ impl<P: Program + 'static> Tester<P> {
         };
 
         let view = match &self.state {
-            State::Empty => Element::from(space()),
+            State::Empty => space().boxed(),
             State::Idle { state } => program.view(state, window).map(Tick::Program).boxed(),
             State::Recording { emulator } => recorder(emulator.view(program).map(Tick::Program))
                 .on_record(Tick::Record)
-                .into(),
+                .boxed(),
             State::Asserting { state, window, .. } => {
                 recorder(program.view(state, *window).map(Tick::Program))
                     .on_record(Tick::Assert)
-                    .into()
+                    .boxed()
             }
             State::Playing { emulator, .. } => emulator.view(program).map(Tick::Program).boxed(),
         };
@@ -619,7 +619,7 @@ impl<P: Program + 'static> Tester<P> {
                 .style(|theme: &Theme| container::Style::default()
                     .background(theme.palette().background.weakest.color)),
         ]
-        .into()
+        .boxed()
     }
 
     fn controls(&self) -> Element<'_, Event, Theme, P::Renderer> {
@@ -672,15 +672,16 @@ impl<P: Program + 'static> Tester<P> {
                     .height(Fill)
                     .font(Font::MONOSPACE)
                     .on_action(Event::Edited)
-                    .into()
+                    .boxed()
             } else if self.instructions.is_empty() {
-                Element::from(center(
+                center(
                     text("No instructions recorded yet!")
                         .size(14)
                         .font(Font::MONOSPACE)
                         .width(Fill)
                         .center(),
-                ))
+                )
+                .boxed()
             } else {
                 scrollable(
                     column(
@@ -725,7 +726,7 @@ impl<P: Program + 'static> Tester<P> {
                 .width(Fill)
                 .height(Fill)
                 .spacing(5)
-                .into()
+                .boxed()
             };
 
             let control = |icon: text::Text<'static, _>| {
@@ -765,19 +766,19 @@ impl<P: Program + 'static> Tester<P> {
         };
 
         let edit = if self.is_busy() {
-            Element::from(space::horizontal())
+            space::horizontal().boxed()
         } else if self.edit.is_none() {
             button(icon::pencil().size(14))
                 .padding(0)
                 .on_press(Event::Edit)
                 .style(button::text)
-                .into()
+                .boxed()
         } else {
             button(icon::check().size(14))
                 .padding(0)
                 .on_press(Event::Confirm)
                 .style(button::text)
-                .into()
+                .boxed()
         };
 
         column![
@@ -787,7 +788,7 @@ impl<P: Program + 'static> Tester<P> {
             labeled_with("Instructions", edit, player)
         ]
         .spacing(10)
-        .into()
+        .boxed()
     }
 }
 
@@ -884,5 +885,5 @@ where
         .height(Fill)
         .align_y(Center),
     ]
-    .into()
+    .boxed()
 }

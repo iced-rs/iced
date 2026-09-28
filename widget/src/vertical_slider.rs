@@ -3,6 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::widget::slider;
@@ -17,7 +18,7 @@
 //! }
 //!
 //! fn view(state: &State) -> Element<'_, Message> {
-//!     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+//!     slider(0.0..=100.0, state.value, Message::ValueChanged).boxed()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -42,7 +43,7 @@ use crate::core::touch;
 use crate::core::widget::Node;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
+use crate::core::{self, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
 
 /// An vertical bar and a handle that selects a single value from a range of
 /// values.
@@ -59,6 +60,7 @@ use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell,
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::widget::vertical_slider;
@@ -73,7 +75,7 @@ use crate::core::{self, Element, Event, Length, Pixels, Point, Rectangle, Shell,
 /// }
 ///
 /// fn view(state: &State) -> Element<'_, Message> {
-///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).boxed()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -521,21 +523,6 @@ where
         } else {
             mouse::Interaction::default()
         }
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> From<VerticalSlider<'a, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive + 'a,
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(
-        slider: VerticalSlider<'a, T, Message, Theme>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        slider.boxed()
     }
 }
 

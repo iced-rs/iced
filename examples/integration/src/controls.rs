@@ -1,5 +1,5 @@
 use iced_wgpu::Renderer;
-use iced_widget::{bottom, column, row, slider, text, text_input};
+use iced_widget::{Widget, bottom, column, row, slider, text, text_input};
 use iced_winit::core::{Color, Element, Theme};
 
 pub struct Controls {
@@ -77,6 +77,6 @@ impl Controls {
             .spacing(10),
         )
         .padding(10)
-        .into()
+        .boxed()
     }
 }

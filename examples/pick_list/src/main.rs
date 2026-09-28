@@ -1,5 +1,5 @@
 use iced::widget::{column, pick_list, scrollable, space};
-use iced::{Center, Element, Fill};
+use iced::{Center, Element, Fill, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -39,7 +39,7 @@ impl Example {
         .align_x(Center)
         .spacing(10);
 
-        scrollable(content).into()
+        scrollable(content).boxed()
     }
 }
 

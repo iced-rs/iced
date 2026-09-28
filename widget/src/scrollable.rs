@@ -2,7 +2,8 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::Widget;
 //! # pub type State = ();
 //! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{column, scrollable, space};
@@ -16,7 +17,7 @@
 //!         "Scroll me!",
 //!         space().height(3000),
 //!         "You did it!",
-//!     ]).into()
+//!     ]).boxed()
 //! }
 //! ```
 use crate::container;
@@ -35,8 +36,8 @@ use crate::core::widget::operation::{self, Animation, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    self, Background, Color, Event, InputMethod, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
@@ -46,7 +47,8 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, scrollable, space};
@@ -60,7 +62,7 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///         "Scroll me!",
 ///         space().height(3000),
 ///         "You did it!",
-///     ]).into()
+///     ]).boxed()
 /// }
 /// ```
 ///
@@ -1150,21 +1152,6 @@ where
 
     fn index(&self) -> f32 {
         f32::MAX
-    }
-}
-
-impl<'a, Message, W, Theme, Renderer> From<Scrollable<'a, Message, W, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-    W: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(
-        scrollable: Scrollable<'a, Message, W, Theme>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        scrollable.boxed()
     }
 }
 

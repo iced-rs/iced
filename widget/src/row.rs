@@ -5,15 +5,14 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Node, Operation, Tree, tree};
-use crate::core::{
-    Element, Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents horizontally.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{button, row};
@@ -28,7 +27,7 @@ use crate::core::{
 ///         "I am to the left!",
 ///         button("I am in the middle!"),
 ///         "I am to the right!",
-///     ].into()
+///     ].boxed()
 /// }
 /// ```
 pub struct Row<W> {
@@ -329,18 +328,6 @@ where
     }
 }
 
-impl<'a, W, Message, Theme, Renderer> From<Row<W>> for Element<'a, Message, Theme, Renderer>
-where
-    W: Widget<Message, Theme, Renderer> + 'a,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(row: Row<W>) -> Self {
-        row.boxed()
-    }
-}
-
 /// A [`Row`] that wraps its contents.
 ///
 /// Create a [`Row`] first, and then call [`Row::wrap`] to
@@ -551,17 +538,5 @@ where
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         self.row
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, W, Message, Theme, Renderer> From<Wrapping<W>> for Element<'a, Message, Theme, Renderer>
-where
-    W: Widget<Message, Theme, Renderer> + 'a,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(row: Wrapping<W>) -> Self {
-        row.boxed()
     }
 }

@@ -5,7 +5,7 @@ use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
 use iced::widget::{canvas, container, text};
 use iced::{
     Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size, Subscription, Theme,
-    Vector,
+    Vector, Widget,
 };
 
 pub fn main() -> iced::Result {
@@ -51,7 +51,7 @@ impl Clock {
     fn view(&self) -> Element<'_, Message> {
         let canvas = canvas(self as &Self).width(Fill).height(Fill);
 
-        container(canvas).padding(20).into()
+        container(canvas).padding(20).boxed()
     }
 
     fn subscription(&self) -> Subscription<Message> {

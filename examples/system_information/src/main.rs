@@ -1,6 +1,6 @@
 use iced::system;
 use iced::widget::{button, center, column, text};
-use iced::{Element, Task};
+use iced::{Element, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Example::new, Example::update, Example::view).run()
@@ -51,8 +51,8 @@ impl Example {
     fn view(&self) -> Element<'_, Message> {
         use bytesize::ByteSize;
 
-        let content: Element<_> = match self {
-            Example::Loading => text("Loading...").size(40).into(),
+        let content = match self {
+            Example::Loading => text("Loading...").size(40).boxed(),
             Example::Loaded { information } => {
                 let system_name = text!(
                     "System name: {}",
@@ -130,10 +130,10 @@ impl Example {
                     button("Refresh").on_press(Message::Refresh)
                 ]
                 .spacing(10)
-                .into()
+                .boxed()
             }
         };
 
-        center(content).into()
+        center(content).boxed()
     }
 }

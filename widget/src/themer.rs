@@ -251,18 +251,3 @@ where
             .collect()
     }
 }
-
-impl<'a, Message, Theme, Renderer, AnyTheme> From<Themer<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, AnyTheme, Renderer>
-where
-    Message: 'a,
-    Theme: theme::Base + 'a,
-    AnyTheme: theme::Base,
-    Renderer: 'a + crate::core::Renderer,
-{
-    fn from(
-        themer: Themer<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, AnyTheme, Renderer> {
-        themer.boxed()
-    }
-}
