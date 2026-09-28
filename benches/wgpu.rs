@@ -4,7 +4,7 @@ use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 use iced::alignment;
 use iced::mouse;
 use iced::widget::{canvas, scrollable, stack, text};
-use iced::{Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme, Widget};
+use iced::{Color, Font, Length, Pixels, Point, Rectangle, Size, Theme, Widget};
 use iced_wgpu::Renderer;
 use iced_wgpu::wgpu;
 
@@ -66,13 +66,16 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
         });
 }
 
-fn benchmark<'a>(
+fn benchmark<W, View>(
     bencher: &mut Bencher<'_>,
     adapter: &wgpu::Adapter,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    view: impl Fn(usize) -> Element<'a, (), Theme, Renderer>,
-) {
+    view: View,
+) where
+    W: Widget<(), Theme, Renderer>,
+    View: Fn(usize) -> W,
+{
     use iced_wgpu::graphics;
     use iced_wgpu::graphics::{Antialiasing, Shell};
     use iced_wgpu::wgpu;
@@ -151,7 +154,7 @@ fn benchmark<'a>(
     });
 }
 
-fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
+fn scene<Message>(n: usize) -> impl Widget<Message, Theme, Renderer> {
     struct Scene {
         n: usize,
     }
@@ -196,20 +199,16 @@ fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
         }
     }
 
-    canvas(Scene { n })
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .boxed()
+    canvas(Scene { n }).width(Length::Fill).height(Length::Fill)
 }
 
-fn layered_text<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
+fn layered_text<Message>(n: usize) -> impl Widget<Message, Theme, Renderer> {
     stack((0..n).map(|i| text!("I am paragraph {i}!")))
         .width(Length::Fill)
         .height(Length::Fill)
-        .boxed()
 }
 
-fn dynamic_text<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message, Theme, Renderer> {
+fn dynamic_text<Message>(n: usize, i: usize) -> impl Widget<Message, Theme, Renderer> {
     const LOREM_IPSUM: &str = include_str!("ipsum.txt");
 
     scrollable(
@@ -222,10 +221,9 @@ fn dynamic_text<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message, The
         )
         .size(10),
     )
-    .boxed()
 }
 
-fn advanced_shaping<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message, Theme, Renderer> {
+fn advanced_shaping<Message>(n: usize, i: usize) -> impl Widget<Message, Theme, Renderer> {
     const LOREM_IPSUM: &str = include_str!("ipsum.txt");
 
     scrollable(
@@ -239,5 +237,4 @@ fn advanced_shaping<'a, Message: 'a>(n: usize, i: usize) -> Element<'a, Message,
         .shaping(text::Shaping::Advanced)
         .size(10),
     )
-    .boxed()
 }

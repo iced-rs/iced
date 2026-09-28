@@ -12,13 +12,10 @@ use iced_widget::core::{
 use iced_widget::scrollable::{AbsoluteOffset, Direction, Scrollbar};
 use iced_widget::{Theme, column, container, pick_list, row, scrollable, space, sticky};
 
-type Element<Message = Never, Renderer = ()> =
-    iced_widget::core::Element<'static, Message, Theme, Renderer>;
-
 const VIEWPORT: Rectangle = Rectangle::new(Point::ORIGIN, Size::new(1024.0, 768.0));
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(Size::ZERO, VIEWPORT.size());
 
-fn vertical_view() -> Element {
+fn vertical_view() -> impl Widget<Never, Theme, ()> {
     scrollable(column![
         sticky(container("Header").width(Fill).height(50)),
         space().height(1000),
@@ -26,10 +23,9 @@ fn vertical_view() -> Element {
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .boxed()
 }
 
-fn horizontal_view() -> Element {
+fn horizontal_view() -> impl Widget<Never, Theme, ()> {
     scrollable(row![
         sticky(container("Header").width(50).height(100)),
         space().width(3000),
@@ -38,17 +34,16 @@ fn horizontal_view() -> Element {
     .width(Fill)
     .height(Fill)
     .id("scrollable")
-    .boxed()
 }
 
-fn build(element: &mut Element) -> widget::Tree {
+fn build(element: &mut impl Widget<Never, Theme, ()>) -> widget::Tree {
     let mut tree = widget::Tree::new(&*element);
     element.diff(&mut tree);
 
     tree
 }
 
-fn scroll(element: &mut Element, tree: &mut widget::Tree, x: f32, y: f32) {
+fn scroll(element: &mut impl Widget<Never, Theme, ()>, tree: &mut widget::Tree, x: f32, y: f32) {
     let mut scroll_to = operation::scrollable::scroll_to(
         "scrollable".into(),
         AbsoluteOffset {
@@ -70,7 +65,7 @@ fn scroll(element: &mut Element, tree: &mut widget::Tree, x: f32, y: f32) {
 
 /// Processes a redraw frame, committing the scrollable's current offsets as
 /// the translation its contents are placed with.
-fn frame(element: &mut Element, tree: &mut widget::Tree) {
+fn frame(element: &mut impl Widget<Never, Theme, ()>, tree: &mut widget::Tree) {
     let mut messages = shell::Bus::new();
 
     element.update(
@@ -87,7 +82,7 @@ fn frame(element: &mut Element, tree: &mut widget::Tree) {
 /// Asserts that the sticky contents are displayed on an overlay with the
 /// expected bounds, or not displayed on an overlay at all.
 fn assert_overlay_bounds(
-    element: &mut Element,
+    element: &mut impl Widget<Never, Theme, ()>,
     tree: &mut widget::Tree,
     expected: Option<Rectangle>,
 ) {
@@ -190,8 +185,7 @@ fn sticky_pinned_to_nearest_edge() {
     ])
     .width(Fill)
     .height(Fill)
-    .id("scrollable")
-    .boxed();
+    .id("scrollable");
     let mut tree = build(&mut element);
 
     element.layout(&mut tree, &(), &DEFAULT_LIMITS);
@@ -235,8 +229,7 @@ fn sticky_clamped_to_visible_bounds() {
     })
     .width(Fill)
     .height(Fill)
-    .id("scrollable")
-    .boxed();
+    .id("scrollable");
     let mut tree = build(&mut element);
 
     element.layout(&mut tree, &(), &DEFAULT_LIMITS);
@@ -261,8 +254,7 @@ fn sticky_stays_attached_to_parent_bounds() {
     ])
     .width(Fill)
     .height(Fill)
-    .id("scrollable")
-    .boxed();
+    .id("scrollable");
     let mut tree = build(&mut element);
 
     element.layout(&mut tree, &(), &DEFAULT_LIMITS);
@@ -344,8 +336,7 @@ fn sticky_pick_list_menu_opens_at_floating_position() -> Result<(), iced_test::E
     ])
     .width(Fill)
     .height(Fill)
-    .id("scrollable")
-    .boxed();
+    .id("scrollable");
 
     let mut ui: Simulator<'_, Message> =
         Simulator::with_size(Settings::default(), VIEWPORT.size(), view);

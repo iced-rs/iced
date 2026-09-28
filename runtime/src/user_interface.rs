@@ -34,7 +34,7 @@ where
     Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    /// Builds a user interface for an [`Element`](crate::core::Element).
+    /// Builds a user interface for a [`Widget`].
     ///
     /// It is able to avoid expensive computations when using a [`Cache`]
     /// obtained from a previous instance of a [`UserInterface`].

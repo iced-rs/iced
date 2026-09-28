@@ -2,8 +2,8 @@
 //!
 //! [`PaneGrid`]: iced_widget::pane_grid::PaneGrid
 use iced_test::Simulator;
-use iced_widget::core::{self, Element, Size, Widget, mouse};
-use iced_widget::{Renderer, Theme, pane_grid, text};
+use iced_widget::core::{self, Size, mouse};
+use iced_widget::{Widget, pane_grid, text};
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
@@ -23,14 +23,13 @@ fn new_panes() -> (pane_grid::State<u8>, pane_grid::Pane, pane_grid::Pane) {
     (panes, first, second)
 }
 
-fn view(panes: &pane_grid::State<u8>) -> Element<'_, Message, Theme, Renderer> {
+fn view(panes: &pane_grid::State<u8>) -> impl Widget<Message> {
     pane_grid::PaneGrid::new(panes, |_, pane_state, _is_maximized| {
         pane_grid::Content::new(text(format!("Body of pane {pane_state}")))
             .title_bar(pane_grid::TitleBar::new(text(format!("Pane {pane_state}"))))
     })
     .on_click(Message::PaneClicked)
     .on_drag(Message::PaneDragged)
-    .boxed()
 }
 
 #[test]
