@@ -204,7 +204,7 @@ where
         tree::diff_children_custom_with_search(
             children,
             &mut self.children,
-            |tree, child| child.as_widget_mut().diff(tree),
+            |tree, child| tree.diff(child),
             |index| {
                 self.keys.get(index).or_else(|| self.keys.last()).copied()
                     != Some(state.keys[index])
