@@ -9,9 +9,7 @@ use iced::widget::{
     scrollable, sensor, space, text_editor, toggler,
 };
 use iced::window;
-use iced::{
-    Animation, Center, Code, Element, Fill, Font, Function, Subscription, Task, Theme, Widget,
-};
+use iced::{Animation, Center, Code, Fill, Font, Function, Subscription, Task, Theme, Widget};
 
 use std::collections::HashMap;
 use std::io;
@@ -271,7 +269,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         url: &'a markdown::Uri,
         _title: &'a str,
         _alt: &markdown::Text,
-    ) -> Element<'a, Message> {
+    ) -> impl Widget<Message> + 'a {
         if let Some(Image::Ready { handle, fade_in }) = self.images.get(url) {
             center_x(
                 image(handle)
@@ -294,7 +292,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         _language: Option<&'a str>,
         code: &'a str,
         lines: &'a [markdown::Text],
-    ) -> Element<'a, Message> {
+    ) -> impl Widget<Message> + 'a {
         let code_block = markdown::code_block(self, settings, lines, Message::LinkClicked);
 
         let copy = button(icon::copy().size(12))
@@ -306,7 +304,6 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
             code_block,
             right(container(copy).style(container::dark)).padding(settings.spacing / 2),
         )
-        .boxed()
     }
 }
 
