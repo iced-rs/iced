@@ -18,7 +18,7 @@ use crate::core::border;
 use crate::core::mouse;
 use crate::core::theme;
 use crate::core::window;
-use crate::core::{Color, Element, Font, Settings, Size, Theme, Widget};
+use crate::core::{Color, Font, Settings, Size, Theme, Widget};
 use crate::futures::futures::channel::mpsc;
 use crate::program::Program;
 use crate::runtime::task::{self, Task};
@@ -90,7 +90,7 @@ where
         state: &'a Self::State,
         window: window::Id,
     ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
-        state.view(&self.program, window).map(Message).boxed()
+        state.view(&self.program, window).map(Message)
     }
 
     fn theme(&self, state: &Self::State, window: window::Id) -> Option<Theme> {
@@ -532,7 +532,7 @@ impl<P: Program + 'static> Tester<P> {
         &'a self,
         program: &P,
         window: window::Id,
-    ) -> Element<'a, Tick<P>, Theme, P::Renderer> {
+    ) -> impl Widget<Tick<P>, Theme, P::Renderer> + 'a {
         let status = {
             let (icon, label) = match &self.state {
                 State::Empty | State::Idle { .. } => (text(""), "Idle"),
@@ -619,10 +619,9 @@ impl<P: Program + 'static> Tester<P> {
                 .style(|theme: &Theme| container::Style::default()
                     .background(theme.palette().background.weakest.color)),
         ]
-        .boxed()
     }
 
-    fn controls(&self) -> Element<'_, Event, Theme, P::Renderer> {
+    fn controls(&self) -> impl Widget<Event, Theme, P::Renderer> {
         let viewport = column![
             labeled_slider(
                 "Width",
@@ -788,7 +787,6 @@ impl<P: Program + 'static> Tester<P> {
             labeled_with("Instructions", edit, player)
         ]
         .spacing(10)
-        .boxed()
     }
 }
 
@@ -831,7 +829,7 @@ fn labeled_slider<'a, Message, Renderer>(
     current: f32,
     on_change: impl Fn(f32) -> Message + 'a,
     to_string: impl Fn(&f32) -> String,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: Clone + 'a,
     Renderer: core::text::Renderer + 'a,
@@ -885,5 +883,4 @@ where
         .height(Fill)
         .align_y(Center),
     ]
-    .boxed()
 }

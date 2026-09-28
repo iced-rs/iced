@@ -103,7 +103,6 @@ where
             self.view
                 .view(state)
                 .map(|message| (message, Instant::now()))
-                .boxed()
         }
 
         #[inline]

@@ -16,7 +16,7 @@ use crate::core::time::seconds;
 use crate::core::window;
 use crate::core::{
     Alignment::Center,
-    Color, Element, Font,
+    Color, Font,
     Length::{Fill, Fit},
     Settings, Widget,
 };
@@ -308,7 +308,7 @@ where
         &self,
         program: &P,
         window: window::Id,
-    ) -> Element<'_, Event<P::Message>, P::Theme, P::Renderer> {
+    ) -> impl Widget<Event<P::Message>, P::Theme, P::Renderer> + '_ {
         let state = self.state();
 
         let view = {
@@ -333,8 +333,8 @@ where
 
         let setup = if let Mode::Setup(setup) = &self.mode {
             let stage = match setup {
-                Setup::Idle { goal } => self::setup(goal),
-                Setup::Running { logs } => installation(logs),
+                Setup::Idle { goal } => self::setup(goal).boxed(),
+                Setup::Running { logs } => installation(logs).boxed(),
             };
 
             let setup = center(
@@ -367,10 +367,7 @@ where
                 )
             });
 
-        stack![view, setup, notification]
-            .width(Fill)
-            .height(Fill)
-            .boxed()
+        stack![view, setup, notification].width(Fill).height(Fill)
     }
 
     pub fn subscription(&self, program: &P) -> Subscription<Event<P::Message>> {
@@ -430,7 +427,7 @@ where
     }
 }
 
-fn setup<Renderer>(goal: &Goal) -> Element<'_, Message, Theme, Renderer>
+fn setup<Renderer>(goal: &Goal) -> impl Widget<Message, Theme, Renderer>
 where
     Renderer: program::Renderer + 'static,
 {
@@ -516,10 +513,9 @@ where
             .spacing(20)
         }
     }
-    .boxed()
 }
 
-fn installation<'a, Renderer>(logs: &'a [String]) -> Element<'a, Message, Theme, Renderer>
+fn installation<'a, Renderer>(logs: &'a [String]) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Renderer: program::Renderer + 'a,
 {
@@ -542,12 +538,11 @@ where
         .style(container::dark)
     ]
     .spacing(20)
-    .boxed()
 }
 
 fn inline_code<'a, Renderer>(
     code: impl text::IntoFragment<'a>,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Renderer: program::Renderer + 'a,
 {
@@ -558,5 +553,4 @@ where
                 .border(border::rounded(2))
         })
         .padding([2, 4])
-        .boxed()
 }

@@ -79,7 +79,7 @@ where
         };
 
         let raw = UserInterface::build(
-            element.boxed(),
+            element,
             size,
             user_interface::Cache::default(),
             &mut renderer,
