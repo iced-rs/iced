@@ -98,8 +98,6 @@ where
             state: &'a Self::State,
             _window: window::Id,
         ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
-            use crate::core::Widget;
-
             self.view
                 .view(state)
                 .map(|message| (message, Instant::now()))

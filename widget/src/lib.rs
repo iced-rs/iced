@@ -179,8 +179,6 @@ pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> 
 /// the `Theme` and `Renderer` parameters to iced's.
 pub trait Widget<Message, Theme = crate::Theme, Renderer = crate::Renderer>:
     core::Widget<Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
 {
     /// Applies a transformation to the produced message of this [`Widget`].
     ///
@@ -346,6 +344,7 @@ where
     fn explain(self, color: impl Into<Color>) -> impl core::Widget<Message, Theme, Renderer>
     where
         Self: Sized,
+        Renderer: core::Renderer,
     {
         Explain {
             widget: self,
@@ -354,10 +353,8 @@ where
     }
 }
 
-impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for T
-where
-    T: core::Widget<Message, Theme, Renderer>,
-    Renderer: core::Renderer,
+impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for T where
+    T: core::Widget<Message, Theme, Renderer>
 {
 }
 

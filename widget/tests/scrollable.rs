@@ -764,7 +764,7 @@ impl Recorder {
 
 impl Node for Recorder {}
 
-impl<Message, Theme, Renderer> core::Widget<Message, Theme, Renderer> for Recorder
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Recorder
 where
     Renderer: core::Renderer,
 {

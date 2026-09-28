@@ -533,7 +533,7 @@ where
 /// [`Stack`]: crate::Stack
 pub fn opaque<'a, Message, Theme, Renderer>(
     content: impl Widget<Message, Theme, Renderer> + 'a,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: 'a,
@@ -659,7 +659,6 @@ where
     Opaque {
         content: content.boxed(),
     }
-    .boxed()
 }
 
 /// Displays a widget on top of another one, only when the base widget is hovered.
@@ -1505,7 +1504,7 @@ where
 /// for instance.
 pub fn iced<'a, Message, Theme, Renderer>(
     text_size: impl Into<core::Pixels>,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: core::text::Renderer + 'a,
