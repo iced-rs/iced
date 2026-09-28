@@ -66,15 +66,14 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
         });
 }
 
-fn benchmark<W, View>(
+fn benchmark<W>(
     bencher: &mut Bencher<'_>,
     adapter: &wgpu::Adapter,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
-    view: View,
+    view: impl Fn(usize) -> W,
 ) where
     W: Widget<(), Theme, Renderer>,
-    View: Fn(usize) -> W,
 {
     use iced_wgpu::graphics;
     use iced_wgpu::graphics::{Antialiasing, Shell};
