@@ -5,8 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Application, Center, Element, Fill, Fit, Function, Preset, Program, Subscription,
-    Task as Command, Theme, Widget,
+    Application, Center, Fill, Fit, Function, Preset, Program, Subscription, Task as Command,
+    Theme, Widget,
 };
 
 use serde::{Deserialize, Serialize};
@@ -190,7 +190,7 @@ impl Todos {
 
     fn view(&self) -> impl Widget<Message> {
         match self {
-            Todos::Loading => loading_message(),
+            Todos::Loading => loading_message().boxed(),
             Todos::Loaded(State {
                 input_value,
                 filter,
@@ -226,10 +226,7 @@ impl Todos {
                             .enumerate()
                             .filter(|(_, task)| filter.matches(task))
                             .map(|(i, task)| {
-                                (
-                                    task.id,
-                                    task.view(i).map(Message::TaskMessage.with(i)).boxed(),
-                                )
+                                (task.id, task.view(i).map(Message::TaskMessage.with(i)))
                             }),
                     )
                     .spacing(10)
@@ -240,6 +237,7 @@ impl Todos {
                         Filter::Active => "All your tasks are done! :D",
                         Filter::Completed => "You have not completed a task yet...",
                     })
+                    .boxed()
                 };
 
                 let content = column![
@@ -437,11 +435,11 @@ impl Filter {
     }
 }
 
-fn loading_message<'a>() -> Element<'a, Message> {
-    center(text("Loading...").width(Fill).align_x(Center).size(50)).boxed()
+fn loading_message() -> impl Widget<Message> {
+    center(text("Loading...").width(Fill).align_x(Center).size(50))
 }
 
-fn empty_message(message: &str) -> Element<'_, Message> {
+fn empty_message(message: &str) -> impl Widget<Message> {
     center(
         text(message)
             .width(Fill)
@@ -450,7 +448,6 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .style(subtle),
     )
     .height(200)
-    .boxed()
 }
 
 // Fonts

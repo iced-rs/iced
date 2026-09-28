@@ -14,8 +14,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Animation, Color, ContentFit, Element, Fill, Function, Shadow, Subscription, Task, Theme,
-    Widget, color,
+    Animation, Color, ContentFit, Fill, Function, Shadow, Subscription, Task, Theme, Widget, color,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -257,6 +256,7 @@ impl Gallery {
                     },
                     self.now,
                 )
+                .boxed()
             })
             .chain(
                 if self.images.is_empty() {
@@ -264,7 +264,7 @@ impl Gallery {
                 } else {
                     0..0
                 }
-                .map(|_| placeholder()),
+                .map(|_| placeholder().boxed()),
             );
 
         let gallery = grid(images)
@@ -283,7 +283,7 @@ fn card<'a>(
     metadata: &'a Image,
     preview: Option<&'a Preview>,
     now: Instant,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> + 'a {
     let image = if let Some(preview) = preview {
         let thumbnail = if let Preview::Ready { thumbnail, .. } = &preview
             && let Some(allocation) = &thumbnail.allocation
@@ -347,11 +347,10 @@ fn card<'a>(
     sensor(card)
         .on_show(|_| Message::ImagePoppedIn(metadata.id))
         .on_hide(Message::ImagePoppedOut(metadata.id))
-        .boxed()
 }
 
-fn placeholder<'a>() -> Element<'a, Message> {
-    container(space()).style(rounded).boxed()
+fn placeholder() -> impl Widget<Message> {
+    container(space()).style(rounded)
 }
 
 enum Preview {
@@ -525,7 +524,7 @@ impl Viewer {
         self.background_fade_in.is_animating(now) || self.image_fade_in.is_animating(now)
     }
 
-    fn view(&self, now: Instant) -> Option<Element<'_, Message>> {
+    fn view(&self, now: Instant) -> Option<impl Widget<Message>> {
         let opacity = self.background_fade_in.interpolate(0.0, 0.8, now);
 
         if opacity <= 0.0 {
