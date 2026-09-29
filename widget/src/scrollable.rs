@@ -2969,7 +2969,7 @@ impl State {
                     return update;
                 }
 
-                let (delta, is_lines) = match *delta {
+                let (delta, is_significant) = match *delta {
                     mouse::ScrollDelta::Lines { x, y } => {
                         let is_shift_pressed = self.keyboard_modifiers.shift();
 
@@ -2987,7 +2987,10 @@ impl State {
                             Vector::new(y, x)
                         };
 
-                        (-movement * WHEEL_PX_PER_LINE, true)
+                        (
+                            -movement * WHEEL_PX_PER_LINE,
+                            x.abs() >= 0.5 || y.abs() >= 0.5,
+                        )
                     }
                     // Pixel deltas (e.g. from high-precision touchpads) are
                     // already smooth, so scrolling them immediately avoids
@@ -2997,7 +3000,7 @@ impl State {
 
                 let delta = direction.align(delta);
 
-                if smooth_scroll && is_lines {
+                if smooth_scroll && is_significant {
                     self.scroll_smoothly(delta, bounds, content, Instant::now());
                 } else {
                     self.scroll(delta, bounds, content);
