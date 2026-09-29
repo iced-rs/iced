@@ -202,7 +202,7 @@ where
         tree::diff_children_custom_with_search(
             children,
             &mut self.children,
-            |tree, child| child.diff(tree),
+            Tree::diff,
             |index| {
                 self.keys.get(index).or_else(|| self.keys.last()).copied()
                     != Some(state.keys[index])
