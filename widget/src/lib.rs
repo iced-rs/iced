@@ -10,6 +10,7 @@ pub use iced_renderer::graphics;
 pub use core::widget::{Id, Void};
 
 mod action;
+mod cloneable;
 mod column;
 mod mouse_area;
 mod pin;

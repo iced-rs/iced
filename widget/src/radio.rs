@@ -56,6 +56,7 @@
 //!     column![a, b, c, all].into()
 //! }
 //! ```
+use crate::cloneable::Emit;
 use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::layout;
@@ -134,7 +135,7 @@ where
     Theme: Catalog,
 {
     is_selected: bool,
-    on_click: Message,
+    on_click: Emit<'a, Message>,
     label: String,
     width: Length,
     size: f32,
@@ -150,7 +151,6 @@ where
 
 impl<'a, Message, Theme> Radio<'a, Message, Theme>
 where
-    Message: Clone,
     Theme: Catalog,
 {
     /// The default size of a [`Radio`] button.
@@ -158,6 +158,24 @@ where
 
     /// The default spacing of a [`Radio`] button.
     pub const DEFAULT_SPACING: f32 = 8.0;
+
+    fn build(label: impl Into<String>, is_selected: bool, on_click: Emit<'a, Message>) -> Self {
+        Radio {
+            is_selected,
+            on_click,
+            label: label.into(),
+            width: Length::Shrink,
+            size: Self::DEFAULT_SIZE,
+            spacing: Self::DEFAULT_SPACING,
+            text_size: None,
+            line_height: None,
+            shaping: text::Shaping::default(),
+            wrapping: text::Wrapping::default(),
+            font: None,
+            class: Theme::default(),
+            last_status: None,
+        }
+    }
 
     /// Creates a new [`Radio`] button.
     ///
@@ -171,22 +189,57 @@ where
     where
         V: Eq + Copy,
         F: FnOnce(V) -> Message,
+        Message: Clone,
     {
-        Radio {
-            is_selected: Some(value) == selected,
-            on_click: f(value),
-            label: label.into(),
-            width: Length::Shrink,
-            size: Self::DEFAULT_SIZE,
-            spacing: Self::DEFAULT_SPACING,
-            text_size: None,
-            line_height: None,
-            shaping: text::Shaping::default(),
-            wrapping: text::Wrapping::default(),
-            font: None,
-            class: Theme::default(),
-            last_status: None,
-        }
+        Self::build(label, Some(value) == selected, Emit::direct(f(value)))
+    }
+
+    /// Creates a new [`Radio`] button, using a closure to produce the message.
+    ///
+    /// This is analogous to [`Radio::new`], but the closure is called each time the
+    /// [`Radio`] is selected instead of once up front — which means `Message` does
+    /// not need to implement [`Clone`].
+    ///
+    /// # Example
+    /// ```no_run
+    /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+    /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+    /// #
+    /// use iced::widget::{Radio, column};
+    ///
+    /// struct State {
+    ///    selection: Option<Choice>,
+    /// }
+    ///
+    /// #[derive(Debug)]
+    /// enum Message {
+    ///     RadioSelected(Choice),
+    /// }
+    ///
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    /// enum Choice {
+    ///     A,
+    ///     B,
+    /// }
+    ///
+    /// fn view(state: &State) -> Element<'_, Message> {
+    ///     column![
+    ///         Radio::new_with("A", Choice::A, state.selection, Message::RadioSelected),
+    ///         Radio::new_with("B", Choice::B, state.selection, Message::RadioSelected),
+    ///     ]
+    ///     .into()
+    /// }
+    /// ```
+    pub fn new_with<F, V>(label: impl Into<String>, value: V, selected: Option<V>, f: F) -> Self
+    where
+        V: Eq + Copy + 'a,
+        F: Fn(V) -> Message + 'a,
+    {
+        Self::build(
+            label,
+            Some(value) == selected,
+            Emit::closure(move || f(value)),
+        )
     }
 
     /// Sets the size of the [`Radio`] button.
@@ -258,7 +311,6 @@ where
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Radio<'_, Message, Theme>
 where
-    Message: Clone,
     Theme: Catalog,
     Renderer: text::Renderer,
 {
@@ -329,7 +381,7 @@ where
             | Event::Touch(touch::Event::FingerPressed { .. })
                 if cursor.is_over(layout.bounds()) =>
             {
-                shell.publish(self.on_click.clone());
+                shell.publish(self.on_click.get());
                 shell.capture_event();
             }
             _ => {}
@@ -445,7 +497,7 @@ where
 impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: 'a + Clone,
+    Message: 'a,
     Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
 {
