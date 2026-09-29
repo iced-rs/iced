@@ -371,7 +371,7 @@ pub struct Explain<W> {
     color: Color,
 }
 
-impl<W> widget::Node for Explain<W> {}
+impl<W> widget::Meta for Explain<W> {}
 
 impl<W, Message, Theme, Renderer> core::Widget<Message, Theme, Renderer> for Explain<W>
 where

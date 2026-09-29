@@ -70,7 +70,7 @@ impl Widget<(), core::Theme, Renderer> for Root {
     }
 }
 
-impl widget::Node for Root {}
+impl widget::Meta for Root {}
 
 struct HidingOverlay<'a> {
     overlay_visible: &'a mut bool,
@@ -193,7 +193,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
     }
 }
 
-impl widget::Node for MultiOverlayRoot {}
+impl widget::Meta for MultiOverlayRoot {}
 
 /// The topmost overlay, covering `(60..80, 0..20)`.
 struct TopOverlay;

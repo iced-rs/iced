@@ -98,7 +98,7 @@ impl<W> Pin<W> {
     }
 }
 
-impl<W> widget::Node for Pin<W> {}
+impl<W> widget::Meta for Pin<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Pin<W>
 where

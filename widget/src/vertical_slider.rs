@@ -39,7 +39,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::touch;
-use crate::core::widget::Node;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{self, Event, Length, Pixels, Point, Rectangle, Shell, Size, Widget};
@@ -213,7 +213,7 @@ where
     }
 }
 
-impl<T, Message, Theme> Node for VerticalSlider<'_, T, Message, Theme> where Theme: Catalog {}
+impl<T, Message, Theme> Meta for VerticalSlider<'_, T, Message, Theme> where Theme: Catalog {}
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for VerticalSlider<'_, T, Message, Theme>

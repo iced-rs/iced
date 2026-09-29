@@ -467,7 +467,7 @@ pub enum Anchor {
     End,
 }
 
-impl<Message, W, Theme> widget::Node for Scrollable<'_, Message, W, Theme> where Theme: Catalog {}
+impl<Message, W, Theme> widget::Meta for Scrollable<'_, Message, W, Theme> where Theme: Catalog {}
 
 impl<Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Scrollable<'_, Message, W, Theme>

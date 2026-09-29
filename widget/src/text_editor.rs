@@ -316,7 +316,7 @@ struct State<Parser: text::Parser> {
     last_theme: RefCell<Option<String>>,
 }
 
-impl<Parser, Message, Theme, Renderer> widget::Node
+impl<Parser, Message, Theme, Renderer> widget::Meta
     for TextEditor<'_, Parser, Message, Theme, Renderer>
 where
     Parser: text::Parser,

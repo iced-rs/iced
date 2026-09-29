@@ -69,7 +69,7 @@ use crate::core::renderer;
 use crate::core::text::paragraph;
 use crate::core::text::{self, Text};
 use crate::core::touch;
-use crate::core::widget::Node;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -320,7 +320,7 @@ where
     }
 }
 
-impl<'a, T, L, V, Message, Theme> Node for PickList<'a, T, L, V, Message, Theme>
+impl<'a, T, L, V, Message, Theme> Meta for PickList<'a, T, L, V, Message, Theme>
 where
     T: PartialEq + Clone,
     L: Borrow<[T]> + 'a,

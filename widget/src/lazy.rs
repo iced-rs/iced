@@ -37,7 +37,7 @@ struct Internal<W> {
     hash: u64,
 }
 
-impl<W, Dependency> widget::Node for Lazy<'_, W, Dependency> {}
+impl<W, Dependency> widget::Meta for Lazy<'_, W, Dependency> {}
 
 impl<'a, W, Message, Theme, Renderer, Dependency> Widget<Message, Theme, Renderer>
     for Lazy<'a, W, Dependency>

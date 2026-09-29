@@ -245,7 +245,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> widget::Node for Checkbox<'_, Message, Theme, Renderer>
+impl<Message, Theme, Renderer> widget::Meta for Checkbox<'_, Message, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: text::Renderer,

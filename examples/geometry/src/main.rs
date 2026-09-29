@@ -16,7 +16,7 @@ mod rainbow {
         Rainbow
     }
 
-    impl widget::Node for Rainbow {}
+    impl widget::Meta for Rainbow {}
 
     impl<Message> Widget<Message, Theme, Renderer> for Rainbow {
         fn size(&self) -> Size<Length> {

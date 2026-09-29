@@ -26,7 +26,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> widget::Node for Element<'a, Message, Theme, Renderer> {
+impl<'a, Message, Theme, Renderer> widget::Meta for Element<'a, Message, Theme, Renderer> {
     fn is_void(&self) -> bool {
         self.widget.is_void()
     }

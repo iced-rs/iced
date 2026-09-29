@@ -35,7 +35,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::touch;
-use crate::core::widget::Node;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
@@ -214,7 +214,7 @@ where
     }
 }
 
-impl<T, Message, Theme> Node for Slider<'_, T, Message, Theme> where Theme: Catalog {}
+impl<T, Message, Theme> Meta for Slider<'_, T, Message, Theme> where Theme: Catalog {}
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Slider<'_, T, Message, Theme>
 where

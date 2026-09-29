@@ -3,7 +3,7 @@ use crate::core;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::{Node, Tree};
+use crate::core::widget::{Meta, Tree};
 use crate::core::{Layout, Length, Rectangle, Size, Widget};
 
 /// Creates a new [`Space`] widget that fills the available
@@ -59,7 +59,7 @@ impl Default for Space {
     }
 }
 
-impl Node for Space {}
+impl Meta for Space {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space
 where

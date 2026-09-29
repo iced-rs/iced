@@ -3,7 +3,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Node, Operation, Tree};
+use crate::core::widget::{Meta, Operation, Tree};
 use crate::core::{Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that displays children on top of each other.
@@ -39,7 +39,7 @@ impl<W> Stack<W> {
     /// Creates a [`Stack`] with the given widgets.
     pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         let iterator = children.into_iter();
 
@@ -72,7 +72,7 @@ impl<W> Stack<W> {
     /// Adds a widget on top of the [`Stack`].
     pub fn push(mut self, child: impl Into<W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         let child = child.into();
 
@@ -93,7 +93,7 @@ impl<W> Stack<W> {
     /// Extends the [`Stack`] with the given children.
     pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         children.into_iter().fold(self, Self::push)
     }
@@ -115,7 +115,7 @@ impl<W> Default for Stack<W> {
     }
 }
 
-impl<W> Node for Stack<W> {}
+impl<W> Meta for Stack<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Stack<W>
 where

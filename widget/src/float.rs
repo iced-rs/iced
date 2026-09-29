@@ -79,7 +79,7 @@ where
     }
 }
 
-impl<W, Theme> widget::Node for Float<'_, W, Theme> where Theme: Catalog {}
+impl<W, Theme> widget::Meta for Float<'_, W, Theme> where Theme: Catalog {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Float<'_, W, Theme>
 where

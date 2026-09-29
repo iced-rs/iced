@@ -46,7 +46,7 @@ impl<'a, W> Responsive<'a, W> {
     }
 }
 
-impl<W> widget::Node for Responsive<'_, W> {}
+impl<W> widget::Meta for Responsive<'_, W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Responsive<'_, W>
 where

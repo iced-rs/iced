@@ -5,7 +5,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::widget::{Node, Operation};
+use crate::core::widget::{Meta, Operation};
 use crate::core::{
     Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -52,7 +52,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Node for Themer<'_, Message, Theme, Renderer> where
+impl<Message, Theme, Renderer> Meta for Themer<'_, Message, Theme, Renderer> where
     Renderer: crate::core::Renderer
 {
 }

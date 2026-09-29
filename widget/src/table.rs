@@ -178,7 +178,7 @@ struct Metrics {
     rows: Vec<f32>,
 }
 
-impl<'a, Message, Theme, Renderer> widget::Node for Table<'a, Message, Theme, Renderer> where
+impl<'a, Message, Theme, Renderer> widget::Meta for Table<'a, Message, Theme, Renderer> where
     Theme: Catalog
 {
 }

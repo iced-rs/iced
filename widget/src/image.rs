@@ -24,7 +24,7 @@ use crate::core::image;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::{Node, Tree};
+use crate::core::widget::{Meta, Tree};
 use crate::core::{ContentFit, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget};
 
 pub use image::{FilterMethod, Handle};
@@ -332,7 +332,7 @@ pub fn draw<Renderer, Handle>(
     );
 }
 
-impl<Handle> Node for Image<Handle> {}
+impl<Handle> Meta for Image<Handle> {}
 
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<Handle>
 where

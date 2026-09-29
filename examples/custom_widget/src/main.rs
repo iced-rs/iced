@@ -21,7 +21,7 @@ mod circle {
         Circle::new(radius)
     }
 
-    impl widget::Node for Circle {}
+    impl widget::Meta for Circle {}
 
     impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Circle
     where

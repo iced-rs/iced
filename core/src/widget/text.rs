@@ -187,7 +187,7 @@ where
 /// The internal state of a [`Text`] widget.
 pub type State<P> = paragraph::Plain<P>;
 
-impl<Theme> widget::Node for Text<'_, Theme> where Theme: Catalog {}
+impl<Theme> widget::Meta for Text<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme>
 where
@@ -254,7 +254,7 @@ where
     }
 }
 
-impl widget::Node for &str {}
+impl widget::Meta for &str {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for &str
 where

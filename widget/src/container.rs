@@ -191,7 +191,7 @@ where
     }
 }
 
-impl<W, Theme> widget::Node for Container<'_, W, Theme> where Theme: Catalog {}
+impl<W, Theme> widget::Meta for Container<'_, W, Theme> where Theme: Catalog {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Container<'_, W, Theme>
 where

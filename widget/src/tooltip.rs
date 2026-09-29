@@ -129,7 +129,7 @@ where
     }
 }
 
-impl<W, V, Theme> widget::Node for Tooltip<'_, W, V, Theme> where Theme: container::Catalog {}
+impl<W, V, Theme> widget::Meta for Tooltip<'_, W, V, Theme> where Theme: container::Catalog {}
 
 impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Tooltip<'_, W, V, Theme>
 where

@@ -4,7 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::widget::{Node, Operation};
+use crate::core::widget::{Meta, Operation};
 use crate::core::{
     Alignment, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -77,7 +77,7 @@ where
     /// Creates a [`Column`] with the given elements.
     pub fn with_children(children: impl IntoIterator<Item = (Key, W)>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         let iterator = children.into_iter();
 
@@ -121,7 +121,7 @@ where
     /// Adds an element to the [`Column`].
     pub fn push(mut self, key: Key, child: impl Into<W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         let child = child.into();
 
@@ -136,7 +136,7 @@ where
     /// Adds an element to the [`Column`], if `Some`.
     pub fn push_maybe(self, key: Key, child: Option<impl Into<W>>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         if let Some(child) = child {
             self.push(key, child)
@@ -148,7 +148,7 @@ where
     /// Extends the [`Column`] with the given children.
     pub fn extend(self, children: impl IntoIterator<Item = (Key, W)>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         children
             .into_iter()
@@ -173,7 +173,7 @@ where
     cache: layout::flex::Cache,
 }
 
-impl<Key, W> Node for Column<Key, W> where Key: Copy + PartialEq {}
+impl<Key, W> Meta for Column<Key, W> where Key: Copy + PartialEq {}
 
 impl<Key, W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Column<Key, W>
 where

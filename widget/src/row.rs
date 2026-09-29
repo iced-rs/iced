@@ -4,7 +4,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Node, Operation, Tree, tree};
+use crate::core::widget::{Meta, Operation, Tree, tree};
 use crate::core::{Event, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents horizontally.
@@ -53,7 +53,7 @@ impl<W> Row<W> {
     /// Creates a [`Row`] with the given widgets.
     pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         let iterator = children.into_iter();
 
@@ -123,7 +123,7 @@ impl<W> Row<W> {
     /// Adds a [`Widget`] to the [`Row`].
     pub fn push(mut self, child: impl Into<W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         let child = child.into();
 
@@ -137,7 +137,7 @@ impl<W> Row<W> {
     /// Extends the [`Row`] with the given children.
     pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         children.into_iter().fold(self, Self::push)
     }
@@ -162,14 +162,14 @@ impl<W> Default for Row<W> {
 
 impl<W> FromIterator<W> for Row<W>
 where
-    W: Node,
+    W: Meta,
 {
     fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }
 
-impl<W> Node for Row<W> {}
+impl<W> Meta for Row<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Row<W>
 where
@@ -353,7 +353,7 @@ impl<W> Wrapping<W> {
     }
 }
 
-impl<W> Node for Wrapping<W> {}
+impl<W> Meta for Wrapping<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Wrapping<W>
 where

@@ -23,7 +23,7 @@ use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::{Node, Tree};
+use crate::core::widget::{Meta, Tree};
 use crate::core::{self, Background, Color, Layout, Length, Rectangle, Size, Theme, Widget};
 
 use std::ops::RangeInclusive;
@@ -139,7 +139,7 @@ where
     }
 }
 
-impl<Theme> Node for ProgressBar<'_, Theme> where Theme: Catalog {}
+impl<Theme> Meta for ProgressBar<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for ProgressBar<'_, Theme>
 where

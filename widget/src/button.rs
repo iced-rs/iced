@@ -24,7 +24,7 @@ use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::widget::{Node, Operation};
+use crate::core::widget::{Meta, Operation};
 use crate::core::window;
 use crate::core::{
     Background, Color, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size, Theme,
@@ -209,7 +209,7 @@ struct State {
     is_pressed: bool,
 }
 
-impl<'a, Message, W, Theme> Node for Button<'a, Message, W, Theme> where Theme: Catalog {}
+impl<'a, Message, W, Theme> Meta for Button<'a, Message, W, Theme> where Theme: Catalog {}
 
 impl<'a, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Button<'a, Message, W, Theme>

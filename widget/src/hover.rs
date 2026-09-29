@@ -8,7 +8,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::operation;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::widget::{Node, Operation};
+use crate::core::widget::{Meta, Operation};
 use crate::core::window;
 use crate::core::{Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
@@ -38,7 +38,7 @@ impl<W, V> Hover<W, V> {
     }
 }
 
-impl<W, V> Node for Hover<W, V> {}
+impl<W, V> Meta for Hover<W, V> {}
 
 impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Hover<W, V>
 where

@@ -100,7 +100,7 @@ struct State {
     is_stuck: bool,
 }
 
-impl<W> widget::Node for Sticky<W> {}
+impl<W> widget::Meta for Sticky<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Sticky<W>
 where

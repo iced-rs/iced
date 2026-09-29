@@ -4,7 +4,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
-use crate::core::widget::Node;
+use crate::core::widget::Meta;
 use crate::core::widget::text::{
     self, Alignment, Catalog, Ellipsis, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
@@ -191,7 +191,7 @@ struct State<Link, P: Paragraph> {
     paragraph: P,
 }
 
-impl<Link, Message, Theme> Node for Rich<'_, Link, Message, Theme>
+impl<Link, Message, Theme> Meta for Rich<'_, Link, Message, Theme>
 where
     Link: Clone + 'static,
     Theme: Catalog,

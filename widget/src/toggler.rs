@@ -228,7 +228,7 @@ where
     }
 }
 
-impl<Message, Theme> widget::Node for Toggler<'_, Message, Theme> where Theme: Catalog {}
+impl<Message, Theme> widget::Meta for Toggler<'_, Message, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Toggler<'_, Message, Theme>
 where

@@ -398,7 +398,7 @@ struct Editor<R: text::Renderer> {
     selection: Option<String>,
 }
 
-impl<T, Message, Theme> widget::Node for ComboBox<'_, T, Message, Theme> where Theme: Catalog {}
+impl<T, Message, Theme> widget::Meta for ComboBox<'_, T, Message, Theme> where Theme: Catalog {}
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for ComboBox<'_, T, Message, Theme>

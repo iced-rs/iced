@@ -3,7 +3,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Node, Operation, Tree};
+use crate::core::widget::{Meta, Operation, Tree};
 use crate::core::{Event, Length, Pixels, Rectangle, Shell, Size, Vector, Widget};
 
 /// A container that distributes its contents on a responsive grid.
@@ -34,7 +34,7 @@ impl<W> Grid<W> {
     /// Creates a [`Grid`] with the given widgets.
     pub fn with_children(children: impl IntoIterator<Item = W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         let iterator = children.into_iter();
 
@@ -92,7 +92,7 @@ impl<W> Grid<W> {
     /// Adds a [`Widget`] to the [`Grid`].
     pub fn push(mut self, child: impl Into<W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         self.children.push(child.into());
         self
@@ -101,7 +101,7 @@ impl<W> Grid<W> {
     /// Adds a widget to the [`Grid`], if `Some`.
     pub fn push_maybe(self, child: Option<impl Into<W>>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         if let Some(child) = child {
             self.push(child)
@@ -113,7 +113,7 @@ impl<W> Grid<W> {
     /// Extends the [`Grid`] with the given children.
     pub fn extend(self, children: impl IntoIterator<Item = W>) -> Self
     where
-        W: Node,
+        W: Meta,
     {
         children.into_iter().fold(self, Self::push)
     }
@@ -127,14 +127,14 @@ impl<W> Default for Grid<W> {
 
 impl<W> FromIterator<W> for Grid<W>
 where
-    W: Node,
+    W: Meta,
 {
     fn from_iter<T: IntoIterator<Item = W>>(iter: T) -> Self {
         Self::with_children(iter)
     }
 }
 
-impl<W> Node for Grid<W> {}
+impl<W> Meta for Grid<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Grid<W>
 where

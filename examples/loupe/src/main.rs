@@ -71,7 +71,7 @@ mod loupe {
         content: W,
     }
 
-    impl<W> widget::Node for Loupe<W> {}
+    impl<W> widget::Meta for Loupe<W> {}
 
     impl<W, Message> Widget<Message, Theme, Renderer> for Loupe<W>
     where

@@ -339,7 +339,7 @@ struct Memory {
     order: Vec<Pane>,
 }
 
-impl<Message, T, W, Theme, Renderer> widget::Node for PaneGrid<'_, Message, T, W, Theme, Renderer>
+impl<Message, T, W, Theme, Renderer> widget::Meta for PaneGrid<'_, Message, T, W, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,

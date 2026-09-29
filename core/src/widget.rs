@@ -37,7 +37,7 @@ use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 /// [`custom_widget`]: https://github.com/iced-rs/iced/tree/master/examples/custom_widget
 /// [`geometry`]: https://github.com/iced-rs/iced/tree/master/examples/geometry
 /// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/master/wgpu
-pub trait Widget<Message, Theme, Renderer>: Node {
+pub trait Widget<Message, Theme, Renderer>: Meta {
     /// Returns the [`Size`] of the [`Widget`] in lengths.
     fn size(&self) -> Size<Length>;
 
@@ -157,22 +157,17 @@ pub trait Widget<Message, Theme, Renderer>: Node {
     }
 }
 
-/// A node in the widget tree.
-///
-/// Every [`Widget`] is a node, but so are things that may not hold a widget
-/// at all—like [`Option`] and [`Void`].
-///
-/// A node exposes whether it is [`Void`], so containers can filter it out.
-pub trait Node {
+/// Metadata of a [`Widget`], independent of its generic parameters.
+pub trait Meta {
     /// Returns whether the [`Widget`] is [`Void`].
     fn is_void(&self) -> bool {
         false
     }
 }
 
-impl<T> Node for &mut T
+impl<T> Meta for &mut T
 where
-    T: Node,
+    T: Meta,
 {
     fn is_void(&self) -> bool {
         T::is_void(self)
@@ -268,7 +263,7 @@ where
 /// A zero-sized [`Widget`] that does nothing and will be filtered out by containers.
 pub struct Void;
 
-impl Node for Void {
+impl Meta for Void {
     fn is_void(&self) -> bool {
         true
     }
@@ -306,9 +301,9 @@ pub struct Map<W, F, A> {
     _input: std::marker::PhantomData<A>,
 }
 
-impl<W, F, A> Node for Map<W, F, A>
+impl<W, F, A> Meta for Map<W, F, A>
 where
-    W: Node,
+    W: Meta,
 {
     fn is_void(&self) -> bool {
         self.widget.is_void()
@@ -426,9 +421,9 @@ where
     }
 }
 
-impl<T> Node for Option<T>
+impl<T> Meta for Option<T>
 where
-    T: Node,
+    T: Meta,
 {
     fn is_void(&self) -> bool {
         self.is_none()

@@ -6,7 +6,7 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::theme;
 use crate::core::time::Instant;
-use crate::core::widget::Node;
+use crate::core::widget::Meta;
 use crate::core::widget::operation;
 use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
@@ -447,7 +447,7 @@ pub fn pin<W>(content: W) -> Pin<W> {
 /// ```
 pub fn column<W>(children: impl IntoIterator<Item = W>) -> Column<W>
 where
-    W: Node,
+    W: Meta,
 {
     Column::with_children(children)
 }
@@ -476,7 +476,7 @@ where
 pub fn keyed_column<Key, W>(children: impl IntoIterator<Item = (Key, W)>) -> keyed::Column<Key, W>
 where
     Key: Copy + PartialEq,
-    W: Node,
+    W: Meta,
 {
     keyed::Column::with_children(children)
 }
@@ -501,7 +501,7 @@ where
 /// ```
 pub fn row<W>(children: impl IntoIterator<Item = W>) -> Row<W>
 where
-    W: Node,
+    W: Meta,
 {
     Row::with_children(children)
 }
@@ -509,7 +509,7 @@ where
 /// Creates a new [`Grid`] from an iterator.
 pub fn grid<W>(children: impl IntoIterator<Item = W>) -> Grid<W>
 where
-    W: Node,
+    W: Meta,
 {
     Grid::with_children(children)
 }
@@ -519,7 +519,7 @@ where
 /// [`Stack`]: crate::Stack
 pub fn stack<W>(children: impl IntoIterator<Item = W>) -> Stack<W>
 where
-    W: Node,
+    W: Meta,
 {
     Stack::with_children(children)
 }
@@ -549,7 +549,7 @@ where
         content: Element<'a, Message, Theme, Renderer>,
     }
 
-    impl<Message, Theme, Renderer> Node for Opaque<'_, Message, Theme, Renderer> {}
+    impl<Message, Theme, Renderer> Meta for Opaque<'_, Message, Theme, Renderer> {}
 
     impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
         for Opaque<'_, Message, Theme, Renderer>
