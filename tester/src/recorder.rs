@@ -16,8 +16,11 @@ use crate::test::selector;
 use std::cell::Cell;
 
 pub fn recorder<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Recorder<'a, Message, Theme, Renderer> {
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> Recorder<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
     Recorder::new(content)
 }
 
@@ -28,9 +31,9 @@ pub struct Recorder<'a, Message, Theme, Renderer> {
 }
 
 impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            content: content.into(),
+            content: content._boxed(),
             on_record: None,
             has_overlay: false,
         }
@@ -46,6 +49,8 @@ struct State {
     last_hovered: Cell<Option<Rectangle>>,
     last_hovered_overlay: Cell<Option<Rectangle>>,
 }
+
+impl<Message, Theme, Renderer> widget::Meta for Recorder<'_, Message, Theme, Renderer> {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Recorder<'_, Message, Theme, Renderer>
@@ -69,7 +74,7 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn update(
@@ -99,7 +104,7 @@ where
                 &state.last_hovered,
                 on_record,
                 |operation| {
-                    self.content.as_widget_mut().operate(
+                    self.content.operate(
                         &mut tree.children[0],
                         layout,
                         viewport,
@@ -110,7 +115,7 @@ where
             );
         }
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -122,9 +127,7 @@ where
     }
 
     fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.content.layout(&mut tree.children[0], renderer, limits);
 
         tree.size = tree.children[0].size;
     }
@@ -139,7 +142,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -174,13 +177,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -191,13 +189,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.content
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'a>(
@@ -212,7 +205,6 @@ where
         self.has_overlay = false;
 
         self.content
-            .as_widget_mut()
             .overlay(
                 &mut tree.children[0],
                 layout,
@@ -234,18 +226,6 @@ where
                 }))
             })
             .collect()
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Recorder<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: theme::Base + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(recorder: Recorder<'a, Message, Theme, Renderer>) -> Self {
-        Element::new(recorder)
     }
 }
 

@@ -1,5 +1,5 @@
 use iced::widget::{center, column, combo_box, scrollable, space, text};
-use iced::{Center, Element, Fill};
+use iced::{Center, Fill, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -45,7 +45,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let combo_box = combo_box(
             &self.languages,
             "Type a language...",
@@ -66,7 +66,7 @@ impl Example {
         .align_x(Center)
         .spacing(10);
 
-        center(scrollable(content)).into()
+        center(scrollable(content))
     }
 }
 

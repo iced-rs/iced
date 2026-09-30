@@ -4,7 +4,7 @@ use criterion::{Bencher, Criterion, criterion_group, criterion_main};
 use iced::border;
 use iced::mouse;
 use iced::widget::{canvas, center_y, column, container, row, scrollable, space, text};
-use iced::{Center, Color, Element, Fill, Length, Never, Point, Rectangle, Size, Theme};
+use iced::{Center, Color, Fill, Length, Never, Point, Rectangle, Size, Theme, Widget};
 use iced_renderer::Renderer;
 use iced_renderer::core::renderer::{self, Headless as _};
 use iced_runtime::UserInterface;
@@ -34,7 +34,11 @@ pub fn benchmark(c: &mut Criterion) {
         });
 }
 
-fn draw(bencher: &mut Bencher<'_>, renderer: &mut Renderer, view: Element<'static, Never>) {
+fn draw(
+    bencher: &mut Bencher<'_>,
+    renderer: &mut Renderer,
+    view: impl Widget<Never, Theme, Renderer>,
+) {
     let mut ui = UserInterface::build(view, VIEWPORT, user_interface::Cache::new(), renderer);
 
     bencher.iter(|| {
@@ -56,14 +60,12 @@ fn draw(bencher: &mut Bencher<'_>, renderer: &mut Renderer, view: Element<'stati
     });
 }
 
-fn ipsum() -> Element<'static, Never> {
-    text(include_str!("ipsum.txt"))
-        .ellipsis(text::Ellipsis::End)
-        .into()
+fn ipsum() -> impl Widget<Never, Theme, Renderer> {
+    text(include_str!("ipsum.txt")).ellipsis(text::Ellipsis::End)
 }
 
-fn application() -> Element<'static, Never> {
-    fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Never> {
+fn application() -> impl Widget<Never, Theme, Renderer> {
+    fn square(size: impl Into<Length> + Copy) -> impl Widget<Never, Theme, Renderer> {
         struct Square;
 
         impl canvas::Program<Never> for Square {
@@ -91,7 +93,7 @@ fn application() -> Element<'static, Never> {
             }
         }
 
-        canvas(Square).width(size).height(size).into()
+        canvas(Square).width(size).height(size)
     }
 
     let header = container(
@@ -105,7 +107,7 @@ fn application() -> Element<'static, Never> {
         .padding(10)
         .align_y(Center),
     )
-    .style(|theme| {
+    .style(|theme: &Theme| {
         let palette = theme.palette();
 
         container::Style::default().border(border::color(palette.background.strong.color).width(1))
@@ -138,5 +140,5 @@ fn application() -> Element<'static, Never> {
     )
     .padding(10);
 
-    column![header, row![sidebar, content]].into()
+    column![header, row![sidebar, content]]
 }

@@ -7,9 +7,7 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector, Window,
-};
+use crate::core::{Clipboard, InputMethod, Layout, Rectangle, Shell, Size, Vector, Widget, Window};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -24,7 +22,7 @@ use crate::core::{
 ///
 /// [`integration`]: https://github.com/iced-rs/iced/tree/master/examples/integration
 pub struct UserInterface<'a, Message, Theme, Renderer> {
-    root: Element<'a, Message, Theme, Renderer>,
+    root: widget::Element<'a, Message, Theme, Renderer>,
     state: widget::Tree,
     overlay: Option<mouse::Interaction>,
     bounds: Size,
@@ -32,9 +30,11 @@ pub struct UserInterface<'a, Message, Theme, Renderer> {
 
 impl<'a, Message, Theme, Renderer> UserInterface<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Message: 'a,
+    Theme: 'a,
+    Renderer: crate::core::Renderer + 'a,
 {
-    /// Builds a user interface for an [`Element`].
+    /// Builds a user interface for a [`Widget`].
     ///
     /// It is able to avoid expensive computations when using a [`Cache`]
     /// obtained from a previous instance of a [`UserInterface`].
@@ -89,18 +89,18 @@ where
     ///     cache = user_interface.into_cache();
     /// }
     /// ```
-    pub fn build<E: Into<Element<'a, Message, Theme, Renderer>>>(
-        root: E,
+    pub fn build(
+        root: impl Widget<Message, Theme, Renderer> + 'a,
         bounds: Size,
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let mut root = root.into();
+        let mut root = root._boxed();
 
         let Cache { mut state } = cache;
-        state.diff(root.as_widget_mut());
+        state.diff(&mut root);
 
-        root.as_widget_mut().layout(
+        root.layout(
             &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
@@ -198,7 +198,7 @@ where
         let mut layout = Layout::new(self.state.size);
         let viewport = Rectangle::with_size(self.bounds);
 
-        let overlay = self.root.as_widget_mut().overlay(
+        let overlay = self.root.overlay(
             &mut self.state,
             layout,
             renderer,
@@ -233,12 +233,12 @@ where
                     if let shell::Invalidation::Layout(diff) = invalidation {
                         match diff {
                             shell::Diff::Perform => {
-                                self.root.as_widget_mut().diff(&mut self.state);
+                                self.root.diff(&mut self.state);
                             }
                             shell::Diff::Skip => {}
                         }
 
-                        self.root.as_widget_mut().layout(
+                        self.root.layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -248,7 +248,7 @@ where
                     }
 
                     maybe_overlay = {
-                        let overlay = self.root.as_widget_mut().overlay(
+                        let overlay = self.root.overlay(
                             &mut self.state,
                             layout,
                             renderer,
@@ -312,7 +312,7 @@ where
 
                 let mut shell = Shell::new(window, waker.clone(), messages);
 
-                self.root.as_widget_mut().update(
+                self.root.update(
                     &mut self.state,
                     event,
                     layout,
@@ -337,12 +337,12 @@ where
                     if let shell::Invalidation::Layout(diff) = invalidation {
                         match diff {
                             shell::Diff::Perform => {
-                                self.root.as_widget_mut().diff(&mut self.state);
+                                self.root.diff(&mut self.state);
                             }
                             shell::Diff::Skip => {}
                         }
 
-                        self.root.as_widget_mut().layout(
+                        self.root.layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -351,7 +351,7 @@ where
                         layout = Layout::new(self.state.size);
                     }
 
-                    let overlay = self.root.as_widget_mut().overlay(
+                    let overlay = self.root.overlay(
                         &mut self.state,
                         layout,
                         renderer,
@@ -372,13 +372,8 @@ where
             .collect();
 
         let mouse_interaction = if overlay_interaction == mouse::Interaction::None {
-            self.root.as_widget().mouse_interaction(
-                &self.state,
-                layout,
-                base_cursor,
-                &viewport,
-                renderer,
-            )
+            self.root
+                .mouse_interaction(&self.state, layout, base_cursor, &viewport, renderer)
         } else {
             overlay_interaction
         };
@@ -494,7 +489,7 @@ where
             _ => cursor.levitate(),
         };
 
-        self.root.as_widget().draw(
+        self.root.draw(
             &self.state,
             renderer,
             theme,
@@ -510,7 +505,7 @@ where
             return;
         }
 
-        let overlay = root.as_widget_mut().overlay(
+        let overlay = root.overlay(
             &mut self.state,
             layout,
             renderer,
@@ -532,16 +527,11 @@ where
         let layout = Layout::new(self.state.size);
 
         operation.traverse(&mut |operation| {
-            self.root.as_widget_mut().operate(
-                &mut self.state,
-                layout,
-                &viewport,
-                renderer,
-                operation,
-            );
+            self.root
+                .operate(&mut self.state, layout, &viewport, renderer, operation);
         });
 
-        let overlay = self.root.as_widget_mut().overlay(
+        let overlay = self.root.overlay(
             &mut self.state,
             layout,
             renderer,

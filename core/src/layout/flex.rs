@@ -16,12 +16,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::Element;
-
 use crate::layout::{Limits, Vector};
 use crate::length;
 use crate::widget;
-use crate::{Alignment, Length, Padding, Size};
+use crate::{Alignment, Length, Padding, Size, Widget};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -103,7 +101,7 @@ pub fn resolve<Message, Theme, Renderer>(
     spacing: f32,
     align_items: Alignment,
     children: &mut [widget::Tree],
-    items: &mut [Element<'_, Message, Theme, Renderer>],
+    items: &mut [impl Widget<Message, Theme, Renderer>],
     cache: &mut Cache,
 ) -> Size
 where
@@ -147,7 +145,7 @@ where
     // If we need to compress the cross axis, then we skip any of these elements
     // that are also fluid in the cross axis.
     for (i, child) in items.iter_mut().enumerate() {
-        let size = child.as_widget().size();
+        let size = child.size();
         let (size_main, size_cross) = axis.pack(size.width, size.height);
 
         let fill_main_factor = size_main.fill_factor();
@@ -218,9 +216,7 @@ where
             infinite,
         );
 
-        child
-            .as_widget_mut()
-            .layout(&mut children[i], renderer, &child_limits);
+        child.layout(&mut children[i], renderer, &child_limits);
 
         let size = children[i].size;
 
@@ -256,9 +252,7 @@ where
                 cross_infinite,
             );
 
-            child
-                .as_widget_mut()
-                .layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits);
 
             let size = children[i].size;
 
@@ -372,9 +366,7 @@ where
                 infinite,
             );
 
-            child
-                .as_widget_mut()
-                .layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits);
 
             let size = children[i].size;
 
@@ -437,9 +429,7 @@ where
                 infinite,
             );
 
-            child
-                .as_widget_mut()
-                .layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits);
 
             let size = children[i].size;
             cross = cross.max(axis.cross(size));
@@ -467,9 +457,7 @@ where
                 cross_infinite,
             );
 
-            child
-                .as_widget_mut()
-                .layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits);
 
             let size = children[i].size;
             cross = cross.max(axis.cross(size));

@@ -13,7 +13,7 @@ use crate::{
 pub const CRISP: bool = cfg!(feature = "crisp");
 
 /// A component that can be used by widgets to draw themselves on a screen.
-pub trait Renderer {
+pub trait Renderer: 'static {
     /// Starts recording a new layer.
     fn start_layer(&mut self, bounds: Rectangle);
 

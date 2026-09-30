@@ -1,11 +1,12 @@
 //! Create and run daemons that run in the background.
 use crate::application;
+use crate::core;
 use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
 use crate::theme;
 use crate::window;
-use crate::{Element, Executor, Font, Preset, Result, Settings, Subscription, Task, Theme};
+use crate::{Executor, Font, Preset, Result, Settings, Subscription, Task, Theme};
 
 #[cfg(feature = "hot")]
 use crate::hot::Hot;
@@ -87,7 +88,7 @@ where
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl core::Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.view.view(state, window)
         }
     }
@@ -312,7 +313,7 @@ impl<P: Program> Program for Daemon<P> {
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl core::Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.raw.view(state, window)
     }
 
@@ -375,22 +376,33 @@ where
 /// The view logic of some [`Daemon`].
 ///
 /// This trait allows the [`daemon`] builder to take any closure that
-/// returns any `Into<Element<'_, Message>>`.
-pub trait ViewFn<'a, State, Message, Theme, Renderer> {
+/// returns any widget.
+pub trait ViewFn<'a, State, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
     /// Produces the widget of the [`Daemon`].
-    fn view(&self, state: &'a State, window: window::Id) -> Element<'a, Message, Theme, Renderer>;
+    fn view(
+        &self,
+        state: &'a State,
+        window: window::Id,
+    ) -> impl core::Widget<Message, Theme, Renderer> + 'a;
 }
 
-impl<'a, T, State, Message, Theme, Renderer, Widget> ViewFn<'a, State, Message, Theme, Renderer>
-    for T
+impl<'a, T, State, Message, Theme, Renderer, W> ViewFn<'a, State, Message, Theme, Renderer> for T
 where
-    T: Fn(&'a State, window::Id) -> Widget,
+    T: Fn(&'a State, window::Id) -> W,
     State: 'static,
-    Widget: Into<Element<'a, Message, Theme, Renderer>>,
+    W: core::Widget<Message, Theme, Renderer> + 'a,
+    Renderer: core::Renderer,
 {
     #[inline]
-    fn view(&self, state: &'a State, window: window::Id) -> Element<'a, Message, Theme, Renderer> {
-        self(state, window).into()
+    fn view(
+        &self,
+        state: &'a State,
+        window: window::Id,
+    ) -> impl core::Widget<Message, Theme, Renderer> + 'a {
+        self(state, window)
     }
 }
 
@@ -472,7 +484,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl core::Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.program.view(state, window)
     }
 
@@ -548,7 +560,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl core::Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.program.view(state, window)
     }
 
@@ -624,7 +636,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl core::Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         self.program.view(state, window)
     }
 

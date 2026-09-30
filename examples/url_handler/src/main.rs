@@ -1,6 +1,6 @@
 use iced::event;
 use iced::widget::{center, text};
-use iced::{Element, Subscription};
+use iced::{Subscription, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(App::default, App::update, App::view)
@@ -31,12 +31,12 @@ impl App {
         event::listen_url().map(Message::UrlReceived)
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let content = match &self.url {
             Some(url) => text(url),
             None => text("No URL received yet!"),
         };
 
-        center(content.size(48)).into()
+        center(content.size(48))
     }
 }

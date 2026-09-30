@@ -4,8 +4,9 @@
 //! ```no_run
 //! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 //! #            pub use iced_core::color; }
+//! # pub trait Widget<Message>: iced_core::Widget<Message, iced_core::Theme, ()> {}
+//! # impl<T, Message> Widget<Message> for T where T: iced_core::Widget<Message, iced_core::Theme, ()> {}
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
 //! use iced::widget::text;
 //! use iced::color;
 //!
@@ -13,11 +14,10 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     text("Hello, this is iced!")
 //!         .size(20)
 //!         .color(color!(0x0000ff))
-//!         .into()
 //! }
 //! ```
 use crate::alignment;
@@ -26,8 +26,9 @@ use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::text::paragraph::{self, Paragraph};
+use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::{Color, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 
@@ -37,8 +38,9 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 /// ```no_run
 /// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 /// #            pub use iced_core::color; }
+/// # pub trait Widget<Message>: iced_core::Widget<Message, iced_core::Theme, ()> {}
+/// # impl<T, Message> Widget<Message> for T where T: iced_core::Widget<Message, iced_core::Theme, ()> {}
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
 /// use iced::widget::text;
 /// use iced::color;
 ///
@@ -46,11 +48,10 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text("Hello, this is iced!")
 ///         .size(20)
 ///         .color(color!(0x0000ff))
-///         .into()
 /// }
 /// ```
 #[must_use]
@@ -186,24 +187,26 @@ where
 /// The internal state of a [`Text`] widget.
 pub type State<P> = paragraph::Plain<P>;
 
+impl<Theme> widget::Meta for Text<'_, Theme> where Theme: Catalog {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.format.width,
+            height: self.format.height,
+        }
+    }
+
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
         tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
-    }
-
-    fn size(&self) -> Size<Length> {
-        Size {
-            width: self.format.width,
-            height: self.format.height,
-        }
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
@@ -248,6 +251,73 @@ where
         operation: &mut dyn super::Operation,
     ) {
         operation.text(None, layout.bounds(), &self.fragment);
+    }
+}
+
+impl widget::Meta for &str {}
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for &str
+where
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fit,
+            height: Length::Fit,
+        }
+    }
+
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout(
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            renderer,
+            limits,
+            self,
+            Format::default(),
+        );
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        defaults: &renderer::Style,
+        layout: Layout,
+        _cursor_position: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+        let style = theme.style(&Theme::default());
+
+        draw(
+            renderer,
+            defaults,
+            layout.bounds(),
+            state.raw(),
+            style,
+            viewport,
+        );
+    }
+
+    fn operate(
+        &mut self,
+        _tree: &mut Tree,
+        layout: Layout,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+        operation: &mut dyn super::Operation,
+    ) {
+        operation.text(None, layout.bounds(), self);
     }
 }
 
@@ -348,32 +418,12 @@ pub fn draw<Renderer>(
     );
 }
 
-impl<'a, Message, Theme, Renderer> From<Text<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(text: Text<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text)
-    }
-}
-
 impl<'a, Theme> From<&'a str> for Text<'a, Theme>
 where
     Theme: Catalog + 'a,
 {
     fn from(content: &'a str) -> Self {
         Self::new(content)
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<&'a str> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(content: &'a str) -> Self {
-        Text::from(content).into()
     }
 }
 

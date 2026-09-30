@@ -4,13 +4,14 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::{Paragraph, Span};
+use crate::core::widget::Meta;
 use crate::core::widget::text::{
     self, Alignment, Catalog, Ellipsis, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Border, Color, Element, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    self, Border, Color, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A bunch of [`Rich`] text.
@@ -188,6 +189,13 @@ struct State<Link, P: Paragraph> {
     spans: Vec<Span<'static, Link>>,
     span_pressed: Option<usize>,
     paragraph: P,
+}
+
+impl<Link, Message, Theme> Meta for Rich<'_, Link, Message, Theme>
+where
+    Link: Clone + 'static,
+    Theme: Catalog,
+{
 }
 
 impl<Link, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -523,18 +531,5 @@ where
 {
     fn from_iter<T: IntoIterator<Item = Span<'a, Link>>>(spans: T) -> Self {
         Self::with_spans(spans.into_iter().collect::<Vec<_>>())
-    }
-}
-
-impl<'a, Link, Message, Theme, Renderer> From<Rich<'a, Link, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Link: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::text::Renderer + 'a,
-{
-    fn from(text: Rich<'a, Link, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text)
     }
 }

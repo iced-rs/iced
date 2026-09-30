@@ -5,8 +5,8 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Application, Center, Element, Fill, Fit, Function, Preset, Program, Subscription,
-    Task as Command, Theme,
+    Application, Center, Fill, Fit, Function, Preset, Program, Subscription, Task as Command,
+    Theme, Widget,
 };
 
 use serde::{Deserialize, Serialize};
@@ -188,9 +188,9 @@ impl Todos {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         match self {
-            Todos::Loading => loading_message(),
+            Todos::Loading => loading_message().boxed(),
             Todos::Loaded(State {
                 input_value,
                 filter,
@@ -219,7 +219,7 @@ impl Todos {
 
                 let filtered_tasks = tasks.iter().filter(|task| filter.matches(task));
 
-                let tasks: Element<_> = if filtered_tasks.count() > 0 {
+                let tasks = if filtered_tasks.count() > 0 {
                     keyed_column(
                         tasks
                             .iter()
@@ -230,17 +230,18 @@ impl Todos {
                             }),
                     )
                     .spacing(10)
-                    .into()
+                    .boxed()
                 } else {
                     empty_message(match filter {
                         Filter::All => "You have not created a task yet...",
                         Filter::Active => "All your tasks are done! :D",
                         Filter::Completed => "You have not completed a task yet...",
                     })
+                    .boxed()
                 };
 
                 let content = column![
-                    sticky(container(header).style(|theme| {
+                    sticky(container(header).style(|theme: &Theme| {
                         container::Style::default().background(theme.seed().background)
                     })),
                     tasks
@@ -250,7 +251,7 @@ impl Todos {
 
                 container(scrollable(center_x(content)).spacing(10))
                     .padding(10)
-                    .into()
+                    .boxed()
             }
         }
     }
@@ -341,7 +342,7 @@ impl Task {
         }
     }
 
-    fn view(&self, i: usize) -> Element<'_, TaskMessage> {
+    fn view(&self, i: usize) -> impl Widget<TaskMessage> {
         match &self.state {
             TaskState::Idle => {
                 let checkbox = checkbox(self.completed)
@@ -360,7 +361,7 @@ impl Task {
                 ]
                 .spacing(20)
                 .align_y(Center)
-                .into()
+                .boxed()
             }
             TaskState::Editing => {
                 let text_input = text_input("Describe your task...", &self.description)
@@ -378,13 +379,13 @@ impl Task {
                 ]
                 .spacing(20)
                 .align_y(Center)
-                .into()
+                .boxed()
             }
         }
     }
 }
 
-fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<'_, Message> {
+fn view_controls(tasks: &[Task], current_filter: Filter) -> impl Widget<Message> {
     let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
     let filter_button = |label, filter, current_filter| {
@@ -414,7 +415,6 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<'_, Message>
     ]
     .spacing(20)
     .align_y(Center)
-    .into()
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -435,11 +435,11 @@ impl Filter {
     }
 }
 
-fn loading_message<'a>() -> Element<'a, Message> {
-    center(text("Loading...").width(Fill).align_x(Center).size(50)).into()
+fn loading_message() -> impl Widget<Message> {
+    center(text("Loading...").width(Fill).align_x(Center).size(50))
 }
 
-fn empty_message(message: &str) -> Element<'_, Message> {
+fn empty_message(message: &str) -> impl Widget<Message> {
     center(
         text(message)
             .width(Fill)
@@ -448,7 +448,6 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .style(subtle),
     )
     .height(200)
-    .into()
 }
 
 // Fonts

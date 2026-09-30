@@ -6,8 +6,8 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::theme;
 use crate::core::time::Instant;
-use crate::core::widget::operation::{self, Operation};
-use crate::core::window;
+use crate::core::widget::Meta;
+use crate::core::widget::operation;
 use crate::core::{Element, Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
@@ -27,7 +27,7 @@ use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::transition::{self, Transition};
 use crate::vertical_slider::{self, VerticalSlider};
-use crate::{Column, Grid, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
+use crate::{Column, Grid, Hover, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -41,9 +41,9 @@ pub use crate::table::table;
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{button, column};
 ///
 /// #[derive(Debug, Clone)]
@@ -51,12 +51,12 @@ pub use crate::table::table;
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     column![
 ///         "I am on top!",
 ///         button("I am in the center!"),
 ///         "I am below.",
-///     ].into()
+///     ]
 /// }
 /// ```
 #[macro_export]
@@ -65,7 +65,7 @@ macro_rules! column {
         $crate::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Column::with_children([$($crate::core::Element::from($x)),+])
+        $crate::Column::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -75,9 +75,9 @@ macro_rules! column {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{button, row};
 ///
 /// #[derive(Debug, Clone)]
@@ -85,12 +85,12 @@ macro_rules! column {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     row![
 ///         "I am to the left!",
 ///         button("I am in the middle!"),
 ///         "I am to the right!",
-///     ].into()
+///     ]
 /// }
 /// ```
 #[macro_export]
@@ -99,7 +99,7 @@ macro_rules! row {
         $crate::Row::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Row::with_children([$($crate::core::Element::from($x)),+])
+        $crate::Row::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -112,7 +112,7 @@ macro_rules! stack {
         $crate::Stack::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Stack::with_children([$($crate::core::Element::from($x)),+])
+        $crate::Stack::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -125,7 +125,7 @@ macro_rules! grid {
         $crate::Grid::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Grid::with_children([$($crate::core::Element::from($x)),+])
+        $crate::Grid::with_children([$($crate::core::Widget::_boxed($x)),+])
     );
 }
 
@@ -144,11 +144,12 @@ macro_rules! grid {
 /// # mod iced {
 /// #     pub mod widget {
 /// #         macro_rules! text {
-/// #           ($($arg:tt)*) => {unimplemented!()}
+/// #           ($($arg:tt)*) => {iced_widget::text::<iced_widget::Theme>("text")}
 /// #         }
 /// #         pub(crate) use text;
 /// #     }
 /// # }
+/// # use iced_widget::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
 /// use iced::widget::text;
@@ -157,7 +158,7 @@ macro_rules! grid {
 ///     // ...
 /// }
 ///
-/// fn view(_state: &State) -> Element<Message> {
+/// fn view(_state: &State) -> impl Widget<Message> {
 ///     let simple = text!("Hello, world!");
 ///
 ///     let keyword = text!("Hello, {}", "world!");
@@ -165,7 +166,7 @@ macro_rules! grid {
 ///     let planet = "Earth";
 ///     let local_variable = text!("Hello, {planet}!");
 ///     // ...
-///     # unimplemented!()
+///     # simple
 /// }
 /// ```
 #[macro_export]
@@ -182,8 +183,8 @@ macro_rules! text {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
 /// use iced::{color, never, Font};
@@ -193,7 +194,7 @@ macro_rules! text {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     rich_text![
 ///         span("I am red!").color(color!(0xff0000)),
 ///         span(" "),
@@ -201,7 +202,6 @@ macro_rules! text {
 ///     ]
 ///     .on_link_click(never)
 ///     .size(20)
-///     .into()
 /// }
 /// ```
 #[macro_export]
@@ -220,29 +220,25 @@ macro_rules! rich_text {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::container;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     container("This text is centered inside a rounded box!")
 ///         .padding(10)
 ///         .center(800)
 ///         .style(container::rounded_box)
-///         .into()
 /// }
 /// ```
-pub fn container<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn container<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     Container::new(content)
 }
@@ -259,12 +255,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn center<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn center<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).center(Length::Fill)
 }
@@ -281,12 +274,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn center_x<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn center_x<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).center_x(Length::Fill)
 }
@@ -303,12 +293,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn center_y<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn center_y<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).center_y(Length::Fill)
 }
@@ -325,12 +312,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn right<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn right<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).align_right(Length::Fill)
 }
@@ -347,12 +331,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn right_center<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn right_center<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content)
         .align_right(Length::Fill)
@@ -371,12 +352,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn bottom<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn bottom<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content).align_bottom(Length::Fill)
 }
@@ -393,12 +371,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn bottom_center<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn bottom_center<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content)
         .center_x(Length::Fill)
@@ -417,12 +392,9 @@ where
 /// ```
 ///
 /// [`Container`]: crate::Container
-pub fn bottom_right<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Container<'a, Message, Theme, Renderer>
+pub fn bottom_right<'a, W, Theme>(content: W) -> Container<'a, W, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     container(content)
         .align_right(Length::Fill)
@@ -435,9 +407,9 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::pin;
 /// use iced::Fill;
 ///
@@ -445,19 +417,13 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     pin("This text is displayed at coordinates (50, 50)!")
 ///         .x(50)
 ///         .y(50)
-///         .into()
 /// }
 /// ```
-pub fn pin<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Pin<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub fn pin<W>(content: W) -> Pin<W> {
     Pin::new(content)
 }
 
@@ -467,24 +433,21 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{column, text};
+/// use iced::widget::{column, text, Widget};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     column((0..5).map(|i| text!("Item {i}").into())).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     column((0..5).map(|i| text!("Item {i}")))
 /// }
 /// ```
-pub fn column<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Column<'a, Message, Theme, Renderer>
+pub fn column<W>(children: impl IntoIterator<Item = W>) -> Column<W>
 where
-    Renderer: core::Renderer,
+    W: Meta,
 {
     Column::with_children(children)
 }
@@ -495,27 +458,25 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{keyed_column, text};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     keyed_column((0..=100).map(|i| {
-///         (i, text!("Item {i}").into())
-///     })).into()
+///         (i, text!("Item {i}"))
+///     }))
 /// }
 /// ```
-pub fn keyed_column<'a, Key, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
-) -> keyed::Column<'a, Key, Message, Theme, Renderer>
+pub fn keyed_column<Key, W>(children: impl IntoIterator<Item = (Key, W)>) -> keyed::Column<Key, W>
 where
     Key: Copy + PartialEq,
-    Renderer: core::Renderer,
+    W: Meta,
 {
     keyed::Column::with_children(children)
 }
@@ -526,34 +487,29 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
-/// use iced::widget::{row, text};
+/// use iced::widget::{row, text, Widget};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     row((0..5).map(|i| text!("Item {i}").into())).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     row((0..5).map(|i| text!("Item {i}")))
 /// }
 /// ```
-pub fn row<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Row<'a, Message, Theme, Renderer>
+pub fn row<W>(children: impl IntoIterator<Item = W>) -> Row<W>
 where
-    Renderer: core::Renderer,
+    W: Meta,
 {
     Row::with_children(children)
 }
 
 /// Creates a new [`Grid`] from an iterator.
-pub fn grid<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Grid<'a, Message, Theme, Renderer>
+pub fn grid<W>(children: impl IntoIterator<Item = W>) -> Grid<W>
 where
-    Renderer: core::Renderer,
+    W: Meta,
 {
     Grid::with_children(children)
 }
@@ -561,11 +517,9 @@ where
 /// Creates a new [`Stack`] with the given children.
 ///
 /// [`Stack`]: crate::Stack
-pub fn stack<'a, Message, Theme, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-) -> Stack<'a, Message, Theme, Renderer>
+pub fn stack<W>(children: impl IntoIterator<Item = W>) -> Stack<W>
 where
-    Renderer: core::Renderer,
+    W: Meta,
 {
     Stack::with_children(children)
 }
@@ -578,8 +532,8 @@ where
 ///
 /// [`Stack`]: crate::Stack
 pub fn opaque<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Element<'a, Message, Theme, Renderer>
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: 'a,
@@ -595,29 +549,31 @@ where
         content: Element<'a, Message, Theme, Renderer>,
     }
 
+    impl<Message, Theme, Renderer> Meta for Opaque<'_, Message, Theme, Renderer> {}
+
     impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
         for Opaque<'_, Message, Theme, Renderer>
     where
         Renderer: core::Renderer,
     {
         fn tag(&self) -> tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
 
         fn state(&self) -> tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
 
         fn diff(&mut self, tree: &mut Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
 
         fn size(&self) -> Size<Length> {
-            self.content.as_widget().size()
+            self.content.size()
         }
 
         fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-            self.content.as_widget_mut().layout(tree, renderer, limits);
+            self.content.layout(tree, renderer, limits);
         }
 
         fn draw(
@@ -631,7 +587,6 @@ where
             viewport: &Rectangle,
         ) {
             self.content
-                .as_widget()
                 .draw(tree, renderer, theme, style, layout, cursor, viewport);
         }
 
@@ -644,7 +599,6 @@ where
             operation: &mut dyn operation::Operation,
         ) {
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         }
 
@@ -662,7 +616,6 @@ where
                 matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
 
             self.content
-                .as_widget_mut()
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
 
             if is_mouse_press && cursor.is_over(layout.bounds()) {
@@ -680,7 +633,6 @@ where
         ) -> core::mouse::Interaction {
             let interaction = self
                 .content
-                .as_widget()
                 .mouse_interaction(state, layout, cursor, viewport, renderer);
 
             if interaction == mouse::Interaction::None && cursor.is_over(layout.bounds()) {
@@ -699,20 +651,14 @@ where
             translation: core::Vector,
             window: core::Size,
         ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            self.content.as_widget_mut().overlay(
-                state,
-                layout,
-                renderer,
-                viewport,
-                translation,
-                window,
-            )
+            self.content
+                .overlay(state, layout, renderer, viewport, translation, window)
         }
     }
 
-    Element::new(Opaque {
-        content: content.into(),
-    })
+    Opaque {
+        content: content._boxed(),
+    }
 }
 
 /// Displays a widget on top of another one, only when the base widget is hovered.
@@ -721,253 +667,8 @@ where
 /// when the cursor is over the base. It can be useful for removing visual clutter.
 ///
 /// [`stack`]: stack()
-pub fn hover<'a, Message, Theme, Renderer>(
-    base: impl Into<Element<'a, Message, Theme, Renderer>>,
-    top: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-{
-    use crate::core::layout::{self, Layout};
-    use crate::core::mouse;
-    use crate::core::renderer;
-    use crate::core::widget::tree::{self, Tree};
-    use crate::core::{Event, Rectangle, Shell, Size};
-
-    struct Hover<'a, Message, Theme, Renderer> {
-        base: Element<'a, Message, Theme, Renderer>,
-        top: Element<'a, Message, Theme, Renderer>,
-        is_top_focused: bool,
-        is_top_overlay_active: bool,
-        is_hovered: bool,
-    }
-
-    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-        for Hover<'_, Message, Theme, Renderer>
-    where
-        Renderer: core::Renderer,
-    {
-        fn tag(&self) -> tree::Tag {
-            struct Tag;
-            tree::Tag::of::<Tag>()
-        }
-
-        fn diff(&mut self, tree: &mut Tree) {
-            tree.diff_children(&mut [&mut self.base, &mut self.top]);
-        }
-
-        fn size(&self) -> Size<Length> {
-            self.base.as_widget().size()
-        }
-
-        fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-            self.base
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
-
-            let base_size = tree.children[0].size;
-
-            self.top.as_widget_mut().layout(
-                &mut tree.children[1],
-                renderer,
-                &layout::Limits::new(Size::ZERO, base_size),
-            );
-
-            tree.size = base_size;
-        }
-
-        fn draw(
-            &self,
-            tree: &Tree,
-            renderer: &mut Renderer,
-            theme: &Theme,
-            style: &renderer::Style,
-            layout: Layout,
-            cursor: mouse::Cursor,
-            viewport: &Rectangle,
-        ) {
-            if let Some(bounds) = layout.bounds().intersection(viewport) {
-                let mut children = layout.iter(&tree.children);
-
-                let (base_layout, base_tree) = children.next().unwrap();
-
-                self.base.as_widget().draw(
-                    base_tree,
-                    renderer,
-                    theme,
-                    style,
-                    base_layout,
-                    cursor,
-                    viewport,
-                );
-
-                if cursor.is_over(layout.bounds())
-                    || self.is_top_focused
-                    || self.is_top_overlay_active
-                {
-                    let (top_layout, top_tree) = children.next().unwrap();
-
-                    renderer.with_layer(bounds, |renderer| {
-                        self.top.as_widget().draw(
-                            top_tree, renderer, theme, style, top_layout, cursor, viewport,
-                        );
-                    });
-                }
-            }
-        }
-
-        fn operate(
-            &mut self,
-            tree: &mut Tree,
-            layout: Layout,
-            viewport: &Rectangle,
-            renderer: &Renderer,
-            operation: &mut dyn operation::Operation,
-        ) {
-            let children = [&mut self.base, &mut self.top]
-                .into_iter()
-                .zip(layout.iter_mut(&mut tree.children));
-
-            for (child, (layout, tree)) in children {
-                child
-                    .as_widget_mut()
-                    .operate(tree, layout, viewport, renderer, operation);
-            }
-        }
-
-        fn update(
-            &mut self,
-            tree: &mut Tree,
-            event: &Event,
-            layout: Layout,
-            cursor: mouse::Cursor,
-            renderer: &Renderer,
-            shell: &mut Shell<'_, Message>,
-            viewport: &Rectangle,
-        ) {
-            let mut children = layout.iter_mut(&mut tree.children);
-            let (base_layout, base_tree) = children.next().unwrap();
-            let (top_layout, top_tree) = children.next().unwrap();
-
-            let is_hovered = cursor.is_over(layout.bounds());
-
-            if matches!(event, Event::Window(window::Event::RedrawRequested(_))) {
-                let mut count_focused = operation::focusable::count();
-
-                self.top.as_widget_mut().operate(
-                    top_tree,
-                    top_layout,
-                    viewport,
-                    renderer,
-                    &mut operation::black_box(&mut count_focused),
-                );
-
-                self.is_top_focused = match count_focused.finish() {
-                    operation::Outcome::Some(count) => count.focused.is_some(),
-                    _ => false,
-                };
-
-                self.is_hovered = is_hovered;
-            } else if is_hovered != self.is_hovered {
-                shell.request_redraw();
-            }
-
-            let is_visible = is_hovered || self.is_top_focused || self.is_top_overlay_active;
-
-            if matches!(
-                event,
-                Event::Mouse(mouse::Event::CursorMoved { .. } | mouse::Event::ButtonReleased(_))
-            ) || is_visible
-            {
-                let redraw_request = shell.redraw_request();
-
-                self.top.as_widget_mut().update(
-                    top_tree, event, top_layout, cursor, renderer, shell, viewport,
-                );
-
-                // Ignore redraw requests of invisible content
-                if !is_visible {
-                    Shell::replace_redraw_request(shell, redraw_request);
-                }
-
-                if shell.is_event_captured() {
-                    return;
-                }
-            };
-
-            self.base.as_widget_mut().update(
-                base_tree,
-                event,
-                base_layout,
-                cursor,
-                renderer,
-                shell,
-                viewport,
-            );
-        }
-
-        fn mouse_interaction(
-            &self,
-            tree: &Tree,
-            layout: Layout,
-            cursor: mouse::Cursor,
-            viewport: &Rectangle,
-            renderer: &Renderer,
-        ) -> mouse::Interaction {
-            [&self.base, &self.top]
-                .into_iter()
-                .rev()
-                .zip(layout.iter(&tree.children).rev())
-                .map(|(child, (layout, tree))| {
-                    child
-                        .as_widget()
-                        .mouse_interaction(tree, layout, cursor, viewport, renderer)
-                })
-                .find(|&interaction| interaction != mouse::Interaction::None)
-                .unwrap_or_default()
-        }
-
-        fn overlay<'b>(
-            &'b mut self,
-            tree: &'b mut core::widget::Tree,
-            layout: core::Layout,
-            renderer: &Renderer,
-            viewport: &Rectangle,
-            translation: core::Vector,
-            window: core::Size,
-        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            let mut overlays = [&mut self.base, &mut self.top]
-                .into_iter()
-                .zip(layout.iter_mut(&mut tree.children))
-                .map(|(child, (layout, tree))| {
-                    child.as_widget_mut().overlay(
-                        tree,
-                        layout,
-                        renderer,
-                        viewport,
-                        translation,
-                        window,
-                    )
-                });
-
-            let base_overlays = overlays.next().unwrap();
-            let top_overlays = overlays.next().unwrap();
-
-            self.is_top_overlay_active = !top_overlays.is_empty();
-
-            base_overlays.into_iter().chain(top_overlays).collect()
-        }
-    }
-
-    Element::new(Hover {
-        base: base.into(),
-        top: top.into(),
-        is_top_focused: false,
-        is_top_overlay_active: false,
-        is_hovered: false,
-    })
+pub fn hover<W, V>(base: W, top: V) -> crate::Hover<W, V> {
+    Hover::new(base, top)
 }
 
 /// Creates a new [`Sensor`] widget.
@@ -976,12 +677,7 @@ where
 /// hidden, or resized.
 ///
 /// It can even notify you with anticipation at a given distance!
-pub fn sensor<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Sensor<'a, (), Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub fn sensor<'a, Message, W>(content: W) -> Sensor<'a, (), Message, W> {
     Sensor::new(content)
 }
 
@@ -991,29 +687,26 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, scrollable, space};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
 ///         space().height(3000),
 ///         "You did it!",
-///     ]).into()
+///     ])
 /// }
 /// ```
-pub fn scrollable<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Scrollable<'a, Message, Theme, Renderer>
+pub fn scrollable<'a, Message, W, Theme>(content: W) -> Scrollable<'a, Message, W, Theme>
 where
     Theme: scrollable::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Scrollable::new(content)
 }
@@ -1025,9 +718,9 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, container, scrollable, sticky, space};
 /// use iced::Fill;
 ///
@@ -1035,20 +728,14 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     scrollable(column![
 ///         sticky(container("I always stay in view!").width(Fill).padding(10)),
 ///         space().height(3000),
-///     ]).into()
+///     ])
 /// }
 /// ```
-pub fn sticky<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Sticky<'a, Message, Theme, Renderer>
-where
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-{
+pub fn sticky<W>(content: W) -> Sticky<W> {
     Sticky::new(content)
 }
 
@@ -1056,9 +743,9 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::button;
 ///
 /// #[derive(Clone)]
@@ -1066,54 +753,50 @@ where
 ///     ButtonPressed,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     button("Press me!").on_press(Message::ButtonPressed).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     button("Press me!").on_press(Message::ButtonPressed)
 /// }
 /// ```
-pub fn button<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Button<'a, Message, Theme, Renderer>
+pub fn button<'a, Message, W, Theme>(content: W) -> Button<'a, Message, W, Theme>
 where
     Theme: button::Catalog + 'a,
-    Renderer: core::Renderer,
 {
     Button::new(content)
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given
-/// [`Element`] and [`tooltip::Position`].
+/// [`Widget`] and [`tooltip::Position`].
 ///
 /// Tooltips display a hint of information over some element when hovered.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{container, tooltip};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(_state: &State) -> Element<'_, Message> {
+/// fn view(_state: &State) -> impl Widget<Message> {
 ///     tooltip(
 ///         "Hover me to display the tooltip!",
 ///         container("This is the tooltip contents!")
 ///             .padding(10)
 ///             .style(container::rounded_box),
 ///         tooltip::Position::Bottom,
-///     ).into()
+///     )
 /// }
 /// ```
-pub fn tooltip<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
+pub fn tooltip<'a, W, V, Theme>(
+    content: W,
+    tooltip: V,
     position: tooltip::Position,
-) -> crate::Tooltip<'a, Message, Theme, Renderer>
+) -> crate::Tooltip<'a, W, V, Theme>
 where
     Theme: container::Catalog + 'a,
-    Renderer: core::text::Renderer,
 {
     Tooltip::new(content, tooltip, position)
 }
@@ -1123,6 +806,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
 /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
 /// use iced::widget::text;
@@ -1132,11 +816,10 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text("Hello, this is iced!")
 ///         .size(20)
 ///         .color(color!(0x0000ff))
-///         .into()
 /// }
 /// ```
 pub fn text<'a, Theme>(text: impl text::IntoFragment<'a>) -> Text<'a, Theme>
@@ -1161,8 +844,8 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
 /// use iced::{color, never, Font};
@@ -1173,7 +856,7 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     rich_text([
 ///         span("I am red!").color(color!(0xff0000)),
 ///         span(" "),
@@ -1181,7 +864,6 @@ where
 ///     ])
 ///     .on_link_click(never)
 ///     .size(20)
-///     .into()
 /// }
 /// ```
 pub fn rich_text<'a, Link, Message, Theme>(
@@ -1204,8 +886,8 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::font;
 /// use iced::widget::{rich_text, span};
 /// use iced::{color, never, Font};
@@ -1215,7 +897,7 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     rich_text![
 ///         span("I am red!").color(color!(0xff0000)),
 ///         " ",
@@ -1223,7 +905,6 @@ where
 ///     ]
 ///     .on_link_click(never)
 ///     .size(20)
-///     .into()
 /// }
 /// ```
 pub fn span<'a, Link>(text: impl text::IntoFragment<'a>) -> text::Span<'a, Link> {
@@ -1239,7 +920,7 @@ pub use crate::markdown::view as markdown;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::checkbox;
 ///
@@ -1251,11 +932,10 @@ pub use crate::markdown::view as markdown;
 ///     CheckboxToggled(bool),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     checkbox(state.is_checked)
 ///         .label("Toggle me!")
 ///         .on_toggle(Message::CheckboxToggled)
-///         .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1284,7 +964,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{column, radio};
 ///
@@ -1305,7 +985,7 @@ where
 ///     All,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     let a = radio(
 ///         "A",
 ///         Choice::A,
@@ -1334,7 +1014,7 @@ where
 ///         Message::RadioSelected
 ///     );
 ///
-///     column![a, b, c, all].into()
+///     column![a, b, c, all]
 /// }
 /// ```
 pub fn radio<'a, Message, Theme, V>(
@@ -1358,7 +1038,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::toggler;
 ///
@@ -1370,11 +1050,10 @@ where
 ///     TogglerToggled(bool),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     toggler(state.is_checked)
 ///         .label("Toggle me!")
 ///         .on_toggle(Message::TogglerToggled)
-///         .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1399,7 +1078,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_input;
 ///
@@ -1412,10 +1091,9 @@ where
 ///     ContentChanged(String)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_input("Type something here...", &state.content)
 ///         .on_input(Message::ContentChanged)
-///         .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1444,7 +1122,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_editor;
 ///
@@ -1457,11 +1135,10 @@ where
 ///     Edit(text_editor::Action)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_editor(&state.content)
 ///         .placeholder("Type something here...")
 ///         .on_action(Message::Edit)
-///         .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1490,7 +1167,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::slider;
 ///
@@ -1503,8 +1180,8 @@ where
 ///     ValueChanged(f32),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     slider(0.0..=100.0, state.value, Message::ValueChanged)
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1535,7 +1212,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::vertical_slider;
 ///
@@ -1548,8 +1225,8 @@ where
 ///     ValueChanged(f32),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     vertical_slider(0.0..=100.0, state.value, Message::ValueChanged)
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1580,7 +1257,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::pick_list;
 ///
@@ -1601,7 +1278,7 @@ where
 ///     FruitSelected(Fruit),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     let fruits = [
 ///         Fruit::Apple,
 ///         Fruit::Orange,
@@ -1616,7 +1293,6 @@ where
 ///     )
 ///     .on_select(Message::FruitSelected)
 ///     .placeholder("Select your favorite fruit...")
-///     .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1660,7 +1336,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::combo_box;
 ///
@@ -1682,14 +1358,13 @@ where
 ///     FruitSelected(Fruit),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     combo_box(
 ///         &state.fruits,
 ///         "Select your favorite fruit...",
 ///         state.favorite.as_ref(),
 ///         Message::FruitSelected
 ///     )
-///     .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -1743,7 +1418,7 @@ pub fn space() -> Space {
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::progress_bar;
 ///
@@ -1755,8 +1430,8 @@ pub fn space() -> Space {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     progress_bar(0.0..=100.0, state.progress).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     progress_bar(0.0..=100.0, state.progress)
 /// }
 /// ```
 pub fn progress_bar<'a, Theme>(range: RangeInclusive<f32>, value: f32) -> ProgressBar<'a, Theme>
@@ -1774,17 +1449,17 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::image;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     image("ferris.png").into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     image("ferris.png")
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -1802,17 +1477,17 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::svg;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     svg("tiger.svg").into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     svg("tiger.svg")
 /// }
 /// ```
 #[cfg(feature = "svg")]
@@ -1829,7 +1504,7 @@ where
 /// for instance.
 pub fn iced<'a, Message, Theme, Renderer>(
     text_size: impl Into<core::Pixels>,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: core::text::Renderer + 'a,
@@ -1867,7 +1542,6 @@ where
     ]
     .spacing(text_size.0 / 3.0)
     .align_y(Alignment::Center)
-    .into()
 }
 
 /// Creates a new [`Canvas`].
@@ -1879,8 +1553,8 @@ where
 /// # Example: Drawing a Simple Circle
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::mouse;
 /// use iced::widget::canvas;
@@ -1920,8 +1594,8 @@ where
 /// }
 ///
 /// // Finally, we simply use our `Circle` to create the `Canvas`!
-/// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-///     canvas(Circle { radius: 50.0 }).into()
+/// fn view<Message>(_state: &State) -> impl Widget<Message> {
+///     canvas(Circle { radius: 50.0 })
 /// }
 /// ```
 #[cfg(feature = "canvas")]
@@ -1943,7 +1617,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::qr_code;
 ///
@@ -1956,8 +1630,8 @@ where
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     qr_code(&state.data).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     qr_code(&state.data)
 /// }
 /// ```
 #[cfg(feature = "qr_code")]
@@ -1980,19 +1654,14 @@ where
 }
 
 /// Creates a new [`MouseArea`].
-pub fn mouse_area<'a, Message, Theme, Renderer>(
-    widget: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> MouseArea<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub fn mouse_area<'a, Message, W>(widget: W) -> MouseArea<'a, Message, W> {
     MouseArea::new(widget)
 }
 
 /// A widget that applies any `Theme` to its contents.
 pub fn themer<'a, Message, Theme, Renderer>(
     theme: Option<Theme>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    content: impl Widget<Message, Theme, Renderer> + 'a,
 ) -> Themer<'a, Message, Theme, Renderer>
 where
     Theme: theme::Base,
@@ -2008,7 +1677,7 @@ where
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{pane_grid, text};
 ///
@@ -2026,7 +1695,7 @@ where
 ///     PaneResized(pane_grid::ResizeEvent),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     pane_grid(&state.panes, |pane, state, is_maximized| {
 ///         pane_grid::Content::new(match state {
 ///             Pane::SomePane => text("This is some pane"),
@@ -2035,13 +1704,16 @@ where
 ///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(10, Message::PaneResized)
-///     .into()
 /// }
 /// ```
-pub fn pane_grid<'a, T, Message, Theme, Renderer>(
+pub fn pane_grid<'a, T, Message, Title, W, Theme, Renderer>(
     state: &'a pane_grid::State<T>,
-    view: impl Fn(pane_grid::Pane, &'a T, bool) -> pane_grid::Content<'a, Message, Theme, Renderer>,
-) -> PaneGrid<'a, Message, Theme, Renderer>
+    view: impl Fn(
+        pane_grid::Pane,
+        &'a T,
+        bool,
+    ) -> pane_grid::Content<'a, Message, Title, W, Theme, Renderer>,
+) -> PaneGrid<'a, Message, Title, W, Theme, Renderer>
 where
     Theme: pane_grid::Catalog,
     Renderer: core::Renderer,
@@ -2050,12 +1722,9 @@ where
 }
 
 /// Creates a new [`Float`] widget with the given content.
-pub fn float<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Float<'a, Message, Theme, Renderer>
+pub fn float<'a, W, Theme>(content: W) -> Float<'a, W, Theme>
 where
     Theme: float::Catalog,
-    Renderer: core::Renderer,
 {
     Float::new(content)
 }
@@ -2066,13 +1735,7 @@ where
 /// The `view` closure will receive the maximum available space for
 /// the [`Responsive`] during layout. You can use this [`Size`] to
 /// conditionally build the contents.
-pub fn responsive<'a, Message, Theme, Renderer, E>(
-    f: impl Fn(Size) -> E + 'a,
-) -> Responsive<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-    E: Into<Element<'a, Message, Theme, Renderer>>,
-{
+pub fn responsive<'a, W>(f: impl Fn(Size) -> W + 'a) -> Responsive<'a, W> {
     Responsive::new(f)
 }
 
@@ -2092,26 +1755,24 @@ where
 /// Here is how you could implement a smooth progress bar:
 ///
 /// ```
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Animation; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// use iced::widget::{transition, progress_bar};
 /// use iced::Animation;
 ///
-/// fn smooth_progress_bar<'a, Message: 'a>(progress: f32) -> Element<'a, Message> {
+/// fn smooth_progress_bar<Message>(progress: f32) -> impl Widget<Message> {
 ///     transition(progress, || Animation::new(0.).quick(), |animation, now| {
 ///         progress_bar(0.0..=1.0, animation.interpolate_with(std::convert::identity, now))
-///     }).into()
+///     })
 /// }
 /// ```
-pub fn transition<'a, Message, Theme, Renderer, P, E>(
+pub fn transition<'a, Message, W, P>(
     value: P::Value,
     init: impl Fn() -> P + 'a,
-    view: impl Fn(&P, Instant) -> E + 'a,
-) -> Transition<'a, Message, Theme, Renderer, P>
+    view: impl Fn(&P, Instant) -> W + 'a,
+) -> Transition<'a, Message, W, P>
 where
-    Renderer: core::Renderer,
     P: transition::Program,
-    E: Into<Element<'a, Message, Theme, Renderer>>,
 {
     Transition::new(init, value, view)
 }
@@ -2124,13 +1785,12 @@ pub fn void() -> core::widget::Void {
 
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
 /// closure that can turn this data into a widget tree.
-pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
+pub fn lazy<'a, W, Dependency>(
     dependency: Dependency,
-    view: impl Fn(&Dependency) -> View + 'a,
-) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
+    view: impl Fn(&Dependency) -> W + 'a,
+) -> Lazy<'a, W, Dependency>
 where
     Dependency: std::hash::Hash + 'a,
-    View: Into<Element<'static, Message, Theme, Renderer>>,
 {
     Lazy::new(dependency, view)
 }

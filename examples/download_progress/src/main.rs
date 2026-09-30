@@ -3,8 +3,8 @@ mod download;
 use download::download;
 
 use iced::task;
-use iced::widget::{Column, button, center, column, progress_bar, text};
-use iced::{Center, Element, Function, Right, Task};
+use iced::widget::{button, center, column, progress_bar, text};
+use iced::{Center, Function, Right, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view).run()
@@ -60,17 +60,17 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
-        let downloads = Column::with_children(self.downloads.iter().map(Download::view))
-            .push(
-                button("Add another download")
-                    .on_press(Message::Add)
-                    .padding(10),
-            )
-            .spacing(20)
-            .align_x(Right);
+    fn view(&self) -> impl Widget<Message> {
+        let downloads = column![
+            column(self.downloads.iter().map(Download::view)).spacing(20),
+            button("Add another download")
+                .on_press(Message::Add)
+                .padding(10)
+        ]
+        .spacing(20)
+        .align_x(Right);
 
-        center(downloads).padding(20).into()
+        center(downloads).padding(20)
     }
 }
 
@@ -150,7 +150,7 @@ impl Download {
         }
     }
 
-    pub fn view(&self) -> Element<'_, Message> {
+    pub fn view(&self) -> impl Widget<Message> {
         let current_progress = match &self.state {
             State::Idle => 0.0,
             State::Downloading { progress, .. } => *progress,
@@ -160,30 +160,27 @@ impl Download {
 
         let progress_bar = progress_bar(0.0..=100.0, current_progress);
 
-        let control: Element<_> = match &self.state {
+        let control = match &self.state {
             State::Idle => button("Start the download!")
                 .on_press(Message::Download(self.id))
-                .into(),
+                .boxed(),
             State::Finished => column!["Download finished!", button("Start again")]
                 .spacing(10)
                 .align_x(Center)
-                .into(),
-            State::Downloading { .. } => text!("Downloading... {current_progress:.2}%").into(),
+                .boxed(),
+            State::Downloading { .. } => text!("Downloading... {current_progress:.2}%").boxed(),
             State::Errored => column![
                 "Something went wrong :(",
                 button("Try again").on_press(Message::Download(self.id)),
             ]
             .spacing(10)
             .align_x(Center)
-            .into(),
+            .boxed(),
         };
 
-        Column::new()
+        column![progress_bar, control]
             .spacing(10)
             .padding(10)
             .align_x(Center)
-            .push(progress_bar)
-            .push(control)
-            .into()
     }
 }

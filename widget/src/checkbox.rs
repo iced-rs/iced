@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::checkbox;
 //!
@@ -15,11 +15,10 @@
 //!     CheckboxToggled(bool),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     checkbox(state.is_checked)
 //!         .label("Toggle me!")
 //!         .on_toggle(Message::CheckboxToggled)
-//!         .into()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -44,8 +43,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell,
-    Size, Theme, Widget,
+    Background, Border, Color, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
+    Widget,
 };
 
 /// A box that can be checked.
@@ -53,7 +52,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::checkbox;
 ///
@@ -65,11 +64,10 @@ use crate::core::{
 ///     CheckboxToggled(bool),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     checkbox(state.is_checked)
 ///         .label("Toggle me!")
 ///         .on_toggle(Message::CheckboxToggled)
-///         .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -245,6 +243,13 @@ where
         self.class = class.into();
         self
     }
+}
+
+impl<Message, Theme, Renderer> widget::Meta for Checkbox<'_, Message, Theme, Renderer>
+where
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -470,20 +475,6 @@ where
         if let Some(label) = self.label.as_deref() {
             operation.text(None, layout.bounds(), label);
         }
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Checkbox<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-{
-    fn from(
-        checkbox: Checkbox<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(checkbox)
     }
 }
 

@@ -9,7 +9,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{Element, Event, Length, Rectangle, Shell, Size};
+use crate::core::{Event, Length, Rectangle, Shell, Size};
 use crate::renderer::wgpu::primitive;
 
 use std::marker::PhantomData;
@@ -52,6 +52,8 @@ impl<Message, P: Program<Message>> Shader<Message, P> {
         self
     }
 }
+
+impl<Message, P> widget::Meta for Shader<Message, P> where P: Program<Message> {}
 
 impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Shader<Message, P>
 where
@@ -135,18 +137,6 @@ where
         let state = tree.state.downcast_ref::<P::State>();
 
         renderer.draw_primitive(bounds, self.program.draw(state, cursor_position, bounds));
-    }
-}
-
-impl<'a, Message, Theme, Renderer, P> From<Shader<Message, P>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Renderer: primitive::Renderer,
-    P: Program<Message> + 'a,
-{
-    fn from(custom: Shader<Message, P>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(custom)
     }
 }
 

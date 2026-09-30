@@ -5,7 +5,7 @@ use iced::widget::{
     button, center, column, container, mouse_area, opaque, operation, pick_list, row, space, stack,
     text, text_input,
 };
-use iced::{Bottom, Color, Element, Fill, Subscription, Task};
+use iced::{Bottom, Color, Fill, Subscription, Task, Widget};
 
 use std::fmt;
 
@@ -92,7 +92,7 @@ impl App {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let content = container(
             column![
                 row![text("Top Left"), space::horizontal(), text("Top Right")].height(Fill),
@@ -148,9 +148,9 @@ impl App {
             .padding(10)
             .style(container::rounded_box);
 
-            modal(content, signup, Message::HideModal)
+            modal(content, signup, Message::HideModal).boxed()
         } else {
-            content.into()
+            content.boxed()
         }
     }
 }
@@ -187,15 +187,15 @@ impl fmt::Display for Plan {
 }
 
 fn modal<'a, Message>(
-    base: impl Into<Element<'a, Message>>,
-    content: impl Into<Element<'a, Message>>,
+    base: impl Widget<Message> + 'a,
+    content: impl Widget<Message> + 'a,
     on_blur: Message,
-) -> Element<'a, Message>
+) -> impl Widget<Message> + 'a
 where
     Message: Clone + 'a,
 {
     stack![
-        base.into(),
+        base,
         opaque(
             mouse_area(center(opaque(content)).style(|_theme| {
                 container::Style {
@@ -212,5 +212,4 @@ where
             .on_press(on_blur)
         )
     ]
-    .into()
 }

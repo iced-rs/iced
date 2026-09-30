@@ -6,7 +6,7 @@ use iced::widget::{
     Id, button, center, column, container, operation, pick_list, right, row, rule, slider, space,
     stack, text, text_input,
 };
-use iced::{Center, Element, Fill, Fit, Subscription, Task};
+use iced::{Center, Fill, Fit, Subscription, Task, Widget};
 
 use toast::{Status, Toast};
 
@@ -113,14 +113,12 @@ impl App {
         })
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         fn subtitle<'a>(
             title: &'a str,
-            content: impl Into<Element<'a, Message>>,
-        ) -> Element<'a, Message> {
-            column![text(title).size(14), content.into()]
-                .spacing(5)
-                .into()
+            content: impl Widget<Message> + 'a,
+        ) -> impl Widget<Message> {
+            column![text(title).size(14), content].spacing(5)
         }
 
         let add_toast = button("Add Toast").on_press_maybe(
@@ -196,10 +194,9 @@ impl App {
             )
             .style(container::rounded_box)
             .width(Fit.max(200))
-            .into()
         });
 
-        stack![content, right(column(toasts).spacing(10))].into()
+        stack![content, right(column(toasts).spacing(10))]
     }
 }
 

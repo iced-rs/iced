@@ -2,28 +2,28 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::svg;
 //!
 //! enum Message {
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     svg("tiger.svg").into()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     svg("tiger.svg")
 //! }
 //! ```
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::svg;
-use crate::core::widget::Tree;
+use crate::core::widget::{Meta, Tree};
 use crate::core::window;
 use crate::core::{
-    Color, ContentFit, Element, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size,
-    Theme, Vector, Widget,
+    Color, ContentFit, Event, Layout, Length, Point, Rectangle, Rotation, Shell, Size, Theme,
+    Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -39,17 +39,17 @@ pub use crate::core::svg::Handle;
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::svg;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     svg("tiger.svg").into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     svg("tiger.svg")
 /// }
 /// ```
 pub struct Svg<'a, Theme = crate::Theme>
@@ -149,6 +149,8 @@ where
         self
     }
 }
+
+impl<Theme> Meta for Svg<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Svg<'_, Theme>
 where
@@ -262,16 +264,6 @@ where
             drawing_bounds,
             bounds,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: svg::Renderer + 'a,
-{
-    fn from(icon: Svg<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(icon)
     }
 }
 

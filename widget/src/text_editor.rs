@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::text_editor;
 //!
@@ -16,11 +16,10 @@
 //!     Edit(text_editor::Action)
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     text_editor(&state.content)
 //!         .placeholder("Type something here...")
 //!         .on_action(Message::Edit)
-//!         .into()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -44,8 +43,7 @@ use crate::core::theme;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell,
-    Size, Theme,
+    Background, Border, Color, Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme,
 };
 
 use std::borrow::Cow;
@@ -63,7 +61,7 @@ pub use text::editor::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_editor;
 ///
@@ -76,11 +74,10 @@ pub use text::editor::{
 ///     Edit(text_editor::Action)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_editor(&state.content)
 ///         .placeholder("Type something here...")
 ///         .on_action(Message::Edit)
-///         .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -151,7 +148,7 @@ where
     ///
     /// ```no_run
     /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-    /// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+    /// # use iced::widget::Widget;
     /// #
     /// use iced::color;
     /// use iced::widget::text;
@@ -162,10 +159,9 @@ where
     ///    content: text_editor::Content,
     /// }
     ///
-    /// fn view(state: &State) -> Element<'_, ()> {
+    /// fn view(state: &State) -> impl Widget<()> {
     ///     text_editor(&state.content)
     ///         .highlight("rust")
-    ///         .into()
     /// }
     /// ```
     #[cfg(feature = "highlighter")]
@@ -318,6 +314,15 @@ struct State<Parser: text::Parser> {
     parser: RefCell<Parser>,
     parser_settings: Parser::Settings,
     last_theme: RefCell<Option<String>>,
+}
+
+impl<Parser, Message, Theme, Renderer> widget::Meta
+    for TextEditor<'_, Parser, Message, Theme, Renderer>
+where
+    Parser: text::Parser,
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
 }
 
 impl<Parser, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -598,19 +603,6 @@ where
             layout.bounds(),
             &mut self.content.0.borrow_mut().editor,
         );
-    }
-}
-
-impl<'a, Parser, Message, Theme, Renderer> From<TextEditor<'a, Parser, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Parser: text::Parser,
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer,
-{
-    fn from(text_editor: TextEditor<'a, Parser, Message, Theme, Renderer>) -> Self {
-        Self::new(text_editor)
     }
 }
 

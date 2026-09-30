@@ -2,17 +2,17 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::image;
 //!
 //! enum Message {
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     image("ferris.png").into()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     image("ferris.png")
 //! }
 //! ```
 //! <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -24,10 +24,8 @@ use crate::core::image;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::Tree;
-use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget,
-};
+use crate::core::widget::{Meta, Tree};
+use crate::core::{ContentFit, Layout, Length, Point, Rectangle, Rotation, Size, Vector, Widget};
 
 pub use image::{FilterMethod, Handle};
 
@@ -40,17 +38,17 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::image;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     image("ferris.png").into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     image("ferris.png")
 /// }
 /// ```
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
@@ -334,6 +332,8 @@ pub fn draw<Renderer, Handle>(
     );
 }
 
+impl<Handle> Meta for Image<Handle> {}
+
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -382,16 +382,5 @@ where
             self.opacity,
             self.scale,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + 'a,
-{
-    fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(image)
     }
 }
