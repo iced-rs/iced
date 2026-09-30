@@ -102,9 +102,13 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let mut root = root._boxed();
+        let Cache {
+            mut state,
+            last_click,
+            selection,
+        } = cache;
 
-        let Cache { mut state } = cache;
+        let mut root = root._boxed();
         state.diff(&mut root);
 
         root.layout(
@@ -118,8 +122,8 @@ where
             state,
             overlay: None,
             bounds,
-            last_click: None,
-            selection: None,
+            last_click,
+            selection,
         }
     }
 
@@ -620,13 +624,26 @@ where
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, bounds, Cache { state: self.state }, renderer)
+        Self::build(
+            self.root,
+            bounds,
+            Cache {
+                state: self.state,
+                last_click: self.last_click,
+                selection: self.selection,
+            },
+            renderer,
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     pub fn into_cache(self) -> Cache {
-        Cache { state: self.state }
+        Cache {
+            state: self.state,
+            last_click: self.last_click,
+            selection: self.selection,
+        }
     }
 }
 
@@ -634,6 +651,8 @@ where
 #[derive(Debug)]
 pub struct Cache {
     state: widget::Tree,
+    last_click: Option<mouse::Click>,
+    selection: Option<(Point, Point)>,
 }
 
 impl Cache {
@@ -644,6 +663,8 @@ impl Cache {
     pub fn new() -> Cache {
         Cache {
             state: widget::Tree::empty(),
+            last_click: None,
+            selection: None,
         }
     }
 }
