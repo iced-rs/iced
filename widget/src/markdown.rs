@@ -1920,11 +1920,14 @@ where
         row![
             match bullet {
                 Bullet::Point { .. } => {
-                    text("•").size(settings.text_size).boxed()
+                    text("•")
+                        .size(settings.text_size)
+                        .line_height(settings.line_height)
+                        .boxed()
                 }
                 Bullet::Task { done, .. } => {
                     container(checkbox(*done).size(settings.text_size))
-                        .center_y(text::LineHeight::default().to_absolute(settings.text_size))
+                        .center_y(settings.line_height.to_absolute(settings.text_size))
                         .boxed()
                 }
             },
