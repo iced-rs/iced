@@ -59,7 +59,7 @@ where
             ellipsis: Ellipsis::default(),
             class: Theme::default(),
             on_link_click: None,
-            selectable: true,
+            selectable: false,
             hovered_link: None,
             is_hovered: false,
         }
@@ -146,7 +146,7 @@ where
 
     /// Sets whether the [`Rich`] text can be selected.
     ///
-    /// By default, it is `true`.
+    /// By default, it is `false`.
     pub fn selectable(mut self, selectable: bool) -> Self {
         self.selectable = selectable;
         self

@@ -76,7 +76,7 @@ where
         Text {
             fragment: fragment.into_fragment(),
             format: Format::default(),
-            selectable: true,
+            selectable: false,
             class: Theme::default(),
         }
     }
@@ -155,7 +155,7 @@ where
 
     /// Sets whether the [`Text`] can be selected.
     ///
-    /// By default, it is `true`.
+    /// By default, it is `false`.
     pub fn selectable(mut self, selectable: bool) -> Self {
         self.selectable = selectable;
         self
@@ -344,36 +344,6 @@ where
         );
     }
 
-    fn update(
-        &mut self,
-        tree: &mut Tree,
-        event: &crate::Event,
-        layout: Layout,
-        cursor: mouse::Cursor,
-        _renderer: &Renderer,
-        _shell: &mut crate::Shell<'_, Message>,
-        _viewport: &Rectangle,
-    ) {
-        update::<Renderer::Paragraph>(tree, event, layout, cursor);
-    }
-
-    fn mouse_interaction(
-        &self,
-        tree: &Tree,
-        _layout: Layout,
-        _cursor: mouse::Cursor,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
-
-        if state.is_hovered {
-            mouse::Interaction::Text
-        } else {
-            mouse::Interaction::None
-        }
-    }
-
     fn draw(
         &self,
         tree: &Tree,
@@ -413,7 +383,7 @@ where
             &mut Operand {
                 paragraph: &mut state.paragraph,
                 layout,
-                selectable: true,
+                selectable: false,
             },
         );
     }
