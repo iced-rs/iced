@@ -279,61 +279,70 @@ where
             .downcast_ref::<State<Link, Renderer::Paragraph>>();
 
         let style = theme.style(&self.class);
-
-        text::draw(
-            renderer,
-            defaults,
-            layout.bounds(),
-            &state.paragraph,
-            style,
-            theme.selection(),
-            viewport,
-        );
+        let translation = layout.position() - Point::ORIGIN;
+        let mut has_decorations = self.hovered_link.is_some();
 
         for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
-            let is_hovered_link = self.on_link_click.is_some() && Some(index) == self.hovered_link;
-
-            if span.highlight.is_some() || span.underline || span.strikethrough || is_hovered_link {
-                let translation = layout.position() - Point::ORIGIN;
+            if let Some(highlight) = span.highlight {
                 let regions = state.paragraph.span_bounds(index);
 
-                if let Some(highlight) = span.highlight {
-                    for (i, bounds) in regions.iter().enumerate() {
-                        let starts = i == 0;
-                        let ends = i + 1 == regions.len();
+                for (i, bounds) in regions.iter().enumerate() {
+                    let starts = i == 0;
+                    let ends = i + 1 == regions.len();
 
-                        // The horizontal padding belongs to the start and end
-                        // of the span, not to each of its lines
-                        let left = if starts { span.padding.left } else { 0.0 };
-                        let right = if ends { span.padding.right } else { 0.0 };
+                    // The horizontal padding belongs to the start and end
+                    // of the span, not to each of its lines
+                    let left = if starts { span.padding.left } else { 0.0 };
+                    let right = if ends { span.padding.right } else { 0.0 };
 
-                        let bounds = Rectangle::new(
-                            bounds.position() - Vector::new(left, span.padding.top),
-                            bounds.size() + Size::new(left + right, span.padding.y()),
-                        );
+                    let bounds = Rectangle::new(
+                        bounds.position() - Vector::new(left, span.padding.top),
+                        bounds.size() + Size::new(left + right, span.padding.y()),
+                    );
 
-                        let radius = border::Radius {
-                            top_left: highlight.border.radius.top_left * f32::from(starts),
-                            bottom_left: highlight.border.radius.bottom_left * f32::from(starts),
-                            top_right: highlight.border.radius.top_right * f32::from(ends),
-                            bottom_right: highlight.border.radius.bottom_right * f32::from(ends),
-                        };
+                    let radius = border::Radius {
+                        top_left: highlight.border.radius.top_left * f32::from(starts),
+                        bottom_left: highlight.border.radius.bottom_left * f32::from(starts),
+                        top_right: highlight.border.radius.top_right * f32::from(ends),
+                        bottom_right: highlight.border.radius.bottom_right * f32::from(ends),
+                    };
 
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: bounds + translation,
-                                border: Border {
-                                    radius,
-                                    ..highlight.border
-                                },
-                                ..Default::default()
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: bounds + translation,
+                            border: Border {
+                                radius,
+                                ..highlight.border
                             },
-                            highlight.background,
-                        );
-                    }
+                            ..Default::default()
+                        },
+                        highlight.background,
+                    );
                 }
 
+                has_decorations |= span.underline || span.strikethrough;
+            }
+
+            text::draw(
+                renderer,
+                defaults,
+                layout.bounds(),
+                &state.paragraph,
+                style,
+                theme.selection(),
+                viewport,
+            );
+
+            if !has_decorations {
+                return;
+            }
+
+            for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
+                let is_hovered_link =
+                    self.on_link_click.is_some() && Some(index) == self.hovered_link;
+
                 if span.underline || span.strikethrough || is_hovered_link {
+                    let regions = state.paragraph.span_bounds(index);
                     let size = span.size.or(self.size).unwrap_or(renderer.text_size());
 
                     let line_height = span
