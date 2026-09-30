@@ -530,7 +530,7 @@ where
             .skip(start)
             .take(end - start)
         {
-            let text = (self.to_string)(option);
+            let mut text = (self.to_string)(option);
 
             operation.text(
                 None,
@@ -540,7 +540,7 @@ where
                     width: bounds.width,
                     height: option_height,
                 },
-                &text,
+                &mut text,
             );
         }
     }

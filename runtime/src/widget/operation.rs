@@ -1,4 +1,5 @@
 //! Change internal widget state.
+use crate::core::Point;
 use crate::core::text;
 use crate::core::widget::Id;
 use crate::core::widget::operation;
@@ -94,6 +95,14 @@ pub fn move_cursor_to<T>(id: impl Into<Id>, position: text::Position) -> Task<T>
     )))
 }
 
+/// Selects text between the given positions in layout coordinates.
+///
+/// `start` is the position where the user started selecting from,
+/// while `end` is the final position of the selection.
+pub fn select<T>(start: Point, end: Point, target: text::Target) -> Task<T> {
+    task::effect(Action::widget(operation::text::select(start, end, target)))
+}
+
 /// Selects all the content of the widget with the given [`Id`].
 pub fn select_all<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::text_input::select_all(id.into())))
@@ -106,4 +115,9 @@ pub fn select_range<T>(id: impl Into<Id>, start: text::Position, end: text::Posi
         start,
         end,
     )))
+}
+
+/// Deselects any selected text.
+pub fn deselect<T>() -> Task<T> {
+    task::effect(Action::widget(operation::text::deselect()))
 }

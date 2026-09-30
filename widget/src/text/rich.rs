@@ -3,12 +3,14 @@ use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::text::{Paragraph, Span};
-use crate::core::widget::Meta;
+use crate::core::text::{Paragraph, Span, Target};
+use crate::core::widget;
+use crate::core::widget::operation;
 use crate::core::widget::text::{
     self, Alignment, Catalog, Ellipsis, LineHeight, Shaping, Style, StyleFn, Wrapping,
 };
 use crate::core::widget::tree::{self, Tree};
+use crate::core::window;
 use crate::core::{
     self, Border, Color, Event, Font, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
     Vector, Widget,
@@ -31,8 +33,10 @@ where
     wrapping: Wrapping,
     ellipsis: Ellipsis,
     class: Theme::Class<'a>,
-    hovered_link: Option<usize>,
     on_link_click: Option<Box<dyn Fn(Link) -> Message + 'a>>,
+    selectable: bool,
+    hovered_link: Option<usize>,
+    is_hovered: bool,
 }
 
 impl<'a, Link, Message, Theme> Rich<'a, Link, Message, Theme>
@@ -54,8 +58,10 @@ where
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
             class: Theme::default(),
-            hovered_link: None,
             on_link_click: None,
+            selectable: true,
+            hovered_link: None,
+            is_hovered: false,
         }
     }
 
@@ -138,6 +144,14 @@ where
         self
     }
 
+    /// Sets whether the [`Rich`] text can be selected.
+    ///
+    /// By default, it is `true`.
+    pub fn selectable(mut self, selectable: bool) -> Self {
+        self.selectable = selectable;
+        self
+    }
+
     /// Sets the default style of the [`Rich`] text.
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
@@ -163,7 +177,10 @@ where
     {
         let color = color.map(Into::into);
 
-        self.style(move |_theme| Style { color })
+        self.style(move |_theme| Style {
+            color,
+            selection: None,
+        })
     }
 
     /// Sets the default style class of the [`Rich`] text.
@@ -191,7 +208,7 @@ struct State<Link, P: Paragraph> {
     paragraph: P,
 }
 
-impl<Link, Message, Theme> Meta for Rich<'_, Link, Message, Theme>
+impl<Link, Message, Theme> widget::Meta for Rich<'_, Link, Message, Theme>
 where
     Link: Clone + 'static,
     Theme: Catalog,
@@ -262,6 +279,16 @@ where
             .downcast_ref::<State<Link, Renderer::Paragraph>>();
 
         let style = theme.style(&self.class);
+
+        text::draw(
+            renderer,
+            defaults,
+            layout.bounds(),
+            &state.paragraph,
+            style,
+            theme.selection(),
+            viewport,
+        );
 
         for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
             let is_hovered_link = self.on_link_click.is_some() && Some(index) == self.hovered_link;
@@ -353,15 +380,6 @@ where
                 }
             }
         }
-
-        text::draw(
-            renderer,
-            defaults,
-            layout.bounds(),
-            &state.paragraph,
-            style,
-            viewport,
-        );
     }
 
     fn update(
@@ -374,33 +392,40 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) {
-        let Some(on_link_clicked) = &self.on_link_click else {
-            return;
-        };
-
-        let was_hovered = self.hovered_link.is_some();
-
-        if let Some(position) = cursor.position_in(layout.bounds()) {
-            let state = tree
-                .state
-                .downcast_ref::<State<Link, Renderer::Paragraph>>();
-
-            self.hovered_link = state.paragraph.hit_span(position).and_then(|span| {
-                if self.spans.as_ref().as_ref().get(span)?.link.is_some() {
-                    Some(span)
-                } else {
-                    None
-                }
-            });
-        } else {
-            self.hovered_link = None;
-        }
-
-        if was_hovered != self.hovered_link.is_some() {
-            shell.request_redraw();
-        }
-
         match event {
+            Event::Mouse(mouse::Event::CursorMoved { .. })
+            | Event::Window(window::Event::RedrawRequested(_)) => {
+                let Some(position) = cursor.position_in(layout.bounds()) else {
+                    self.is_hovered = false;
+                    self.hovered_link = None;
+                    return;
+                };
+
+                let state = tree
+                    .state
+                    .downcast_ref::<State<Link, Renderer::Paragraph>>();
+
+                self.is_hovered = state.paragraph.hit_glyph(position);
+
+                if self.on_link_click.is_none() {
+                    return;
+                };
+
+                let was_hovered = self.hovered_link.is_some();
+
+                self.hovered_link = state.paragraph.hit_span(position).and_then(|span| {
+                    if self.spans.as_ref().as_ref().get(span)?.link.is_some() {
+                        Some(span)
+                    } else {
+                        None
+                    }
+                });
+
+                if was_hovered != self.hovered_link.is_some() && !matches!(event, Event::Window(_))
+                {
+                    shell.request_redraw();
+                }
+            }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let state = tree
                     .state
@@ -412,6 +437,10 @@ where
                 }
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
+                let Some(on_link_clicked) = &self.on_link_click else {
+                    return;
+                };
+
                 let state = tree
                     .state
                     .downcast_mut::<State<Link, Renderer::Paragraph>>();
@@ -447,9 +476,73 @@ where
     ) -> mouse::Interaction {
         if self.hovered_link.is_some() {
             mouse::Interaction::Pointer
+        } else if self.selectable && self.is_hovered {
+            mouse::Interaction::Text
         } else {
             mouse::Interaction::None
         }
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+        operation: &mut dyn core::widget::Operation,
+    ) {
+        struct Operand<'a, Link, P: Paragraph> {
+            pub state: &'a mut State<Link, P>,
+            pub layout: Layout,
+            pub selectable: bool,
+        }
+
+        impl<Link, P: Paragraph> operation::Text for Operand<'_, Link, P> {
+            fn text(&self) -> core::text::Fragment<'_> {
+                self.state
+                    .spans
+                    .iter()
+                    .fold(String::new(), |mut text, next| {
+                        text.push_str(&next.text);
+                        text
+                    })
+                    .into()
+            }
+
+            fn select(&mut self, start: Point, end: Point, target: Target) {
+                if !self.selectable {
+                    return;
+                }
+
+                let translation = self.layout.position() - Point::ORIGIN;
+
+                self.state
+                    .paragraph
+                    .select(start - translation, end - translation, target);
+            }
+
+            fn deselect(&mut self) {
+                self.state.paragraph.deselect();
+            }
+
+            fn copy(&mut self) -> Option<String> {
+                self.state.paragraph.copy()
+            }
+        }
+
+        let state = tree
+            .state
+            .downcast_mut::<State<Link, Renderer::Paragraph>>();
+
+        operation.text(
+            None,
+            layout.bounds(),
+            &mut Operand {
+                state,
+                layout,
+                selectable: self.selectable,
+            },
+        );
     }
 }
 

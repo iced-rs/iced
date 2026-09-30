@@ -1,7 +1,7 @@
 //! Draw paragraphs.
 use crate::alignment;
 use crate::text::{
-    Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+    Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Target, Text, Wrapping,
 };
 use crate::{Font, Pixels, Point, Rectangle, Size};
 
@@ -63,9 +63,29 @@ pub trait Paragraph: Sized + Default {
     /// that was hit.
     fn hit_span(&self, point: Point) -> Option<usize>;
 
+    /// Tests whether the provided point is inside the boundaries of a
+    /// glyph in the [`Paragraph`].
+    fn hit_glyph(&self, point: Point) -> bool {
+        self.hit_test(point).is_some()
+    }
+
     /// Returns all bounds for the provided [`Span`] index of the [`Paragraph`].
     /// A [`Span`] can have multiple bounds for each line it's on.
     fn span_bounds(&self, index: usize) -> Vec<Rectangle>;
+
+    /// TODO
+    fn select(&mut self, start: Point, end: Point, target: Target);
+
+    /// TODO
+    fn deselect(&mut self);
+
+    /// TODO
+    fn selection(&self) -> &[Rectangle];
+
+    /// Returns the current selected text of the [`Paragraph`].
+    ///
+    // TODO: Make immutable
+    fn copy(&mut self) -> Option<String>;
 
     /// Returns the minimum width that can fit the contents of the [`Paragraph`].
     fn min_width(&self) -> f32 {
@@ -148,6 +168,11 @@ impl<P: Paragraph> Plain<P> {
     /// Returns the cached [`Paragraph`].
     pub fn raw(&self) -> &P {
         &self.raw
+    }
+
+    /// Returns the cached [`Paragraph`], mutably.
+    pub fn raw_mut(&mut self) -> &mut P {
+        &mut self.raw
     }
 
     /// Returns the current content of the plain [`Paragraph`].

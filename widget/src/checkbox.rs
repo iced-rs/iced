@@ -259,11 +259,11 @@ where
     Theme: Catalog,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
+        tree::Tag::of::<text::paragraph::Plain<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(text::paragraph::Plain::<Renderer::Paragraph>::default())
     }
 
     fn size(&self) -> Size<Length> {
@@ -292,7 +292,7 @@ where
         let label = if let Some(label) = self.label.as_deref() {
             let state = tree
                 .state
-                .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                .downcast_mut::<text::paragraph::Plain<Renderer::Paragraph>>();
 
             widget::text::layout(
                 state,
@@ -450,7 +450,9 @@ where
         }
 
         let (label_layout, _) = children.next().unwrap();
-        let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
+        let state = tree
+            .state
+            .downcast_ref::<text::paragraph::Plain<Renderer::Paragraph>>();
 
         crate::text::draw(
             renderer,
@@ -459,22 +461,41 @@ where
             state.raw(),
             crate::text::Style {
                 color: style.text_color,
+                selection: None,
             },
+            theme.selection(),
             viewport,
         );
     }
 
     fn operate(
         &mut self,
-        _tree: &mut Tree,
+        tree: &mut Tree,
         layout: Layout,
         _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        if let Some(label) = self.label.as_deref() {
-            operation.text(None, layout.bounds(), label);
+        if self.label.is_none() {
+            return;
         }
+
+        let paragraph = tree
+            .state
+            .downcast_mut::<text::paragraph::Plain<Renderer::Paragraph>>();
+
+        let mut children = layout.iter(&tree.children);
+        let (layout, _) = children.next().unwrap();
+
+        operation.text(
+            None,
+            layout.bounds(),
+            &mut widget::text::Operand {
+                paragraph,
+                layout,
+                selectable: true,
+            },
+        );
     }
 }
 
@@ -536,6 +557,9 @@ pub trait Catalog: Sized {
 
     /// The [`Style`] of a class with the given status.
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
+
+    /// The global selection [`Color`].
+    fn selection(&self) -> Color;
 }
 
 /// A styling function for a [`Checkbox`].
@@ -552,6 +576,10 @@ impl Catalog for Theme {
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
         class(self, status)
+    }
+
+    fn selection(&self) -> Color {
+        self.palette().background.strongest.color
     }
 }
 
