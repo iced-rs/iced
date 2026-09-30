@@ -139,8 +139,11 @@ pub fn copy() -> impl Operation<String> {
                 return;
             }
 
+            if !self.text.is_empty() {
+                self.text.push('\n');
+            }
+
             self.text.push_str(&text);
-            self.text.push('\n');
         }
 
         fn finish(&self) -> Outcome<String> {
