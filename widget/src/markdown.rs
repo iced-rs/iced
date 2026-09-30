@@ -1880,7 +1880,8 @@ where
         ))
         .on_link_click(on_link_click)
         .size(size)
-        .line_height(settings.line_height),
+        .line_height(settings.line_height)
+        .selectable(true),
     )
 }
 
@@ -1900,6 +1901,7 @@ where
         .size(settings.text_size)
         .line_height(settings.line_height)
         .on_link_click(on_link_click)
+        .selectable(true)
 }
 
 /// Displays an unordered list using the default look and
@@ -1997,6 +1999,7 @@ where
                 .font(settings.code_block_font)
                 .size(settings.code_block_size)
                 .line_height(settings.line_height)
+                .selectable(true)
         })))
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()

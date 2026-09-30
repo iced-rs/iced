@@ -38,11 +38,9 @@ pub use error::Error;
 pub use proxy::Proxy;
 
 use crate::core::backend;
-use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::shell;
-use crate::core::text;
 use crate::core::theme;
 use crate::core::time::{Duration, Instant};
 use crate::core::widget::operation::{self, Operation};
@@ -1147,92 +1145,11 @@ async fn run_instance<P>(
                             }
 
                             for (event, status) in window_events.into_iter().zip(statuses) {
-                                match (&event, status) {
-                                    (
-                                        core::Event::Mouse(mouse::Event::ButtonPressed(
-                                            mouse::Button::Left,
-                                        )),
-                                        core::event::Status::Ignored,
-                                    ) => {
-                                        if let Some(position) = window.state.cursor().position() {
-                                            window.last_click = Some(mouse::Click::new(
-                                                position,
-                                                mouse::Button::Left,
-                                                window.last_click,
-                                            ));
-
-                                            window.selection = Some((position, Point::ORIGIN));
-                                        }
-                                    }
-                                    (
-                                        core::Event::Mouse(mouse::Event::ButtonReleased(
-                                            mouse::Button::Left,
-                                        )),
-                                        _,
-                                    ) => {
-                                        window.selection = None;
-                                    }
-                                    (
-                                        core::Event::Keyboard(keyboard::Event::KeyPressed {
-                                            key,
-                                            modifiers,
-                                            repeat: false,
-                                            ..
-                                        }),
-                                        core::event::Status::Ignored,
-                                    ) if matches!(key.as_ref(), keyboard::Key::Character("c"))
-                                        && modifiers.control()
-                                        && let Some(ui) = user_interfaces.get_mut(&id) =>
-                                    {
-                                        let mut copy = operation::text::copy();
-
-                                        ui.operate(
-                                            &window.renderer,
-                                            &mut operation::black_box(&mut copy),
-                                        );
-
-                                        if let operation::Outcome::Some(text) = copy.finish() {
-                                            clipboard.write(
-                                                core::clipboard::Content::Text(text),
-                                                |_| {},
-                                            );
-                                        }
-                                    }
-                                    _ => {}
-                                }
-
                                 runtime.broadcast(subscription::Event::Interaction {
                                     window: id,
                                     event,
                                     status,
                                 });
-                            }
-
-                            if let Some((start, end)) = window.selection.as_mut()
-                                && let Some(click) = window.last_click
-                                && let Some(position) = window.state.cursor().position()
-                                && position != *end
-                            {
-                                *end = position;
-
-                                if let Some(ui) = user_interfaces.get_mut(&id) {
-                                    ui.operate(
-                                        &window.renderer,
-                                        &mut operation::text::select(
-                                            *start,
-                                            *end,
-                                            match click.kind() {
-                                                mouse::click::Kind::Single => {
-                                                    text::Target::Character
-                                                }
-                                                mouse::click::Kind::Double => text::Target::Word,
-                                                mouse::click::Kind::Triple => text::Target::Line,
-                                            },
-                                        ),
-                                    );
-
-                                    window.raw.request_redraw();
-                                }
                             }
 
                             interact_span.finish();
