@@ -282,12 +282,12 @@ where
         // 1. The size hint of the component changes. Other widgets
         //    may change layout behavior.
         //
-        // 2. The size hint of the component is `Shrink` for any axis
+        // 2. The size hint of the component is not fluid for any axis
         //    and the component has changed size. The new size may
         //    push other widgets around.
         if new_sizing != previous_sizing {
             shell.invalidate_widgets();
-        } else if (new_sizing.width == Length::Shrink || new_sizing.height == Length::Shrink)
+        } else if (new_sizing.width.fill_factor() == 0 || new_sizing.height.fill_factor() == 0)
             && previous_size != tree.size
         {
             shell.invalidate_layout();

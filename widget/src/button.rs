@@ -166,6 +166,22 @@ where
         self
     }
 
+    /// Sets the message that will be produced when the [`Button`] is pressed,
+    /// if `Some`.
+    ///
+    /// This is analogous to [`Button::on_press`], but using a closure to produce
+    /// the message.
+    ///
+    /// This closure will only be called when the [`Button`] is actually pressed and,
+    /// therefore, this method is useful to reduce overhead if creating the resulting
+    /// message is slow.
+    ///
+    /// If `None`, the [`Button`] will be disabled.
+    pub fn on_press_maybe_with(mut self, on_press: Option<impl Fn() -> Message + 'a>) -> Self {
+        self.on_press = on_press.map(|on_press| OnPress::Closure(Box::new(on_press)));
+        self
+    }
+
     /// Sets whether the contents of the [`Button`] should be clipped on
     /// overflow.
     pub fn clip(mut self, clip: bool) -> Self {
