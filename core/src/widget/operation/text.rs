@@ -1,5 +1,6 @@
 //! Operate on widgets that have text.
 use crate::Point;
+use crate::Vector;
 use crate::text::{Fragment, Target};
 use crate::widget::operation::{Operation, Outcome};
 
@@ -48,11 +49,25 @@ pub fn select(start: Point, end: Point, target: Target) -> impl Operation {
         start: Point,
         end: Point,
         target: Target,
+        translation: Vector,
     }
 
     impl Operation for Select {
         fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<()>)) {
+            let translation = self.translation;
             operate(self);
+            self.translation = translation;
+        }
+
+        fn scrollable(
+            &mut self,
+            _id: Option<&crate::widget::Id>,
+            _bounds: crate::Rectangle,
+            _content: crate::Size,
+            translation: crate::Vector,
+            _state: &mut dyn super::Scrollable,
+        ) {
+            self.translation += translation;
         }
 
         fn text(
@@ -61,11 +76,20 @@ pub fn select(start: Point, end: Point, target: Target) -> impl Operation {
             _bounds: crate::Rectangle,
             state: &mut dyn Text,
         ) {
-            state.select(self.start, self.end, self.target);
+            state.select(
+                self.start + self.translation,
+                self.end + self.translation,
+                self.target,
+            );
         }
     }
 
-    Select { start, end, target }
+    Select {
+        start,
+        end,
+        target,
+        translation: Vector::ZERO,
+    }
 }
 
 /// Deselects any selected text.
