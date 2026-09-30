@@ -319,72 +319,70 @@ where
                         highlight.background,
                     );
                 }
-
-                has_decorations |= span.underline || span.strikethrough;
             }
 
-            text::draw(
-                renderer,
-                defaults,
-                layout.bounds(),
-                &state.paragraph,
-                style,
-                theme.selection(),
-                viewport,
-            );
+            has_decorations |= span.underline || span.strikethrough;
+        }
 
-            if !has_decorations {
-                return;
-            }
+        text::draw(
+            renderer,
+            defaults,
+            layout.bounds(),
+            &state.paragraph,
+            style,
+            theme.selection(),
+            viewport,
+        );
 
-            for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
-                let is_hovered_link =
-                    self.on_link_click.is_some() && Some(index) == self.hovered_link;
+        if !has_decorations {
+            return;
+        }
 
-                if span.underline || span.strikethrough || is_hovered_link {
-                    let regions = state.paragraph.span_bounds(index);
-                    let size = span.size.or(self.size).unwrap_or(renderer.text_size());
+        for (index, span) in self.spans.as_ref().as_ref().iter().enumerate() {
+            let is_hovered_link = self.on_link_click.is_some() && Some(index) == self.hovered_link;
 
-                    let line_height = span
-                        .line_height
-                        .or(self.line_height)
-                        .unwrap_or_else(|| renderer.line_height())
-                        .to_absolute(size);
+            if span.underline || span.strikethrough || is_hovered_link {
+                let regions = state.paragraph.span_bounds(index);
+                let size = span.size.or(self.size).unwrap_or(renderer.text_size());
 
-                    let color = span.color.or(style.color).unwrap_or(defaults.text_color);
+                let line_height = span
+                    .line_height
+                    .or(self.line_height)
+                    .unwrap_or_else(|| renderer.line_height())
+                    .to_absolute(size);
 
-                    let baseline =
-                        translation + Vector::new(0.0, size.0 + (line_height.0 - size.0) / 2.0);
+                let color = span.color.or(style.color).unwrap_or(defaults.text_color);
 
-                    if span.underline || is_hovered_link {
-                        for bounds in &regions {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: Rectangle::new(
-                                        bounds.position() + baseline,
-                                        Size::new(bounds.width, 1.0),
-                                    ),
-                                    ..Default::default()
-                                },
-                                color,
-                            );
-                        }
+                let baseline =
+                    translation + Vector::new(0.0, size.0 + (line_height.0 - size.0) / 2.0);
+
+                if span.underline || is_hovered_link {
+                    for bounds in &regions {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: Rectangle::new(
+                                    bounds.position() + baseline,
+                                    Size::new(bounds.width, 1.0),
+                                ),
+                                ..Default::default()
+                            },
+                            color,
+                        );
                     }
+                }
 
-                    if span.strikethrough {
-                        for bounds in &regions {
-                            renderer.fill_quad(
-                                renderer::Quad {
-                                    bounds: Rectangle::new(
-                                        bounds.position() + baseline
-                                            - Vector::new(0.0, size.0 / 2.0),
-                                        Size::new(bounds.width, 1.0),
-                                    ),
-                                    ..Default::default()
-                                },
-                                color,
-                            );
-                        }
+                if span.strikethrough {
+                    for bounds in &regions {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: Rectangle::new(
+                                    bounds.position() + baseline - Vector::new(0.0, size.0 / 2.0),
+                                    Size::new(bounds.width, 1.0),
+                                ),
+                                ..Default::default()
+                            },
+                            color,
+                        );
                     }
                 }
             }
