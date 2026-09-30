@@ -2,6 +2,9 @@
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/master/runtime
+use iced_debug::core::window::MonitorData;
+use iced_debug::core::window::MonitorList;
+
 use crate::core::input_method;
 use crate::core::keyboard;
 use crate::core::mouse;
@@ -320,6 +323,32 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
+/// Converts an [`iced::Point`] into a [`winit`] logical position for a given monitor.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn position_on_monitor(
+    monitor: Option<&winit::monitor::MonitorHandle>,
+    position: Point,
+) -> winit::dpi::Position {
+    let position = winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
+        x: f64::from(position.x),
+        y: f64::from(position.y),
+    });
+
+    if let Some(monitor) = monitor {
+        let start = monitor.position();
+        let position: winit::dpi::PhysicalPosition<i32> =
+            position.to_physical(monitor.scale_factor());
+
+        winit::dpi::Position::Physical(winit::dpi::PhysicalPosition {
+            x: position.x + start.x,
+            y: position.y + start.y,
+        })
+    } else {
+        position
+    }
+}
+
 /// Converts a [`window::Position`] into a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
@@ -330,36 +359,10 @@ pub fn position(
 ) -> Option<winit::dpi::Position> {
     match position {
         window::Position::Default => None,
+        // The requested monitor index has already been fetched from the event loop and placed in `monitor`.
+        // So there is no use for the monitor index here.
         window::Position::Specific(position) => {
-            Some(winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
-                x: f64::from(position.x),
-                y: f64::from(position.y),
-            }))
-        }
-        window::Position::SpecificWith(to_position) => {
-            if let Some(monitor) = monitor {
-                let start = monitor.position();
-
-                let resolution: winit::dpi::LogicalSize<f32> =
-                    monitor.size().to_logical(monitor.scale_factor());
-
-                let position = to_position(size, Size::new(resolution.width, resolution.height));
-
-                let centered: winit::dpi::PhysicalPosition<i32> = winit::dpi::LogicalPosition {
-                    x: position.x,
-                    y: position.y,
-                }
-                .to_physical(monitor.scale_factor());
-
-                Some(winit::dpi::Position::Physical(
-                    winit::dpi::PhysicalPosition {
-                        x: start.x + centered.x,
-                        y: start.y + centered.y,
-                    },
-                ))
-            } else {
-                None
-            }
+            Some(position_on_monitor(monitor, position.position))
         }
         window::Position::Centered => {
             if let Some(monitor) = monitor {
@@ -437,6 +440,43 @@ pub fn window_theme(mode: theme::Mode) -> Option<winit::window::Theme> {
         theme::Mode::Light => Some(winit::window::Theme::Light),
         theme::Mode::Dark => Some(winit::window::Theme::Dark),
     }
+}
+
+/// Converts an iterator of  [`winit`] monitor handles and the primary monitor handle into a [`window::MonitorList`].
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn monitor_list(
+    handles: impl Iterator<Item = winit::monitor::MonitorHandle>,
+    primary_monitor: Option<winit::monitor::MonitorHandle>,
+) -> window::MonitorList {
+    let mut list = MonitorList::empty();
+    for handle in handles {
+        let is_primary = primary_monitor
+            .as_ref()
+            .map(|p| Some(p) == primary_monitor.as_ref())
+            .unwrap_or(false);
+
+        let monitor_data = monitor(handle);
+
+        list.add_monitor(is_primary, monitor_data);
+    }
+    list
+}
+
+/// Converts a [`winit`] monitor handle into a [`window::MonitorData`] by reading all relevant monitor properties.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn monitor(handle: winit::monitor::MonitorHandle) -> MonitorData {
+    let physical_size = handle.size();
+    let physical_size = Size {
+        width: physical_size.width,
+        height: physical_size.height,
+    };
+    let scale_factor = handle.scale_factor();
+    let name = handle.name();
+    let refresh_rate_millihertz = handle.refresh_rate_millihertz();
+
+    MonitorData::new(physical_size, scale_factor, name, refresh_rate_millihertz)
 }
 
 /// Converts a [`mouse::Interaction`] into a [`winit`] cursor icon.
