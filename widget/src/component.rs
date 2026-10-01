@@ -234,6 +234,8 @@ where
             let _ = internal.events.push(event);
         }
 
+        let mut invalidation = shell::Invalidation::None;
+
         if !shell.is_event_captured() {
             let mut local_shell = shell.local(&mut internal.events);
 
@@ -251,13 +253,14 @@ where
                 shell.capture_event();
             }
 
-            shell.invalidate(local_shell.invalidation());
             shell.request_redraw_at(local_shell.redraw_request());
             shell.request_input_method(local_shell.input_method());
             shell.clipboard_mut().merge(local_shell.clipboard_mut());
+
+            invalidation = local_shell.invalidation();
         }
 
-        if internal.events.is_empty() {
+        if internal.events.is_empty() && matches!(invalidation, shell::Invalidation::None) {
             return;
         }
 
