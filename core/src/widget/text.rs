@@ -430,6 +430,14 @@ impl<P: Paragraph> operation::Text for Operand<'_, P> {
             .select(start - translation, end - translation, target);
     }
 
+    fn select_all(&mut self) {
+        if !self.selectable {
+            return;
+        }
+
+        self.paragraph.raw_mut().select_all();
+    }
+
     fn deselect(&mut self) {
         self.paragraph.raw_mut().deselect();
     }

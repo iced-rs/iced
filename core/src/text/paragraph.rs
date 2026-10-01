@@ -77,6 +77,9 @@ pub trait Paragraph: Sized + Default {
     fn select(&mut self, start: Point, end: Point, target: Target);
 
     /// TODO
+    fn select_all(&mut self);
+
+    /// TODO
     fn deselect(&mut self);
 
     /// TODO

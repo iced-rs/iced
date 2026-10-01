@@ -506,6 +506,34 @@ impl core::text::Paragraph for Paragraph {
         });
     }
 
+    fn select_all(&mut self) {
+        let paragraph = Arc::make_mut(&mut self.0);
+
+        let start = cosmic_text::Cursor {
+            line: 0,
+            index: 0,
+            affinity: cosmic_text::Affinity::Before,
+        };
+
+        let end = cosmic_text::Cursor {
+            line: paragraph.buffer.lines.len().saturating_sub(1),
+            index: paragraph
+                .buffer
+                .lines
+                .last()
+                .map(|line| line.text().floor_char_boundary(line.text().len()))
+                .unwrap_or_default(),
+            affinity: cosmic_text::Affinity::After,
+        };
+
+        paragraph.selection = Some(Selection {
+            start,
+            end,
+            target: Target::Character,
+            regions: text::regions(&paragraph.buffer, start, end),
+        });
+    }
+
     fn deselect(&mut self) {
         let paragraph = Arc::make_mut(&mut self.0);
         paragraph.selection = None;

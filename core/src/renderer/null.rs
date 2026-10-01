@@ -148,7 +148,7 @@ impl text::Paragraph for () {
     }
 
     fn select(&mut self, _start: Point, _end: Point, _target: text::Target) {}
-
+    fn select_all(&mut self) {}
     fn deselect(&mut self) {}
 
     fn selection(&self) -> &[Rectangle] {

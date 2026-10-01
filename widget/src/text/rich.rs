@@ -528,6 +528,10 @@ where
                     .select(start - translation, end - translation, target);
             }
 
+            fn select_all(&mut self) {
+                self.state.paragraph.select_all();
+            }
+
             fn deselect(&mut self) {
                 self.state.paragraph.deselect();
             }

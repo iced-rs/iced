@@ -94,7 +94,7 @@ impl Todos {
 
                 Command::batch([
                     operation::focus("new-task"),
-                    operation::move_cursor_to_end("new-task"),
+                    operation::text_input::move_cursor_to_end("new-task"),
                 ])
             }
             Todos::Loaded(state) => {
@@ -134,7 +134,7 @@ impl Todos {
                                 let id = Task::text_input_id(i);
                                 Command::batch(vec![
                                     operation::focus(id.clone()),
-                                    operation::select_all(id),
+                                    operation::text_input::select_all(id),
                                 ])
                             } else {
                                 Command::none()

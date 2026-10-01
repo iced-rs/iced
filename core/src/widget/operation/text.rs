@@ -15,6 +15,9 @@ pub trait Text {
     /// while `end` is the final position of the selection.
     fn select(&mut self, start: Point, end: Point, target: Target);
 
+    /// Selects all the text of the widget.
+    fn select_all(&mut self);
+
     /// Deselects any selected text;
     fn deselect(&mut self);
 
@@ -29,10 +32,8 @@ impl Text for String {
         self.as_str().into()
     }
 
-    fn select(&mut self, _start: Point, _end: Point, _target: Target) {
-        // No-op
-    }
-
+    fn select(&mut self, _start: Point, _end: Point, _target: Target) {}
+    fn select_all(&mut self) {}
     fn deselect(&mut self) {}
 
     fn copy(&mut self) -> Option<String> {
@@ -53,7 +54,7 @@ pub fn select(start: Point, end: Point, target: Target) -> impl Operation {
     }
 
     impl Operation for Select {
-        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<()>)) {
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation)) {
             let translation = self.translation;
             operate(self);
             self.translation = translation;
@@ -92,12 +93,34 @@ pub fn select(start: Point, end: Point, target: Target) -> impl Operation {
     }
 }
 
+/// Selects all selectable text.
+pub fn select_all() -> impl Operation {
+    struct SelectAll;
+
+    impl Operation for SelectAll {
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation)) {
+            operate(self);
+        }
+
+        fn text(
+            &mut self,
+            _id: Option<&crate::widget::Id>,
+            _bounds: crate::Rectangle,
+            state: &mut dyn Text,
+        ) {
+            state.select_all();
+        }
+    }
+
+    SelectAll
+}
+
 /// Deselects any selected text.
 pub fn deselect() -> impl Operation {
     struct Deselect;
 
     impl Operation for Deselect {
-        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation<()>)) {
+        fn traverse(&mut self, operate: &mut dyn FnMut(&mut dyn Operation)) {
             operate(self);
         }
 
