@@ -211,7 +211,7 @@ guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
 kamadak-exif = "0.6"
-kurbo = "0.10"
+kurbo = "0.13"
 lilt = "0.8"
 log = "0.4"
 lyon = "1.0"
