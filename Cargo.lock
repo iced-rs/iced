@@ -1321,7 +1321,7 @@ dependencies = [
 [[package]]
 name = "dpi"
 version = "0.1.1"
-source = "git+https://github.com/iced-rs/winit.git?rev=8c0c1ac115cffdf08cbc16e4c10e85af5620aacd#8c0c1ac115cffdf08cbc16e4c10e85af5620aacd"
+source = "git+https://github.com/iced-rs/winit.git?rev=1766196844ed20b08945668084c9e16a686a6070#1766196844ed20b08945668084c9e16a686a6070"
 
 [[package]]
 name = "dtor"
@@ -6926,7 +6926,7 @@ checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
 [[package]]
 name = "winit"
 version = "0.30.13"
-source = "git+https://github.com/iced-rs/winit.git?rev=8c0c1ac115cffdf08cbc16e4c10e85af5620aacd#8c0c1ac115cffdf08cbc16e4c10e85af5620aacd"
+source = "git+https://github.com/iced-rs/winit.git?rev=1766196844ed20b08945668084c9e16a686a6070#1766196844ed20b08945668084c9e16a686a6070"
 dependencies = [
  "ahash",
  "android-activity",
