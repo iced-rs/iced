@@ -223,7 +223,7 @@ png = "0.18"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
-resvg = { version = "0.45", default-features = false }
+resvg = { version = "0.48", default-features = false }
 rfd = "0.16"
 rustc-hash = "2.0"
 semver = "1.0"
@@ -235,7 +235,7 @@ smol_str = "0.2"
 softbuffer = { version = "0.4", default-features = false }
 sysinfo = "0.33"
 thiserror = "2"
-tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "simd"] }
 tokio = "1.0"
 tracing = "0.1"
 two-face = { version = "0.5", default-features = false, features = ["syntect-fancy"] }
