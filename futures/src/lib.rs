@@ -14,6 +14,8 @@ mod runtime;
 pub mod backend;
 pub mod event;
 pub mod executor;
+#[cfg(feature = "gamepad")]
+pub mod gamepad;
 pub mod keyboard;
 pub mod stream;
 pub mod subscription;

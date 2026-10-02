@@ -494,6 +494,21 @@ async fn run_instance<P>(
     let mut user_interfaces = ManuallyDrop::new(FxHashMap::default());
     let mut clipboard = Clipboard::new();
 
+    #[cfg(feature = "gamepad")]
+    let mut gamepads = match gilrs::Gilrs::new() {
+        Ok(gamepads) => Some(gamepads),
+        Err(error) => {
+            log::warn!("Failed to initialize gamepad input: {error}");
+            None
+        }
+    };
+
+    #[cfg(feature = "gamepad")]
+    let mut connected_gamepads: Vec<_> = gamepads
+        .iter()
+        .flat_map(|gamepads| gamepads.gamepads().map(|(id, _)| id))
+        .collect();
+
     #[cfg(all(feature = "linux-theme-detection", target_os = "linux"))]
     let mut system_theme = {
         let to_mode = |color_scheme| match color_scheme {
@@ -674,6 +689,14 @@ async fn run_instance<P>(
                         scale_factor: window.raw.scale_factor() as f32,
                     }),
                 ));
+
+                #[cfg(feature = "gamepad")]
+                events.extend(connected_gamepads.drain(..).map(|gamepad| {
+                    (
+                        id,
+                        core::Event::Gamepad(core::gamepad::Event::Connected(gamepad)),
+                    )
+                }));
 
                 let _ = on_open.send(id);
                 is_window_opening = false;
@@ -1077,6 +1100,30 @@ async fn run_instance<P>(
                         }
                     }
                     event::Event::AboutToWait => {
+                        #[cfg(feature = "gamepad")]
+                        if let Some(gamepads) = gamepads.as_mut() {
+                            let focused_window = window_manager
+                                .iter_mut()
+                                .find_map(|(id, window)| window.raw.has_focus().then_some(id));
+
+                            while let Some(event) = gamepads.next_event() {
+                                if let Some(id) = focused_window
+                                    && let Some(event) = conversion::gamepad_event(event)
+                                {
+                                    events.push((id, core::Event::Gamepad(event)));
+                                }
+                            }
+
+                            gamepads.inc();
+
+                            // Wake only to poll gilrs
+                            let _ = control_sender.start_send(Control::ChangeFlow(
+                                ControlFlow::WaitUntil(
+                                    Instant::now() + core::time::Duration::from_millis(5),
+                                ),
+                            ));
+                        }
+
                         if actions > 0 {
                             proxy.free_slots(actions);
                             actions = 0;

@@ -19,6 +19,7 @@ all-features = true
 
 [features]
 thread-pool = ["futures/thread-pool"]
+gamepad = ["iced_core/gamepad"]
 
 [dependencies]
 iced_core.workspace = true

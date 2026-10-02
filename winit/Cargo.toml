@@ -22,8 +22,10 @@ linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 image = ["iced_runtime/image", "arboard/image-data"]
 x11 = ["winit/x11"]
 wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita", "arboard/wayland-data-control"]
+gamepad = ["dep:gilrs", "iced_core/gamepad"]
 
 [dependencies]
+iced_core.workspace = true
 iced_debug.workspace = true
 iced_program.workspace = true
 iced_runtime.workspace = true
@@ -33,6 +35,9 @@ rustc-hash.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 winit.workspace = true
+
+gilrs.workspace = true
+gilrs.optional = true
 
 sysinfo.workspace = true
 sysinfo.optional = true
