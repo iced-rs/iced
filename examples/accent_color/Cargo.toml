@@ -1,0 +1,9 @@
+[package]
+name = "accent_color"
+version = "0.1.0"
+authors = ["Ícar N. S. <iced@icarns.xyz>"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true

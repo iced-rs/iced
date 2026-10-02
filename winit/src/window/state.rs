@@ -136,7 +136,7 @@ where
         self.style.text_color
     }
 
-    pub fn update(&mut self, program: &program::Instance<P>, window: &Window, event: &WindowEvent) {
+    pub fn update(&mut self, window: &Window, event: &WindowEvent) {
         match event {
             WindowEvent::Resized(new_size) => {
                 let size = Size::new(new_size.width, new_size.height);
@@ -177,16 +177,25 @@ where
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = new_modifiers.state();
             }
-            WindowEvent::ThemeChanged(theme) => {
-                self.default_theme =
-                    <P::Theme as theme::Base>::default(conversion::theme_mode(*theme));
-
-                if self.theme.is_none() {
-                    self.style = program.style(&self.default_theme);
-                    window.request_redraw();
-                }
-            }
             _ => {}
+        }
+    }
+
+    pub fn update_system_theme(
+        &mut self,
+        program: &program::Instance<P>,
+        window: &Window,
+        mode: theme::Mode,
+    ) {
+        self.default_theme = <P::Theme as theme::Base>::default(mode);
+
+        if self.theme.is_none() {
+            self.style = program.style(&self.default_theme);
+
+            window.set_theme(conversion::window_theme(theme::Base::mode(
+                &self.default_theme,
+            )));
+            window.request_redraw();
         }
     }
 
@@ -228,33 +237,15 @@ where
             .unwrap_or_default();
 
         if self.theme_mode != new_mode {
-            #[cfg(not(target_os = "linux"))]
-            {
-                window.set_theme(conversion::window_theme(new_mode));
+            // The runtime keeps the default theme in sync with the system,
+            // so we just restore its mode when the program has no theme.
+            let window_mode = if new_mode == theme::Mode::None {
+                theme::Base::mode(&self.default_theme)
+            } else {
+                new_mode
+            };
 
-                // Assume the old mode matches the system one
-                // We will be notified otherwise
-                if new_mode == theme::Mode::None {
-                    self.default_theme = <P::Theme as theme::Base>::default(self.theme_mode);
-
-                    if self.theme.is_none() {
-                        self.style = program.style(&self.default_theme);
-                    }
-                }
-            }
-
-            #[cfg(target_os = "linux")]
-            {
-                // mundy always notifies system theme changes, so we
-                // just restore the default theme mode.
-                let new_mode = if new_mode == theme::Mode::None {
-                    theme::Base::mode(&self.default_theme)
-                } else {
-                    new_mode
-                };
-
-                window.set_theme(conversion::window_theme(new_mode));
-            }
+            window.set_theme(conversion::window_theme(window_mode));
 
             self.theme_mode = new_mode;
         }
