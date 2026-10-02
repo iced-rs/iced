@@ -629,14 +629,22 @@ pub struct Position {
     pub index: usize,
 }
 
-/// TODO
+/// The granularity of a text selection.
+///
+/// The target determines how a selection is expanded around its
+/// starting position:
+///
+/// - [`Target::Character`] selects the individual characters between
+///   the given positions;
+/// - [`Target::Word`] expands the selection to the nearest whole words;
+/// - [`Target::Line`] expands the selection to the nearest whole lines.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Target {
-    /// TODO
+    /// Selects individual characters.
     Character,
-    /// TODO
+    /// Selects whole words.
     Word,
-    /// TODO
+    /// Selects whole lines.
     Line,
 }
 

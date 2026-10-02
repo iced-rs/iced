@@ -73,16 +73,23 @@ pub trait Paragraph: Sized + Default {
     /// A [`Span`] can have multiple bounds for each line it's on.
     fn span_bounds(&self, index: usize) -> Vec<Rectangle>;
 
-    /// TODO
+    /// Selects the text between the given positions.
+    ///
+    /// The positions are relative to the origin of the [`Paragraph`].
+    /// `start` is the position where the selection began, while `end`
+    /// is its final position. The [`Target`] determines how the
+    /// selection is expanded around these positions.
     fn select(&mut self, start: Point, end: Point, target: Target);
 
-    /// TODO
+    /// Selects all the text of the [`Paragraph`].
     fn select_all(&mut self);
 
-    /// TODO
+    /// Deselects any selected text.
     fn deselect(&mut self);
 
-    /// TODO
+    /// Returns the regions of the current selection of the [`Paragraph`].
+    ///
+    /// Each [`Rectangle`] corresponds to a line of the selection.
     fn selection(&self) -> &[Rectangle];
 
     /// Returns the current selected text of the [`Paragraph`].

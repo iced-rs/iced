@@ -395,15 +395,15 @@ struct State<P: Paragraph> {
     is_hovered: bool,
 }
 
-/// TODO
+/// The state of a widget with text, operated on by [`super::Operation::text`].
 pub struct Operand<'a, P: Paragraph> {
-    /// TODO
+    /// The [`Paragraph`] of the widget.
     pub paragraph: &'a mut paragraph::Plain<P>,
 
-    /// TODO
+    /// The layout of the widget.
     pub layout: Layout,
 
-    /// TODO
+    /// Whether the text of the widget can be selected.
     pub selectable: bool,
 }
 
