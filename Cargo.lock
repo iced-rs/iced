@@ -1174,7 +1174,7 @@ dependencies = [
  "glam",
  "iced",
  "image",
- "rand 0.8.8",
+ "rand 0.10.2",
 ]
 
 [[package]]
@@ -1803,7 +1803,7 @@ name = "game_of_life"
 version = "0.1.0"
 dependencies = [
  "iced",
- "itertools 0.12.1",
+ "itertools 0.14.0",
  "rustc-hash 2.1.3",
  "tokio",
  "tracing-subscriber",
@@ -1852,10 +1852,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0"
 dependencies = [
  "cfg-if",
- "js-sys",
  "libc",
  "wasi",
- "wasm-bindgen",
 ]
 
 [[package]]
@@ -1877,9 +1875,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi 6.0.0",
  "rand_core 0.10.1",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -2736,15 +2736,6 @@ name = "itertools"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0fd2260e829bddf4cb6ea802289de2f86d6a7a690192fbe91b3f46e0f2c8473"
-dependencies = [
- "either",
-]
-
-[[package]]
-name = "itertools"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
 dependencies = [
  "either",
 ]
@@ -4236,9 +4227,9 @@ dependencies = [
 name = "pokedex"
 version = "0.1.0"
 dependencies = [
- "getrandom 0.2.17",
+ "getrandom 0.4.3",
  "iced",
- "rand 0.8.8",
+ "rand 0.10.2",
  "reqwest",
  "serde",
  "serde_json",
@@ -4464,22 +4455,11 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "rand"
-version = "0.8.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e058c7de0b26af77780c769414d6257830bb240f3c38477dbc2c16e5f54d6d4c"
-dependencies = [
- "libc",
- "rand_chacha 0.3.1",
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "rand"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9ef1d0d795eb7d84685bca4f72f3649f064e6641543d3a8c415898726a57b41"
 dependencies = [
- "rand_chacha 0.9.0",
+ "rand_chacha",
  "rand_core 0.9.5",
 ]
 
@@ -4496,31 +4476,12 @@ dependencies = [
 
 [[package]]
 name = "rand_chacha"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6c10a63a0fa32252be49d21e7709d4d4baf8d231c2dbce1eaa8141b9b127d88"
-dependencies = [
- "ppv-lite86",
- "rand_core 0.6.4",
-]
-
-[[package]]
-name = "rand_chacha"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
 dependencies = [
  "ppv-lite86",
  "rand_core 0.9.5",
-]
-
-[[package]]
-name = "rand_core"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
-dependencies = [
- "getrandom 0.2.17",
 ]
 
 [[package]]
@@ -4578,7 +4539,7 @@ dependencies = [
  "paste",
  "profiling",
  "rand 0.9.5",
- "rand_chacha 0.9.0",
+ "rand_chacha",
  "simd_helpers",
  "thiserror 2.0.20",
  "v_frame",
@@ -5177,7 +5138,7 @@ name = "sierpinski_triangle"
 version = "0.1.0"
 dependencies = [
  "iced",
- "rand 0.8.8",
+ "rand 0.10.2",
 ]
 
 [[package]]
@@ -5397,7 +5358,7 @@ name = "solar_system"
 version = "0.1.0"
 dependencies = [
  "iced",
- "rand 0.8.8",
+ "rand 0.10.2",
  "tracing-subscriber",
 ]
 
@@ -5668,7 +5629,7 @@ name = "the_matrix"
 version = "0.1.0"
 dependencies = [
  "iced",
- "rand 0.8.8",
+ "rand 0.10.2",
  "tracing-subscriber",
 ]
 

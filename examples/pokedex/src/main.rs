@@ -117,7 +117,6 @@ impl Pokemon {
     }
 
     async fn search() -> Result<Pokemon, Error> {
-        use rand::Rng;
         use serde::Deserialize;
 
         #[derive(Debug, Deserialize)]
@@ -137,11 +136,7 @@ impl Pokemon {
             name: String,
         }
 
-        let id = {
-            let mut rng = rand::rngs::OsRng;
-
-            rng.gen_range(0..Pokemon::TOTAL)
-        };
+        let id = rand::random_range(0..Pokemon::TOTAL);
 
         let fetch_entry = async {
             let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
