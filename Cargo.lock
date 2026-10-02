@@ -680,26 +680,24 @@ checksum = "2e93abca9e28e0a1b9877922aacb20576e05d4679ffa78c3d6dc22a26a216659"
 
 [[package]]
 name = "calloop"
-version = "0.13.0"
+version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b99da2f8558ca23c71f4fd15dc57c906239752dd27ff3c00a1d56b685b7cbfec"
+checksum = "43b32313e937c8721c9d17ee9bf60699a6402b4b7c2cb6ac1bee0ffcaa4b4e5e"
 dependencies = [
  "bitflags 2.13.1",
- "log",
  "polling",
- "rustix 0.38.44",
- "slab",
- "thiserror 1.0.69",
+ "rustix 1.1.4",
+ "tracing",
 ]
 
 [[package]]
 name = "calloop-wayland-source"
-version = "0.3.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95a66a987056935f7efce4ab5668920b5d0dac4a7c99991a67395f13702ddd20"
+checksum = "138efcf0940a02ebf0cc8d1eff41a1682a46b431630f4c52450d6265876021fa"
 dependencies = [
  "calloop",
- "rustix 0.38.44",
+ "rustix 1.1.4",
  "wayland-backend",
  "wayland-client",
 ]
@@ -1331,7 +1329,7 @@ dependencies = [
 [[package]]
 name = "dpi"
 version = "0.1.1"
-source = "git+https://github.com/iced-rs/winit.git?rev=f043493048c315f6858d5d96624774a08a4f1293#f043493048c315f6858d5d96624774a08a4f1293"
+source = "git+https://github.com/iced-rs/winit.git?rev=232afb790c436e7a6c04a62072e44d88fc8bbd8f#232afb790c436e7a6c04a62072e44d88fc8bbd8f"
 
 [[package]]
 name = "dtor"
@@ -2451,7 +2449,7 @@ dependencies = [
  "resvg",
  "rustc-hash 2.1.3",
  "softbuffer",
- "tiny-skia 0.12.0",
+ "tiny-skia",
 ]
 
 [[package]]
@@ -4806,7 +4804,7 @@ dependencies = [
  "pico-args",
  "rgb",
  "svgtypes",
- "tiny-skia 0.12.0",
+ "tiny-skia",
  "usvg",
  "zune-jpeg",
 ]
@@ -5021,15 +5019,15 @@ dependencies = [
 
 [[package]]
 name = "sctk-adwaita"
-version = "0.10.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6277f0217056f77f1d8f49f2950ac6c278c0d607c45f5ee99328d792ede24ec"
+checksum = "1f8ea028b7cb32e2f577b0a55a7b54cb206376bdb1221bd5c81dcf20b68db1fb"
 dependencies = [
  "ab_glyph",
  "log",
  "memmap2",
  "smithay-client-toolkit",
- "tiny-skia 0.11.4",
+ "tiny-skia",
 ]
 
 [[package]]
@@ -5298,24 +5296,24 @@ checksum = "b9be42f50aa861c555654aa3a37f52f4b1074bacf4e48fe0ef7fa584e80f1f0f"
 
 [[package]]
 name = "smithay-client-toolkit"
-version = "0.19.2"
+version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3457dea1f0eb631b4034d61d4d8c32074caa6cd1ab2d59f2327bd8461e2c0016"
+checksum = "74dc9ee14b0fdcb535f9556141bacac070c994a977d2240ee455d7438a617f00"
 dependencies = [
  "bitflags 2.13.1",
  "calloop",
  "calloop-wayland-source",
  "cursor-icon",
- "libc",
  "log",
  "memmap2",
- "rustix 0.38.44",
- "thiserror 1.0.69",
- "wayland-backend",
+ "rustix 1.1.4",
+ "thiserror 2.0.20",
  "wayland-client",
  "wayland-csd-frame",
  "wayland-cursor",
  "wayland-protocols",
+ "wayland-protocols-experimental",
+ "wayland-protocols-misc",
  "wayland-protocols-wlr",
  "wayland-scanner",
  "xkeysym",
@@ -5739,20 +5737,6 @@ dependencies = [
 
 [[package]]
 name = "tiny-skia"
-version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83d13394d44dae3207b52a326c0c85a8bf87f1541f23b0d143811088497b09ab"
-dependencies = [
- "arrayref",
- "arrayvec",
- "bytemuck",
- "cfg-if",
- "log",
- "tiny-skia-path 0.11.4",
-]
-
-[[package]]
-name = "tiny-skia"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47ffee5eaaf5527f630fb0e356b90ebdec84d5d18d937c5e440350f88c5a91ea"
@@ -5763,18 +5747,7 @@ dependencies = [
  "cfg-if",
  "log",
  "png",
- "tiny-skia-path 0.12.0",
-]
-
-[[package]]
-name = "tiny-skia-path"
-version = "0.11.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c9e7fc0c2e86a30b117d0462aa261b72b7a99b7ebd7deb3a14ceda95c5bdc93"
-dependencies = [
- "arrayref",
- "bytemuck",
- "strict-num",
+ "tiny-skia-path",
 ]
 
 [[package]]
@@ -6259,7 +6232,7 @@ dependencies = [
  "skrifa 0.44.0",
  "strict-num",
  "svgtypes",
- "tiny-skia-path 0.12.0",
+ "tiny-skia-path",
  "unicode-bidi",
  "unicode-script",
  "unicode-vo",
@@ -6543,6 +6516,32 @@ dependencies = [
  "bitflags 2.13.1",
  "wayland-backend",
  "wayland-client",
+ "wayland-scanner",
+]
+
+[[package]]
+name = "wayland-protocols-experimental"
+version = "20251230.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91c6c3e7178e553d093d46999032bc79aafea9dedd71dd702c8ace7bbc25cf13"
+dependencies = [
+ "bitflags 2.13.1",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
+ "wayland-scanner",
+]
+
+[[package]]
+name = "wayland-protocols-misc"
+version = "0.3.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e9567599ef23e09b8dad6e429e5738d4509dfc46b3b21f32841a304d16b29c8"
+dependencies = [
+ "bitflags 2.13.1",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
  "wayland-scanner",
 ]
 
@@ -7207,7 +7206,7 @@ checksum = "d6bbff5f0aada427a1e5a6da5f1f98158182f26556f345ac9e04d36d0ebed650"
 [[package]]
 name = "winit"
 version = "0.30.13"
-source = "git+https://github.com/iced-rs/winit.git?rev=f043493048c315f6858d5d96624774a08a4f1293#f043493048c315f6858d5d96624774a08a4f1293"
+source = "git+https://github.com/iced-rs/winit.git?rev=232afb790c436e7a6c04a62072e44d88fc8bbd8f#232afb790c436e7a6c04a62072e44d88fc8bbd8f"
 dependencies = [
  "ahash",
  "android-activity",
