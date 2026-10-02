@@ -183,7 +183,6 @@ impl Tour {
         column![
             "This is a simple tour meant to showcase a bunch of \
         widgets that come bundled in Iced.",
-            "Hello! مرحبًا こんにちは",
             "Iced is a cross-platform GUI library for Rust focused on \
          simplicity and type-safety. It is heavily inspired by Elm.",
             "It was originally born as part of Coffee, an opinionated \
