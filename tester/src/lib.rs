@@ -840,6 +840,7 @@ where
                 .step(10.0)
                 .width(Fill)
                 .height(24)
+                .handle(Size::ZERO)
                 .style(|theme: &core::Theme, status| {
                     let palette = theme.palette();
 
@@ -859,10 +860,8 @@ where
                             border: border::rounded(2),
                         },
                         handle: slider::Handle {
-                            shape: slider::HandleShape::Circle { radius: 0.0 },
                             background: Color::TRANSPARENT.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
+                            border: border::rounded(0.0),
                         },
                     }
                 })
