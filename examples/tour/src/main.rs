@@ -58,21 +58,7 @@ pub enum Message {
 
 impl Tour {
     fn title(&self) -> String {
-        let screen = match self.screen {
-            Screen::Welcome => "Welcome",
-            Screen::Radio => "Radio button",
-            Screen::Toggler => "Toggler",
-            Screen::Slider => "Slider",
-            Screen::Text => "Text",
-            Screen::Image => "Image",
-            Screen::RowsAndColumns => "Rows and columns",
-            Screen::Scrollable => "Scrollable",
-            Screen::TextInput => "Text input",
-            Screen::Debugger => "Debugger",
-            Screen::End => "End",
-        };
-
-        format!("{screen} - Iced")
+        format!("{} - Iced", self.screen.title())
     }
 
     fn update(&mut self, event: Message) {
@@ -161,7 +147,7 @@ impl Tour {
                 Screen::End => self.end(),
             };
 
-            column![text(self.title()).size(50), content.spacing(20)].spacing(20)
+            column![text(self.screen.title()).size(50), content.spacing(20)].spacing(20)
         };
 
         let content = column![screen, controls].width(Fit.max(540)).spacing(20);
@@ -447,6 +433,22 @@ impl Screen {
         Self::Debugger,
         Self::End,
     ];
+
+    pub fn title(self) -> &'static str {
+        match self {
+            Screen::Welcome => "Welcome",
+            Screen::Radio => "Radio button",
+            Screen::Toggler => "Toggler",
+            Screen::Slider => "Slider",
+            Screen::Text => "Text",
+            Screen::Image => "Image",
+            Screen::RowsAndColumns => "Rows and columns",
+            Screen::Scrollable => "Scrollable",
+            Screen::TextInput => "Text input",
+            Screen::Debugger => "Debugger",
+            Screen::End => "End",
+        }
+    }
 
     pub fn next(self) -> Option<Screen> {
         Self::ALL

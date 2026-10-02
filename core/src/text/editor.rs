@@ -259,7 +259,7 @@ pub enum Selection {
     Caret(Point),
 
     /// Cursor selecting a range of text
-    Range(Vec<Rectangle>),
+    Range(Arc<[Rectangle]>),
 }
 
 /// The range of an [`Editor`].
@@ -686,8 +686,8 @@ impl State {
             }
             Selection::Range(ranges) => {
                 for range in ranges
-                    .into_iter()
-                    .filter_map(|range| clip_bounds.intersection(&(range + translation)))
+                    .iter()
+                    .filter_map(|range| clip_bounds.intersection(&(*range + translation)))
                 {
                     renderer.fill_quad(
                         renderer::Quad {

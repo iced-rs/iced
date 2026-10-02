@@ -139,7 +139,7 @@ impl Markdown {
                         offset: 0,
                     };
 
-                    operation::snap_to_end("preview", operation::Animation::Auto)
+                    operation::scrollable::snap_to_end("preview", operation::Animation::Auto)
                 } else {
                     self.mode = Mode::Preview;
 

@@ -709,8 +709,8 @@ where
         let selected = self.selected.as_ref().map(Borrow::borrow);
         let label = selected.map(&self.to_string);
 
-        if let Some(label) = label.or_else(|| self.placeholder.clone()) {
-            operation.text(None, layout.bounds(), &label);
+        if let Some(mut label) = label.or_else(|| self.placeholder.clone()) {
+            operation.text(None, layout.bounds(), &mut label);
         }
     }
 

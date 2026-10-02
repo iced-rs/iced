@@ -146,6 +146,18 @@ impl text::Paragraph for () {
     fn span_bounds(&self, _index: usize) -> Vec<Rectangle> {
         vec![]
     }
+
+    fn select(&mut self, _start: Point, _end: Point, _target: text::Target) {}
+    fn select_all(&mut self) {}
+    fn deselect(&mut self) {}
+
+    fn selection(&self) -> &[Rectangle] {
+        &[]
+    }
+
+    fn copy(&mut self) -> Option<String> {
+        None
+    }
 }
 
 impl text::Editor for () {

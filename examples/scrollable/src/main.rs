@@ -64,7 +64,7 @@ impl ScrollableDemo {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
 
-                operation::snap_to(
+                operation::scrollable::snap_to(
                     SCROLLABLE,
                     self.current_scroll_offset,
                     operation::Animation::Auto,
@@ -74,7 +74,7 @@ impl ScrollableDemo {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.anchor = alignment;
 
-                operation::snap_to(
+                operation::scrollable::snap_to(
                     SCROLLABLE,
                     self.current_scroll_offset,
                     operation::Animation::Auto,
@@ -103,7 +103,7 @@ impl ScrollableDemo {
             Message::ScrollToBeginning => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
 
-                operation::snap_to(
+                operation::scrollable::snap_to(
                     SCROLLABLE,
                     self.current_scroll_offset,
                     operation::Animation::Auto,
@@ -112,7 +112,7 @@ impl ScrollableDemo {
             Message::ScrollToEnd => {
                 self.current_scroll_offset = scrollable::RelativeOffset::END;
 
-                operation::snap_to(
+                operation::scrollable::snap_to(
                     SCROLLABLE,
                     self.current_scroll_offset,
                     operation::Animation::Auto,

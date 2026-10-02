@@ -236,11 +236,11 @@ where
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
+        tree::Tag::of::<text::paragraph::Plain<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(text::paragraph::Plain::<Renderer::Paragraph>::default())
     }
 
     fn size(&self) -> Size<Length> {
@@ -272,7 +272,7 @@ where
         let label = if let Some(label) = self.label.as_deref() {
             let state = tree
                 .state
-                .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+                .downcast_mut::<text::paragraph::Plain<Renderer::Paragraph>>();
 
             widget::text::layout(
                 state,
@@ -400,7 +400,7 @@ where
 
             let state = tree
                 .state
-                .downcast_ref::<widget::text::State<Renderer::Paragraph>>();
+                .downcast_ref::<text::paragraph::Plain<Renderer::Paragraph>>();
 
             crate::text::draw(
                 renderer,
@@ -409,7 +409,9 @@ where
                 state.raw(),
                 crate::text::Style {
                     color: style.text_color,
+                    selection: None,
                 },
+                theme.selection(),
                 viewport,
             );
         }
@@ -527,6 +529,9 @@ pub trait Catalog: Sized {
 
     /// The [`Style`] of a class with the given status.
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
+
+    /// The global selection [`Color`].
+    fn selection(&self) -> Color;
 }
 
 /// A styling function for a [`Toggler`].
@@ -543,6 +548,10 @@ impl Catalog for Theme {
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
         class(self, status)
+    }
+
+    fn selection(&self) -> Color {
+        self.palette().background.strongest.color
     }
 }
 

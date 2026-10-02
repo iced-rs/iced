@@ -1,5 +1,5 @@
 use crate::Selector;
-use crate::core::widget::operation::{Focusable, Outcome, Scrollable, TextInput};
+use crate::core::widget::operation::{Focusable, Outcome, Scrollable, Text, TextInput};
 use crate::core::widget::{Id, Operation};
 use crate::core::{Rectangle, Size, Vector};
 use crate::target::Candidate;
@@ -222,7 +222,7 @@ where
         });
     }
 
-    fn text(&mut self, id: Option<&Id>, bounds: Rectangle, text: &str) {
+    fn text(&mut self, id: Option<&Id>, bounds: Rectangle, text: &mut dyn Text) {
         if self.strategy.is_done() {
             return;
         }
@@ -233,7 +233,7 @@ where
             visible_bounds: bounds
                 .intersection(&self.viewport)
                 .map(|bounds| bounds + self.translation),
-            content: text,
+            content: text.text().as_ref(),
         });
     }
 

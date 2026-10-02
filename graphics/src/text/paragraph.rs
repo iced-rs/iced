@@ -1,7 +1,9 @@
 //! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
-use crate::core::text::{Alignment, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping};
+use crate::core::text::{
+    Alignment, Ellipsis, Hit, LineHeight, Shaping, Span, Target, Text, Wrapping,
+};
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
@@ -26,6 +28,15 @@ struct Internal {
     version: text::Version,
     hint: bool,
     hint_factor: f32,
+    selection: Option<Selection>,
+}
+
+#[derive(Clone)]
+struct Selection {
+    start: cosmic_text::Cursor,
+    end: cosmic_text::Cursor,
+    target: Target,
+    regions: Vec<Rectangle>,
 }
 
 impl Paragraph {
@@ -117,6 +128,7 @@ impl core::text::Paragraph for Paragraph {
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
+            selection: None,
         }))
     }
 
@@ -204,6 +216,7 @@ impl core::text::Paragraph for Paragraph {
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
+            selection: None,
         }))
     }
 
@@ -225,6 +238,18 @@ impl core::text::Paragraph for Paragraph {
 
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
+
+        if let Some(Selection {
+            start, end, target, ..
+        }) = paragraph.selection
+        {
+            paragraph.selection = Some(Selection {
+                start,
+                end,
+                target,
+                regions: text::regions(&paragraph.buffer, start, end),
+            });
+        }
     }
 
     fn compare(&self, text: Text<()>) -> core::text::Difference {
@@ -305,7 +330,25 @@ impl core::text::Paragraph for Paragraph {
             .buffer
             .hit(point.x * self.0.hint_factor, point.y * self.0.hint_factor)?;
 
-        Some(Hit::CharOffset(cursor.index))
+        Some(Hit {
+            line: cursor.line,
+            index: cursor.index,
+        })
+    }
+
+    fn hit_glyph(&self, point: Point) -> bool {
+        self.internal().buffer.layout_runs().any(|run| {
+            let line_top = run.line_top;
+            let line_height = run.line_height;
+
+            if line_top > point.y || line_top + line_height < point.y {
+                return false;
+            }
+
+            run.glyphs
+                .iter()
+                .any(|glyph| glyph.x <= point.x && glyph.x + glyph.w >= point.x)
+        })
     }
 
     fn hit_span(&self, point: Point) -> Option<usize> {
@@ -420,6 +463,107 @@ impl core::text::Paragraph for Paragraph {
         bounds.extend(current);
         bounds
     }
+
+    fn select(&mut self, start: Point, end: Point, target: Target) {
+        use cosmic_text::Edit;
+
+        let paragraph = Arc::make_mut(&mut self.0);
+        let mut font_system = text::font_system().write().expect("write font system");
+
+        // Simulate a selection drag
+        let mut editor =
+            cosmic_text::Editor::new(cosmic_text::BufferRef::Borrowed(&mut paragraph.buffer));
+
+        editor.action(&mut font_system.raw, {
+            let x = start.x as i32;
+            let y = start.y as i32;
+
+            match target {
+                Target::Character => cosmic_text::Action::Click { x, y },
+                Target::Word => cosmic_text::Action::DoubleClick { x, y },
+                Target::Line => cosmic_text::Action::TripleClick { x, y },
+            }
+        });
+
+        editor.action(
+            &mut font_system.raw,
+            cosmic_text::Action::Drag {
+                x: end.x as i32,
+                y: end.y as i32,
+            },
+        );
+
+        let Some((start, end)) = editor.selection_bounds() else {
+            paragraph.selection = None;
+            return;
+        };
+
+        paragraph.selection = Some(Selection {
+            start,
+            end,
+            target,
+            regions: text::regions(&paragraph.buffer, start, end),
+        });
+    }
+
+    fn select_all(&mut self) {
+        let paragraph = Arc::make_mut(&mut self.0);
+
+        let start = cosmic_text::Cursor {
+            line: 0,
+            index: 0,
+            affinity: cosmic_text::Affinity::Before,
+        };
+
+        let end = cosmic_text::Cursor {
+            line: paragraph.buffer.lines.len().saturating_sub(1),
+            index: paragraph
+                .buffer
+                .lines
+                .last()
+                .map(|line| line.text().floor_char_boundary(line.text().len()))
+                .unwrap_or_default(),
+            affinity: cosmic_text::Affinity::After,
+        };
+
+        paragraph.selection = Some(Selection {
+            start,
+            end,
+            target: Target::Character,
+            regions: text::regions(&paragraph.buffer, start, end),
+        });
+    }
+
+    fn deselect(&mut self) {
+        let paragraph = Arc::make_mut(&mut self.0);
+        paragraph.selection = None;
+    }
+
+    fn selection(&self) -> &[Rectangle] {
+        self.internal()
+            .selection
+            .as_ref()
+            .map(|selection| selection.regions.as_slice())
+            .unwrap_or_default()
+    }
+
+    fn copy(&mut self) -> Option<String> {
+        use cosmic_text::Edit;
+
+        let paragraph = Arc::make_mut(&mut self.0);
+        let selection = paragraph.selection.as_ref()?;
+
+        let mut editor =
+            cosmic_text::Editor::new(cosmic_text::BufferRef::Borrowed(&mut paragraph.buffer));
+
+        editor.set_selection(match selection.target {
+            Target::Character => cosmic_text::Selection::Normal(selection.start),
+            Target::Word => cosmic_text::Selection::Word(selection.start),
+            Target::Line => cosmic_text::Selection::Line(selection.start),
+        });
+        editor.set_cursor(selection.end);
+        editor.copy_selection()
+    }
 }
 
 impl Default for Paragraph {
@@ -473,6 +617,7 @@ impl Default for Internal {
             version: text::Version::default(),
             hint: false,
             hint_factor: 1.0,
+            selection: None,
         }
     }
 }

@@ -1,13 +1,18 @@
 //! Implement your own event loop to drive a user interface.
 use crate::core::event::{self, Event};
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::shell;
+use crate::core::text;
 use crate::core::widget;
+use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
-use crate::core::{Clipboard, InputMethod, Layout, Rectangle, Shell, Size, Vector, Widget, Window};
+use crate::core::{
+    Clipboard, InputMethod, Layout, Point, Rectangle, Shell, Size, Vector, Widget, Window,
+};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -26,6 +31,8 @@ pub struct UserInterface<'a, Message, Theme, Renderer> {
     state: widget::Tree,
     overlay: Option<mouse::Interaction>,
     bounds: Size,
+    last_click: Option<mouse::Click>,
+    selection: Option<(Point, Point)>,
 }
 
 impl<'a, Message, Theme, Renderer> UserInterface<'a, Message, Theme, Renderer>
@@ -95,9 +102,13 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let mut root = root._boxed();
+        let Cache {
+            mut state,
+            last_click,
+            selection,
+        } = cache;
 
-        let Cache { mut state } = cache;
+        let mut root = root._boxed();
         state.diff(&mut root);
 
         root.layout(
@@ -111,6 +122,8 @@ where
             state,
             overlay: None,
             bounds,
+            last_click,
+            selection,
         }
     }
 
@@ -327,10 +340,6 @@ where
                 }
 
                 let invalidation = shell.invalidation();
-                status = status.max(invalidation);
-                redraw_request = redraw_request.min(shell.redraw_request());
-                input_method.merge(shell.input_method());
-                clipboard.merge(shell.clipboard_mut());
 
                 if let shell::Invalidation::Layout(_) | shell::Invalidation::Overlay = invalidation
                 {
@@ -367,9 +376,74 @@ where
                     }
                 }
 
-                shell.event_status().merge(overlay_status)
+                match (&event, shell.event_status()) {
+                    (
+                        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+                        event::Status::Ignored,
+                    ) => {
+                        if let Some(position) = cursor.position() {
+                            self.last_click = Some(mouse::Click::new(
+                                position,
+                                mouse::Button::Left,
+                                self.last_click,
+                            ));
+
+                            self.selection = Some((position, Point::ORIGIN));
+                        }
+                    }
+                    (Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)), _) => {
+                        self.selection = None;
+                    }
+                    (
+                        Event::Keyboard(keyboard::Event::KeyPressed {
+                            key,
+                            modifiers,
+                            repeat: false,
+                            ..
+                        }),
+                        event::Status::Ignored,
+                    ) if matches!(key.as_ref(), keyboard::Key::Character("c"))
+                        && modifiers.control() =>
+                    {
+                        let mut copy = operation::text::copy();
+                        self.operate(renderer, &mut operation::black_box(&mut copy));
+
+                        if let operation::Outcome::Some(text) = copy.finish() {
+                            shell.write_clipboard(text);
+                        }
+                    }
+                    _ => {}
+                }
+
+                status = status.max(invalidation);
+                redraw_request = redraw_request.min(shell.redraw_request());
+                input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
+
+                shell.event_status()
             })
             .collect();
+
+        if let Some((start, end)) = self.selection.as_mut()
+            && let Some(click) = self.last_click
+            && let Some(position) = cursor.position()
+            && position != *end
+        {
+            *end = position;
+
+            let mut select = operation::text::select(
+                *start,
+                *end,
+                match click.kind() {
+                    mouse::click::Kind::Single => text::Target::Character,
+                    mouse::click::Kind::Double => text::Target::Word,
+                    mouse::click::Kind::Triple => text::Target::Line,
+                },
+            );
+
+            self.operate(renderer, &mut select);
+            redraw_request = window::RedrawRequest::NextFrame;
+        }
 
         let mouse_interaction = if overlay_interaction == mouse::Interaction::None {
             self.root
@@ -550,13 +624,26 @@ where
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, bounds, Cache { state: self.state }, renderer)
+        Self::build(
+            self.root,
+            bounds,
+            Cache {
+                state: self.state,
+                last_click: self.last_click,
+                selection: self.selection,
+            },
+            renderer,
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     pub fn into_cache(self) -> Cache {
-        Cache { state: self.state }
+        Cache {
+            state: self.state,
+            last_click: self.last_click,
+            selection: self.selection,
+        }
     }
 }
 
@@ -564,6 +651,8 @@ where
 #[derive(Debug)]
 pub struct Cache {
     state: widget::Tree,
+    last_click: Option<mouse::Click>,
+    selection: Option<(Point, Point)>,
 }
 
 impl Cache {
@@ -574,6 +663,8 @@ impl Cache {
     pub fn new() -> Cache {
         Cache {
             state: widget::Tree::empty(),
+            last_click: None,
+            selection: None,
         }
     }
 }

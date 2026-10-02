@@ -2,7 +2,7 @@
 use crate::core::text::editor::{self, Action, Cursor, Direction, Edit, Motion, Selection};
 use crate::core::text::highlighter;
 use crate::core::text::{Alignment, LineHeight, Parser, Position, Wrapping};
-use crate::core::{Font, Pixels, Point, Rectangle, Size};
+use crate::core::{Font, Pixels, Point, Size};
 use crate::text;
 
 use cosmic_text::Edit as _;
@@ -144,50 +144,7 @@ impl editor::Editor for Editor {
         let scroll = buffer.scroll();
 
         let cursor = match internal.editor.selection_bounds() {
-            Some((start, end)) => {
-                let line_height = buffer.metrics().line_height;
-                let selected_lines = end.line - start.line + 1;
-
-                let visual_lines_offset = visual_lines_offset(start.line, buffer);
-
-                let regions = buffer
-                    .lines
-                    .iter()
-                    .skip(start.line)
-                    .take(selected_lines)
-                    .enumerate()
-                    .flat_map(|(i, line)| {
-                        highlight_line(
-                            line,
-                            if i == 0 { start.index } else { 0 },
-                            if i == selected_lines - 1 {
-                                end.index
-                            } else {
-                                line.text().len()
-                            },
-                        )
-                    })
-                    .enumerate()
-                    .filter_map(|(visual_line, (x, width))| {
-                        if width > 0.0 {
-                            Some(
-                                Rectangle {
-                                    x: x - scroll.horizontal,
-                                    width,
-                                    y: (visual_line as i32 + visual_lines_offset) as f32
-                                        * line_height
-                                        - scroll.vertical,
-                                    height: line_height,
-                                } * (1.0 / internal.hint_factor),
-                            )
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-
-                Selection::Range(regions)
-            }
+            Some((start, end)) => Selection::Range(Arc::from(text::regions(buffer, start, end))),
             _ => {
                 let line_height = buffer.metrics().line_height;
 
@@ -964,53 +921,6 @@ impl PartialEq for Weak {
             _ => false,
         }
     }
-}
-
-fn highlight_line(
-    line: &cosmic_text::BufferLine,
-    from: usize,
-    to: usize,
-) -> impl Iterator<Item = (f32, f32)> + '_ {
-    let layout = line.layout_opt().map(Vec::as_slice).unwrap_or_default();
-
-    layout.iter().map(move |visual_line| {
-        let (start, offset) = visual_line
-            .glyphs
-            .first()
-            .map(|glyph| (glyph.start, glyph.x))
-            .unwrap_or_default();
-
-        let end = visual_line
-            .glyphs
-            .last()
-            .map(|glyph| glyph.end)
-            .unwrap_or(0);
-
-        let range = start.max(from)..end.min(to);
-
-        if range.is_empty() {
-            (offset, 0.0)
-        } else if range.start == start && range.end == end {
-            (offset, visual_line.w)
-        } else {
-            let first_glyph = visual_line
-                .glyphs
-                .iter()
-                .position(|glyph| range.start <= glyph.start)
-                .unwrap_or(0);
-
-            let mut glyphs = visual_line.glyphs.iter();
-
-            let x: f32 = glyphs.by_ref().take(first_glyph).map(|glyph| glyph.w).sum();
-
-            let width: f32 = glyphs
-                .take_while(|glyph| range.end > glyph.start)
-                .map(|glyph| glyph.w)
-                .sum();
-
-            (x + offset, width)
-        }
-    })
 }
 
 fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
