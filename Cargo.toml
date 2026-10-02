@@ -231,7 +231,7 @@ serde = "1.0"
 sha2 = "0.10"
 sipper = "0.2"
 smol = "2"
-smol_str = "0.2"
+smol_str = "0.3"
 softbuffer = { version = "0.4", default-features = false }
 sysinfo = "0.33"
 thiserror = "2"
@@ -246,7 +246,7 @@ wasmtimer = "0.4.2"
 web-sys = "=0.3.85"
 web-time = "1.1"
 wgpu = { version = "29", default-features = false, features = ["std", "wgsl"] }
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "232afb790c436e7a6c04a62072e44d88fc8bbd8f", default-features = false, features = ["rwh_06"] }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "8c0c1ac115cffdf08cbc16e4c10e85af5620aacd", default-features = false, features = ["rwh_06"] }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
