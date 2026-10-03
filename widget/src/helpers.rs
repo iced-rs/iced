@@ -524,8 +524,8 @@ where
     Stack::with_children(children)
 }
 
-/// Wraps the given widget and captures any mouse button presses inside the bounds of
-/// the widget—effectively making it _opaque_.
+/// Wraps the given widget and captures any mouse button presses or wheel scrolling
+/// inside the bounds of the widget—effectively making it _opaque_.
 ///
 /// This helper is meant to be used to mark elements in a [`Stack`] to avoid mouse
 /// events from passing through layers.
@@ -612,13 +612,17 @@ where
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) {
-            let is_mouse_press =
-                matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
+            let is_mouse_press_or_scroll = matches!(
+                event,
+                core::Event::Mouse(
+                    mouse::Event::ButtonPressed(_) | mouse::Event::WheelScrolled { .. }
+                )
+            );
 
             self.content
                 .update(tree, event, layout, cursor, renderer, shell, viewport);
 
-            if is_mouse_press && cursor.is_over(layout.bounds()) {
+            if is_mouse_press_or_scroll && cursor.is_over(layout.bounds()) {
                 shell.capture_event();
             }
         }
