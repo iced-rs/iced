@@ -239,7 +239,7 @@ impl Layer {
                 item.as_slice()
                     .iter()
                     .filter_map(Text::visible_bounds)
-                    .map(|bounds| bounds * item.transformation())
+                    .map(|bounds| bounds.expand(1.0) * item.transformation())
                     .collect()
             },
             |text_a, text_b| {
@@ -249,7 +249,7 @@ impl Layer {
                     |text| {
                         text.visible_bounds()
                             .into_iter()
-                            .map(|bounds| bounds * text_a.transformation())
+                            .map(|bounds| bounds.expand(1.0) * text_a.transformation())
                             .collect()
                     },
                     |text_a, text_b| text_a == text_b,
@@ -417,5 +417,53 @@ impl<T> Item<T> {
             Item::Group(group, _, _) => group.as_slice(),
             Item::Cached(cache, _, _) => cache,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::text::{Alignment, Ellipsis, LineHeight, Shaping, Wrapping};
+    use crate::core::{Font, Pixels, Size, Text as CoreText, alignment};
+
+    fn layer_with_text(content: &str) -> Layer {
+        let mut layer = Layer::default();
+
+        layer.draw_text(
+            CoreText {
+                content: content.to_owned(),
+                bounds: Size::new(40.0, 16.0),
+                size: Pixels(13.0),
+                line_height: LineHeight::default(),
+                font: Font::default(),
+                align_x: Alignment::Default,
+                align_y: alignment::Vertical::Top,
+                shaping: Shaping::default(),
+                wrapping: Wrapping::None,
+                ellipsis: Ellipsis::default(),
+                hint_factor: None,
+            },
+            Point::new(10.5, 20.0),
+            Color::WHITE,
+            Rectangle::INFINITE,
+            Transformation::IDENTITY,
+        );
+
+        layer
+    }
+
+    #[test]
+    fn changed_text_damages_the_pixels_its_glyphs_bleed_into() {
+        let damage = Layer::damage(&layer_with_text("1.000"), &layer_with_text("2.000"));
+        let covered = Rectangle::new(Point::new(9.5, 19.0), Size::new(42.0, 18.0));
+
+        assert!(
+            damage
+                .iter()
+                .any(|region| region.contains(covered.position())
+                    && region.width >= covered.width
+                    && region.height >= covered.height),
+            "{damage:?} leaves the anti-aliased edge of the old glyphs on screen"
+        );
     }
 }
