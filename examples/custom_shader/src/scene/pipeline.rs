@@ -220,7 +220,7 @@ impl Pipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[Vertex::desc(), cube::Raw::desc()],
+                buffers: &[Some(Vertex::desc()), Some(cube::Raw::desc())],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             primitive: wgpu::PrimitiveState::default(),
