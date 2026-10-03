@@ -1663,6 +1663,11 @@ pub struct Settings {
     pub h6_size: Pixels,
     /// The spacing to be used between elements.
     pub spacing: Pixels,
+    /// The [`Length`] that the width of tables is soft-limited to.
+    ///
+    /// When `None` (the default), tables stretch to their contents and scroll
+    /// horizontally; when set, cell text wraps within the given [`Length`]
+    pub table_width: Option<Length>,
 }
 
 impl Settings {
@@ -1691,6 +1696,7 @@ impl Settings {
             h5_size: text_size,
             h6_size: text_size,
             spacing: line_height.to_absolute(text_size) / 1.5,
+            table_width: None,
         }
     }
 
@@ -2088,13 +2094,230 @@ where
     .padding_y(settings.spacing.0 / 2.0)
     .separator_x(0);
 
+    let content: Element<'a, Message, Theme, Renderer> = match settings.table_width {
+        Some(width) => CappedTable::new(width, table).into(),
+        None => table.into(),
+    };
+
     center_x(
-        scrollable(table)
+        scrollable(content)
             .direction(scrollable::Direction::Horizontal(
                 scrollable::Scrollbar::default(),
             ))
             .spacing(settings.spacing.0 / 2.0),
     )
+}
+
+/// The contents of a Markdown table with its width capped at layout time.
+///
+/// A Markdown table is displayed inside a horizontal [`scrollable`] that lifts
+/// the width limit of its contents (setting the `infinite` flag of its
+/// [`core::layout::Limits`]), making cell text never wrap and a wide table
+/// scroll. This widget restores a width limit at layout time: the
+/// [`scrollable`] still forwards the maximum width of the parent container in
+/// `Limits::max`, and applying a [`Length::Bounded`] maximum to the contents
+/// clears the `infinite` flag, letting cell text wrap and fit.
+///
+/// The contents remain inside the [`scrollable`]: when the cap resolves wider
+/// than the viewport (e.g. [`Length::Fixed`]) or the contents cannot fit it,
+/// the table still scrolls horizontally.
+struct CappedTable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
+    width: Length,
+    content: Element<'a, Message, Theme, Renderer>,
+}
+
+impl<'a, Message, Theme, Renderer> CappedTable<'a, Message, Theme, Renderer> {
+    fn new(width: Length, content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+        Self {
+            width,
+            content: content.into(),
+        }
+    }
+}
+
+impl<Message, Theme, Renderer> core::Widget<Message, Theme, Renderer>
+    for CappedTable<'_, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    fn size(&self) -> core::Size<Length> {
+        self.content.as_widget().size()
+    }
+
+    fn diff(&mut self, tree: &mut core::widget::Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
+    }
+
+    fn layout(
+        &mut self,
+        tree: &mut core::widget::Tree,
+        renderer: &Renderer,
+        limits: &core::layout::Limits,
+    ) {
+        let cap = cap_width(self.width, limits.max.width);
+        let limits = limits.width(Length::Fit.max(cap));
+        self.content
+            .as_widget_mut()
+            .layout(&mut tree.children[0], renderer, &limits);
+        tree.size = tree.children[0].size;
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut core::widget::Tree,
+        layout: core::Layout,
+        viewport: &core::Rectangle,
+        renderer: &Renderer,
+        operation: &mut dyn core::widget::Operation,
+    ) {
+        self.content.as_widget_mut().operate(
+            &mut tree.children[0],
+            layout,
+            viewport,
+            renderer,
+            operation,
+        );
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut core::widget::Tree,
+        event: &core::Event,
+        layout: core::Layout,
+        cursor: core::mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut core::Shell<'_, Message>,
+        viewport: &core::Rectangle,
+    ) {
+        self.content.as_widget_mut().update(
+            &mut tree.children[0],
+            event,
+            layout,
+            cursor,
+            renderer,
+            shell,
+            viewport,
+        );
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &core::widget::Tree,
+        layout: core::Layout,
+        cursor: core::mouse::Cursor,
+        viewport: &core::Rectangle,
+        renderer: &Renderer,
+    ) -> core::mouse::Interaction {
+        self.content.as_widget().mouse_interaction(
+            &tree.children[0],
+            layout,
+            cursor,
+            viewport,
+            renderer,
+        )
+    }
+
+    fn draw(
+        &self,
+        tree: &core::widget::Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &core::renderer::Style,
+        layout: core::Layout,
+        cursor: core::mouse::Cursor,
+        viewport: &core::Rectangle,
+    ) {
+        self.content.as_widget().draw(
+            &tree.children[0],
+            renderer,
+            theme,
+            style,
+            layout,
+            cursor,
+            viewport,
+        );
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut core::widget::Tree,
+        layout: core::Layout,
+        renderer: &Renderer,
+        viewport: &core::Rectangle,
+        translation: core::Vector,
+        window: core::Size,
+    ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        self.content.as_widget_mut().overlay(
+            &mut tree.children[0],
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+        )
+    }
+}
+
+impl<'a, Message, Theme, Renderer> From<CappedTable<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: 'a,
+    Renderer: 'a + core::Renderer,
+{
+    fn from(table: CappedTable<'a, Message, Theme, Renderer>) -> Self {
+        Self::new(table)
+    }
+}
+
+/// Computes the maximum width the contents of a table are laid out with, given
+/// the [`Length`] of [`Settings::table_width`] and the `available` width of the
+/// parent container.
+///
+/// Fit and fill lengths resolve against `available`, making tables wrap their
+/// cell text and fit the parent container. Fixed and bounded lengths resolve to
+/// their own bounds, even when wider than `available`, so that a wide table is
+/// laid out at that width and keeps scrolling horizontally.
+fn cap_width(width: Length, available: f32) -> f32 {
+    match width {
+        Length::Fit | Length::Fill | Length::FillPortion(_) | Length::Shrink | Length::Fluid(_) => {
+            available
+        }
+        Length::Fixed(amount) => amount,
+        Length::Bounded { bounds, .. } => match bounds {
+            core::length::Bounds::Min(min) => available.max(min),
+            core::length::Bounds::Max(max) | core::length::Bounds::Both { max, .. } => max,
+        },
+    }
+    .max(0.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::cap_width;
+    use crate::core::Length;
+
+    #[test]
+    fn table_width_cap_resolves_lengths_against_available_width() {
+        // Fit and fill lengths wrap at the parent width
+        assert_eq!(cap_width(Length::Fit, 800.0), 800.0);
+        assert_eq!(cap_width(Length::Fill, 800.0), 800.0);
+        assert_eq!(cap_width(Length::FillPortion(2), 800.0), 800.0);
+        assert_eq!(cap_width(Length::Shrink, 800.0), 800.0);
+
+        // Fixed widths are honored even when wider than the viewport,
+        // so that a wide table still scrolls horizontally
+        assert_eq!(cap_width(Length::Fixed(1200.0), 800.0), 1200.0);
+        assert_eq!(cap_width(Length::Fixed(400.0), 800.0), 400.0);
+
+        // Bounded lengths resolve to their own bounds
+        assert_eq!(cap_width(Length::Fit.max(600.0), 800.0), 600.0);
+        assert_eq!(cap_width(Length::Fit.min(1000.0), 800.0), 1000.0);
+        assert_eq!(cap_width(Length::Fit.min(200.0).max(600.0), 800.0), 600.0,);
+
+        // The cap is never negative
+        assert_eq!(cap_width(Length::Fixed(-100.0), 800.0), 0.0);
+    }
 }
 
 /// Displays a column of items with the default look.
