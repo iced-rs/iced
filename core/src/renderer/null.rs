@@ -174,8 +174,8 @@ impl text::Editor for () {
         }
     }
 
-    fn selection(&self) -> text::editor::Selection {
-        text::editor::Selection::Caret(Point::ORIGIN)
+    fn selection(&self) -> Option<text::editor::Selection> {
+        None
     }
 
     fn copy(&self) -> Option<String> {

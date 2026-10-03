@@ -29,8 +29,8 @@ pub trait Editor: Sized + Default {
     /// Returns the current [`Cursor`] of the [`Editor`].
     fn cursor(&self) -> Cursor;
 
-    /// Returns the current [`Selection`] of the [`Editor`].
-    fn selection(&self) -> Selection;
+    /// Returns the current [`Selection`] of the [`Editor`], if visible.
+    fn selection(&self) -> Option<Selection>;
 
     /// Returns the current selected text of the [`Editor`].
     fn copy(&self) -> Option<String>;
@@ -617,7 +617,11 @@ impl State {
 
         let translation = position - Point::ORIGIN;
 
-        let cursor = match editor.selection() {
+        let Some(selection) = editor.selection() else {
+            return InputMethod::Disabled;
+        };
+
+        let cursor = match selection {
             Selection::Caret(position) => position,
             Selection::Range(ranges) => ranges.first().cloned().unwrap_or_default().position(),
         };
@@ -660,7 +664,11 @@ impl State {
         let text_size = editor.text_size();
         let line_height = editor.line_height();
 
-        match editor.selection() {
+        let Some(selection) = editor.selection() else {
+            return;
+        };
+
+        match selection {
             Selection::Caret(position) if self.is_cursor_visible() => {
                 let cursor = Rectangle::new(
                     position + translation,

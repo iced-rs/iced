@@ -132,11 +132,11 @@ impl editor::Editor for Editor {
         self.internal().editor.copy_selection()
     }
 
-    fn selection(&self) -> editor::Selection {
+    fn selection(&self) -> Option<editor::Selection> {
         let internal = self.internal();
 
         if let Ok(Some(cursor)) = internal.selection.read().as_deref() {
-            return cursor.clone();
+            return Some(cursor.clone());
         }
 
         let cursor = internal.editor.cursor();
@@ -147,15 +147,9 @@ impl editor::Editor for Editor {
             Some((start, end)) => Selection::Range(Arc::from(text::regions(buffer, start, end))),
             _ => {
                 let line_height = buffer.metrics().line_height;
-
                 let visual_lines_offset = visual_lines_offset(cursor.line, buffer);
-
-                let line = buffer
-                    .lines
-                    .get(cursor.line)
-                    .expect("Cursor line should be present");
-
-                let layout = line.layout_opt().expect("Line layout should be cached");
+                let line = buffer.lines.get(cursor.line)?;
+                let layout = line.layout_opt()?;
 
                 let empty_offset = match internal.alignment {
                     Alignment::Default | Alignment::Left | Alignment::Justified => 0.0,
@@ -233,7 +227,7 @@ impl editor::Editor for Editor {
 
         *internal.selection.write().expect("Write to cursor cache") = Some(cursor.clone());
 
-        cursor
+        Some(cursor)
     }
 
     fn cursor(&self) -> Cursor {
@@ -770,11 +764,7 @@ impl editor::Editor for Editor {
             .iter()
             .enumerate()
             .find_map(|(i, line)| {
-                let visible_lines = line
-                    .layout_opt()
-                    .as_ref()
-                    .expect("Line layout should be cached")
-                    .len() as i32;
+                let visible_lines = line.layout_opt()?.len() as i32;
 
                 if window > visible_lines {
                     window -= visible_lines;
