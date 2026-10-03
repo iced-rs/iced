@@ -243,7 +243,7 @@ unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
-web-sys = "=0.3.104"
+web-sys = "0.3.104"
 web-time = "1.1"
 wgpu = { version = "30", default-features = false, features = ["std", "wgsl"] }
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "1ce7985d2f81842e80097e466c527d7231c2f42b", default-features = false, features = ["rwh_06"] }
