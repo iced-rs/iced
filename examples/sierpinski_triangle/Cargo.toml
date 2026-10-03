@@ -9,4 +9,4 @@ publish = false
 iced.workspace = true
 iced.features = ["debug", "canvas"]
 
-rand = "0.8"
+rand = "0.10"

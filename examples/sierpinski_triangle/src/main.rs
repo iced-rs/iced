@@ -3,7 +3,6 @@ use iced::widget::canvas::{self, Canvas, Event, Geometry};
 use iced::widget::{column, row, slider, text};
 use iced::{Center, Color, Fill, Point, Rectangle, Renderer, Size, Theme, Widget};
 
-use rand::Rng;
 use std::fmt::Debug;
 
 fn main() -> iced::Result {
@@ -138,7 +137,7 @@ impl SierpinskiGraph {
     }
 
     fn gen_rand_point(&self, last: Option<Point>) -> Point {
-        let dest_point_idx = rand::thread_rng().gen_range(0..self.fix_points.len());
+        let dest_point_idx = rand::random_range(0..self.fix_points.len());
 
         let dest_point = self.fix_points[dest_point_idx];
         let cur_point = last.or_else(|| Some(self.fix_points[0])).unwrap();
