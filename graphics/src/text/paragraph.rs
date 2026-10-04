@@ -35,7 +35,6 @@ struct Internal {
 struct Selection {
     start: cosmic_text::Cursor,
     end: cosmic_text::Cursor,
-    target: Target,
     regions: Vec<Rectangle>,
 }
 
@@ -239,14 +238,10 @@ impl core::text::Paragraph for Paragraph {
         paragraph.bounds = new_bounds;
         paragraph.min_bounds = min_bounds;
 
-        if let Some(Selection {
-            start, end, target, ..
-        }) = paragraph.selection
-        {
+        if let Some(Selection { start, end, .. }) = paragraph.selection {
             paragraph.selection = Some(Selection {
                 start,
                 end,
-                target,
                 regions: text::regions(&paragraph.buffer, start, end),
             });
         }
@@ -501,7 +496,6 @@ impl core::text::Paragraph for Paragraph {
         paragraph.selection = Some(Selection {
             start,
             end,
-            target,
             regions: text::regions(&paragraph.buffer, start, end),
         });
     }
@@ -529,7 +523,6 @@ impl core::text::Paragraph for Paragraph {
         paragraph.selection = Some(Selection {
             start,
             end,
-            target: Target::Character,
             regions: text::regions(&paragraph.buffer, start, end),
         });
     }
@@ -556,11 +549,7 @@ impl core::text::Paragraph for Paragraph {
         let mut editor =
             cosmic_text::Editor::new(cosmic_text::BufferRef::Borrowed(&mut paragraph.buffer));
 
-        editor.set_selection(match selection.target {
-            Target::Character => cosmic_text::Selection::Normal(selection.start),
-            Target::Word => cosmic_text::Selection::Word(selection.start),
-            Target::Line => cosmic_text::Selection::Line(selection.start),
-        });
+        editor.set_selection(cosmic_text::Selection::Normal(selection.start));
         editor.set_cursor(selection.end);
         editor.copy_selection()
     }
