@@ -10,12 +10,13 @@
 //! application decides to set the `popover` argument to `None` (i.e. to close
 //! it).
 //!
-//! By default, the popover overlay is opaque: mouse button presses inside its
-//! bounds are captured, and mouse events do not pass through it to the layers
-//! below. Use [`Popover::passthrough`] to make the popover overlay
-//! transparent.
+//! The popover's overlay does not capture mouse events on its own: unless
+//! the popup's content handles them, events pass through the popup to the
+//! layers below. If you want to capture mouse button presses inside the
+//! popup's bounds, wrap the popup's content in [`opaque`].
 //!
 //! [`tooltip`]: crate::tooltip::Tooltip
+//! [`opaque`]: crate::opaque
 //!
 //! # Example
 //! ```no_run
@@ -44,7 +45,6 @@
 //!     .on_close(Message::Close)
 //! }
 //! ```
-use crate::opaque::Opaque;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -62,10 +62,12 @@ use crate::core::{Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 /// When the user clicks outside of the popover's bounds, the popover notifies
 /// the application through its `on_close` handler.
 ///
-/// By default, the popover overlay is opaque: mouse button presses inside its
-/// bounds are captured, and mouse events do not pass through it to the layers
-/// below. Use [`Popover::passthrough`] to make the popover overlay
-/// transparent.
+/// The popover's overlay does not capture mouse events on its own: unless
+/// the popup's content handles them, events pass through the popup to the
+/// layers below. If you want to capture mouse button presses inside the
+/// popup's bounds, wrap the popup's content in [`opaque`].
+///
+/// [`opaque`]: crate::opaque
 ///
 /// # Example
 /// ```no_run
@@ -96,7 +98,7 @@ use crate::core::{Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 /// ```
 pub struct Popover<W, V, Message> {
     content: W,
-    popup: Option<Popup<V>>,
+    popup: Option<V>,
     position: Position,
     gap: f32,
     snap_within_viewport: bool,
@@ -108,17 +110,17 @@ impl<W, V, Message> Popover<W, V, Message> {
     ///
     /// It expects:
     ///   * the `content` widget that the popover is anchored to (the base), and
-    ///   * the optional `popover` widget to display: `Some` when the popover
-    ///     is open and `None` when it is closed.
+    ///   * the optional `popup` widget to display: `Some` when the popover is
+    ///     open and `None` when it is closed.
     ///
-    /// The base is always present; it is the `popover` argument that controls
+    /// The base is always present; it is the `popup` argument that controls
     /// whether the overlay is displayed. By default, the [`Popover`] is
     /// positioned [`Position::Auto`]; use the [`Self::position`] method to set
     /// a specific position.
-    pub fn new(content: W, popover: Option<V>) -> Self {
+    pub fn new(content: W, popup: Option<V>) -> Self {
         Popover {
             content,
-            popup: popover.map(|popup| Popup::Opaque(Opaque::new(popup))),
+            popup,
             position: Position::default(),
             gap: 0.0,
             snap_within_viewport: true,
@@ -156,23 +158,6 @@ impl<W, V, Message> Popover<W, V, Message> {
         self.snap_within_viewport = snap;
         self
     }
-
-    /// Sets whether mouse events pass through the popover overlay.
-    ///
-    /// By default, the popover overlay is opaque: mouse button presses inside
-    /// its bounds are captured, and mouse events do not pass through it to the
-    /// layers below.
-    pub fn passthrough(mut self, passthrough: bool) -> Self {
-        self.popup = self.popup.map(|popup| match popup {
-            Popup::Opaque(opaque) if passthrough => Popup::Transparent(opaque.into_inner()),
-            Popup::Transparent(popup) if !passthrough => {
-                Popup::Opaque(Opaque::new(popup))
-            }
-            content => content,
-        });
-
-        self
-    }
 }
 
 impl<W, V, Message> widget::Meta for Popover<W, V, Message> {}
@@ -207,18 +192,12 @@ where
                 if tree.children.len() != 2 {
                     tree.children = vec![
                         widget::Tree::new(&self.content),
-                        match popup {
-                            Popup::Opaque(opaque) => widget::Tree::new(opaque),
-                            Popup::Transparent(popup) => widget::Tree::new(popup),
-                        },
+                        widget::Tree::new(popup),
                     ];
                 }
 
                 tree.children[0].diff(&mut self.content);
-                match popup {
-                    Popup::Opaque(opaque) => tree.children[1].diff(opaque),
-                    Popup::Transparent(popup) => tree.children[1].diff(popup),
-                }
+                tree.children[1].diff(popup);
             }
             None => {
                 if tree.children.len() != 1 {
@@ -338,19 +317,18 @@ where
             // (Re)compute the popup's layout if it was invalidated by
             // `Widget::diff`
             if state.needs_relayout {
-                let limits = layout::Limits::new(
-                    Size::ZERO,
-                    if self.snap_within_viewport {
-                        window
-                    } else {
-                        Size::INFINITE
-                    },
+                popup.layout(
+                    popup_tree,
+                    renderer,
+                    &layout::Limits::new(
+                        Size::ZERO,
+                        if self.snap_within_viewport {
+                            window
+                        } else {
+                            Size::INFINITE
+                        },
+                    ),
                 );
-
-                match popup {
-                    Popup::Opaque(opaque) => opaque.layout(popup_tree, renderer, &limits),
-                    Popup::Transparent(popup) => popup.layout(popup_tree, renderer, &limits),
-                }
 
                 state.needs_relayout = false;
             }
@@ -369,7 +347,7 @@ where
             );
 
             overlays.push(overlay::Element::new(Box::new(Overlay {
-                popup,
+                content: popup,
                 tree: popup_tree,
                 layout: Layout::new(popup_size).move_to(popup_bounds.position()),
                 content_bounds,
@@ -433,19 +411,8 @@ struct State {
     needs_relayout: bool,
 }
 
-/// The content of the popover overlay.
-///
-/// By default, the content is wrapped in an [`Opaque`] widget, so that mouse
-/// button presses inside the popover's bounds are captured, and mouse events
-/// do not pass through it to the layers below. Use [`Popover::passthrough`]
-/// to make the popover overlay transparent.
-enum Popup<V> {
-    Opaque(Opaque<V>),
-    Transparent(V),
-}
-
 struct Overlay<'b, V, Message> {
-    popup: &'b mut Popup<V>,
+    content: &'b mut V,
     tree: &'b mut widget::Tree,
     layout: Layout,
     content_bounds: Rectangle,
@@ -504,18 +471,8 @@ where
             return;
         }
 
-        // The `Opaque` variant captures mouse button presses inside its
-        // bounds, so that they do not pass through to the layers below.
-        let bounds = self.bounds();
-
-        match self.popup {
-            Popup::Opaque(opaque) => {
-                opaque.update(self.tree, event, self.layout, cursor, renderer, shell, &bounds);
-            }
-            Popup::Transparent(popup) => {
-                popup.update(self.tree, event, self.layout, cursor, renderer, shell, &bounds);
-            }
-        }
+        self.content
+            .update(self.tree, event, self.layout, cursor, renderer, shell, &self.bounds());
     }
 
     fn draw(
@@ -528,32 +485,15 @@ where
         let bounds = self.bounds();
 
         renderer.with_layer(bounds, |renderer| {
-            let popup = &*self.popup;
-
-            match popup {
-                Popup::Opaque(opaque) => {
-                    opaque.draw(
-                        self.tree,
-                        renderer,
-                        theme,
-                        style,
-                        self.layout,
-                        cursor_position,
-                        &bounds,
-                    );
-                }
-                Popup::Transparent(popup) => {
-                    popup.draw(
-                        self.tree,
-                        renderer,
-                        theme,
-                        style,
-                        self.layout,
-                        cursor_position,
-                        &bounds,
-                    );
-                }
-            }
+            self.content.draw(
+                self.tree,
+                renderer,
+                theme,
+                style,
+                self.layout,
+                cursor_position,
+                &bounds,
+            );
         });
     }
 
@@ -562,54 +502,21 @@ where
             return mouse::Interaction::None;
         }
 
-        let bounds = self.bounds();
-        let popup = &*self.popup;
-
-        match popup {
-            Popup::Opaque(opaque) => {
-                opaque.mouse_interaction(self.tree, self.layout, cursor, &bounds, renderer)
-            }
-            Popup::Transparent(popup) => {
-                popup.mouse_interaction(self.tree, self.layout, cursor, &bounds, renderer)
-            }
-        }
+        self.content
+            .mouse_interaction(self.tree, self.layout, cursor, &self.bounds(), renderer)
     }
 
     fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
-        let bounds = self.bounds();
-
-        match self.popup {
-            Popup::Opaque(opaque) => {
-                opaque.operate(self.tree, self.layout, &bounds, renderer, operation)
-            }
-            Popup::Transparent(popup) => {
-                popup.operate(self.tree, self.layout, &bounds, renderer, operation)
-            }
-        }
+        self.content
+            .operate(self.tree, self.layout, &self.bounds(), renderer, operation);
     }
 
     fn overlay<'c>(
         &'c mut self,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
-        match self.popup {
-            Popup::Opaque(opaque) => opaque.overlay(
-                self.tree,
-                self.layout,
-                renderer,
-                &self.viewport,
-                Vector::ZERO,
-                self.window,
-            ),
-            Popup::Transparent(popup) => popup.overlay(
-                self.tree,
-                self.layout,
-                renderer,
-                &self.viewport,
-                Vector::ZERO,
-                self.window,
-            ),
-        }
+        self.content
+            .overlay(self.tree, self.layout, renderer, &self.viewport, Vector::ZERO, self.window)
     }
 
     /// Draws the popover on top of other overlays.

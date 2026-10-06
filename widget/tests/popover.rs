@@ -11,7 +11,6 @@ use iced_widget::core::mouse::{self, Button, Cursor};
 use iced_widget::core::shell;
 use iced_widget::core::widget::{Tree, Widget};
 use iced_widget::core::window::Headless;
-use iced_widget::core::overlay;
 use iced_widget::core::{Event, Point, Rectangle, Size, Theme, Vector};
 use iced_widget::{button, popover, space};
 
@@ -237,46 +236,5 @@ fn no_on_close_publishes_nothing() {
     assert!(
         messages(bus).is_empty(),
         "a popover without an on_close handler should publish nothing"
-    );
-}
-
-#[test]
-fn passthrough_toggles_opaque_behavior() {
-    // A point inside the (empty) popup area.
-    const INSIDE: Point = Point::new(40.0, 95.0);
-
-    fn interaction(
-        element: &mut popover::Popover<space::Space, space::Space, Message>,
-    ) -> mouse::Interaction {
-        let (mut tree, layout) = setup(element);
-
-        let viewport = Rectangle::with_size(VIEWPORT);
-        let overlay: overlay::Element<'_, Message, Theme, ()> = element
-            .overlay(&mut tree, layout, &(), &viewport, Vector::ZERO, WINDOW)
-            .into_iter()
-            .next()
-            .expect("popover overlay should exist");
-
-        overlay
-            .as_overlay()
-            .mouse_interaction(Cursor::Available(INSIDE), &())
-    }
-
-    // An opaque popover does not let the cursor pass through to the layers
-    // below: it reports an `Idle` interaction over its popup area.
-    let mut opaque = new_popover(true);
-    assert_eq!(
-        interaction(&mut opaque),
-        mouse::Interaction::Idle,
-        "an opaque popover should not let the cursor pass through"
-    );
-
-    // A passthrough popover lets the cursor pass through: it reports no
-    // interaction at all over the (empty) popup area.
-    let mut passthrough = new_popover(true).passthrough(true);
-    assert_eq!(
-        interaction(&mut passthrough),
-        mouse::Interaction::None,
-        "a passthrough popover should let the cursor pass through"
     );
 }
