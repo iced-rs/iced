@@ -162,8 +162,7 @@ impl<W, V, Message> Popover<W, V, Message> {
 
 impl<W, V, Message> widget::Meta for Popover<W, V, Message> {}
 
-impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Popover<W, V, Message>
+impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Popover<W, V, Message>
 where
     Message: Clone,
     Renderer: crate::core::Renderer,
@@ -183,17 +182,13 @@ where
     fn diff(&mut self, tree: &mut widget::Tree) {
         // The popup's contents may have changed, so the cached layout
         // (if any) is no longer valid
-        tree.state
-            .downcast_mut::<State>()
-            .needs_relayout = true;
+        tree.state.downcast_mut::<State>().needs_relayout = true;
 
         match self.popup.as_mut() {
             Some(popup) => {
                 if tree.children.len() != 2 {
-                    tree.children = vec![
-                        widget::Tree::new(&self.content),
-                        widget::Tree::new(popup),
-                    ];
+                    tree.children =
+                        vec![widget::Tree::new(&self.content), widget::Tree::new(popup)];
                 }
 
                 tree.children[0].diff(&mut self.content);
@@ -302,14 +297,9 @@ where
         let base = children.next().unwrap();
         let popup_tree = children.next();
 
-        let mut overlays = self.content.overlay(
-            base,
-            layout,
-            renderer,
-            viewport,
-            translation,
-            window,
-        );
+        let mut overlays =
+            self.content
+                .overlay(base, layout, renderer, viewport, translation, window);
 
         if let (Some(popup), Some(popup_tree)) = (self.popup.as_mut(), popup_tree) {
             let state = tree.state.downcast_mut::<State>();
@@ -370,8 +360,7 @@ where
     W: Widget<Message, Theme, Renderer> + 'a,
     V: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(popover: Popover<W, V, Message>) -> crate::Element<'a, Message, Theme, Renderer>
-    {
+    fn from(popover: Popover<W, V, Message>) -> crate::Element<'a, Message, Theme, Renderer> {
         popover._boxed()
     }
 }
@@ -421,14 +410,6 @@ struct Overlay<'b, V, Message> {
     window: Size,
 }
 
-impl<'b, V, Message> Overlay<'b, V, Message> {
-    fn bounds(&self) -> Rectangle {
-        self.viewport
-            .intersection(&self.layout.bounds())
-            .unwrap_or(self.layout.bounds())
-    }
-}
-
 impl<V, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'_, V, Message>
 where
@@ -444,11 +425,11 @@ where
     ) {
         let cursor_position = cursor.position();
 
-        let is_inside = cursor_position
-            .is_some_and(|position| self.layout.bounds().contains(position));
+        let is_inside =
+            cursor_position.is_some_and(|position| self.layout.bounds().contains(position));
 
-        let is_over_base = cursor_position
-            .is_some_and(|position| self.content_bounds.contains(position));
+        let is_over_base =
+            cursor_position.is_some_and(|position| self.content_bounds.contains(position));
 
         if matches!(
             event,
@@ -471,8 +452,15 @@ where
             return;
         }
 
-        self.content
-            .update(self.tree, event, self.layout, cursor, renderer, shell, &self.bounds());
+        self.content.update(
+            self.tree,
+            event,
+            self.layout,
+            cursor,
+            renderer,
+            shell,
+            &self.viewport,
+        );
     }
 
     fn draw(
@@ -482,9 +470,7 @@ where
         style: &renderer::Style,
         cursor_position: mouse::Cursor,
     ) {
-        let bounds = self.bounds();
-
-        renderer.with_layer(bounds, |renderer| {
+        renderer.with_layer(self.viewport, |renderer| {
             self.content.draw(
                 self.tree,
                 renderer,
@@ -492,7 +478,7 @@ where
                 style,
                 self.layout,
                 cursor_position,
-                &bounds,
+                &self.viewport,
             );
         });
     }
@@ -503,20 +489,26 @@ where
         }
 
         self.content
-            .mouse_interaction(self.tree, self.layout, cursor, &self.bounds(), renderer)
+            .mouse_interaction(self.tree, self.layout, cursor, &self.viewport, renderer)
     }
 
     fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         self.content
-            .operate(self.tree, self.layout, &self.bounds(), renderer, operation);
+            .operate(self.tree, self.layout, &self.viewport, renderer, operation);
     }
 
     fn overlay<'c>(
         &'c mut self,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
-        self.content
-            .overlay(self.tree, self.layout, renderer, &self.viewport, Vector::ZERO, self.window)
+        self.content.overlay(
+            self.tree,
+            self.layout,
+            renderer,
+            &self.viewport,
+            Vector::ZERO,
+            self.window,
+        )
     }
 
     /// Draws the popover on top of other overlays.
