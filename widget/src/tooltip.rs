@@ -433,8 +433,13 @@ where
     }
 
     fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
-        self.tooltip
-            .mouse_interaction(self.tree, self.layout, cursor, &Rectangle::with_size(self.window), renderer)
+        self.tooltip.mouse_interaction(
+            self.tree,
+            self.layout,
+            cursor,
+            &Rectangle::with_size(self.window),
+            renderer,
+        )
     }
 
     fn draw(
@@ -467,13 +472,8 @@ where
         operation.container(None, self.layout.bounds(), &viewport);
 
         operation.traverse(&mut |operation| {
-            self.tooltip.operate(
-                self.tree,
-                self.layout,
-                &viewport,
-                renderer,
-                operation,
-            );
+            self.tooltip
+                .operate(self.tree, self.layout, &viewport, renderer, operation);
         });
     }
 

@@ -13,10 +13,10 @@
 //! The popover's overlay does not capture mouse events on its own: unless
 //! the popup's content handles them, events pass through the popup to the
 //! layers below. If you want to capture mouse button presses inside the
-//! popup's bounds, wrap the popup's content in [`opaque`].
+//! popup's bounds, wrap the popup's content in [`opaque()`].
 //!
 //! [`tooltip`]: crate::tooltip::Tooltip
-//! [`opaque`]: crate::opaque
+//! [`opaque()`]: crate::opaque()
 //!
 //! # Example
 //! ```no_run
@@ -65,9 +65,9 @@ use crate::core::{Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 /// The popover's overlay does not capture mouse events on its own: unless
 /// the popup's content handles them, events pass through the popup to the
 /// layers below. If you want to capture mouse button presses inside the
-/// popup's bounds, wrap the popup's content in [`opaque`].
+/// popup's bounds, wrap the popup's content in [`opaque()`].
 ///
-/// [`opaque`]: crate::opaque
+/// [`opaque()`]: crate::opaque()
 ///
 /// # Example
 /// ```no_run

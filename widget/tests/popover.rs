@@ -78,7 +78,13 @@ where
 
 /// Drives a single event through the (open) popover overlay and returns the
 /// bus of published messages.
-fn drive_overlay<W>(widget: &mut W, tree: &mut Tree, layout: Layout, event: &Event, cursor: Cursor) -> shell::Bus<Message>
+fn drive_overlay<W>(
+    widget: &mut W,
+    tree: &mut Tree,
+    layout: Layout,
+    event: &Event,
+    cursor: Cursor,
+) -> shell::Bus<Message>
 where
     W: Widget<Message, Theme, ()>,
 {
@@ -93,7 +99,9 @@ where
     let mut bus = shell::Bus::new();
     let mut shell = shell::Shell::new(&Headless, shell::Waker::noop(), &mut bus);
 
-    overlay.as_overlay_mut().update(event, cursor, &(), &mut shell);
+    overlay
+        .as_overlay_mut()
+        .update(event, cursor, &(), &mut shell);
 
     bus
 }

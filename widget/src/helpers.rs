@@ -536,7 +536,6 @@ pub fn opaque<W>(content: W) -> Opaque<W> {
     Opaque::new(content)
 }
 
-
 /// Displays a widget on top of another one, only when the base widget is hovered.
 ///
 /// This works analogously to a [`stack`], but it will only display the layer on top
@@ -677,10 +676,7 @@ where
 ///     .on_close(Message::Close)
 /// }
 /// ```
-pub fn popover<W, V, Message>(
-    content: W,
-    popover: Option<V>,
-) -> crate::Popover<W, V, Message> {
+pub fn popover<W, V, Message>(content: W, popover: Option<V>) -> crate::Popover<W, V, Message> {
     Popover::new(content, popover)
 }
 
@@ -1414,7 +1410,8 @@ where
     crate::Svg::new(handle)
 }
 
-/// Creates an [`Element`] that displays the iced logo with the given `text_size`.
+/// Creates an [`Element`](crate::Element) that displays the iced logo with
+/// the given `text_size`.
 ///
 /// Useful for showing some love to your favorite GUI library in your "About" screen,
 /// for instance.

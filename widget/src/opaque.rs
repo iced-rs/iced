@@ -31,8 +31,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Operation, Widget};
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{self, Operation, Widget};
 use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector};
 
 /// Wraps the given widget and captures any mouse button presses inside the bounds of
@@ -135,7 +135,8 @@ where
     ) {
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-        self.content.operate(tree, layout, viewport, renderer, operation);
+        self.content
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
