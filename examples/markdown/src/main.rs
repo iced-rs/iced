@@ -9,7 +9,7 @@ use iced::widget::{
     scrollable, sensor, space, text_editor, toggler,
 };
 use iced::window;
-use iced::{Animation, Center, Code, Element, Fill, Font, Function, Subscription, Task, Theme};
+use iced::{Animation, Center, Code, Fill, Font, Function, Subscription, Task, Theme, Widget};
 
 use std::collections::HashMap;
 use std::io;
@@ -139,7 +139,7 @@ impl Markdown {
                         offset: 0,
                     };
 
-                    operation::snap_to_end("preview", operation::Animation::Auto)
+                    operation::scrollable::snap_to_end("preview", operation::Animation::Auto)
                 } else {
                     self.mode = Mode::Preview;
 
@@ -170,7 +170,7 @@ impl Markdown {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let settings = markdown::Settings::default().line_height(1.5);
 
         let editor = text_editor(&self.raw)
@@ -215,7 +215,6 @@ impl Markdown {
         ]
         .spacing(settings.spacing)
         .padding(settings.spacing / 2.0)
-        .into()
     }
 
     fn theme(&self) -> Theme {
@@ -270,20 +269,20 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         url: &'a markdown::Uri,
         _title: &'a str,
         _alt: &markdown::Text,
-    ) -> Element<'a, Message> {
+    ) -> impl Widget<Message> + 'a {
         if let Some(Image::Ready { handle, fade_in }) = self.images.get(url) {
             center_x(
                 image(handle)
                     .opacity(fade_in.interpolate(0.0, 1.0, self.now))
                     .scale(fade_in.interpolate(1.2, 1.0, self.now)),
             )
-            .into()
+            .boxed()
         } else {
             sensor(space())
                 .key_ref(url.as_str())
                 .delay(milliseconds(500))
                 .on_show(|_size| Message::ImageShown(url.clone()))
-                .into()
+                .boxed()
         }
     }
 
@@ -293,7 +292,7 @@ impl<'a> markdown::Viewer<'a, Message> for CustomViewer<'a> {
         _language: Option<&'a str>,
         code: &'a str,
         lines: &'a [markdown::Text],
-    ) -> Element<'a, Message> {
+    ) -> impl Widget<Message> + 'a {
         let code_block = markdown::code_block(self, settings, lines, Message::LinkClicked);
 
         let copy = button(icon::copy().size(12))

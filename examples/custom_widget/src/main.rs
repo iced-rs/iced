@@ -5,7 +5,7 @@ mod circle {
     use iced::advanced::widget::{self, Widget};
     use iced::border;
     use iced::mouse;
-    use iced::{Color, Element, Length, Rectangle, Size};
+    use iced::{Color, Length, Rectangle, Size};
 
     pub struct Circle {
         radius: f32,
@@ -20,6 +20,8 @@ mod circle {
     pub fn circle(radius: f32) -> Circle {
         Circle::new(radius)
     }
+
+    impl widget::Meta for Circle {}
 
     impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Circle
     where
@@ -61,20 +63,11 @@ mod circle {
             );
         }
     }
-
-    impl<Message, Theme, Renderer> From<Circle> for Element<'_, Message, Theme, Renderer>
-    where
-        Renderer: renderer::Renderer,
-    {
-        fn from(circle: Circle) -> Self {
-            Self::new(circle)
-        }
-    }
 }
 
 use circle::circle;
 use iced::widget::{center, column, slider, text};
-use iced::{Center, Element, Fit};
+use iced::{Center, Fit, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Example::update, Example::view)
@@ -102,7 +95,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let content = column![
             circle(self.radius),
             text!("Radius: {:.2}", self.radius),
@@ -113,7 +106,7 @@ impl Example {
         .width(Fit.max(500))
         .align_x(Center);
 
-        center(content).into()
+        center(content)
     }
 }
 

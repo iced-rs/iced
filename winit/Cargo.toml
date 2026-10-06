@@ -21,7 +21,9 @@ unconditional-rendering = []
 linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 image = ["iced_runtime/image", "arboard/image-data"]
 x11 = ["winit/x11"]
-wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita", "arboard/wayland-data-control"]
+wayland = ["winit/wayland", "arboard/wayland-data-control"]
+wayland-dlopen = ["winit/wayland-dlopen"]
+wayland-decorations = ["winit/wayland-csd-adwaita"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -48,7 +50,3 @@ wasm-bindgen-futures.workspace = true
 [target.'cfg(target_os = "linux")'.dependencies]
 mundy.workspace = true
 mundy.optional = true
-
-# Delete once we update to `winit 0.31`
-[target.'cfg(target_os = "macos")'.dependencies]
-objc2 = { version = "0.5", features = ["relax-sign-encoding"] }

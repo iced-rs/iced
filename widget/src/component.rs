@@ -39,7 +39,10 @@ use std::cell::{Cell, RefCell};
 ///
 /// On the other hand, if a piece of state is only needed by the component itself,
 /// you can store it as part of its internal [`State`][Component::State].
-pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
+pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+where
+    Renderer: core::Renderer,
+{
     /// The internal state of this [`Component`].
     type State: Default + 'static;
 
@@ -58,7 +61,7 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
 
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
-    fn view(&self, state: &Self::State) -> Element<'a, Self::Event, Theme, Renderer>;
+    fn view(&self, state: &Self::State) -> impl crate::Widget<Self::Event, Theme, Renderer> + 'a;
 
     /// Listens to a runtime [`Event`] and performs an [`Action`] as a result.
     ///
@@ -100,7 +103,7 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
     /// By default, it does nothing.
     fn operate(
         &self,
-        _state: &Self::State,
+        _state: &mut Self::State,
         _bounds: Rectangle,
         _operation: &mut dyn widget::Operation,
     ) {
@@ -111,7 +114,7 @@ pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Rendere
 /// embedded in any application.
 pub fn component<'a, C, Message, Theme, Renderer>(
     component: C,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
     C::State: 'static,
@@ -119,18 +122,19 @@ where
     Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
-    Element::new(Instance {
+    Instance {
         component,
-        view: crate::space().into(),
+        view: crate::space()._boxed(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
         is_outdated: Cell::new(true),
         has_overlay: false,
-    })
+    }
 }
 
 struct Instance<'a, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
+    Renderer: core::Renderer,
 {
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
@@ -142,6 +146,13 @@ where
 struct Internal<State, Event> {
     state: State,
     events: shell::Bus<Event>,
+}
+
+impl<'a, C, Message, Theme, Renderer> widget::Meta for Instance<'a, C, Message, Theme, Renderer>
+where
+    C: Component<'a, Message, Theme, Renderer> + 'a,
+    Renderer: core::Renderer,
+{
 }
 
 impl<'a, C, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -170,7 +181,7 @@ where
         self.component.diff(&mut internal.state);
 
         if self.is_outdated.get() {
-            self.view = self.component.view(&internal.state);
+            self.view = self.component.view(&internal.state)._boxed();
             drop(internal);
 
             tree.diff_children(std::slice::from_mut(&mut self.view));
@@ -180,15 +191,13 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.view.as_widget().size()
+        self.view.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         if &self.limits != limits {
             self.limits = *limits;
-            self.view
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            self.view.layout(&mut tree.children[0], renderer, limits);
         }
 
         tree.size = tree.children[0].size;
@@ -225,10 +234,12 @@ where
             let _ = internal.events.push(event);
         }
 
+        let mut invalidation = shell::Invalidation::None;
+
         if !shell.is_event_captured() {
             let mut local_shell = shell.local(&mut internal.events);
 
-            self.view.as_widget_mut().update(
+            self.view.update(
                 &mut tree.children[0],
                 event,
                 layout,
@@ -242,13 +253,14 @@ where
                 shell.capture_event();
             }
 
-            shell.invalidate(local_shell.invalidation());
             shell.request_redraw_at(local_shell.redraw_request());
             shell.request_input_method(local_shell.input_method());
             shell.clipboard_mut().merge(local_shell.clipboard_mut());
+
+            invalidation = local_shell.invalidation();
         }
 
-        if internal.events.is_empty() {
+        if internal.events.is_empty() && matches!(invalidation, shell::Invalidation::None) {
             return;
         }
 
@@ -260,9 +272,9 @@ where
             }
         }
 
-        let previous_sizing = self.view.as_widget().size();
+        let previous_sizing = self.view.size();
 
-        self.view = self.component.view(state);
+        self.view = self.component.view(state)._boxed();
         drop(internal);
 
         tree.diff_children(std::slice::from_mut(&mut self.view));
@@ -270,12 +282,11 @@ where
         let previous_size = tree.size;
 
         self.view
-            .as_widget_mut()
             .layout(&mut tree.children[0], renderer, &self.limits);
 
         tree.size = tree.children[0].size;
 
-        let new_sizing = self.view.as_widget().size();
+        let new_sizing = self.view.size();
 
         // We must invalidate application layout in 2 instances:
         //
@@ -305,7 +316,7 @@ where
 
             let mut local_shell = shell.local(&mut internal.events);
 
-            self.view.as_widget_mut().update(
+            self.view.update(
                 &mut tree.children[0],
                 event,
                 layout,
@@ -333,7 +344,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.view.as_widget().draw(
+        self.view.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -363,13 +374,8 @@ where
             return interaction;
         }
 
-        self.view.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.view
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
@@ -383,20 +389,15 @@ where
         {
             let internal = tree
                 .state
-                .downcast_ref::<RefCell<Internal<C::State, C::Event>>>()
-                .borrow();
+                .downcast_mut::<RefCell<Internal<C::State, C::Event>>>()
+                .get_mut();
 
             self.component
-                .operate(&internal.state, layout.bounds(), operation);
+                .operate(&mut internal.state, layout.bounds(), operation);
         }
 
-        self.view.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.view
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'b>(
@@ -408,7 +409,7 @@ where
         translation: Vector,
         window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let overlays = self.view.as_widget_mut().overlay(
+        let overlays = self.view.overlay(
             &mut tree.children[0],
             layout,
             renderer,
@@ -440,6 +441,7 @@ where
 struct Overlay<'a, 'b, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer>,
+    Renderer: core::Renderer,
 {
     component: &'b C,
     internal: &'b RefCell<Internal<C::State, C::Event>>,

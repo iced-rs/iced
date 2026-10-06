@@ -2,8 +2,8 @@ use iced::mouse;
 use iced::widget::{canvas, column, container, row, slider, text};
 use iced::window;
 use iced::{
-    Center, Element, Event, Fill, Font, Point, Rectangle, Renderer, Size, Subscription, Theme,
-    Vector,
+    Center, Event, Fill, Font, Point, Rectangle, Renderer, Size, Subscription, Theme, Vector,
+    Widget,
 };
 
 use std::collections::{HashMap, HashSet};
@@ -70,7 +70,7 @@ impl Sandpiles {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let viewer = canvas(Viewer {
             grid: &self.grid,
             cache: &self.cache,
@@ -95,7 +95,7 @@ impl Sandpiles {
         .align_x(Center)
         .style(container::dark);
 
-        column![viewer, speed].into()
+        column![viewer, speed]
     }
 
     fn subscription(&self) -> Subscription<Message> {

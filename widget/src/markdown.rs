@@ -7,11 +7,10 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
 //! #
 //! use iced::widget::markdown;
-//! use iced::Theme;
+//! use iced::{Theme, Widget};
 //!
 //! struct State {
 //!    markdown: Vec<markdown::Item>,
@@ -28,14 +27,13 @@
 //!         }
 //!     }
 //!
-//!     fn view(&self) -> Element<'_, Message> {
+//!     fn view(&self) -> impl Widget<Message> {
 //!         markdown::view(
 //!             &self.markdown,
 //!             markdown::Settings::default(),
 //!             Theme::TokyoNight,
 //!         )
 //!             .map(Message::LinkClicked)
-//!             .into()
 //!     }
 //!
 //!     fn update(state: &mut State, message: Message) {
@@ -54,8 +52,10 @@ use crate::core::font::{self, Font};
 use crate::core::padding;
 use crate::core::text::LineHeight;
 use crate::core::theme;
-use crate::core::{Code, Color, Element, Length, Padding, Pixels, Theme};
-use crate::{center_x, checkbox, column, container, rich_text, row, rule, scrollable, span, text};
+use crate::core::{Code, Color, Length, Padding, Pixels, Theme};
+use crate::{
+    Widget, center_x, checkbox, column, container, rich_text, row, rule, scrollable, span, text,
+};
 
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
@@ -625,7 +625,7 @@ impl Content {
 
     /// Returns the Markdown items, ready to be rendered.
     ///
-    /// You can use [`view`] to turn them into an [`Element`].
+    /// You can use [`view`] to turn them into a [`Widget`].
     pub fn items(&self) -> &[Item] {
         &self.items
     }
@@ -960,11 +960,10 @@ impl Bullet {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
 /// #
 /// use iced::widget::markdown;
-/// use iced::Theme;
+/// use iced::{Theme, Widget};
 ///
 /// struct State {
 ///    markdown: Vec<markdown::Item>,
@@ -981,14 +980,13 @@ impl Bullet {
 ///         }
 ///     }
 ///
-///     fn view(&self) -> Element<'_, Message> {
+///     fn view(&self) -> impl Widget<Message> {
 ///         markdown::view(
 ///             &self.markdown,
 ///             markdown::Settings::default(),
 ///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
-///             .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -1720,11 +1718,10 @@ impl Default for Settings {
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::{Renderer, Widget}; pub use iced_widget::core::*; }
 /// #
 /// use iced::widget::markdown;
-/// use iced::Theme;
+/// use iced::{Theme, Widget};
 ///
 /// struct State {
 ///    markdown: Vec<markdown::Item>,
@@ -1741,14 +1738,13 @@ impl Default for Settings {
 ///         }
 ///     }
 ///
-///     fn view(&self) -> Element<'_, Message> {
+///     fn view(&self) -> impl Widget<Message> {
 ///         markdown::view(
 ///             &self.markdown,
 ///             markdown::Settings::default(),
 ///             Theme::TokyoNight,
 ///         )
 ///             .map(Message::LinkClicked)
-///             .into()
 ///     }
 ///
 ///     fn update(state: &mut State, message: Message) {
@@ -1764,10 +1760,10 @@ pub fn view<'a, Theme, Renderer>(
     items: &'a [Item],
     settings: impl Into<Settings>,
     theme: Theme,
-) -> Element<'a, Uri, Theme, Renderer>
+) -> impl Widget<Uri, Theme, Renderer> + 'a
 where
-    Theme: Catalog + 'a,
-    Renderer: core::text::Renderer + 'a,
+    Theme: Catalog + 'static,
+    Renderer: core::text::Renderer,
 {
     view_with(
         items,
@@ -1777,10 +1773,10 @@ where
             highlighter: None,
         },
     )
+    .boxed()
 }
 
-/// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into
-/// an [`Element`].
+/// Runs [`view`] but with a custom [`Viewer`] to turn an [`Item`] into a widget.
 ///
 /// This is useful if you want to customize the look of certain Markdown
 /// elements.
@@ -1788,11 +1784,11 @@ pub fn view_with<'a, Message, Theme, Renderer>(
     items: &'a [Item],
     settings: impl Into<Settings>,
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
-    Renderer: core::text::Renderer + 'a,
+    Renderer: core::text::Renderer,
 {
     self::items(viewer, settings.into(), items)
 }
@@ -1802,32 +1798,34 @@ pub fn item<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     item: &'a Item,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
     match item {
-        Item::Image { url, title, alt } => viewer.image(settings, url, title, alt),
-        Item::Heading(level, text) => viewer.heading(settings, level, text),
-        Item::Paragraph(text) => viewer.paragraph(settings, text),
+        Item::Image { url, title, alt } => viewer.image(settings, url, title, alt).boxed(),
+        Item::Heading(level, text) => viewer.heading(settings, level, text).boxed(),
+        Item::Paragraph(text) => viewer.paragraph(settings, text).boxed(),
         Item::CodeBlock {
             language,
             code,
             lines,
-        } => viewer.code_block(settings, language.as_deref(), code, lines),
+        } => viewer
+            .code_block(settings, language.as_deref(), code, lines)
+            .boxed(),
         Item::List {
             start: None,
             bullets,
-        } => viewer.unordered_list(settings, bullets),
+        } => viewer.unordered_list(settings, bullets).boxed(),
         Item::List {
             start: Some(start),
             bullets,
-        } => viewer.ordered_list(settings, *start, bullets),
-        Item::Quote(quote) => viewer.quote(settings, quote),
-        Item::Rule => viewer.rule(),
-        Item::Table { columns, rows } => viewer.table(settings, columns, rows),
+        } => viewer.ordered_list(settings, *start, bullets).boxed(),
+        Item::Quote(quote) => viewer.quote(settings, quote).boxed(),
+        Item::Rule => viewer.rule().boxed(),
+        Item::Table { columns, rows } => viewer.table(settings, columns, rows).boxed(),
     }
 }
 
@@ -1838,7 +1836,7 @@ pub fn heading<'a, Message, Theme, Renderer>(
     level: &'a HeadingLevel,
     text: &'a Text,
     on_link_click: impl Fn(Uri) -> Message + 'a,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -1882,9 +1880,9 @@ where
         ))
         .on_link_click(on_link_click)
         .size(size)
-        .line_height(settings.line_height),
+        .line_height(settings.line_height)
+        .selectable(true),
     )
-    .into()
 }
 
 /// Displays a paragraph using the default look.
@@ -1893,7 +1891,7 @@ pub fn paragraph<'a, Message, Theme, Renderer>(
     settings: Settings,
     text: &Text,
     on_link_click: impl Fn(Uri) -> Message + 'a,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -1903,7 +1901,7 @@ where
         .size(settings.text_size)
         .line_height(settings.line_height)
         .on_link_click(on_link_click)
-        .into()
+        .selectable(true)
 }
 
 /// Displays an unordered list using the default look and
@@ -1912,7 +1910,7 @@ pub fn unordered_list<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     bullets: &'a [Bullet],
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -1922,13 +1920,15 @@ where
         row![
             match bullet {
                 Bullet::Point { .. } => {
-                    text("•").size(settings.text_size).into()
+                    text("•")
+                        .size(settings.text_size)
+                        .line_height(settings.line_height)
+                        .boxed()
                 }
                 Bullet::Task { done, .. } => {
-                    Element::from(
-                        container(checkbox(*done).size(settings.text_size))
-                            .center_y(text::LineHeight::default().to_absolute(settings.text_size)),
-                    )
+                    container(checkbox(*done).size(settings.text_size))
+                        .center_y(settings.line_height.to_absolute(settings.text_size))
+                        .boxed()
                 }
             },
             items(
@@ -1941,11 +1941,9 @@ where
             )
         ]
         .spacing(settings.text_size / 2.0)
-        .into()
     }))
     .spacing(settings.spacing / 2.0)
     .padding(padding::left(settings.text_size.0))
-    .into()
 }
 
 /// Displays an ordered list using the default look and
@@ -1955,7 +1953,7 @@ pub fn ordered_list<'a, Message, Theme, Renderer>(
     settings: Settings,
     start: u64,
     bullets: &'a [Bullet],
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -1979,10 +1977,8 @@ where
             )
         ]
         .spacing(settings.text_size / 2.0)
-        .into()
     }))
     .spacing(settings.spacing / 2.0)
-    .into()
 }
 
 /// Displays a code block using the default look.
@@ -1991,7 +1987,7 @@ pub fn code_block<'a, Message, Theme, Renderer>(
     settings: Settings,
     lines: &'a [Text],
     on_link_click: impl Fn(Uri) -> Message + Clone + 'a,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -2006,7 +2002,7 @@ where
                 .font(settings.code_block_font)
                 .size(settings.code_block_size)
                 .line_height(settings.line_height)
-                .into()
+                .selectable(true)
         })))
         .direction(scrollable::Direction::Horizontal(
             scrollable::Scrollbar::default()
@@ -2018,7 +2014,6 @@ where
     .width(Length::Fill)
     .padding(padding)
     .class(Theme::code_block())
-    .into()
 }
 
 /// Displays a quote using the default look.
@@ -2026,7 +2021,7 @@ pub fn quote<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     contents: &'a [Item],
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -2043,17 +2038,16 @@ where
     .width(Length::Fill)
     .padding(settings.spacing.0)
     .class(Theme::quote())
-    .into()
 }
 
 /// Displays a rule using the default look.
-pub fn rule<'a, Message, Theme, Renderer>() -> Element<'a, Message, Theme, Renderer>
+pub fn rule<'a, Message, Theme, Renderer>() -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
     Renderer: core::text::Renderer + 'a,
 {
-    rule::horizontal(2).into()
+    rule::horizontal(2)
 }
 
 /// Displays a table using the default look.
@@ -2062,7 +2056,7 @@ pub fn table<'a, Message, Theme, Renderer>(
     settings: Settings,
     columns: &'a [Column],
     rows: &'a [Row],
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -2076,7 +2070,7 @@ where
                 if let Some(cells) = row.cells.get(i) {
                     items(viewer, settings, cells)
                 } else {
-                    text("").into()
+                    items(viewer, settings, &[])
                 }
             })
             .width(Length::Fit.max(300))
@@ -2101,7 +2095,6 @@ where
             ))
             .spacing(settings.spacing.0 / 2.0),
     )
-    .into()
 }
 
 /// Displays a column of items with the default look.
@@ -2109,7 +2102,7 @@ pub fn items<'a, Message, Theme, Renderer>(
     viewer: &impl Viewer<'a, Message, Theme, Renderer>,
     settings: Settings,
     items: &'a [Item],
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Theme: Catalog + 'a,
@@ -2121,24 +2114,20 @@ where
                 .iter()
                 .map(|content| item(viewer, settings, content)),
         )
-        .spacing(settings.spacing)
-        .into();
+        .spacing(settings.spacing);
 
         if let Some(heading) = heading {
-            column![item(viewer, settings, heading), contents]
-                .spacing(settings.spacing / 2.0)
-                .into()
+            column![item(viewer, settings, heading), contents].spacing(settings.spacing / 2.0)
         } else {
-            contents
+            column![contents]
         }
     }))
     .spacing(settings.spacing * 1.5)
-    .into()
 }
 
 /// A view strategy to display a Markdown [`Item`].
 ///
-/// A [`Viewer`] is in charge of turning each [`Item`] into an [`Element`]. It
+/// A [`Viewer`] is in charge of turning each [`Item`] into a widget. It
 /// also provides the [`Theme`] and [`text::Highlighter`] used for rendering.
 pub trait Viewer<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
@@ -2165,7 +2154,7 @@ where
         url: &'a Uri,
         title: &'a str,
         alt: &Text,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         let _url = url;
         let _title = title;
 
@@ -2175,7 +2164,6 @@ where
         )
         .padding(settings.spacing.0)
         .class(Theme::code_block())
-        .into()
     }
 
     /// Displays a heading.
@@ -2186,14 +2174,18 @@ where
         settings: Settings,
         level: &'a HeadingLevel,
         text: &'a Text,
-    ) -> Element<'a, Message, Theme, Renderer> {
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         heading(self, settings, level, text, Self::on_link_click)
     }
 
     /// Displays a paragraph.
     ///
     /// By default, it calls [`paragraph`].
-    fn paragraph(&self, settings: Settings, text: &Text) -> Element<'a, Message, Theme, Renderer> {
+    fn paragraph(
+        &self,
+        settings: Settings,
+        text: &Text,
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         paragraph(self, settings, text, Self::on_link_click)
     }
 
@@ -2206,7 +2198,7 @@ where
         language: Option<&'a str>,
         code: &'a str,
         lines: &'a [Text],
-    ) -> Element<'a, Message, Theme, Renderer> {
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         let _language = language;
         let _code = code;
 
@@ -2220,7 +2212,7 @@ where
         &self,
         settings: Settings,
         bullets: &'a [Bullet],
-    ) -> Element<'a, Message, Theme, Renderer> {
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         unordered_list(self, settings, bullets)
     }
 
@@ -2232,7 +2224,7 @@ where
         settings: Settings,
         start: u64,
         bullets: &'a [Bullet],
-    ) -> Element<'a, Message, Theme, Renderer> {
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         ordered_list(self, settings, start, bullets)
     }
 
@@ -2243,14 +2235,14 @@ where
         &self,
         settings: Settings,
         contents: &'a [Item],
-    ) -> Element<'a, Message, Theme, Renderer> {
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         quote(self, settings, contents)
     }
 
     /// Displays a rule.
     ///
     /// By default, it calls [`rule`](self::rule()).
-    fn rule(&self) -> Element<'a, Message, Theme, Renderer> {
+    fn rule(&self) -> impl Widget<Message, Theme, Renderer> + 'a {
         rule()
     }
 
@@ -2262,7 +2254,7 @@ where
         settings: Settings,
         columns: &'a [Column],
         rows: &'a [Row],
-    ) -> Element<'a, Message, Theme, Renderer> {
+    ) -> impl Widget<Message, Theme, Renderer> + 'a {
         table(self, settings, columns, rows)
     }
 }

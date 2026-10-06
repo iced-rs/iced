@@ -1,14 +1,17 @@
 //! Implement your own event loop to drive a user interface.
 use crate::core::event::{self, Event};
+use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::shell;
+use crate::core::text;
 use crate::core::widget;
+use crate::core::widget::operation::{self, Operation};
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, InputMethod, Layout, Rectangle, Shell, Size, Vector, Window,
+    Clipboard, InputMethod, Layout, Point, Rectangle, Shell, Size, Vector, Widget, Window,
 };
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -24,17 +27,21 @@ use crate::core::{
 ///
 /// [`integration`]: https://github.com/iced-rs/iced/tree/master/examples/integration
 pub struct UserInterface<'a, Message, Theme, Renderer> {
-    root: Element<'a, Message, Theme, Renderer>,
+    root: widget::Element<'a, Message, Theme, Renderer>,
     state: widget::Tree,
     overlay: Option<mouse::Interaction>,
     bounds: Size,
+    last_click: Option<mouse::Click>,
+    selection: Option<(Point, Point)>,
 }
 
 impl<'a, Message, Theme, Renderer> UserInterface<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Message: 'a,
+    Theme: 'a,
+    Renderer: crate::core::Renderer + 'a,
 {
-    /// Builds a user interface for an [`Element`].
+    /// Builds a user interface for a [`Widget`].
     ///
     /// It is able to avoid expensive computations when using a [`Cache`]
     /// obtained from a previous instance of a [`UserInterface`].
@@ -89,18 +96,22 @@ where
     ///     cache = user_interface.into_cache();
     /// }
     /// ```
-    pub fn build<E: Into<Element<'a, Message, Theme, Renderer>>>(
-        root: E,
+    pub fn build(
+        root: impl Widget<Message, Theme, Renderer> + 'a,
         bounds: Size,
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let mut root = root.into();
+        let Cache {
+            mut state,
+            last_click,
+            selection,
+        } = cache;
 
-        let Cache { mut state } = cache;
-        state.diff(root.as_widget_mut());
+        let mut root = root._boxed();
+        state.diff(&mut root);
 
-        root.as_widget_mut().layout(
+        root.layout(
             &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
@@ -111,6 +122,8 @@ where
             state,
             overlay: None,
             bounds,
+            last_click,
+            selection,
         }
     }
 
@@ -198,7 +211,7 @@ where
         let mut layout = Layout::new(self.state.size);
         let viewport = Rectangle::with_size(self.bounds);
 
-        let overlay = self.root.as_widget_mut().overlay(
+        let overlay = self.root.overlay(
             &mut self.state,
             layout,
             renderer,
@@ -233,12 +246,12 @@ where
                     if let shell::Invalidation::Layout(diff) = invalidation {
                         match diff {
                             shell::Diff::Perform => {
-                                self.root.as_widget_mut().diff(&mut self.state);
+                                self.root.diff(&mut self.state);
                             }
                             shell::Diff::Skip => {}
                         }
 
-                        self.root.as_widget_mut().layout(
+                        self.root.layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -248,7 +261,7 @@ where
                     }
 
                     maybe_overlay = {
-                        let overlay = self.root.as_widget_mut().overlay(
+                        let overlay = self.root.overlay(
                             &mut self.state,
                             layout,
                             renderer,
@@ -312,7 +325,7 @@ where
 
                 let mut shell = Shell::new(window, waker.clone(), messages);
 
-                self.root.as_widget_mut().update(
+                self.root.update(
                     &mut self.state,
                     event,
                     layout,
@@ -327,22 +340,18 @@ where
                 }
 
                 let invalidation = shell.invalidation();
-                status = status.max(invalidation);
-                redraw_request = redraw_request.min(shell.redraw_request());
-                input_method.merge(shell.input_method());
-                clipboard.merge(shell.clipboard_mut());
 
                 if let shell::Invalidation::Layout(_) | shell::Invalidation::Overlay = invalidation
                 {
                     if let shell::Invalidation::Layout(diff) = invalidation {
                         match diff {
                             shell::Diff::Perform => {
-                                self.root.as_widget_mut().diff(&mut self.state);
+                                self.root.diff(&mut self.state);
                             }
                             shell::Diff::Skip => {}
                         }
 
-                        self.root.as_widget_mut().layout(
+                        self.root.layout(
                             &mut self.state,
                             renderer,
                             &layout::Limits::new(Size::ZERO, self.bounds),
@@ -351,7 +360,7 @@ where
                         layout = Layout::new(self.state.size);
                     }
 
-                    let overlay = self.root.as_widget_mut().overlay(
+                    let overlay = self.root.overlay(
                         &mut self.state,
                         layout,
                         renderer,
@@ -367,18 +376,78 @@ where
                     }
                 }
 
-                shell.event_status().merge(overlay_status)
+                match (&event, shell.event_status()) {
+                    (
+                        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+                        event::Status::Ignored,
+                    ) => {
+                        if let Some(position) = cursor.position() {
+                            self.last_click = Some(mouse::Click::new(
+                                position,
+                                mouse::Button::Left,
+                                self.last_click,
+                            ));
+
+                            self.selection = Some((position, Point::ORIGIN));
+                        }
+                    }
+                    (Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)), _) => {
+                        self.selection = None;
+                    }
+                    (
+                        Event::Keyboard(keyboard::Event::KeyPressed {
+                            key,
+                            modifiers,
+                            repeat: false,
+                            ..
+                        }),
+                        event::Status::Ignored,
+                    ) if matches!(key.as_ref(), keyboard::Key::Character("c"))
+                        && modifiers.control() =>
+                    {
+                        let mut copy = operation::text::copy();
+                        self.operate(renderer, &mut operation::black_box(&mut copy));
+
+                        if let operation::Outcome::Some(text) = copy.finish() {
+                            shell.write_clipboard(text);
+                        }
+                    }
+                    _ => {}
+                }
+
+                status = status.max(invalidation);
+                redraw_request = redraw_request.min(shell.redraw_request());
+                input_method.merge(shell.input_method());
+                clipboard.merge(shell.clipboard_mut());
+
+                shell.event_status()
             })
             .collect();
 
+        if let Some((start, end)) = self.selection.as_mut()
+            && let Some(click) = self.last_click
+            && let Some(position) = cursor.position()
+            && position != *end
+        {
+            *end = position;
+
+            let mut select = operation::text::select(
+                *start,
+                *end,
+                match click.kind() {
+                    mouse::click::Kind::Single => text::Target::Character,
+                    mouse::click::Kind::Double => text::Target::Word,
+                    mouse::click::Kind::Triple => text::Target::Line,
+                },
+            );
+
+            self.operate(renderer, &mut select);
+            redraw_request = window::RedrawRequest::NextFrame;
+        }
+
         let mouse_interaction = if overlay_interaction == mouse::Interaction::None {
-            self.root.as_widget().mouse_interaction(
-                &self.state,
-                layout,
-                base_cursor,
-                &viewport,
-                renderer,
-            )
+            self.root
+                .mouse_interaction(&self.state, layout, base_cursor, &viewport, renderer)
         } else {
             overlay_interaction
         };
@@ -494,7 +563,7 @@ where
             _ => cursor.levitate(),
         };
 
-        self.root.as_widget().draw(
+        self.root.draw(
             &self.state,
             renderer,
             theme,
@@ -510,7 +579,7 @@ where
             return;
         }
 
-        let overlay = root.as_widget_mut().overlay(
+        let overlay = root.overlay(
             &mut self.state,
             layout,
             renderer,
@@ -532,16 +601,11 @@ where
         let layout = Layout::new(self.state.size);
 
         operation.traverse(&mut |operation| {
-            self.root.as_widget_mut().operate(
-                &mut self.state,
-                layout,
-                &viewport,
-                renderer,
-                operation,
-            );
+            self.root
+                .operate(&mut self.state, layout, &viewport, renderer, operation);
         });
 
-        let overlay = self.root.as_widget_mut().overlay(
+        let overlay = self.root.overlay(
             &mut self.state,
             layout,
             renderer,
@@ -560,13 +624,26 @@ where
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
     pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, bounds, Cache { state: self.state }, renderer)
+        Self::build(
+            self.root,
+            bounds,
+            Cache {
+                state: self.state,
+                last_click: self.last_click,
+                selection: self.selection,
+            },
+            renderer,
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
     /// process.
     pub fn into_cache(self) -> Cache {
-        Cache { state: self.state }
+        Cache {
+            state: self.state,
+            last_click: self.last_click,
+            selection: self.selection,
+        }
     }
 }
 
@@ -574,6 +651,8 @@ where
 #[derive(Debug)]
 pub struct Cache {
     state: widget::Tree,
+    last_click: Option<mouse::Click>,
+    selection: Option<(Point, Point)>,
 }
 
 impl Cache {
@@ -584,6 +663,8 @@ impl Cache {
     pub fn new() -> Cache {
         Cache {
             state: widget::Tree::empty(),
+            last_click: None,
+            selection: None,
         }
     }
 }

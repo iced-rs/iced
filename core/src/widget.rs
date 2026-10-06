@@ -3,8 +3,10 @@ pub mod operation;
 pub mod text;
 pub mod tree;
 
+mod element;
 mod id;
 
+pub use element::Element;
 pub use id::Id;
 pub use operation::Operation;
 pub use text::Text;
@@ -14,6 +16,7 @@ use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::shell;
 use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
@@ -34,30 +37,9 @@ use crate::{Event, Length, Rectangle, Shell, Size, Vector};
 /// [`custom_widget`]: https://github.com/iced-rs/iced/tree/master/examples/custom_widget
 /// [`geometry`]: https://github.com/iced-rs/iced/tree/master/examples/geometry
 /// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/master/wgpu
-pub trait Widget<Message, Theme, Renderer>
-where
-    Renderer: crate::Renderer,
-{
+pub trait Widget<Message, Theme, Renderer>: Meta {
     /// Returns the [`Size`] of the [`Widget`] in lengths.
     fn size(&self) -> Size<Length>;
-
-    /// Lays out the [`Widget`].
-    ///
-    /// This computes the [`Layout`] of the [`Widget`] and stores the result
-    /// in the provided [`Tree`].
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits);
-
-    /// Draws the [`Widget`] using the associated `Renderer`.
-    fn draw(
-        &self,
-        tree: &Tree,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        style: &renderer::Style,
-        layout: Layout,
-        cursor: mouse::Cursor,
-        viewport: &Rectangle,
-    );
 
     /// Returns the [`Tag`] of the [`Widget`].
     ///
@@ -77,6 +59,24 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.children.clear();
     }
+
+    /// Lays out the [`Widget`].
+    ///
+    /// This computes the [`Layout`] of the [`Widget`] and stores the result
+    /// in the provided [`Tree`].
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits);
+
+    /// Draws the [`Widget`] using the associated `Renderer`.
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    );
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
@@ -131,19 +131,145 @@ where
         Vec::new()
     }
 
+    /// Applies a transformation to the produced message of this [`Widget`],
+    /// returning a [`Map`].
+    ///
+    /// This method is useful when you want to decouple different parts of your
+    /// UI and make them __composable__.
+    fn _map<F, B>(self, f: F) -> Map<Self, F, Message>
+    where
+        Self: Sized,
+        F: Fn(Message) -> B,
+    {
+        Map {
+            widget: self,
+            mapper: f,
+            _input: std::marker::PhantomData,
+        }
+    }
+
+    /// Boxes this [`Widget`], turning it into a generic [`Element`].
+    fn _boxed<'a>(self) -> Element<'a, Message, Theme, Renderer>
+    where
+        Self: Sized + 'a,
+    {
+        Element::new(self)
+    }
+}
+
+/// Metadata of a [`Widget`], independent of its generic parameters.
+pub trait Meta {
     /// Returns whether the [`Widget`] is [`Void`].
     fn is_void(&self) -> bool {
         false
     }
 }
 
+impl<T> Meta for &mut T
+where
+    T: Meta,
+{
+    fn is_void(&self) -> bool {
+        T::is_void(self)
+    }
+}
+
+impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for &mut T
+where
+    Renderer: crate::Renderer,
+    T: Widget<Message, Theme, Renderer>,
+{
+    fn size(&self) -> Size<Length> {
+        T::size(self)
+    }
+
+    fn tag(&self) -> tree::Tag {
+        T::tag(self)
+    }
+
+    fn state(&self) -> tree::State {
+        T::state(self)
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        T::diff(self, tree);
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        T::layout(self, tree, renderer, limits);
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        T::draw(self, tree, renderer, theme, style, layout, cursor, viewport);
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        T::operate(self, tree, layout, viewport, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        T::update(self, tree, event, layout, cursor, renderer, shell, viewport);
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        T::mouse_interaction(self, tree, layout, cursor, viewport, renderer)
+    }
+
+    fn overlay<'a>(
+        &'a mut self,
+        tree: &'a mut Tree,
+        layout: Layout,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: Vector,
+        window: Size,
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
+        T::overlay(self, tree, layout, renderer, viewport, translation, window)
+    }
+}
+
 /// A zero-sized [`Widget`] that does nothing and will be filtered out by containers.
 pub struct Void;
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void
-where
-    Renderer: crate::Renderer,
-{
+impl Meta for Void {
+    fn is_void(&self) -> bool {
+        true
+    }
+}
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void {
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Shrink,
@@ -164,8 +290,272 @@ where
         _viewport: &Rectangle,
     ) {
     }
+}
 
+/// A [`Widget`] that transforms the produced message of another widget.
+///
+/// This widget is returned by [`Widget::map`](Widget::_map).
+pub struct Map<W, F, A> {
+    widget: W,
+    mapper: F,
+    _input: std::marker::PhantomData<A>,
+}
+
+impl<W, F, A> Meta for Map<W, F, A>
+where
+    W: Meta,
+{
     fn is_void(&self) -> bool {
-        true
+        self.widget.is_void()
+    }
+}
+
+impl<W, A, B, F, Theme, Renderer> Widget<B, Theme, Renderer> for Map<W, F, A>
+where
+    W: Widget<A, Theme, Renderer>,
+    B: 'static,
+    F: Fn(A) -> B,
+    Theme: 'static,
+    Renderer: crate::Renderer + 'static,
+{
+    fn size(&self) -> Size<Length> {
+        self.widget.size()
+    }
+
+    fn tag(&self) -> tree::Tag {
+        self.widget.tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.widget.state()
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        self.widget.diff(tree);
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.widget.layout(tree, renderer, limits);
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        self.widget
+            .operate(tree, layout, viewport, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, B>,
+        viewport: &Rectangle,
+    ) {
+        let mut local_messages = shell::Bus::new();
+        let mut local_shell = shell.local(&mut local_messages);
+
+        self.widget.update(
+            tree,
+            event,
+            layout,
+            cursor,
+            renderer,
+            &mut local_shell,
+            viewport,
+        );
+
+        shell.merge(local_shell, &self.mapper);
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        self.widget
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.widget
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: Vector,
+        window: Size,
+    ) -> Vec<overlay::Element<'b, B, Theme, Renderer>> {
+        let mapper = &self.mapper;
+
+        self.widget
+            .overlay(tree, layout, renderer, viewport, translation, window)
+            .into_iter()
+            .map(move |overlay| overlay.map(mapper))
+            .collect()
+    }
+}
+
+impl<T> Meta for Option<T>
+where
+    T: Meta,
+{
+    fn is_void(&self) -> bool {
+        self.is_none()
+    }
+}
+
+impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Option<T>
+where
+    T: Widget<Message, Theme, Renderer>,
+    Renderer: crate::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        let Some(widget) = self else {
+            return Size {
+                width: Length::Shrink,
+                height: Length::Shrink,
+            };
+        };
+
+        widget.size()
+    }
+
+    fn tag(&self) -> tree::Tag {
+        let Some(widget) = self else {
+            return tree::Tag::stateless();
+        };
+
+        widget.tag()
+    }
+
+    fn state(&self) -> tree::State {
+        let Some(widget) = self else {
+            return tree::State::None;
+        };
+
+        widget.state()
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        let Some(widget) = self else {
+            tree.children.clear();
+            return;
+        };
+
+        widget.diff(tree);
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let Some(widget) = self else {
+            return;
+        };
+
+        widget.layout(tree, renderer, limits);
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        let Some(widget) = self else {
+            return;
+        };
+
+        widget.draw(tree, renderer, theme, style, layout, cursor, viewport);
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+        operation: &mut dyn Operation,
+    ) {
+        let Some(widget) = self else {
+            return;
+        };
+
+        widget.operate(tree, layout, viewport, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        let Some(widget) = self else {
+            return;
+        };
+
+        widget.update(tree, event, layout, cursor, renderer, shell, viewport);
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        let Some(widget) = self else {
+            return mouse::Interaction::None;
+        };
+
+        widget.mouse_interaction(tree, layout, cursor, viewport, renderer)
+    }
+
+    fn overlay<'a>(
+        &'a mut self,
+        tree: &'a mut Tree,
+        layout: Layout,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: Vector,
+        window: Size,
+    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
+        let Some(widget) = self else {
+            return Vec::new();
+        };
+
+        widget.overlay(tree, layout, renderer, viewport, translation, window)
     }
 }

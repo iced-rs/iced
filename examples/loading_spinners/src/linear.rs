@@ -1,12 +1,13 @@
 //! Show a linear progress indicator.
 use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
+use iced::advanced::widget::Meta;
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
 use iced::time::Instant;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Rectangle, Size};
+use iced::{Background, Color, Event, Length, Rectangle, Size};
 
 use super::easing::{self, Easing};
 
@@ -36,24 +37,6 @@ where
             easing: &easing::STANDARD,
             cycle_duration: Duration::from_millis(600),
         }
-    }
-
-    /// Sets the width of the [`Linear`].
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
-        self
-    }
-
-    /// Sets the height of the [`Linear`].
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
-        self
-    }
-
-    /// Sets the style variant of this [`Linear`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
-        self
     }
 
     /// Sets the motion easing of this [`Linear`].
@@ -136,6 +119,8 @@ impl State {
         }
     }
 }
+
+impl<'a, Theme> Meta for Linear<'a, Theme> where Theme: StyleSheet {}
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Linear<'a, Theme>
 where
@@ -235,17 +220,6 @@ where
                 Background::Color(custom_style.bar_color),
             ),
         }
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Linear<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Message: Clone + 'a,
-    Theme: StyleSheet + 'a,
-    Renderer: iced::advanced::Renderer + 'a,
-{
-    fn from(linear: Linear<'a, Theme>) -> Self {
-        Self::new(linear)
     }
 }
 

@@ -9,7 +9,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Event, Layout, Rectangle, Shell, Size, Vector};
+use crate::{Event, Layout, Rectangle, Shell, Size, Vector, Widget};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Theme, Renderer>
@@ -74,12 +74,12 @@ where
     }
 }
 
-/// Returns the overlays of the given [`Element`] children.
+/// Returns the overlays of the given [`Widget`] children.
 ///
 /// This method will generally only be used by advanced users that are
-/// implementing the [`Widget`](crate::Widget) trait.
+/// implementing the [`Widget`] trait.
 pub fn from_children<'a, Message, Theme, Renderer>(
-    children: &'a mut [crate::Element<'_, Message, Theme, Renderer>],
+    children: &'a mut [impl Widget<Message, Theme, Renderer>],
     tree: &'a mut Tree,
     layout: Layout,
     renderer: &Renderer,
@@ -94,9 +94,7 @@ where
         .iter_mut()
         .zip(layout.iter_mut(&mut tree.children))
         .flat_map(|(child, (layout, state))| {
-            child
-                .as_widget_mut()
-                .overlay(state, layout, renderer, viewport, translation, window)
+            child.overlay(state, layout, renderer, viewport, translation, window)
         })
         .collect()
 }

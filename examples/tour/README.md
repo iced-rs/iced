@@ -30,4 +30,4 @@ cd examples/tour
 trunk serve
 ```
 
-[`trunk`]: https://trunkrs.dev/
+[`trunk`]: https://trunk-rs.github.io/trunk/

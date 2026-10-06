@@ -19,7 +19,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::{pane_grid, text};
 //!
@@ -37,7 +37,7 @@
 //!     PaneResized(pane_grid::ResizeEvent),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     pane_grid(&state.panes, |pane, state, is_maximized| {
 //!         pane_grid::Content::new(match state {
 //!             Pane::SomePane => text("This is some pane"),
@@ -46,7 +46,6 @@
 //!     })
 //!     .on_drag(Message::PaneDragged)
 //!     .on_resize(10, Message::PaneResized)
-//!     .into()
 //! }
 //! ```
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
@@ -88,8 +87,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Border, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Theme, Vector, Widget,
+    self, Background, Border, Color, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Theme, Vector, Widget,
 };
 
 const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
@@ -117,7 +116,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{pane_grid, text};
 ///
@@ -135,7 +134,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     PaneResized(pane_grid::ResizeEvent),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     pane_grid(&state.panes, |pane, state, is_maximized| {
 ///         pane_grid::Content::new(match state {
 ///             Pane::SomePane => text("This is some pane"),
@@ -144,17 +143,16 @@ const THICKNESS_RATIO: f32 = 25.0;
 ///     })
 ///     .on_drag(Message::PaneDragged)
 ///     .on_resize(10, Message::PaneResized)
-///     .into()
 /// }
 /// ```
-pub struct PaneGrid<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct PaneGrid<'a, Message, T, W, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
 {
     internal: &'a state::Internal,
     panes: Vec<Pane>,
-    contents: Vec<Content<'a, Message, Theme, Renderer>>,
+    contents: Vec<Content<'a, Message, T, W, Theme, Renderer>>,
     width: Length,
     height: Length,
     spacing: f32,
@@ -166,7 +164,7 @@ where
     last_mouse_interaction: Option<mouse::Interaction>,
 }
 
-impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
+impl<'a, Message, T, W, Theme, Renderer> PaneGrid<'a, Message, T, W, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -175,9 +173,9 @@ where
     ///
     /// The view function will be called to display each [`Pane`] present in the
     /// [`State`]. [`bool`] is set if the pane is maximized.
-    pub fn new<T>(
-        state: &'a State<T>,
-        view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
+    pub fn new<S>(
+        state: &'a State<S>,
+        view: impl Fn(Pane, &'a S, bool) -> Content<'a, Message, T, W, Theme, Renderer>,
     ) -> Self {
         let panes = state.panes.keys().copied().collect();
         let contents = state
@@ -341,11 +339,20 @@ struct Memory {
     order: Vec<Pane>,
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for PaneGrid<'_, Message, Theme, Renderer>
+impl<Message, T, W, Theme, Renderer> widget::Meta for PaneGrid<'_, Message, T, W, Theme, Renderer>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
+{
+}
+
+impl<Message, T, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for PaneGrid<'_, Message, T, W, Theme, Renderer>
+where
+    Theme: Catalog,
+    Renderer: core::Renderer,
+    T: Widget<Message, Theme, Renderer>,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<Memory>()
@@ -923,18 +930,18 @@ where
     }
 }
 
-struct PickedPane<'a, 'b, Message, Theme, Renderer>
+struct PickedPane<'a, 'b, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    content: &'a Content<'b, Message, Theme, Renderer>,
+    content: &'a Content<'b, Message, T, W, Theme, Renderer>,
     origin: Point,
     tree: &'a mut Tree,
     layout: Layout,
 }
 
-impl<'a, 'b, Message, Theme, Renderer> PickedPane<'a, 'b, Message, Theme, Renderer>
+impl<'a, 'b, Message, T, W, Theme, Renderer> PickedPane<'a, 'b, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
@@ -945,11 +952,13 @@ where
     }
 }
 
-impl<'a, 'b, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for PickedPane<'a, 'b, Message, Theme, Renderer>
+impl<'a, 'b, Message, T, W, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
+    for PickedPane<'a, 'b, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
+    T: Widget<Message, Theme, Renderer>,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn draw(
         &self,
@@ -984,20 +993,6 @@ where
 
 fn is_dragging(origin: Point, cursor: Point) -> bool {
     cursor.distance(origin) > DRAG_DEADBAND_DISTANCE
-}
-
-impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(
-        pane_grid: PaneGrid<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(pane_grid)
-    }
 }
 
 fn layout_region(layout: Layout, cursor_position: Point) -> Option<Region> {

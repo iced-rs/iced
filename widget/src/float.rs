@@ -8,28 +8,28 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree;
 use crate::core::{
-    Element, Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
+    Event, Layout, Length, Rectangle, Shadow, Shell, Size, Transformation, Vector, Widget,
 };
 
 /// A widget that can make its contents float over other widgets.
-pub struct Float<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Float<'a, W, Theme = crate::Theme>
 where
     Theme: Catalog,
 {
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     scale: f32,
     translate: Option<Box<dyn Fn(Rectangle, Rectangle) -> Vector + 'a>>,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Float<'a, Message, Theme, Renderer>
+impl<'a, W, Theme> Float<'a, W, Theme>
 where
     Theme: Catalog,
 {
     /// Creates a new [`Float`] widget with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: W) -> Self {
         Self {
-            content: content.into(),
+            content,
             scale: 1.0,
             translate: None,
             class: Theme::default(),
@@ -79,30 +79,32 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Float<'_, Message, Theme, Renderer>
+impl<W, Theme> widget::Meta for Float<'_, W, Theme> where Theme: Catalog {}
+
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Float<'_, W, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
-        self.content.as_widget().tag()
+        self.content.tag()
     }
 
     fn state(&self) -> tree::State {
-        self.content.as_widget().state()
+        self.content.state()
     }
 
     fn diff(&mut self, tree: &mut widget::Tree) {
-        self.content.as_widget_mut().diff(tree);
+        self.content.diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.as_widget_mut().layout(tree, renderer, limits);
+        self.content.layout(tree, renderer, limits);
     }
 
     fn update(
@@ -120,7 +122,6 @@ where
         }
 
         self.content
-            .as_widget_mut()
             .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
@@ -155,7 +156,6 @@ where
         }
 
         self.content
-            .as_widget()
             .draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
@@ -172,7 +172,6 @@ where
         }
 
         self.content
-            .as_widget()
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
@@ -185,7 +184,6 @@ where
         operation: &mut dyn widget::Operation,
     ) {
         self.content
-            .as_widget_mut()
             .operate(tree, layout, viewport, renderer, operation);
     }
 
@@ -228,29 +226,16 @@ where
             }))]
         } else {
             self.content
-                .as_widget_mut()
                 .overlay(state, layout, renderer, viewport, offset, window)
         }
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Float<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(float: Float<'a, Message, Theme, Renderer>) -> Self {
-        Element::new(float)
-    }
-}
-
-struct Overlay<'a, 'b, Message, Theme, Renderer>
+struct Overlay<'a, 'b, W, Theme>
 where
     Theme: Catalog,
 {
-    float: &'a mut Float<'b, Message, Theme, Renderer>,
+    float: &'a mut Float<'b, W, Theme>,
     state: &'a mut widget::Tree,
     layout: Layout,
     viewport: Rectangle,
@@ -258,11 +243,12 @@ where
     transformation: Transformation,
 }
 
-impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, W, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn update(
         &mut self,
@@ -273,7 +259,7 @@ where
     ) {
         let inverse = self.transformation.inverse();
 
-        self.float.content.as_widget_mut().update(
+        self.float.content.update(
             self.state,
             event,
             self.layout,
@@ -312,7 +298,7 @@ where
                     }
                 }
 
-                self.float.content.as_widget().draw(
+                self.float.content.draw(
                     self.state,
                     renderer,
                     theme,
@@ -334,7 +320,7 @@ where
 
         let inverse = self.transformation.inverse();
 
-        self.float.content.as_widget().mouse_interaction(
+        self.float.content.mouse_interaction(
             self.state,
             self.layout,
             cursor * inverse,
@@ -351,7 +337,7 @@ where
         &'a mut self,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.float.content.as_widget_mut().overlay(
+        self.float.content.overlay(
             self.state,
             self.layout,
             renderer,

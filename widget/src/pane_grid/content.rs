@@ -3,41 +3,53 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Tree};
-use crate::core::{self, Element, Event, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::core::widget::{self, Tree, Void};
+use crate::core::{self, Event, Layout, Point, Rectangle, Shell, Size, Vector, Widget};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
 ///
 /// [`Pane`]: super::Pane
-pub struct Content<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Content<'a, Message, T, W, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
-    title_bar: Option<TitleBar<'a, Message, Theme, Renderer>>,
-    body: Element<'a, Message, Theme, Renderer>,
+    title_bar: Option<TitleBar<'a, Message, T, Theme, Renderer>>,
+    body: W,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme, Renderer> Content<'a, Message, Void, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
-    pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(body: W) -> Self {
         Self {
             title_bar: None,
-            body: body.into(),
+            body,
             class: Theme::default(),
         }
     }
+}
 
+impl<'a, Message, T, W, Theme, Renderer> Content<'a, Message, T, W, Theme, Renderer>
+where
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
+{
     /// Sets the [`TitleBar`] of the [`Content`].
-    pub fn title_bar(mut self, title_bar: TitleBar<'a, Message, Theme, Renderer>) -> Self {
-        self.title_bar = Some(title_bar);
-        self
+    pub fn title_bar<Title>(
+        self,
+        title_bar: TitleBar<'a, Message, Title, Theme, Renderer>,
+    ) -> Content<'a, Message, Title, W, Theme, Renderer> {
+        Content {
+            title_bar: Some(title_bar),
+            body: self.body,
+            class: self.class,
+        }
     }
 
     /// Sets the style of the [`Content`].
@@ -59,10 +71,12 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Content<'_, Message, Theme, Renderer>
+impl<Message, T, W, Theme, Renderer> Content<'_, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
+    T: Widget<Message, Theme, Renderer>,
+    W: Widget<Message, Theme, Renderer>,
 {
     pub(super) fn state(&self) -> Tree {
         let children = if let Some(title_bar) = self.title_bar.as_ref() {
@@ -117,7 +131,7 @@ where
 
             let show_controls = cursor.is_over(bounds);
 
-            self.body.as_widget().draw(
+            self.body.draw(
                 body_tree,
                 renderer,
                 theme,
@@ -138,7 +152,7 @@ where
                 show_controls,
             );
         } else {
-            self.body.as_widget().draw(
+            self.body.draw(
                 &tree.children[0],
                 renderer,
                 theme,
@@ -162,7 +176,7 @@ where
 
             let title_bar_size = tree.children[1].size;
 
-            self.body.as_widget_mut().layout(
+            self.body.layout(
                 &mut tree.children[0],
                 renderer,
                 &layout::Limits::new(
@@ -176,9 +190,7 @@ where
 
             tree.size = max_size;
         } else {
-            self.body
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, limits);
+            self.body.layout(&mut tree.children[0], renderer, limits);
 
             tree.size = tree.children[0].size;
         }
@@ -211,7 +223,6 @@ where
         };
 
         self.body
-            .as_widget_mut()
             .operate(body_tree, body_layout, viewport, renderer, operation);
     }
 
@@ -247,7 +258,7 @@ where
         };
 
         if !is_picked {
-            self.body.as_widget_mut().update(
+            self.body.update(
                 body_tree,
                 event,
                 body_layout,
@@ -323,7 +334,6 @@ where
         };
 
         self.body
-            .as_widget()
             .mouse_interaction(&tree.children[0], body_layout, cursor, viewport, renderer)
             .max(title_bar_interaction)
     }
@@ -351,7 +361,7 @@ where
                 window,
             );
 
-            let body_overlays = self.body.as_widget_mut().overlay(
+            let body_overlays = self.body.overlay(
                 body_tree,
                 body_layout,
                 renderer,
@@ -367,22 +377,17 @@ where
         } else {
             let (layout, body_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-            self.body.as_widget_mut().overlay(
-                body_tree,
-                layout,
-                renderer,
-                viewport,
-                translation,
-                window,
-            )
+            self.body
+                .overlay(body_tree, layout, renderer, viewport, translation, window)
         }
     }
 }
 
-impl<Message, Theme, Renderer> Draggable for &Content<'_, Message, Theme, Renderer>
+impl<Message, T, W, Theme, Renderer> Draggable for &Content<'_, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
     Renderer: core::Renderer,
+    T: Widget<Message, Theme, Renderer>,
 {
     fn can_be_dragged_at(&self, tree: &Tree, layout: Layout, cursor_position: Point) -> bool {
         if let Some(title_bar) = &self.title_bar {
@@ -392,16 +397,5 @@ where
         } else {
             false
         }
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> From<T> for Content<'a, Message, Theme, Renderer>
-where
-    T: Into<Element<'a, Message, Theme, Renderer>>,
-    Theme: container::Catalog + 'a,
-    Renderer: core::Renderer,
-{
-    fn from(element: T) -> Self {
-        Self::new(element)
     }
 }

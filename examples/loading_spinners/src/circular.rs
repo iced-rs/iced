@@ -1,13 +1,14 @@
 //! Show a circular progress indicator.
 use iced::advanced::layout;
 use iced::advanced::renderer;
+use iced::advanced::widget::Meta;
 use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{self, Layout, Shell, Widget};
 use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
 use iced::window;
-use iced::{Background, Color, Element, Event, Length, Radians, Rectangle, Renderer, Size, Vector};
+use iced::{Color, Event, Length, Radians, Rectangle, Renderer, Size, Vector};
 
 use super::easing::{self, Easing};
 
@@ -46,24 +47,6 @@ where
         }
     }
 
-    /// Sets the size of the [`Circular`].
-    pub fn size(mut self, size: f32) -> Self {
-        self.size = size;
-        self
-    }
-
-    /// Sets the bar height of the [`Circular`].
-    pub fn bar_height(mut self, bar_height: f32) -> Self {
-        self.bar_height = bar_height;
-        self
-    }
-
-    /// Sets the style variant of this [`Circular`].
-    pub fn style(mut self, style: <Theme as StyleSheet>::Style) -> Self {
-        self.style = style;
-        self
-    }
-
     /// Sets the easing of this [`Circular`].
     pub fn easing(mut self, easing: &'a Easing) -> Self {
         self.easing = easing;
@@ -73,13 +56,6 @@ where
     /// Sets the cycle duration of this [`Circular`].
     pub fn cycle_duration(mut self, duration: Duration) -> Self {
         self.cycle_duration = duration / 2;
-        self
-    }
-
-    /// Sets the base rotation duration of this [`Circular`]. This is the duration that a full
-    /// rotation would take if the cycle rotation were set to 0.0 (no expanding or contracting)
-    pub fn rotation_duration(mut self, duration: Duration) -> Self {
-        self.rotation_duration = duration;
         self
     }
 }
@@ -212,6 +188,8 @@ struct State {
     cache: canvas::Cache,
 }
 
+impl<'a, Theme> Meta for Circular<'a, Theme> where Theme: StyleSheet {}
+
 impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for Circular<'a, Theme>
 where
     Message: 'a + Clone,
@@ -327,20 +305,8 @@ where
     }
 }
 
-impl<'a, Message, Theme> From<Circular<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Message: Clone + 'a,
-    Theme: StyleSheet + 'a,
-{
-    fn from(circular: Circular<'a, Theme>) -> Self {
-        Self::new(circular)
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 pub struct Appearance {
-    /// The [`Background`] of the progress indicator.
-    pub background: Option<Background>,
     /// The track [`Color`] of the progress indicator.
     pub track_color: Color,
     /// The bar [`Color`] of the progress indicator.
@@ -350,7 +316,6 @@ pub struct Appearance {
 impl std::default::Default for Appearance {
     fn default() -> Self {
         Self {
-            background: None,
             track_color: Color::TRANSPARENT,
             bar_color: Color::BLACK,
         }
@@ -371,9 +336,7 @@ impl StyleSheet for iced::Theme {
 
     fn appearance(&self, _style: &Self::Style) -> Appearance {
         let palette = self.palette();
-
         Appearance {
-            background: None,
             track_color: palette.background.weak.color,
             bar_color: palette.primary.base.color,
         }

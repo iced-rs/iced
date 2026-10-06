@@ -3,33 +3,32 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{Meta, Operation};
 use crate::core::{
-    Alignment, Element, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
-    Widget,
+    Alignment, Event, Layout, Length, Padding, Pixels, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically while keeping continuity.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{keyed_column, text};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     keyed_column((0..=100).map(|i| {
-///         (i, text!("Item {i}").into())
-///     })).into()
+///         (i, text!("Item {i}"))
+///     }))
 /// }
 /// ```
-pub struct Column<'a, Key, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Column<Key, W>
 where
     Key: Copy + PartialEq,
 {
@@ -39,13 +38,12 @@ where
     height: Length,
     align_items: Alignment,
     keys: Vec<Key>,
-    children: Vec<Element<'a, Message, Theme, Renderer>>,
+    children: Vec<W>,
 }
 
-impl<'a, Key, Message, Theme, Renderer> Column<'a, Key, Message, Theme, Renderer>
+impl<Key, W> Column<Key, W>
 where
     Key: Copy + PartialEq,
-    Renderer: crate::core::Renderer,
 {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
@@ -59,7 +57,7 @@ where
     ///
     /// If any of the children have a [`Length::Fill`] strategy, you will need to
     /// call [`Column::width`] or [`Column::height`] accordingly.
-    pub fn from_vecs(keys: Vec<Key>, children: Vec<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn from_vecs(keys: Vec<Key>, children: Vec<W>) -> Self {
         Self {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -77,9 +75,10 @@ where
     }
 
     /// Creates a [`Column`] with the given elements.
-    pub fn with_children(
-        children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
-    ) -> Self {
+    pub fn with_children(children: impl IntoIterator<Item = (Key, W)>) -> Self
+    where
+        W: Meta,
+    {
         let iterator = children.into_iter();
 
         Self::with_capacity(iterator.size_hint().0).extend(iterator)
@@ -120,14 +119,13 @@ where
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push(
-        mut self,
-        key: Key,
-        child: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn push(mut self, key: Key, child: impl Into<W>) -> Self
+    where
+        W: Meta,
+    {
         let child = child.into();
 
-        if !child.as_widget().is_void() {
+        if !child.is_void() {
             self.keys.push(key);
             self.children.push(child);
         }
@@ -136,11 +134,10 @@ where
     }
 
     /// Adds an element to the [`Column`], if `Some`.
-    pub fn push_maybe(
-        self,
-        key: Key,
-        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
+    pub fn push_maybe(self, key: Key, child: Option<impl Into<W>>) -> Self
+    where
+        W: Meta,
+    {
         if let Some(child) = child {
             self.push(key, child)
         } else {
@@ -149,20 +146,19 @@ where
     }
 
     /// Extends the [`Column`] with the given children.
-    pub fn extend(
-        self,
-        children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
-    ) -> Self {
+    pub fn extend(self, children: impl IntoIterator<Item = (Key, W)>) -> Self
+    where
+        W: Meta,
+    {
         children
             .into_iter()
             .fold(self, |column, (key, child)| column.push(key, child))
     }
 }
 
-impl<Key, Message, Renderer> Default for Column<'_, Key, Message, Renderer>
+impl<Key, W> Default for Column<Key, W>
 where
     Key: Copy + PartialEq,
-    Renderer: crate::core::Renderer,
 {
     fn default() -> Self {
         Self::new()
@@ -177,11 +173,13 @@ where
     cache: layout::flex::Cache,
 }
 
-impl<Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Column<'_, Key, Message, Theme, Renderer>
+impl<Key, W> Meta for Column<Key, W> where Key: Copy + PartialEq {}
+
+impl<Key, W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Column<Key, W>
 where
     Renderer: crate::core::Renderer,
     Key: Copy + PartialEq + 'static,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<Key>>()
@@ -204,12 +202,12 @@ where
         tree::diff_children_custom_with_search(
             children,
             &mut self.children,
-            |tree, child| tree.diff(child),
+            Tree::diff,
             |index| {
                 self.keys.get(index).or_else(|| self.keys.last()).copied()
                     != Some(state.keys[index])
             },
-            |child| Tree::new(child.as_widget()),
+            |child| Tree::new(child),
         );
 
         if state.keys != self.keys {
@@ -218,7 +216,7 @@ where
 
         if self.width.is_fit() || self.height.is_fit() {
             for child in &self.children {
-                let size = child.as_widget().size();
+                let size = child.size();
 
                 self.width = self.width.cross(size.width);
                 self.height = self.height.stack(size.height);
@@ -265,9 +263,7 @@ where
                 .iter_mut()
                 .zip(layout.iter_mut(&mut tree.children))
                 .for_each(|(child, (layout, state))| {
-                    child
-                        .as_widget_mut()
-                        .operate(state, layout, viewport, renderer, operation);
+                    child.operate(state, layout, viewport, renderer, operation);
                 });
         });
     }
@@ -287,9 +283,7 @@ where
             .iter_mut()
             .zip(layout.iter_mut(&mut tree.children))
         {
-            child
-                .as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+            child.update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -305,9 +299,7 @@ where
             .iter()
             .zip(layout.iter(&tree.children))
             .map(|(child, (layout, tree))| {
-                child
-                    .as_widget()
-                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
+                child.mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -324,9 +316,7 @@ where
         viewport: &Rectangle,
     ) {
         for (child, (layout, state)) in self.children.iter().zip(layout.iter(&tree.children)) {
-            child
-                .as_widget()
-                .draw(state, renderer, theme, style, layout, cursor, viewport);
+            child.draw(state, renderer, theme, style, layout, cursor, viewport);
         }
     }
 
@@ -348,18 +338,5 @@ where
             translation,
             window,
         )
-    }
-}
-
-impl<'a, Key, Message, Theme, Renderer> From<Column<'a, Key, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Key: Copy + PartialEq + 'static,
-    Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(column: Column<'a, Key, Message, Theme, Renderer>) -> Self {
-        Self::new(column)
     }
 }

@@ -2,7 +2,6 @@
 use crate::{Size, Vector, Widget};
 
 use std::any::{self, Any};
-use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 
 /// A persistent state widget tree.
@@ -39,14 +38,10 @@ impl Tree {
     }
 
     /// Creates a new [`Tree`] for the provided [`Widget`].
-    pub fn new<'a, Message, Theme, Renderer>(
-        widget: impl Borrow<dyn Widget<Message, Theme, Renderer> + 'a>,
-    ) -> Self
+    pub fn new<Message, Theme, Renderer>(widget: &impl Widget<Message, Theme, Renderer>) -> Self
     where
         Renderer: crate::Renderer,
     {
-        let widget = widget.borrow();
-
         Self {
             tag: widget.tag(),
             state: widget.state(),
@@ -64,23 +59,23 @@ impl Tree {
     /// Otherwise, the whole [`Tree`] is recreated.
     ///
     /// [`Widget::diff`]: crate::Widget::diff
-    pub fn diff<'a, Message, Theme, Renderer>(
+    pub fn diff<Message, Theme, Renderer>(
         &mut self,
-        mut new: impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>,
+        new: &mut impl Widget<Message, Theme, Renderer>,
     ) where
         Renderer: crate::Renderer,
     {
-        if self.tag != new.borrow().tag() {
-            *self = Self::new(new.borrow());
+        if self.tag != new.tag() {
+            *self = Self::new(new);
         }
 
-        new.borrow_mut().diff(self);
+        new.diff(self);
     }
 
     /// Reconciles the children of the tree with the provided list of widgets.
-    pub fn diff_children<'a, Message, Theme, Renderer>(
+    pub fn diff_children<Message, Theme, Renderer>(
         &mut self,
-        new_children: &mut [impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>],
+        new_children: &mut [impl Widget<Message, Theme, Renderer>],
     ) where
         Renderer: crate::Renderer,
     {
@@ -100,18 +95,15 @@ impl Tree {
 }
 
 /// Reconciles the children of the tree with the provided list of widgets.
-pub fn diff_children<'a, Message, Theme, Renderer>(
+pub fn diff_children<Message, Theme, Renderer>(
     old_children: &mut Vec<Tree>,
-    new_children: &mut [impl BorrowMut<dyn Widget<Message, Theme, Renderer> + 'a>],
+    new_children: &mut [impl Widget<Message, Theme, Renderer>],
 ) where
     Renderer: crate::Renderer,
 {
-    diff_children_custom(
-        old_children,
-        new_children,
-        |tree, widget| tree.diff(widget.borrow_mut()),
-        |widget| Tree::new(widget.borrow()),
-    );
+    diff_children_custom(old_children, new_children, Tree::diff, |widget| {
+        Tree::new(widget)
+    });
 }
 
 /// Reconciles the children of the tree with the provided list of widgets using custom

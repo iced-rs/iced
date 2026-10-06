@@ -72,21 +72,6 @@ impl Builder {
         Self(builder)
     }
 
-    /// Adds a line segment. Points must be between 0,0 and 1,1
-    pub fn line_to(mut self, to: impl Into<Point>) -> Self {
-        self.0.line_to(Self::point(to));
-
-        self
-    }
-
-    /// Adds a quadratic bézier curve. Points must be between 0,0 and 1,1
-    pub fn quadratic_bezier_to(mut self, ctrl: impl Into<Point>, to: impl Into<Point>) -> Self {
-        self.0
-            .quadratic_bezier_to(Self::point(ctrl), Self::point(to));
-
-        self
-    }
-
     /// Adds a cubic bézier curve. Points must be between 0,0 and 1,1
     pub fn cubic_bezier_to(
         mut self,

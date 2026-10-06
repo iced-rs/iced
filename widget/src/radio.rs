@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::{column, radio};
 //!
@@ -24,7 +24,7 @@
 //!     All,
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     let a = radio(
 //!         "A",
 //!         Choice::A,
@@ -53,7 +53,7 @@
 //!         Message::RadioSelected
 //!     );
 //!
-//!     column![a, b, c, all].into()
+//!     column![a, b, c, all]
 //! }
 //! ```
 use crate::core::alignment;
@@ -67,8 +67,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme,
-    Widget,
+    Background, Color, Event, Font, Layout, Length, Pixels, Rectangle, Shell, Size, Theme, Widget,
 };
 
 /// A circular button representing a choice.
@@ -76,7 +75,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::{column, radio};
 ///
@@ -97,7 +96,7 @@ use crate::core::{
 ///     All,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     let a = radio(
 ///         "A",
 ///         Choice::A,
@@ -126,7 +125,7 @@ use crate::core::{
 ///         Message::RadioSelected
 ///     );
 ///
-///     column![a, b, c, all].into()
+///     column![a, b, c, all]
 /// }
 /// ```
 pub struct Radio<'a, Message, Theme = crate::Theme>
@@ -256,6 +255,8 @@ where
     }
 }
 
+impl<Message, Theme> widget::Meta for Radio<'_, Message, Theme> where Theme: Catalog {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Radio<'_, Message, Theme>
 where
     Message: Clone,
@@ -263,11 +264,11 @@ where
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
+        tree::Tag::of::<text::paragraph::Plain<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+        tree::State::new(text::paragraph::Plain::<Renderer::Paragraph>::default())
     }
 
     fn size(&self) -> Size<Length> {
@@ -290,7 +291,7 @@ where
 
         let state = tree
             .state
-            .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+            .downcast_mut::<text::paragraph::Plain<Renderer::Paragraph>>();
 
         let label = widget::text::layout(
             state,
@@ -390,7 +391,9 @@ where
             }),
         );
 
-        let state: &widget::text::State<Renderer::Paragraph> = tree.state.downcast_ref();
+        let state = tree
+            .state
+            .downcast_ref::<text::paragraph::Plain<Renderer::Paragraph>>();
 
         let (radio_layout, _) = children.next().unwrap();
         let bounds = radio_layout.bounds();
@@ -436,21 +439,11 @@ where
             state.raw(),
             crate::text::Style {
                 color: style.text_color,
+                selection: None,
             },
+            theme.selection(),
             viewport,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a + Clone,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-{
-    fn from(radio: Radio<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(radio)
     }
 }
 
@@ -494,6 +487,9 @@ pub trait Catalog {
 
     /// The [`Style`] of a class with the given status.
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
+
+    /// The global selection [`Color`].
+    fn selection(&self) -> Color;
 }
 
 /// A styling function for a [`Radio`].
@@ -508,6 +504,10 @@ impl Catalog for Theme {
 
     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
         class(self, status)
+    }
+
+    fn selection(&self) -> Color {
+        self.palette().background.strongest.color
     }
 }
 

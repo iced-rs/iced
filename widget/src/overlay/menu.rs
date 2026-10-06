@@ -7,13 +7,14 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text::{self, Text};
 use crate::core::touch;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Color, Event, Font, Layout, Length, Padding, Pixels, Point, Rectangle, Shadow,
     Size, Theme, Vector,
 };
-use crate::core::{Element, Shell, Widget};
+use crate::core::{Shell, Widget};
 use crate::scrollable::{self, Scrollable};
 
 /// A list of selectable options.
@@ -124,7 +125,7 @@ where
         self
     }
 
-    /// Turns the [`Menu`] into an overlay [`Element`] at the given target
+    /// Turns the [`Menu`] into an [`overlay::Element`] at the given target
     /// position.
     ///
     /// `position` is the target's position in screen coordinates, and
@@ -174,26 +175,25 @@ impl Default for State {
     }
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
+struct Overlay<'a, 'b, T, Message, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     window: Size,
     layout: Layout,
     tree: &'a mut Tree,
-    list: Scrollable<'a, Message, Theme, Renderer>,
+    list: Scrollable<'a, Message, List<'a, 'b, T, Message, Theme>, Theme>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, 'b, Message, Theme, Renderer> Overlay<'a, 'b, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme> Overlay<'a, 'b, T, Message, Theme>
 where
+    T: Clone,
     Message: 'a,
     Theme: Catalog + scrollable::Catalog + 'a,
-    Renderer: text::Renderer + 'a,
     'b: 'a,
 {
-    pub fn new<T>(
+    pub fn new<Renderer>(
         position: Point,
         window: Size,
         menu: Menu<'a, 'b, T, Message, Theme>,
@@ -201,7 +201,7 @@ where
         renderer: &Renderer,
     ) -> Self
     where
-        T: Clone,
+        Renderer: text::Renderer + 'a,
     {
         let Menu {
             state,
@@ -253,7 +253,7 @@ where
         )
         .width(width);
 
-        state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
+        state.tree.diff::<_, _, Renderer>(&mut list);
         list.layout(&mut state.tree, renderer, &limits);
 
         let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
@@ -272,10 +272,11 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> crate::core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<T, Message, Theme, Renderer> crate::core::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, T, Message, Theme>
 where
-    Theme: Catalog,
+    T: Clone,
+    Theme: Catalog + scrollable::Catalog,
     Renderer: text::Renderer,
 {
     fn update(
@@ -378,6 +379,8 @@ where
 struct ListState {
     is_hovered: Option<bool>,
 }
+
+impl<T, Message, Theme> Meta for List<'_, '_, T, Message, Theme> where Theme: Catalog {}
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for List<'_, '_, T, Message, Theme>
@@ -527,7 +530,7 @@ where
             .skip(start)
             .take(end - start)
         {
-            let text = (self.to_string)(option);
+            let mut text = (self.to_string)(option);
 
             operation.text(
                 None,
@@ -537,7 +540,7 @@ where
                     width: bounds.width,
                     height: option_height,
                 },
-                &text,
+                &mut text,
             );
         }
     }
@@ -634,20 +637,6 @@ where
                 *viewport,
             );
         }
-    }
-}
-
-impl<'a, 'b, T, Message, Theme, Renderer> From<List<'a, 'b, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Clone,
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-    'b: 'a,
-{
-    fn from(list: List<'a, 'b, T, Message, Theme>) -> Self {
-        Element::new(list)
     }
 }
 

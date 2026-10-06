@@ -2,9 +2,9 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::button;
 //!
 //! #[derive(Clone)]
@@ -12,8 +12,8 @@
 //!     ButtonPressed,
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     button("Press me!").on_press(Message::ButtonPressed).into()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     button("Press me!").on_press(Message::ButtonPressed)
 //! }
 //! ```
 use crate::core::border::{self, Border};
@@ -23,21 +23,21 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
-use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{Meta, Operation};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size,
-    Theme, Vector, Widget,
+    Background, Color, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size, Theme,
+    Vector, Widget,
 };
 
 /// A generic widget that produces a message when pressed.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::button;
 ///
 /// #[derive(Clone)]
@@ -45,8 +45,8 @@ use crate::core::{
 ///     ButtonPressed,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     button("Press me!").on_press(Message::ButtonPressed).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     button("Press me!").on_press(Message::ButtonPressed)
 /// }
 /// ```
 ///
@@ -54,9 +54,9 @@ use crate::core::{
 /// be disabled:
 ///
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::button;
 ///
 /// #[derive(Clone)]
@@ -64,16 +64,15 @@ use crate::core::{
 ///     ButtonPressed,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     button("I am disabled!").into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     button("I am disabled!")
 /// }
 /// ```
-pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Button<'a, Message, W = crate::Element<'a, Message>, Theme = crate::Theme>
 where
-    Renderer: crate::core::Renderer,
     Theme: Catalog,
 {
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     on_press: Option<OnPress<'a, Message>>,
     width: Length,
     height: Length,
@@ -97,15 +96,12 @@ impl<Message: Clone> OnPress<'_, Message> {
     }
 }
 
-impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme> Button<'a, Message, W, Theme>
 where
-    Renderer: crate::core::Renderer,
     Theme: Catalog,
 {
     /// Creates a new [`Button`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
-        let content = content.into();
-
+    pub fn new(content: W) -> Self {
         Button {
             content,
             on_press: None,
@@ -213,10 +209,13 @@ struct State {
     is_pressed: bool,
 }
 
-impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Button<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme> Meta for Button<'a, Message, W, Theme> where Theme: Catalog {}
+
+impl<'a, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Button<'a, Message, W, Theme>
 where
     Message: 'a + Clone,
+    W: Widget<Message, Theme, Renderer>,
     Renderer: 'a + crate::core::Renderer,
     Theme: Catalog,
 {
@@ -231,7 +230,7 @@ where
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
-        let size = self.content.as_widget().size();
+        let size = self.content.size();
         self.width = self.width.stack(size.width);
         self.height = self.height.stack(size.height);
     }
@@ -251,7 +250,7 @@ where
             self.height,
             self.padding,
             |tree, limits| {
-                self.content.as_widget_mut().layout(tree, renderer, limits);
+                self.content.layout(tree, renderer, limits);
 
                 tree.size
             },
@@ -271,7 +270,6 @@ where
             let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
             self.content
-                .as_widget_mut()
                 .operate(tree, layout, viewport, renderer, operation);
         });
     }
@@ -288,7 +286,7 @@ where
     ) {
         let (content_layout, content_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             content_tree,
             event,
             content_layout,
@@ -398,7 +396,7 @@ where
             *viewport
         };
 
-        self.content.as_widget().draw(
+        self.content.draw(
             tree,
             renderer,
             theme,
@@ -440,20 +438,7 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         self.content
-            .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation, window)
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: crate::core::Renderer + 'a,
-{
-    fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(button)
     }
 }
 
@@ -538,11 +523,9 @@ impl Default for Style {
 ///
 /// impl Catalog for MyTheme {
 ///     type Class<'a> = ButtonClass;
-///     
 ///     fn default<'a>() -> Self::Class<'a> {
 ///         ButtonClass::default()
 ///     }
-///     
 ///
 ///     fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
 ///         let mut style = Style::default();

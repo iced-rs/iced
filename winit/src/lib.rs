@@ -43,7 +43,7 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::theme;
 use crate::core::time::{Duration, Instant};
-use crate::core::widget::operation;
+use crate::core::widget::operation::{self, Operation};
 use crate::core::{Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
