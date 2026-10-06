@@ -1,5 +1,5 @@
 use iced::widget::{button, center, column, text};
-use iced::{Center, Element};
+use iced::{Center, Widget};
 
 use loupe::loupe;
 
@@ -30,7 +30,7 @@ impl Loupe {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         center(loupe(
             3.0,
             column![
@@ -41,7 +41,6 @@ impl Loupe {
             .padding(20)
             .align_x(Center),
         ))
-        .into()
     }
 }
 
@@ -52,41 +51,46 @@ mod loupe {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Color, Element, Event, Length, Rectangle, Renderer, Size, Theme, Transformation};
+    use iced::{Color, Event, Length, Rectangle, Renderer, Size, Theme, Transformation};
 
     pub fn loupe<'a, Message>(
         zoom: f32,
-        content: impl Into<Element<'a, Message>>,
-    ) -> Loupe<'a, Message>
+        content: impl iced::Widget<Message> + 'a,
+    ) -> Loupe<impl iced::Widget<Message> + 'a>
     where
         Message: 'static,
     {
         Loupe {
             zoom,
-            content: content.into().explain(Color::BLACK),
+            content: content.explain(Color::BLACK),
         }
     }
 
-    pub struct Loupe<'a, Message> {
+    pub struct Loupe<W> {
         zoom: f32,
-        content: Element<'a, Message>,
+        content: W,
     }
 
-    impl<Message> Widget<Message, Theme, Renderer> for Loupe<'_, Message> {
+    impl<W> widget::Meta for Loupe<W> {}
+
+    impl<W, Message> Widget<Message, Theme, Renderer> for Loupe<W>
+    where
+        W: Widget<Message, Theme, Renderer>,
+    {
         fn tag(&self) -> widget::tree::Tag {
-            self.content.as_widget().tag()
+            self.content.tag()
         }
 
         fn state(&self) -> widget::tree::State {
-            self.content.as_widget().state()
+            self.content.state()
         }
 
         fn diff(&mut self, tree: &mut widget::Tree) {
-            self.content.as_widget_mut().diff(tree);
+            self.content.diff(tree);
         }
 
         fn size(&self) -> Size<Length> {
-            self.content.as_widget().size()
+            self.content.size()
         }
 
         fn layout(
@@ -94,15 +98,15 @@ mod loupe {
             tree: &mut widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
-        ) -> layout::Node {
-            self.content.as_widget_mut().layout(tree, renderer, limits)
+        ) {
+            self.content.layout(tree, renderer, limits);
         }
 
         fn update(
             &mut self,
             _tree: &mut widget::Tree,
             _event: &Event,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             _renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
@@ -119,7 +123,7 @@ mod loupe {
             renderer: &mut Renderer,
             theme: &Theme,
             style: &renderer::Style,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
@@ -134,7 +138,7 @@ mod loupe {
                         ) * Transformation::scale(self.zoom)
                             * Transformation::translate(-bounds.x, -bounds.y),
                         |renderer| {
-                            self.content.as_widget().draw(
+                            self.content.draw(
                                 tree,
                                 renderer,
                                 theme,
@@ -148,7 +152,6 @@ mod loupe {
                 });
             } else {
                 self.content
-                    .as_widget()
                     .draw(tree, renderer, theme, style, layout, cursor, viewport);
             }
         }
@@ -156,7 +159,7 @@ mod loupe {
         fn mouse_interaction(
             &self,
             _tree: &widget::Tree,
-            layout: Layout<'_>,
+            layout: Layout,
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
             _renderer: &Renderer,
@@ -166,15 +169,6 @@ mod loupe {
             } else {
                 mouse::Interaction::None
             }
-        }
-    }
-
-    impl<'a, Message> From<Loupe<'a, Message>> for Element<'a, Message, Theme, Renderer>
-    where
-        Message: 'a,
-    {
-        fn from(loupe: Loupe<'a, Message>) -> Self {
-            Self::new(loupe)
         }
     }
 }

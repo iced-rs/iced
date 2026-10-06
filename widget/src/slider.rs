@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::slider;
 //!
@@ -16,8 +16,8 @@
 //!     ValueChanged(f32),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     slider(0.0..=100.0, state.value, Message::ValueChanged)
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -35,11 +35,12 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::touch;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Theme, Widget,
+    self, Background, Color, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Theme,
+    Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -59,7 +60,7 @@ use std::ops::RangeInclusive;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::slider;
 ///
@@ -72,8 +73,8 @@ use std::ops::RangeInclusive;
 ///     ValueChanged(f32),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     slider(0.0..=100.0, state.value, Message::ValueChanged)
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -213,6 +214,8 @@ where
     }
 }
 
+impl<T, Message, Theme> Meta for Slider<'_, T, Message, Theme> where Theme: Catalog {}
+
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Slider<'_, T, Message, Theme>
 where
     T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
@@ -231,24 +234,19 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width, self.height)
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width, self.height);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -356,7 +354,7 @@ where
                 | Event::Touch(touch::Event::FingerMoved { .. })
                     if state.is_dragging =>
                 {
-                    let _ = cursor.land().position().and_then(locate).map(change);
+                    let _ = cursor.observe().position().and_then(locate).map(change);
 
                     shell.capture_event();
                 }
@@ -421,7 +419,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -502,7 +500,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -526,19 +524,6 @@ where
         } else {
             mouse::Interaction::default()
         }
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> From<Slider<'a, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive + 'a,
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(slider: Slider<'a, T, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(slider)
     }
 }
 

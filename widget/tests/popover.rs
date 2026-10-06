@@ -6,12 +6,13 @@
 //! (closed), that the base is a plain element, and that the popover notifies
 //! the application through its `on_close` handler when the user clicks
 //! outside of its bounds.
-use iced_widget::core::layout::{self, Layout, Limits};
+use iced_widget::core::layout::{Layout, Limits};
 use iced_widget::core::mouse::{self, Button, Cursor};
 use iced_widget::core::shell;
-use iced_widget::core::widget::Tree;
+use iced_widget::core::widget::{Tree, Widget};
 use iced_widget::core::window::Headless;
-use iced_widget::core::{Element, Event, Point, Rectangle, Size, Theme, Vector};
+use iced_widget::core::overlay;
+use iced_widget::core::{Event, Point, Rectangle, Size, Theme, Vector};
 use iced_widget::{button, popover, space};
 
 type Message = u8;
@@ -21,6 +22,9 @@ const ON_CLOSE: Message = 0x42;
 
 /// The size of the test viewport.
 const VIEWPORT: Size = Size::new(1000.0, 1000.0);
+
+/// The size of the test window.
+const WINDOW: Size = Size::new(1000.0, 1000.0);
 
 /// A left-button press at the given position.
 fn press(position: Point) -> (Event, Cursor) {
@@ -32,73 +36,65 @@ fn press(position: Point) -> (Event, Cursor) {
 
 /// A popover with a 50x50 base and an 80x80 popup (when `open`), with an
 /// `on_close` handler.
-fn new_popover(open: bool) -> Element<'static, Message, Theme, ()> {
+fn new_popover(open: bool) -> popover::Popover<space::Space, space::Space, Message> {
     popover(
         space().width(50).height(50),
         open.then(|| space().width(80).height(80)),
     )
     .position(popover::Position::Bottom)
     .on_close(ON_CLOSE)
-    .into()
 }
 
-/// Builds the state tree and computes the (initial) layout for the element.
-fn setup(element: &mut Element<'static, Message, Theme, ()>) -> (Tree, layout::Node) {
-    let mut tree = Tree::new(&mut *element);
-    element.as_widget_mut().diff(&mut tree);
+/// Builds the state tree and computes the (initial) layout for the widget.
+fn setup<W>(widget: &mut W) -> (Tree, Layout)
+where
+    W: Widget<Message, Theme, ()>,
+{
+    let mut tree = Tree::new(widget);
 
-    let node = element
-        .as_widget_mut()
-        .layout(&mut tree, &(), &Limits::new(Size::ZERO, VIEWPORT));
+    widget.diff(&mut tree);
+    widget.layout(&mut tree, &(), &Limits::new(Size::ZERO, VIEWPORT));
 
-    (tree, node)
+    let layout = Layout::new(tree.size);
+
+    (tree, layout)
 }
 
 /// Returns whether the widget currently produces an overlay.
-fn has_overlay(
-    element: &mut Element<'static, Message, Theme, ()>,
-    tree: &mut Tree,
-    layout: Layout<'_>,
-) -> bool {
-    !element
-        .as_widget_mut()
+fn has_overlay<W>(widget: &mut W, tree: &mut Tree, layout: Layout) -> bool
+where
+    W: Widget<Message, Theme, ()>,
+{
+    !widget
         .overlay(
             tree,
             layout,
             &(),
             &Rectangle::with_size(VIEWPORT),
             Vector::ZERO,
+            WINDOW,
         )
         .is_empty()
 }
 
 /// Drives a single event through the (open) popover overlay and returns the
 /// bus of published messages.
-fn drive_overlay(
-    element: &mut Element<'static, Message, Theme, ()>,
-    tree: &mut Tree,
-    layout: Layout<'_>,
-    event: &Event,
-    cursor: Cursor,
-) -> shell::Bus<Message> {
+fn drive_overlay<W>(widget: &mut W, tree: &mut Tree, layout: Layout, event: &Event, cursor: Cursor) -> shell::Bus<Message>
+where
+    W: Widget<Message, Theme, ()>,
+{
     let viewport = Rectangle::with_size(VIEWPORT);
 
-    let mut overlay = element
-        .as_widget_mut()
-        .overlay(tree, layout, &(), &viewport, Vector::ZERO)
+    let mut overlay = widget
+        .overlay(tree, layout, &(), &viewport, Vector::ZERO, WINDOW)
         .into_iter()
         .next()
         .expect("popover overlay should exist");
 
-    let overlay_node = overlay.as_overlay_mut().layout(&(), VIEWPORT);
-    let overlay_layout = Layout::new(&overlay_node);
-
     let mut bus = shell::Bus::new();
     let mut shell = shell::Shell::new(&Headless, shell::Waker::noop(), &mut bus);
 
-    overlay
-        .as_overlay_mut()
-        .update(event, overlay_layout, cursor, &(), &mut shell);
+    overlay.as_overlay_mut().update(event, cursor, &(), &mut shell);
 
     bus
 }
@@ -111,9 +107,9 @@ fn messages(bus: shell::Bus<Message>) -> Vec<Message> {
 #[test]
 fn popover_layout_is_plain_base() {
     let mut element = new_popover(true);
-    let (_, node) = setup(&mut element);
+    let (_, layout) = setup(&mut element);
 
-    let bounds = node.bounds();
+    let bounds = layout.bounds();
 
     // The base is a plain 50x50 element: the popover does not wrap it in
     // padding or any other styling.
@@ -128,20 +124,18 @@ fn popover_layout_is_plain_base() {
 fn base_mouse_interaction_is_delegated() {
     // A `button` base reports a `Pointer` interaction when hovered, and the
     // popover delegates it to the base (which is a plain element).
-    let mut element: Element<'static, Message, Theme, ()> = popover(
+    let mut element = popover(
         button("Open").width(50).height(50).on_press(0x01),
         Some(space().width(80).height(80)),
     )
-    .on_close(ON_CLOSE)
-    .into();
+    .on_close(ON_CLOSE);
 
-    let (tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
+    let (tree, layout) = setup(&mut element);
     let viewport = Rectangle::with_size(VIEWPORT);
 
     // Hovering the base reports the base's interaction (a `Pointer`, as a
     // `button` would).
-    let hovered = element.as_widget().mouse_interaction(
+    let hovered = element.mouse_interaction(
         &tree,
         layout,
         Cursor::Available(Point::new(25.0, 25.0)),
@@ -159,8 +153,7 @@ fn base_mouse_interaction_is_delegated() {
 #[test]
 fn overlay_present_when_open() {
     let mut element = new_popover(true);
-    let (mut tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
+    let (mut tree, layout) = setup(&mut element);
 
     assert!(
         has_overlay(&mut element, &mut tree, layout),
@@ -171,8 +164,7 @@ fn overlay_present_when_open() {
 #[test]
 fn overlay_absent_when_closed() {
     let mut element = new_popover(false);
-    let (mut tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
+    let (mut tree, layout) = setup(&mut element);
 
     assert!(
         !has_overlay(&mut element, &mut tree, layout),
@@ -183,8 +175,7 @@ fn overlay_absent_when_closed() {
 #[test]
 fn click_outside_requests_close() {
     let mut element = new_popover(true);
-    let (mut tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
+    let (mut tree, layout) = setup(&mut element);
 
     // Press somewhere far away: outside both the base and the popover.
     let (event, cursor) = press(Point::new(900.0, 900.0));
@@ -200,8 +191,7 @@ fn click_outside_requests_close() {
 #[test]
 fn click_on_base_does_not_request_close() {
     let mut element = new_popover(true);
-    let (mut tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
+    let (mut tree, layout) = setup(&mut element);
 
     // The base occupies (0, 0) .. (50, 50). Pressing it must not request a
     // close: the base is responsible for its own behavior.
@@ -217,8 +207,7 @@ fn click_on_base_does_not_request_close() {
 #[test]
 fn click_inside_does_not_request_close() {
     let mut element = new_popover(true);
-    let (mut tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
+    let (mut tree, layout) = setup(&mut element);
 
     // The popover appears below the base (Position::Bottom), so it occupies
     // roughly (0, 50) .. (80, 130). Click a point that lies inside the popover.
@@ -235,14 +224,12 @@ fn click_inside_does_not_request_close() {
 fn no_on_close_publishes_nothing() {
     // A popover without an `on_close` handler simply does not publish anything
     // when clicked outside.
-    let mut element: Element<'static, Message, Theme, ()> = popover(
+    let mut element = popover(
         space().width(50).height(50),
         Some(space().width(80).height(80)),
-    )
-    .into();
+    );
 
-    let (mut tree, node) = setup(&mut element);
-    let layout = Layout::new(&node);
+    let (mut tree, layout) = setup(&mut element);
 
     let (event, cursor) = press(Point::new(900.0, 900.0));
     let bus = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
@@ -250,5 +237,46 @@ fn no_on_close_publishes_nothing() {
     assert!(
         messages(bus).is_empty(),
         "a popover without an on_close handler should publish nothing"
+    );
+}
+
+#[test]
+fn passthrough_toggles_opaque_behavior() {
+    // A point inside the (empty) popup area.
+    const INSIDE: Point = Point::new(40.0, 95.0);
+
+    fn interaction(
+        element: &mut popover::Popover<space::Space, space::Space, Message>,
+    ) -> mouse::Interaction {
+        let (mut tree, layout) = setup(element);
+
+        let viewport = Rectangle::with_size(VIEWPORT);
+        let overlay: overlay::Element<'_, Message, Theme, ()> = element
+            .overlay(&mut tree, layout, &(), &viewport, Vector::ZERO, WINDOW)
+            .into_iter()
+            .next()
+            .expect("popover overlay should exist");
+
+        overlay
+            .as_overlay()
+            .mouse_interaction(Cursor::Available(INSIDE), &())
+    }
+
+    // An opaque popover does not let the cursor pass through to the layers
+    // below: it reports an `Idle` interaction over its popup area.
+    let mut opaque = new_popover(true);
+    assert_eq!(
+        interaction(&mut opaque),
+        mouse::Interaction::Idle,
+        "an opaque popover should not let the cursor pass through"
+    );
+
+    // A passthrough popover lets the cursor pass through: it reports no
+    // interaction at all over the (empty) popup area.
+    let mut passthrough = new_popover(true).passthrough(true);
+    assert_eq!(
+        interaction(&mut passthrough),
+        mouse::Interaction::None,
+        "a passthrough popover should let the cursor pass through"
     );
 }

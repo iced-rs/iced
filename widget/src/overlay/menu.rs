@@ -1,19 +1,20 @@
 //! Build and show dropdown menus.
 use crate::core::alignment;
 use crate::core::border::{self, Border};
-use crate::core::layout::{self, Layout};
+use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text::{self, Text};
 use crate::core::touch;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Color, Event, Font, Length, Padding, Pixels, Point, Rectangle, Shadow, Size, Theme,
-    Vector,
+    Background, Color, Event, Font, Layout, Length, Padding, Pixels, Point, Rectangle, Shadow,
+    Size, Theme, Vector,
 };
-use crate::core::{Element, Shell, Widget};
+use crate::core::{Shell, Widget};
 use crate::scrollable::{self, Scrollable};
 
 /// A list of selectable options.
@@ -29,6 +30,7 @@ where
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
     on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     width: f32,
+    height: Length,
     padding: Padding,
     text_size: Option<Pixels>,
     line_height: Option<text::LineHeight>,
@@ -64,6 +66,7 @@ where
             on_selected: Box::new(on_selected),
             on_option_hovered,
             width: 0.0,
+            height: Length::Shrink,
             padding: Padding::ZERO,
             text_size: None,
             line_height: None,
@@ -77,6 +80,12 @@ where
     /// Sets the width of the [`Menu`].
     pub fn width(mut self, width: f32) -> Self {
         self.width = width;
+        self
+    }
+
+    /// Sets the height of the [`Menu`].
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -116,28 +125,31 @@ where
         self
     }
 
-    /// Turns the [`Menu`] into an overlay [`Element`] at the given target
+    /// Turns the [`Menu`] into an [`overlay::Element`] at the given target
     /// position.
+    ///
+    /// `position` is the target's position in screen coordinates, and
+    /// `window` is the size of the window.
     ///
     /// The `target_height` will be used to display the menu either on top
     /// of the target or under it, depending on the screen position and the
     /// dimensions of the [`Menu`].
     pub fn overlay<Renderer>(
         self,
+        renderer: &Renderer,
         position: Point,
-        viewport: Rectangle,
+        window: Size,
         target_height: f32,
-        menu_height: Length,
     ) -> overlay::Element<'a, Message, Theme, Renderer>
     where
         Renderer: text::Renderer + 'a,
     {
         overlay::Element::new(Box::new(Overlay::new(
             position,
-            viewport,
+            window,
             self,
             target_height,
-            menu_height,
+            renderer,
         )))
     }
 }
@@ -163,36 +175,33 @@ impl Default for State {
     }
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
+struct Overlay<'a, 'b, T, Message, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
-    position: Point,
-    viewport: Rectangle,
+    window: Size,
+    layout: Layout,
     tree: &'a mut Tree,
-    list: Scrollable<'a, Message, Theme, Renderer>,
-    width: f32,
-    target_height: f32,
+    list: Scrollable<'a, Message, List<'a, 'b, T, Message, Theme>, Theme>,
     class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, 'b, Message, Theme, Renderer> Overlay<'a, 'b, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme> Overlay<'a, 'b, T, Message, Theme>
 where
+    T: Clone,
     Message: 'a,
     Theme: Catalog + scrollable::Catalog + 'a,
-    Renderer: text::Renderer + 'a,
     'b: 'a,
 {
-    pub fn new<T>(
+    pub fn new<Renderer>(
         position: Point,
-        viewport: Rectangle,
+        window: Size,
         menu: Menu<'a, 'b, T, Message, Theme>,
         target_height: f32,
-        menu_height: Length,
+        renderer: &Renderer,
     ) -> Self
     where
-        T: Clone,
+        Renderer: text::Renderer + 'a,
     {
         let Menu {
             state,
@@ -201,7 +210,6 @@ where
             to_string,
             on_selected,
             on_option_hovered,
-            width,
             padding,
             font,
             text_size,
@@ -209,7 +217,8 @@ where
             shaping,
             ellipsis,
             class,
-            ..
+            height,
+            width,
         } = menu;
 
         let mut list = Scrollable::new(List {
@@ -226,36 +235,15 @@ where
             padding,
             class,
         })
-        .height(menu_height);
+        .height(height);
 
-        state.tree.diff(&mut list as &mut dyn Widget<_, _, _>);
-
-        Self {
-            position,
-            viewport,
-            tree: &mut state.tree,
-            list,
-            width,
-            target_height,
-            class,
-        }
-    }
-}
-
-impl<Message, Theme, Renderer> crate::core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
-where
-    Theme: Catalog,
-    Renderer: text::Renderer,
-{
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        let space_below = bounds.height - (self.position.y + self.target_height);
-        let space_above = self.position.y;
+        let space_below = window.height - (position.y + target_height);
+        let space_above = position.y;
 
         let limits = layout::Limits::new(
             Size::ZERO,
             Size::new(
-                bounds.width - self.position.x,
+                window.width - position.x,
                 if space_below > space_above {
                     space_below
                 } else {
@@ -263,59 +251,76 @@ where
                 },
             ),
         )
-        .width(self.width);
+        .width(width);
 
-        let node = self.list.layout(self.tree, renderer, &limits);
-        let size = node.size();
+        state.tree.diff::<_, _, Renderer>(&mut list);
+        list.layout(&mut state.tree, renderer, &limits);
 
-        node.move_to(if space_below > space_above {
-            self.position + Vector::new(0.0, self.target_height)
+        let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
+            position + Vector::new(0.0, target_height)
         } else {
-            self.position - Vector::new(0.0, size.height)
-        })
-    }
+            position - Vector::new(0.0, state.tree.size.height)
+        });
 
+        Self {
+            layout,
+            window,
+            tree: &mut state.tree,
+            list,
+            class,
+        }
+    }
+}
+
+impl<T, Message, Theme, Renderer> crate::core::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, '_, T, Message, Theme>
+where
+    T: Clone,
+    Theme: Catalog + scrollable::Catalog,
+    Renderer: text::Renderer,
+{
     fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        let bounds = layout.bounds();
-
-        self.list
-            .update(self.tree, event, layout, cursor, renderer, shell, &bounds);
+        self.list.update(
+            self.tree,
+            event,
+            self.layout,
+            cursor,
+            renderer,
+            shell,
+            &self.layout.bounds(),
+        );
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let interaction =
-            self.list
-                .mouse_interaction(self.tree, layout, cursor, &self.viewport, renderer);
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        let interaction = self.list.mouse_interaction(
+            self.tree,
+            self.layout,
+            cursor,
+            &Rectangle::with_size(self.window),
+            renderer,
+        );
 
-        if interaction == mouse::Interaction::None && cursor.is_over(layout.bounds()) {
+        if interaction == mouse::Interaction::None && cursor.is_over(self.layout.bounds()) {
             mouse::Interaction::Idle
         } else {
             interaction
         }
     }
 
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn crate::core::widget::Operation,
-    ) {
-        let viewport = layout.bounds();
-
-        self.list
-            .operate(self.tree, layout, &viewport, renderer, operation);
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn crate::core::widget::Operation) {
+        self.list.operate(
+            self.tree,
+            self.layout,
+            &self.layout.bounds(),
+            renderer,
+            operation,
+        );
     }
 
     fn draw(
@@ -323,26 +328,33 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         defaults: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let bounds = layout.bounds();
+        let bounds = self.layout.bounds();
 
         let style = Catalog::style(theme, self.class);
 
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border: style.border,
-                shadow: style.shadow,
-                ..renderer::Quad::default()
-            },
-            style.background,
-        );
+        renderer.with_layer(bounds, |renderer| {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border: style.border,
+                    shadow: style.shadow,
+                    ..renderer::Quad::default()
+                },
+                style.background,
+            );
 
-        self.list.draw(
-            self.tree, renderer, theme, defaults, layout, cursor, &bounds,
-        );
+            self.list.draw(
+                self.tree,
+                renderer,
+                theme,
+                defaults,
+                self.layout,
+                cursor,
+                &bounds,
+            );
+        });
     }
 }
 
@@ -368,6 +380,8 @@ struct ListState {
     is_hovered: Option<bool>,
 }
 
+impl<T, Message, Theme> Meta for List<'_, '_, T, Message, Theme> where Theme: Catalog {}
+
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for List<'_, '_, T, Message, Theme>
 where
@@ -386,16 +400,11 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Fill,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         use std::f32;
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
@@ -409,17 +418,17 @@ where
                 (f32::from(text_line_height) + self.padding.y()) * self.options.len() as f32,
             );
 
-            limits.resolve(Length::Fill, Length::Shrink, intrinsic)
+            limits.resolve(Length::Fill, Length::Fit, intrinsic)
         };
 
-        layout::Node::new(size)
+        tree.size = size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -494,7 +503,7 @@ where
     fn operate(
         &mut self,
         _tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn crate::core::widget::Operation,
@@ -521,7 +530,7 @@ where
             .skip(start)
             .take(end - start)
         {
-            let text = (self.to_string)(option);
+            let mut text = (self.to_string)(option);
 
             operation.text(
                 None,
@@ -531,7 +540,7 @@ where
                     width: bounds.width,
                     height: option_height,
                 },
-                &text,
+                &mut text,
             );
         }
     }
@@ -539,7 +548,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -559,7 +568,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -628,20 +637,6 @@ where
                 *viewport,
             );
         }
-    }
-}
-
-impl<'a, 'b, T, Message, Theme, Renderer> From<List<'a, 'b, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Clone,
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-    'b: 'a,
-{
-    fn from(list: List<'a, 'b, T, Message, Theme>) -> Self {
-        Element::new(list)
     }
 }
 

@@ -5,16 +5,16 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{container, tooltip};
 //!
 //! enum Message {
 //!     // ...
 //! }
 //!
-//! fn view(_state: &State) -> Element<'_, Message> {
+//! fn view(_state: &State) -> impl Widget<Message> {
 //!     tooltip(
 //!         "Hover me to display the tooltip!",
 //!         container("This is the tooltip contents!")
@@ -22,7 +22,6 @@
 //!             .style(container::rounded_box),
 //!     )
 //!     .position(tooltip::Position::Bottom)
-//!     .into()
 //! }
 //! ```
 use crate::core::layout::{self, Layout};
@@ -39,16 +38,16 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{container, tooltip};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(_state: &State) -> Element<'_, Message> {
+/// fn view(_state: &State) -> impl Widget<Message> {
 ///     tooltip(
 ///         "Hover me to display the tooltip!",
 ///         container("This is the tooltip contents!")
@@ -56,35 +55,29 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///             .style(container::rounded_box),
 ///     )
 ///     .position(tooltip::Position::Bottom)
-///     .into()
 /// }
 /// ```
-pub struct Tooltip<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
-    Renderer: text::Renderer,
-{
-    content: Element<'a, Message, Theme, Renderer>,
-    tooltip: Element<'a, Message, Theme, Renderer>,
+pub struct Tooltip<W, V> {
+    content: W,
+    tooltip: V,
     position: Position,
     gap: f32,
     snap_within_viewport: bool,
     delay: Duration,
 }
 
-impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
-where
-    Renderer: text::Renderer,
-{
+impl<W, V> Tooltip<W, V> {
     /// Creates a new [`Tooltip`].
     ///
     /// [`Tooltip`]: struct.Tooltip.html
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    ///
+    /// By default, the [`Tooltip`] is positioned [`Position::Auto`], which
+    /// places it on the side of the hovered element with the most available
+    /// space.
+    pub fn new(content: W, tooltip: V) -> Self {
         Tooltip {
-            content: content.into(),
-            tooltip: tooltip.into(),
+            content,
+            tooltip,
             position: Position::default(),
             gap: 0.0,
             snap_within_viewport: true,
@@ -123,13 +116,32 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Tooltip<'_, Message, Theme, Renderer>
+impl<W, V> widget::Meta for Tooltip<W, V> {}
+
+impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Tooltip<W, V>
 where
     Renderer: text::Renderer,
+    W: Widget<Message, Theme, Renderer>,
+    V: Widget<Message, Theme, Renderer>,
 {
     fn diff(&mut self, tree: &mut widget::Tree) {
-        tree.diff_children(&mut [self.content.as_widget_mut(), self.tooltip.as_widget_mut()]);
+        let state = tree.state.downcast_mut::<State>();
+
+        // The tooltip's contents may have changed, so the cached layout
+        // (if any) is no longer valid
+        if let State::Open { needs_relayout, .. } = state {
+            *needs_relayout = true;
+        }
+
+        if tree.children.len() != 2 {
+            tree.children = vec![
+                widget::Tree::new(&self.content),
+                widget::Tree::new(&self.tooltip),
+            ];
+        }
+
+        tree.children[0].diff(&mut self.content);
+        tree.children[1].diff(&mut self.tooltip);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -141,25 +153,20 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.content.layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -170,11 +177,14 @@ where
             let now = Instant::now();
             let cursor_position = cursor.position_over(layout.bounds());
 
-            match (*state, cursor_position) {
+            match (&*state, cursor_position) {
                 (State::Idle, Some(cursor_position)) => {
                     if self.delay == Duration::ZERO {
-                        *state = State::Open { cursor_position };
-                        shell.invalidate_layout();
+                        *state = State::Open {
+                            cursor_position,
+                            needs_relayout: true,
+                        };
+                        shell.invalidate_overlay();
                     } else {
                         *state = State::Hovered { at: now };
                     }
@@ -188,33 +198,44 @@ where
                     shell.request_redraw_at(now + self.delay - at.elapsed());
                 }
                 (State::Hovered { .. }, Some(cursor_position)) => {
-                    *state = State::Open { cursor_position };
-                    shell.invalidate_layout();
+                    *state = State::Open {
+                        cursor_position,
+                        needs_relayout: true,
+                    };
+                    shell.invalidate_overlay();
                 }
                 (
-                    State::Open {
+                    &State::Open {
                         cursor_position: last_position,
+                        ..
                     },
                     Some(cursor_position),
                 ) if self.position == Position::FollowCursor
                     && last_position != cursor_position =>
                 {
-                    *state = State::Open { cursor_position };
+                    if let State::Open {
+                        cursor_position: ref mut position,
+                        ..
+                    } = *state
+                    {
+                        *position = cursor_position;
+                    }
+
                     shell.request_redraw();
                 }
                 (State::Open { .. }, None) => {
                     *state = State::Idle;
-                    shell.invalidate_layout();
+                    shell.invalidate_overlay();
 
                     if !matches!(event, Event::Window(window::Event::RedrawRequested(_)),) {
                         shell.request_redraw();
                     }
                 }
-                (State::Open { .. }, Some(_)) | (State::Idle, None) => (),
+                (State::Open { .. }, Some(_)) | (&State::Idle, None) => (),
             }
         }
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -228,18 +249,13 @@ where
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -248,11 +264,11 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         inherited_style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -266,32 +282,72 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        let state = tree.state.downcast_ref::<State>();
+        let state = tree.state.downcast_mut::<State>();
 
         let mut children = tree.children.iter_mut();
 
-        let content = self.content.as_widget_mut().overlay(
+        let content = self.content.overlay(
             children.next().unwrap(),
             layout,
             renderer,
             viewport,
             translation,
+            window,
         );
 
-        let tooltip = if let State::Open { cursor_position } = *state {
+        let tooltip_tree = children.next().unwrap();
+
+        // (Re)compute the tooltip's layout if it was invalidated by
+        // `Widget::diff`
+        if let State::Open { needs_relayout, .. } = state
+            && *needs_relayout
+        {
+            self.tooltip.layout(
+                tooltip_tree,
+                renderer,
+                &layout::Limits::new(
+                    Size::ZERO,
+                    if self.snap_within_viewport {
+                        window
+                    } else {
+                        Size::INFINITE
+                    },
+                ),
+            );
+
+            *needs_relayout = false;
+        }
+
+        let tooltip = if let State::Open {
+            cursor_position, ..
+        } = &*state
+        {
+            let content_bounds = layout.bounds() + translation;
+            let cursor_position = *cursor_position + translation;
+            let tooltip_size = tooltip_tree.size;
+
+            let viewport = Rectangle::with_size(window);
+
+            let tooltip_bounds = self.position.resolve(
+                content_bounds,
+                tooltip_size,
+                self.gap,
+                cursor_position,
+                viewport,
+                self.snap_within_viewport,
+            );
+
             Some(overlay::Element::new(Box::new(Overlay {
+                layout: Layout::new(tooltip_size).move_to(tooltip_bounds.position()),
                 tooltip: &mut self.tooltip,
-                tree: children.next().unwrap(),
-                cursor_position: cursor_position + translation,
-                content_bounds: layout.bounds() + translation,
-                snap_within_viewport: self.snap_within_viewport,
-                positioning: self.position,
-                gap: self.gap,
+                tree: tooltip_tree,
+                window,
             })))
         } else {
             None
@@ -303,42 +359,37 @@ where
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                &mut tree.children[0],
-                layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.content
+                .operate(&mut tree.children[0], layout, viewport, renderer, operation);
         });
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Tooltip<'a, Message, Theme, Renderer>>
+impl<'a, W, V, Message, Theme, Renderer> From<Tooltip<W, V>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: text::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
+    V: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(
-        tooltip: Tooltip<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(tooltip)
+    fn from(tooltip: Tooltip<W, V>) -> Element<'a, Message, Theme, Renderer> {
+        tooltip._boxed()
     }
 }
 
 /// The position of the tooltip.
 pub use crate::overlay::Position;
 
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 enum State {
     #[default]
     Idle,
@@ -347,74 +398,43 @@ enum State {
     },
     Open {
         cursor_position: Point,
+        needs_relayout: bool,
     },
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
-where
-    Renderer: text::Renderer,
-{
-    tooltip: &'b mut Element<'a, Message, Theme, Renderer>,
+struct Overlay<'b, V> {
+    layout: Layout,
+    tooltip: &'b mut V,
     tree: &'b mut widget::Tree,
-    cursor_position: Point,
-    content_bounds: Rectangle,
-    snap_within_viewport: bool,
-    positioning: Position,
-    gap: f32,
+    window: Size,
 }
 
-impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<V, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer> for Overlay<'_, V>
 where
     Renderer: text::Renderer,
+    V: Widget<Message, Theme, Renderer>,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        let viewport = Rectangle::with_size(bounds);
-
-        let layout = self.tooltip.as_widget_mut().layout(
+    fn update(
+        &mut self,
+        event: &Event,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+    ) {
+        self.tooltip.update(
             self.tree,
+            event,
+            self.layout,
+            cursor,
             renderer,
-            &layout::Limits::new(
-                Size::ZERO,
-                if self.snap_within_viewport {
-                    viewport.size()
-                } else {
-                    Size::INFINITE
-                },
-            ),
+            shell,
+            &Rectangle::with_size(self.window),
         );
-
-        let text_bounds = layout.bounds();
-
-        let bounds = self.positioning.resolve(
-            self.content_bounds,
-            text_bounds.size(),
-            self.gap,
-            self.cursor_position,
-            viewport,
-            self.snap_within_viewport,
-        );
-
-        layout.translate(Vector::new(bounds.x, bounds.y))
     }
 
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        operation.container(None, layout.bounds(), &layout.bounds());
-
-        operation.traverse(&mut |operation| {
-            self.tooltip.as_widget_mut().operate(
-                self.tree,
-                layout,
-                &layout.bounds(),
-                renderer,
-                operation,
-            );
-        });
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        self.tooltip
+            .mouse_interaction(self.tree, self.layout, cursor, &Rectangle::with_size(self.window), renderer)
     }
 
     fn draw(
@@ -422,19 +442,52 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         inherited_style: &renderer::Style,
-        layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
         // The tooltip content is drawn directly; users are responsible for
         // styling it.
-        self.tooltip.as_widget().draw(
+        let viewport = Rectangle::with_size(self.window);
+
+        renderer.with_layer(viewport, |renderer| {
+            self.tooltip.draw(
+                self.tree,
+                renderer,
+                theme,
+                inherited_style,
+                self.layout,
+                cursor_position,
+                &viewport,
+            );
+        });
+    }
+
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
+        let viewport = Rectangle::with_size(self.window);
+
+        operation.container(None, self.layout.bounds(), &viewport);
+
+        operation.traverse(&mut |operation| {
+            self.tooltip.operate(
+                self.tree,
+                self.layout,
+                &viewport,
+                renderer,
+                operation,
+            );
+        });
+    }
+
+    fn overlay<'c>(
+        &'c mut self,
+        renderer: &Renderer,
+    ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
+        self.tooltip.overlay(
             self.tree,
+            self.layout,
             renderer,
-            theme,
-            inherited_style,
-            layout,
-            cursor_position,
-            &Rectangle::with_size(Size::INFINITE),
-        );
+            &Rectangle::with_size(self.window),
+            Vector::ZERO,
+            self.window,
+        )
     }
 }

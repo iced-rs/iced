@@ -9,8 +9,7 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Operation, Tree, tree};
-use crate::core::{self, Element, Event, Length, Point, Rectangle, Shell, Size, Vector, Widget};
-use crate::space;
+use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// The logic of a [`Transition`].
 pub trait Program: 'static {
@@ -41,25 +40,23 @@ where
 }
 
 /// A widget that can be used to animate its contents.
-pub struct Transition<'a, Message, Theme, Renderer, P>
+pub struct Transition<'a, Message, W, P>
 where
     P: Program,
 {
     init: Box<dyn Fn() -> P + 'a>,
-    view: Box<dyn Fn(&P, Instant) -> Element<'a, Message, Theme, Renderer> + 'a>,
+    view: Box<dyn Fn(&P, Instant) -> W + 'a>,
     on_finish: Option<Box<dyn Fn() -> Message + 'a>>,
-    element: Element<'a, Message, Theme, Renderer>,
-    next_element: Option<Element<'a, Message, Theme, Renderer>>,
+    element: Option<W>,
+    next_element: Option<W>,
     last_limits: layout::Limits,
-    new_layout: Option<layout::Node>,
     key: Key,
     id: Option<widget::Id>,
     value: P::Value,
 }
 
-impl<'a, Message, Theme, Renderer, P> Transition<'a, Message, Theme, Renderer, P>
+impl<'a, Message, W, P> Transition<'a, Message, W, P>
 where
-    Renderer: core::Renderer,
     P: Program,
 {
     /// Creates a new [`Transition`].
@@ -68,21 +65,17 @@ where
     ///
     /// The `view` closure will receive the animation and an [`Instant`], which can be used for interpolating values.
     /// This will be called every frame until the given `value` is reached.
-    pub fn new<E>(
+    pub fn new(
         init: impl Fn() -> P + 'a,
         value: P::Value,
-        view: impl Fn(&P, Instant) -> E + 'a,
-    ) -> Self
-    where
-        E: Into<Element<'a, Message, Theme, Renderer>>,
-    {
+        view: impl Fn(&P, Instant) -> W + 'a,
+    ) -> Self {
         Self {
             init: Box::new(init),
-            view: Box::new(move |program, at| view(program, at).into()),
+            view: Box::new(view),
             on_finish: None,
-            element: Element::new(space()),
+            element: None,
             next_element: None,
-            new_layout: None,
             last_limits: layout::Limits::new(Size::ZERO, Size::ZERO),
             key: Key::default(),
             id: None,
@@ -146,14 +139,17 @@ where
     }
 }
 
-impl<Message, Theme, Renderer, P> Widget<Message, Theme, Renderer>
-    for Transition<'_, Message, Theme, Renderer, P>
+impl<Message, W, P> widget::Meta for Transition<'_, Message, W, P> where P: Program {}
+
+impl<Message, W, Theme, Renderer, P> Widget<Message, Theme, Renderer>
+    for Transition<'_, Message, W, P>
 where
     Renderer: core::Renderer,
     P: Program,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn size(&self) -> Size<Length> {
-        self.element.as_widget().size()
+        self.element.size()
     }
 
     fn tag(&self) -> tree::Tag {
@@ -186,33 +182,28 @@ where
         }
 
         if let Some(next_element) = self.next_element.take() {
-            self.element = next_element;
+            self.element = Some(next_element);
         } else {
-            self.element = (self.view)(animation, *instant);
+            self.element = Some((self.view)(animation, *instant));
         }
 
         tree.diff_children(std::slice::from_mut(&mut self.element));
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         self.last_limits = *limits;
-        self.new_layout = None;
 
         self.element
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, &limits.loose())
+            .layout(&mut tree.children[0], renderer, &limits.loose());
+
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -247,9 +238,9 @@ where
                     let size = *size;
 
                     let mut new = (self.view)(animation, *instant);
-                    tree.diff_children(&mut [new.as_widget_mut()]);
+                    tree.diff_children(&mut [&mut new]);
 
-                    let new_size = new.as_widget().size();
+                    let new_size = new.size();
 
                     if size != Some(new_size) {
                         self.next_element = Some(new);
@@ -258,12 +249,9 @@ where
                         let state = tree.state.downcast_mut::<State<P>>();
                         state.size = Some(new_size);
                     } else {
-                        self.element = new;
-                        self.new_layout = Some(self.element.as_widget_mut().layout(
-                            &mut tree.children[0],
-                            renderer,
-                            &self.last_limits,
-                        ));
+                        self.element = Some(new);
+                        self.element
+                            .layout(&mut tree.children[0], renderer, &self.last_limits);
                     }
 
                     shell.request_redraw();
@@ -275,10 +263,10 @@ where
             }
         }
 
-        self.element.as_widget_mut().update(
+        self.element.update(
             &mut tree.children[0],
             event,
-            self::layout(layout, &self.new_layout),
+            layout,
             cursor,
             renderer,
             shell,
@@ -292,16 +280,16 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.element.as_widget().draw(
+        self.element.draw(
             &tree.children[0],
             renderer,
             theme,
             style,
-            self::layout(layout, &self.new_layout),
+            layout,
             cursor,
             viewport,
         );
@@ -310,30 +298,23 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.element.as_widget().mouse_interaction(
-            &tree.children[0],
-            self::layout(layout, &self.new_layout),
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.element
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        let layout = self::layout(layout, &self.new_layout);
-
         let mut should_reset = ShouldReset(false);
         operation.custom(self.id.as_ref(), layout.bounds(), &mut should_reset);
 
@@ -341,43 +322,27 @@ where
             tree.state.downcast_mut::<State<P>>().should_reset = true;
         }
 
-        self.element.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.element
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'a>(
         &'a mut self,
         tree: &'a mut Tree,
-        layout: Layout<'a>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.element.as_widget_mut().overlay(
+        self.element.overlay(
             &mut tree.children[0],
-            self::layout(layout, &self.new_layout),
+            layout,
             renderer,
             viewport,
             translation,
+            window,
         )
-    }
-}
-
-impl<'a, Message, Theme, Renderer, P> From<Transition<'a, Message, Theme, Renderer, P>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-    P: Program,
-{
-    fn from(transition: Transition<'a, Message, Theme, Renderer, P>) -> Self {
-        Self::new(transition)
     }
 }
 
@@ -435,11 +400,4 @@ pub fn reset_raw(id: impl Into<widget::Id>) -> impl Operation {
     }
 
     Reset(id.into())
-}
-
-fn layout<'a>(current: Layout<'a>, animated: &'a Option<layout::Node>) -> Layout<'a> {
-    animated
-        .as_ref()
-        .map(|new_layout| Layout::with_offset(current.position() - Point::ORIGIN, new_layout))
-        .unwrap_or(current)
 }

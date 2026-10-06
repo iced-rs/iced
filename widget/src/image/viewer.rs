@@ -4,10 +4,11 @@ use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    ContentFit, Element, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell,
-    Size, Vector, Widget,
+    ContentFit, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -95,6 +96,8 @@ impl<Handle> Viewer<Handle> {
     }
 }
 
+impl<Handle> Meta for Viewer<Handle> {}
+
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -115,12 +118,7 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         // The raw w/h of the underlying image
         let image_size = renderer.measure_image(&self.handle).unwrap_or_default();
 
@@ -144,14 +142,14 @@ where
             },
         };
 
-        layout::Node::new(final_size)
+        tree.size = final_size;
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -272,7 +270,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -296,7 +294,7 @@ where
         renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -387,18 +385,6 @@ impl State {
     /// Returns if the cursor is currently grabbed by the [`Viewer`].
     pub fn is_cursor_grabbed(&self) -> bool {
         self.cursor_grabbed_at.is_some()
-    }
-}
-
-impl<'a, Message, Theme, Renderer, Handle> From<Viewer<Handle>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Renderer: 'a + image::Renderer<Handle = Handle>,
-    Message: 'a,
-    Handle: Clone + 'a,
-{
-    fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(viewer)
     }
 }
 

@@ -22,7 +22,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland"]
+default = ["wgpu", "tiny-skia", "crisp", "web-colors", "thread-pool", "linux-theme-detection", "x11", "wayland", "wayland-dlopen", "wayland-decorations"]
 # Enables the `wgpu` GPU-accelerated renderer with all its default features (Vulkan, Metal, DX12, OpenGL, and WebGPU)
 wgpu = ["wgpu-bare", "iced_renderer/wgpu"]
 # Enables the `wgpu` GPU-accelerated renderer with the minimum required features (no backends!)
@@ -87,6 +87,10 @@ linux-theme-detection = ["iced_winit/linux-theme-detection"]
 x11 = ["iced_renderer/x11", "iced_winit/x11"]
 # Enables the Unix Wayland backend
 wayland = ["iced_renderer/wayland", "iced_winit/wayland"]
+# Enables dynamic linking of Wayland libraries
+wayland-dlopen = ["iced_winit/wayland-dlopen"]
+# Enables client-side decorations in Wayland
+wayland-decorations = ["iced_winit/wayland-decorations"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -198,15 +202,15 @@ bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
 cargo-hot = { version = "0.1", package = "cargo-hot-protocol" }
-cosmic-text = { git = "https://github.com/hecrj/cosmic-text.git", rev = "1cdc3e0fcda67e38946db57df777181e4569d7c0" }
-cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "b4576782d7c22ecef973d32cf5b18881ad14fe89" }
+cosmic-text = { git = "https://github.com/hecrj/cosmic-text.git", rev = "19cca2bd90e73e20614964f06d44240e71e503b3" }
+cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "e13618df29a5593968040c12ab086b7237249ded" }
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.33.2"
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.25", default-features = false }
 kamadak-exif = "0.6"
-kurbo = "0.10"
+kurbo = "0.13"
 lilt = "0.8"
 log = "0.4"
 lyon = "1.0"
@@ -218,7 +222,7 @@ png = "0.18"
 pulldown-cmark = "0.12"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
-resvg = { version = "0.45", default-features = false }
+resvg = { version = "0.48", default-features = false }
 rfd = "0.16"
 rustc-hash = "2.0"
 semver = "1.0"
@@ -226,11 +230,11 @@ serde = "1.0"
 sha2 = "0.10"
 sipper = "0.2"
 smol = "2"
-smol_str = "0.2"
+smol_str = "0.3"
 softbuffer = { version = "0.4", default-features = false }
 sysinfo = "0.33"
 thiserror = "2"
-tiny-skia = { version = "0.11", default-features = false, features = ["std", "simd"] }
+tiny-skia = { version = "0.12", default-features = false, features = ["std", "simd"] }
 tokio = "1.0"
 tracing = "0.1"
 two-face = { version = "0.5", default-features = false, features = ["syntect-fancy"] }
@@ -238,10 +242,10 @@ unicode-segmentation = "1.0"
 url = "2.5"
 wasm-bindgen-futures = "0.4"
 wasmtimer = "0.4.2"
-web-sys = "=0.3.85"
+web-sys = "0.3.104"
 web-time = "1.1"
-wgpu = { version = "29", default-features = false, features = ["std", "wgsl"] }
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "05b8ff17a06562f0a10bb46e6eaacbe2a95cb5ed", default-features = false, features = ["rwh_06"] }
+wgpu = { version = "30", default-features = false, features = ["std", "wgsl"] }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "48116469f15d3bc52b5e56bb516694be8882870d", default-features = false, features = ["rwh_06"] }
 
 [workspace.lints.rust]
 rust_2018_idioms = { level = "deny", priority = -1 }
@@ -250,16 +254,16 @@ unsafe_code = "deny"
 unused_results = "deny"
 
 [workspace.lints.clippy]
-type-complexity = "allow"
-map-entry = "allow"
-large-enum-variant = "allow"
+type_complexity = "allow"
+map_entry = "allow"
+large_enum_variant = "allow"
 result_large_err = "allow"
 manual_filter = "allow"
 semicolon_if_nothing_returned = "deny"
-trivially-copy-pass-by-ref = "deny"
+trivially_copy_pass_by_ref = "deny"
 default_trait_access = "deny"
-match-wildcard-for-single-variants = "deny"
-redundant-closure-for-method-calls = "deny"
+match_wildcard_for_single_variants = "deny"
+redundant_closure_for_method_calls = "deny"
 filter_map_next = "deny"
 manual_let_else = "deny"
 unused_async = "deny"

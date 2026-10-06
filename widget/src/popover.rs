@@ -19,8 +19,11 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
+//! # pub struct State {
+//! #     is_open: bool,
+//! # }
 //! use iced::widget::{button, container, popover, text};
 //!
 //! #[derive(Clone)]
@@ -28,11 +31,7 @@
 //!     Close,
 //! }
 //!
-//! struct State {
-//!     is_open: bool,
-//! }
-//!
-//! fn view(state: &State) -> Element<'static, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     // The base is always present. The `popover` argument is `Some` when the
 //!     // popover is open and `None` when it is closed.
 //!     popover(
@@ -43,17 +42,16 @@
 //!     )
 //!     .position(popover::Position::Bottom)
 //!     .on_close(Message::Close)
-//!     .into()
 //! }
 //! ```
-use crate::Opaque;
+use crate::opaque::Opaque;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{self, Widget};
-use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 
 /// A floating piece of content that appears over another element.
 ///
@@ -71,8 +69,11 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
+/// # pub struct State {
+/// #     is_open: bool,
+/// # }
 /// use iced::widget::{button, container, popover, text};
 ///
 /// #[derive(Clone)]
@@ -80,57 +81,43 @@ use crate::core::{Element, Event, Length, Pixels, Point, Rectangle, Shell, Size,
 ///     Close,
 /// }
 ///
-/// struct State {
-///     is_open: bool,
-/// }
-///
-/// fn view(state: &State) -> Element<'static, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     // The base is always present. The `popover` argument is `Some` when the
 ///     // popover is open and `None` when it is closed.
 ///     popover(
 ///         button(text("Click me!")).on_press(Message::Close),
 ///         state.is_open.then(|| {
-///             container("This is the popover contents!").padding(10)
+///             container(text("This is the popover contents!")).padding(10)
 ///         }),
 ///     )
 ///     .position(popover::Position::Bottom)
 ///     .on_close(Message::Close)
-///     .into()
 /// }
 /// ```
-pub struct Popover<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
-    content: Element<'a, Message, Theme, Renderer>,
-    popup: Option<Popup<'a, Message, Theme, Renderer>>,
+pub struct Popover<W, V, Message> {
+    content: W,
+    popup: Option<Popup<V>>,
     position: Position,
     gap: f32,
     snap_within_viewport: bool,
     on_close: Option<Message>,
 }
 
-impl<'a, Message, Theme, Renderer> Popover<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<W, V, Message> Popover<W, V, Message> {
     /// Creates a new [`Popover`].
     ///
     /// It expects:
-    ///   * the `content` element that the popover is anchored to (the base), and
-    ///   * the optional `popover` element to display: `Some` when the popover
+    ///   * the `content` widget that the popover is anchored to (the base), and
+    ///   * the optional `popover` widget to display: `Some` when the popover
     ///     is open and `None` when it is closed.
     ///
     /// The base is always present; it is the `popover` argument that controls
     /// whether the overlay is displayed. By default, the [`Popover`] is
     /// positioned [`Position::Auto`]; use the [`Self::position`] method to set
     /// a specific position.
-    pub fn new(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        popover: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
-    ) -> Self {
+    pub fn new(content: W, popover: Option<V>) -> Self {
         Popover {
-            content: content.into(),
+            content,
             popup: popover.map(|popup| Popup::Opaque(Opaque::new(popup))),
             position: Position::default(),
             gap: 0.0,
@@ -176,9 +163,11 @@ where
     /// its bounds are captured, and mouse events do not pass through it to the
     /// layers below.
     pub fn passthrough(mut self, passthrough: bool) -> Self {
-        self.popup = self.popup.map(|popover| match popover {
+        self.popup = self.popup.map(|popup| match popup {
             Popup::Opaque(opaque) if passthrough => Popup::Transparent(opaque.into_inner()),
-            Popup::Transparent(element) if !passthrough => Popup::Opaque(Opaque::new(element)),
+            Popup::Transparent(popup) if !passthrough => {
+                Popup::Opaque(Opaque::new(popup))
+            }
             content => content,
         });
 
@@ -186,49 +175,82 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Popover<'_, Message, Theme, Renderer>
+impl<W, V, Message> widget::Meta for Popover<W, V, Message> {}
+
+impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Popover<W, V, Message>
 where
     Message: Clone,
     Renderer: crate::core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
+    V: Widget<Message, Theme, Renderer>,
 {
+    fn tag(&self) -> widget::tree::Tag {
+        widget::tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> widget::tree::State {
+        widget::tree::State::new(State {
+            needs_relayout: true,
+        })
+    }
+
     fn diff(&mut self, tree: &mut widget::Tree) {
+        // The popup's contents may have changed, so the cached layout
+        // (if any) is no longer valid
+        tree.state
+            .downcast_mut::<State>()
+            .needs_relayout = true;
+
         match self.popup.as_mut() {
-            Some(popover) => {
-                tree.diff_children(&mut [self.content.as_widget_mut(), popover.as_widget_mut()]);
+            Some(popup) => {
+                if tree.children.len() != 2 {
+                    tree.children = vec![
+                        widget::Tree::new(&self.content),
+                        match popup {
+                            Popup::Opaque(opaque) => widget::Tree::new(opaque),
+                            Popup::Transparent(popup) => widget::Tree::new(popup),
+                        },
+                    ];
+                }
+
+                tree.children[0].diff(&mut self.content);
+                match popup {
+                    Popup::Opaque(opaque) => tree.children[1].diff(opaque),
+                    Popup::Transparent(popup) => tree.children[1].diff(popup),
+                }
             }
             None => {
-                tree.diff_children(&mut [self.content.as_widget_mut()]);
+                if tree.children.len() != 1 {
+                    tree.children = vec![widget::Tree::new(&self.content)];
+                }
+
+                tree.children[0].diff(&mut self.content);
             }
         }
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.content.layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -244,16 +266,16 @@ where
         tree: &widget::Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        inherited_style: &renderer::Style,
-        layout: Layout<'_>,
+        style: &renderer::Style,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
-            inherited_style,
+            style,
             layout,
             cursor,
             viewport,
@@ -263,117 +285,116 @@ where
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
         operation.container(None, layout.bounds(), viewport);
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                &mut tree.children[0],
-                layout,
-                viewport,
-                renderer,
-                operation,
-            );
+            self.content
+                .operate(&mut tree.children[0], layout, viewport, renderer, operation);
         });
     }
 
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        // The popover only has an overlay when it is open (i.e. when the
-        // `popover` argument is `Some`).
-        let Some(popup) = self.popup.as_mut() else {
-            return Vec::new();
-        };
+        let mut children = tree.children.iter_mut();
 
-        let (base, rest) = tree.children.split_at_mut(1);
-        let Some(tree) = rest.first_mut() else {
-            return Vec::new();
-        };
+        let base = children.next().unwrap();
+        let popup_tree = children.next();
 
-        let mut overlays = self.content.as_widget_mut().overlay(
-            &mut base[0],
+        let mut overlays = self.content.overlay(
+            base,
             layout,
             renderer,
             viewport,
             translation,
+            window,
         );
 
-        overlays.push(overlay::Element::new(Box::new(Overlay {
-            popup,
-            tree,
-            content_bounds: layout.bounds() + translation,
-            snap_within_viewport: self.snap_within_viewport,
-            positioning: self.position,
-            gap: self.gap,
-            on_close: self.on_close.clone(),
-            viewport: *viewport,
-        })));
+        if let (Some(popup), Some(popup_tree)) = (self.popup.as_mut(), popup_tree) {
+            let state = tree.state.downcast_mut::<State>();
+
+            // (Re)compute the popup's layout if it was invalidated by
+            // `Widget::diff`
+            if state.needs_relayout {
+                let limits = layout::Limits::new(
+                    Size::ZERO,
+                    if self.snap_within_viewport {
+                        window
+                    } else {
+                        Size::INFINITE
+                    },
+                );
+
+                match popup {
+                    Popup::Opaque(opaque) => opaque.layout(popup_tree, renderer, &limits),
+                    Popup::Transparent(popup) => popup.layout(popup_tree, renderer, &limits),
+                }
+
+                state.needs_relayout = false;
+            }
+
+            let popup_size = popup_tree.size;
+
+            let content_bounds = layout.bounds() + translation;
+
+            let popup_bounds = crate::overlay::Position::from(self.position).resolve(
+                content_bounds,
+                popup_size,
+                self.gap,
+                Point::ORIGIN,
+                Rectangle::with_size(window),
+                self.snap_within_viewport,
+            );
+
+            overlays.push(overlay::Element::new(Box::new(Overlay {
+                popup,
+                tree: popup_tree,
+                layout: Layout::new(popup_size).move_to(popup_bounds.position()),
+                content_bounds,
+                on_close: self.on_close.clone(),
+                viewport: *viewport + translation,
+                window,
+            })));
+        }
 
         overlays
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Popover<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
+impl<'a, W, V, Message, Theme, Renderer> From<Popover<W, V, Message>>
+    for crate::Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
     Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
+    W: Widget<Message, Theme, Renderer> + 'a,
+    V: Widget<Message, Theme, Renderer> + 'a,
 {
-    fn from(
-        popover: Popover<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(popover)
-    }
-}
-
-enum Popup<'a, Message, Theme, Renderer> {
-    Opaque(Opaque<'a, Message, Theme, Renderer>),
-    Transparent(Element<'a, Message, Theme, Renderer>),
-}
-
-impl<'a, Message, Theme, Renderer> Popup<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
-    fn as_widget(&self) -> &dyn Widget<Message, Theme, Renderer> {
-        match self {
-            Popup::Opaque(opaque) => opaque,
-            Popup::Transparent(element) => element.as_widget(),
-        }
-    }
-
-    fn as_widget_mut(&mut self) -> &mut dyn Widget<Message, Theme, Renderer> {
-        match self {
-            Popup::Opaque(opaque) => opaque,
-            Popup::Transparent(element) => element.as_widget_mut(),
-        }
+    fn from(popover: Popover<W, V, Message>) -> crate::Element<'a, Message, Theme, Renderer>
+    {
+        popover._boxed()
     }
 }
 
@@ -408,67 +429,59 @@ impl From<Position> for crate::overlay::Position {
     }
 }
 
-struct Overlay<'a, 'b, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
-    popup: &'b mut Popup<'a, Message, Theme, Renderer>,
-    tree: &'b mut widget::Tree,
-    content_bounds: Rectangle,
-    snap_within_viewport: bool,
-    positioning: Position,
-    gap: f32,
-    on_close: Option<Message>,
-    viewport: Rectangle,
+struct State {
+    needs_relayout: bool,
 }
 
-impl<Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+/// The content of the popover overlay.
+///
+/// By default, the content is wrapped in an [`Opaque`] widget, so that mouse
+/// button presses inside the popover's bounds are captured, and mouse events
+/// do not pass through it to the layers below. Use [`Popover::passthrough`]
+/// to make the popover overlay transparent.
+enum Popup<V> {
+    Opaque(Opaque<V>),
+    Transparent(V),
+}
+
+struct Overlay<'b, V, Message> {
+    popup: &'b mut Popup<V>,
+    tree: &'b mut widget::Tree,
+    layout: Layout,
+    content_bounds: Rectangle,
+    on_close: Option<Message>,
+    viewport: Rectangle,
+    window: Size,
+}
+
+impl<'b, V, Message> Overlay<'b, V, Message> {
+    fn bounds(&self) -> Rectangle {
+        self.viewport
+            .intersection(&self.layout.bounds())
+            .unwrap_or(self.layout.bounds())
+    }
+}
+
+impl<V, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'_, V, Message>
 where
     Renderer: crate::core::Renderer,
+    V: Widget<Message, Theme, Renderer>,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        let viewport = Rectangle::with_size(bounds);
-
-        let layout = self.popup.as_widget_mut().layout(
-            self.tree,
-            renderer,
-            &layout::Limits::new(
-                Size::ZERO,
-                if self.snap_within_viewport {
-                    viewport.size()
-                } else {
-                    Size::INFINITE
-                },
-            ),
-        );
-
-        let bounds = crate::overlay::Position::from(self.positioning).resolve(
-            self.content_bounds,
-            layout.size(),
-            self.gap,
-            Point::ORIGIN,
-            viewport,
-            self.snap_within_viewport,
-        );
-
-        layout.translate(Vector::new(bounds.x, bounds.y))
-    }
-
     fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
         let cursor_position = cursor.position();
 
-        let is_inside = cursor_position.is_some_and(|position| layout.bounds().contains(position));
+        let is_inside = cursor_position
+            .is_some_and(|position| self.layout.bounds().contains(position));
 
-        let is_over_base =
-            cursor_position.is_some_and(|position| self.content_bounds.contains(position));
+        let is_over_base = cursor_position
+            .is_some_and(|position| self.content_bounds.contains(position));
 
         if matches!(
             event,
@@ -491,82 +504,112 @@ where
             return;
         }
 
-        self.popup.as_widget_mut().update(
-            self.tree,
-            event,
-            layout,
-            cursor,
-            renderer,
-            shell,
-            &self.viewport,
-        );
+        // The `Opaque` variant captures mouse button presses inside its
+        // bounds, so that they do not pass through to the layers below.
+        let bounds = self.bounds();
+
+        match self.popup {
+            Popup::Opaque(opaque) => {
+                opaque.update(self.tree, event, self.layout, cursor, renderer, shell, &bounds);
+            }
+            Popup::Transparent(popup) => {
+                popup.update(self.tree, event, self.layout, cursor, renderer, shell, &bounds);
+            }
+        }
     }
 
     fn draw(
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
-        inherited_style: &renderer::Style,
-        layout: Layout<'_>,
+        style: &renderer::Style,
         cursor_position: mouse::Cursor,
     ) {
-        self.popup.as_widget().draw(
-            self.tree,
-            renderer,
-            theme,
-            inherited_style,
-            layout,
-            cursor_position,
-            &Rectangle::with_size(Size::INFINITE),
-        );
+        let bounds = self.bounds();
+
+        renderer.with_layer(bounds, |renderer| {
+            let popup = &*self.popup;
+
+            match popup {
+                Popup::Opaque(opaque) => {
+                    opaque.draw(
+                        self.tree,
+                        renderer,
+                        theme,
+                        style,
+                        self.layout,
+                        cursor_position,
+                        &bounds,
+                    );
+                }
+                Popup::Transparent(popup) => {
+                    popup.draw(
+                        self.tree,
+                        renderer,
+                        theme,
+                        style,
+                        self.layout,
+                        cursor_position,
+                        &bounds,
+                    );
+                }
+            }
+        });
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        if !cursor.is_over(layout.bounds()) {
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        if !cursor.is_over(self.layout.bounds()) {
             return mouse::Interaction::None;
         }
 
-        self.popup.as_widget().mouse_interaction(
-            self.tree,
-            layout,
-            cursor,
-            &Rectangle::with_size(Size::INFINITE),
-            renderer,
-        )
+        let bounds = self.bounds();
+        let popup = &*self.popup;
+
+        match popup {
+            Popup::Opaque(opaque) => {
+                opaque.mouse_interaction(self.tree, self.layout, cursor, &bounds, renderer)
+            }
+            Popup::Transparent(popup) => {
+                popup.mouse_interaction(self.tree, self.layout, cursor, &bounds, renderer)
+            }
+        }
     }
 
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        self.popup.as_widget_mut().operate(
-            self.tree,
-            layout,
-            &layout.bounds(),
-            renderer,
-            operation,
-        );
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
+        let bounds = self.bounds();
+
+        match self.popup {
+            Popup::Opaque(opaque) => {
+                opaque.operate(self.tree, self.layout, &bounds, renderer, operation)
+            }
+            Popup::Transparent(popup) => {
+                popup.operate(self.tree, self.layout, &bounds, renderer, operation)
+            }
+        }
     }
 
-    fn overlay<'a>(
-        &'a mut self,
-        layout: Layout<'a>,
+    fn overlay<'c>(
+        &'c mut self,
         renderer: &Renderer,
-    ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.popup.as_widget_mut().overlay(
-            self.tree,
-            layout,
-            renderer,
-            &self.viewport,
-            Vector::ZERO,
-        )
+    ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
+        match self.popup {
+            Popup::Opaque(opaque) => opaque.overlay(
+                self.tree,
+                self.layout,
+                renderer,
+                &self.viewport,
+                Vector::ZERO,
+                self.window,
+            ),
+            Popup::Transparent(popup) => popup.overlay(
+                self.tree,
+                self.layout,
+                renderer,
+                &self.viewport,
+                Vector::ZERO,
+                self.window,
+            ),
+        }
     }
 
     /// Draws the popover on top of other overlays.

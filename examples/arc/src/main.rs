@@ -3,7 +3,7 @@ use std::{f32::consts::PI, time::Instant};
 use iced::mouse;
 use iced::widget::canvas::{self, Cache, Canvas, Geometry, Path, Stroke, stroke};
 use iced::window;
-use iced::{Element, Fill, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::{Fill, Point, Rectangle, Renderer, Subscription, Theme, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Arc::new, Arc::update, Arc::view)
@@ -34,8 +34,8 @@ impl Arc {
         self.cache.clear();
     }
 
-    fn view(&self) -> Element<'_, Message> {
-        Canvas::new(self).width(Fill).height(Fill).into()
+    fn view(&self) -> impl Widget<Message> {
+        Canvas::new(self).width(Fill).height(Fill)
     }
 
     fn subscription(&self) -> Subscription<Message> {

@@ -30,18 +30,18 @@ where
 ///
 /// The view function will be called for each row in a [`Table`] and it must
 /// produce the resulting contents of a cell.
-pub fn column<'a, 'b, T, E, Message, Theme, Renderer>(
-    header: impl Into<Element<'a, Message, Theme, Renderer>>,
-    view: impl Fn(T) -> E + 'b,
+pub fn column<'a, 'b, T, W, Message, Theme, Renderer>(
+    header: impl Widget<Message, Theme, Renderer> + 'a,
+    view: impl Fn(T) -> W + 'b,
 ) -> Column<'a, 'b, T, Message, Theme, Renderer>
 where
     T: 'a,
-    E: Into<Element<'a, Message, Theme, Renderer>>,
+    W: Widget<Message, Theme, Renderer> + 'a,
 {
     Column {
-        header: header.into(),
-        view: Box::new(move |data| view(data).into()),
-        width: Length::Shrink,
+        header: header._boxed(),
+        view: Box::new(move |data| view(data)._boxed()),
+        width: Length::Fit,
         align_x: alignment::Horizontal::Left,
         align_y: alignment::Vertical::Top,
     }
@@ -91,7 +91,7 @@ where
         let mut width = Length::Fit;
         let mut cells = Vec::with_capacity(columns.size_hint().0 * (1 + rows.size_hint().0));
 
-        let (mut columns, views): (Vec<_>, Vec<_>) = columns
+        let (columns, views): (Vec<_>, Vec<_>) = columns
             .map(|column| {
                 width = width.stack(column.width);
 
@@ -107,12 +107,6 @@ where
                 )
             })
             .collect();
-
-        if width == Length::Shrink
-            && let Some(first) = columns.first_mut()
-        {
-            first.width = Length::Fill;
-        }
 
         for row in rows {
             for view in &views {
@@ -184,6 +178,11 @@ struct Metrics {
     rows: Vec<f32>,
 }
 
+impl<'a, Message, Theme, Renderer> widget::Meta for Table<'a, Message, Theme, Renderer> where
+    Theme: Catalog
+{
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Table<'a, Message, Theme, Renderer>
 where
@@ -212,32 +211,24 @@ where
         tree.diff_children(&mut self.cells);
 
         for cell in &self.cells {
-            let size = cell.as_widget().size();
+            let size = cell.size();
 
             self.height = self.height.stack(size.height);
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
         let metrics = tree.state.downcast_mut::<Metrics>();
         let columns = self.columns.len();
         let rows = self.cells.len() / columns;
 
         let limits = limits.width(self.width).height(self.height);
-        let available = limits.max();
+        let available = limits.max;
         let table_fluid = if self.width.fill_factor() == 0 {
-            Length::Shrink
+            Length::Fit
         } else {
             Length::Fill
         };
-
-        let mut cells = Vec::with_capacity(self.cells.len());
-        cells.resize(self.cells.len(), layout::Node::default());
 
         metrics.columns = vec![0.0; self.columns.len()];
         metrics.rows = vec![0.0; rows];
@@ -260,7 +251,7 @@ where
             let column = i % columns;
 
             let width = self.columns[column].width;
-            let size = cell.as_widget().size();
+            let size = cell.size();
 
             if column == 0 {
                 x = self.padding_x;
@@ -288,18 +279,19 @@ where
                 continue;
             }
 
-            let limits = layout::Limits::new(
+            let limits = layout::Limits::with_flags(
                 Size::ZERO,
                 Size::new(available.width - x, available.height - y),
+                limits.compression,
+                limits.infinite,
             )
             .width(width);
 
-            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
-            let size = limits.resolve(width, Length::Shrink, layout.size());
+            cell.layout(state, renderer, &limits);
+            let size = limits.resolve(width, Length::Fit, state.size);
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
             metrics.rows[row] = metrics.rows[row].max(size.height);
-            cells[i] = layout;
 
             x += size.width + spacing_x;
         }
@@ -334,7 +326,7 @@ where
             let row = i / columns;
             let column = i % columns;
 
-            let size = cell.as_widget().size();
+            let size = cell.size();
 
             let width = self.columns[column].width;
             let width_factor = width.fill_factor();
@@ -373,23 +365,27 @@ where
                 height_unit * height_factor as f32
             };
 
-            let limits =
-                layout::Limits::new(Size::ZERO, Size::new(max_width, max_height)).width(width);
+            let limits = layout::Limits::with_flags(
+                Size::ZERO,
+                Size::new(max_width, max_height),
+                limits.compression,
+                limits.infinite,
+            )
+            .width(width);
 
-            let layout = cell.as_widget_mut().layout(state, renderer, &limits);
+            cell.layout(state, renderer, &limits);
             let size = limits.resolve(
                 if let Length::Fixed(_) = width {
                     width
                 } else {
                     table_fluid
                 },
-                Length::Shrink,
-                layout.size(),
+                Length::Fit,
+                state.size,
             );
 
             metrics.columns[column] = metrics.columns[column].max(size.width);
             metrics.rows[row] = metrics.rows[row].max(size.height);
-            cells[i] = layout;
 
             x += size.width + spacing_x;
         }
@@ -399,7 +395,7 @@ where
         let mut x = self.padding_x;
         let mut y = self.padding_y;
 
-        for (i, cell) in cells.iter_mut().enumerate() {
+        for (i, cell) in tree.children.iter_mut().enumerate() {
             let row = i / columns;
             let column = i % columns;
 
@@ -415,12 +411,15 @@ where
                 align_x, align_y, ..
             } = &self.columns[column];
 
-            cell.move_to_mut((x, y));
-            cell.align_mut(
+            let position = core::Vector::new(x, y);
+
+            let alignment = cell.size.align(
+                Size::new(metrics.columns[column], metrics.rows[row]),
                 Alignment::from(*align_x),
                 Alignment::from(*align_y),
-                Size::new(metrics.columns[column], metrics.rows[row]),
             );
+
+            cell.translation = position + alignment;
 
             x += metrics.columns[column] + spacing_x;
         }
@@ -439,27 +438,25 @@ where
             ),
         );
 
-        layout::Node::with_children(intrinsic, cells)
+        tree.size = intrinsic;
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &core::Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut core::Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        for ((cell, tree), layout) in self
+        for (cell, (layout, tree)) in self
             .cells
             .iter_mut()
-            .zip(&mut tree.children)
-            .zip(layout.children())
+            .zip(layout.iter_mut(&mut tree.children))
         {
-            cell.as_widget_mut()
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
+            cell.update(tree, event, layout, cursor, renderer, shell, viewport);
         }
     }
 
@@ -469,14 +466,12 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        for ((cell, state), layout) in self.cells.iter().zip(&tree.children).zip(layout.children())
-        {
-            cell.as_widget()
-                .draw(state, renderer, theme, style, layout, cursor, viewport);
+        for (cell, (layout, state)) in self.cells.iter().zip(layout.iter(&tree.children)) {
+            cell.draw(state, renderer, theme, style, layout, cursor, viewport);
         }
 
         let bounds = layout.bounds();
@@ -535,18 +530,16 @@ where
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.cells
             .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-            .map(|((cell, tree), layout)| {
-                cell.as_widget()
-                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
+            .zip(layout.iter(&tree.children))
+            .map(|(cell, (layout, tree))| {
+                cell.mouse_interaction(tree, layout, cursor, viewport, renderer)
             })
             .max()
             .unwrap_or_default()
@@ -555,29 +548,28 @@ where
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        for ((cell, state), layout) in self
+        for (cell, (layout, state)) in self
             .cells
             .iter_mut()
-            .zip(&mut tree.children)
-            .zip(layout.children())
+            .zip(layout.iter_mut(&mut tree.children))
         {
-            cell.as_widget_mut()
-                .operate(state, layout, viewport, renderer, operation);
+            cell.operate(state, layout, viewport, renderer, operation);
         }
     }
 
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: core::Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.cells,
@@ -586,19 +578,8 @@ where
             renderer,
             viewport,
             translation,
+            window,
         )
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Table<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(table: Table<'a, Message, Theme, Renderer>) -> Self {
-        Element::new(table)
     }
 }
 

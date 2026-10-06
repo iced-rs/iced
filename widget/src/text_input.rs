@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::text_input;
 //!
@@ -16,10 +16,9 @@
 //!     ContentChanged(String)
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     text_input("Type something here...", &state.content)
 //!         .on_input(Message::ContentChanged)
-//!         .into()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -43,8 +42,8 @@ use crate::core::widget::operation::{self, Focusable, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Background, Border, Color, Element, Event, Font, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Theme, Widget,
+    Background, Border, Color, Event, Font, Layout, Length, Padding, Pixels, Rectangle, Shell,
+    Size, Theme, Widget,
 };
 
 /// A field that can be filled with text.
@@ -52,7 +51,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::text_input;
 ///
@@ -65,10 +64,9 @@ use crate::core::{
 ///     ContentChanged(String)
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text_input("Type something here...", &state.content)
 ///         .on_input(Message::ContentChanged)
-///         .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -259,6 +257,8 @@ where
     }
 }
 
+impl<Message, Theme> widget::Meta for TextInput<'_, Message, Theme> where Theme: Catalog {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for TextInput<'_, Message, Theme>
 where
     Message: Clone,
@@ -276,16 +276,11 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let state = tree.state.downcast_mut::<State<Renderer>>();
 
         if state.value != self.value
@@ -298,7 +293,7 @@ where
             state.value = self.value.clone().into_owned();
         }
 
-        state.input.layout(
+        tree.size = state.input.layout(
             renderer,
             limits,
             input::Layout {
@@ -313,13 +308,13 @@ where
                 multiline: self.multiline,
                 is_secure: self.is_secure,
             },
-        )
+        );
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -334,7 +329,7 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -406,7 +401,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -438,7 +433,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -452,18 +447,6 @@ where
         } else {
             mouse::Interaction::default()
         }
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<TextInput<'a, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'static,
-{
-    fn from(text_input: TextInput<'a, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text_input)
     }
 }
 
@@ -598,7 +581,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.palette();
 
     let active = Style {
-        background: Background::Color(palette.background.base.color),
+        background: Background::Color(palette.background.weakest.color),
         border: Border {
             radius: 2.0.into(),
             width: 1.0,
@@ -613,7 +596,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Active => active,
         Status::Hovered => Style {
             border: Border {
-                color: palette.background.base.text,
+                color: palette.background.weakest.text,
                 ..active.border
             },
             ..active
@@ -628,7 +611,7 @@ pub fn default(theme: &Theme, status: Status) -> Style {
         Status::Disabled => Style {
             background: Background::Color(palette.background.weak.color),
             value: active.placeholder,
-            placeholder: palette.background.strongest.color,
+            placeholder: palette.background.base.color,
             ..active
         },
     }

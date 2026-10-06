@@ -2,21 +2,20 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::container;
 //!
 //! enum Message {
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     container("This text is centered inside a rounded box!")
 //!         .padding(10)
 //!         .center(800)
 //!         .style(container::rounded_box)
-//!         .into()
 //! }
 //! ```
 use crate::core::alignment::{self, Alignment};
@@ -30,35 +29,33 @@ use crate::core::theme;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Padding, Rectangle, Shadow, Shell,
-    Size, Theme, Vector, Widget, color,
+    self, Background, Color, Event, Layout, Length, Padding, Rectangle, Shadow, Shell, Size, Theme,
+    Vector, Widget, color,
 };
 
 /// A widget that aligns its contents inside of its boundaries.
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::container;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     container("This text is centered inside a rounded box!")
 ///         .padding(10)
 ///         .center(800)
 ///         .style(container::rounded_box)
-///         .into()
 /// }
 /// ```
-pub struct Container<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Container<'a, W, Theme = crate::Theme>
 where
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     id: Option<widget::Id>,
     padding: Padding,
@@ -67,19 +64,16 @@ where
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     clip: bool,
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
+impl<'a, W, Theme> Container<'a, W, Theme>
 where
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     /// Creates a [`Container`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
-        let content = content.into();
-
+    pub fn new(content: W) -> Self {
         Container {
             id: None,
             padding: Padding::ZERO,
@@ -197,24 +191,26 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Container<'_, Message, Theme, Renderer>
+impl<W, Theme> widget::Meta for Container<'_, W, Theme> where Theme: Catalog {}
+
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Container<'_, W, Theme>
 where
     Theme: Catalog,
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
-        self.content.as_widget().tag()
+        self.content.tag()
     }
 
     fn state(&self) -> tree::State {
-        self.content.as_widget().state()
+        self.content.state()
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        self.content.as_widget_mut().diff(tree);
+        tree.diff_children(std::slice::from_mut(&mut self.content));
 
-        let size = self.content.as_widget().size();
+        let size = self.content.size();
         self.width = self.width.stack(size.width);
         self.height = self.height.stack(size.height);
     }
@@ -226,27 +222,26 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         layout(
+            tree,
             limits,
             self.width,
             self.height,
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |limits| self.content.as_widget_mut().layout(tree, renderer, limits),
-        )
+            |tree, limits| {
+                self.content.layout(tree, renderer, limits);
+                tree.size
+            },
+        );
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn Operation,
@@ -259,13 +254,10 @@ where
 
         operation.container(self.id.as_ref(), layout.bounds(), &viewport);
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                tree,
-                layout.children().next().unwrap(),
-                &viewport,
-                renderer,
-                operation,
-            );
+            let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+            self.content
+                .operate(tree, layout, &viewport, renderer, operation);
         });
     }
 
@@ -273,38 +265,30 @@ where
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
-            tree,
-            event,
-            layout.children().next().unwrap(),
-            cursor,
-            renderer,
-            shell,
-            viewport,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            tree,
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-            renderer,
-        )
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+        self.content
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -313,7 +297,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         renderer_style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -323,14 +307,16 @@ where
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
             draw_background(renderer, &style, bounds);
 
-            self.content.as_widget().draw(
+            let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+            self.content.draw(
                 tree,
                 renderer,
                 theme,
                 &renderer::Style {
                     text_color: style.text_color.unwrap_or(renderer_style.text_color),
                 },
-                layout.children().next().unwrap(),
+                layout,
                 cursor,
                 if self.clip {
                     &clipped_viewport
@@ -344,59 +330,47 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            tree,
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
-    }
-}
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-impl<'a, Message, Theme, Renderer> From<Container<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(
-        container: Container<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(container)
+        self.content
+            .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }
 
 /// Computes the layout of a [`Container`].
 pub fn layout(
+    tree: &mut Tree,
     limits: &layout::Limits,
     width: Length,
     height: Length,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
-) -> layout::Node {
+    layout_content: impl FnOnce(&mut Tree, &layout::Limits) -> Size,
+) {
+    let limits = limits.width(width).height(height);
+
     layout::positioned(
-        limits,
+        tree,
+        &limits,
         width,
         height,
         padding,
-        |limits| layout_content(&limits.loose()),
-        |content, size| {
+        |tree, limits| layout_content(tree, &limits.loose()),
+        |content, container| {
             content.align(
+                container,
                 Alignment::from(horizontal_alignment),
                 Alignment::from(vertical_alignment),
-                size,
             )
         },
-    )
+    );
 }
 
 /// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.

@@ -13,8 +13,8 @@ use iced::widget::canvas::{Geometry, Path};
 use iced::widget::{canvas, column, container, image, pick_list, stack, text};
 use iced::window;
 use iced::{
-    Backend, Color, Element, Fill, Font, Point, Rectangle, Renderer, Right, Size, Subscription,
-    Task, Theme, Vector, color,
+    Backend, Color, Fill, Font, Point, Rectangle, Renderer, Right, Size, Subscription, Task, Theme,
+    Vector, Widget, color,
 };
 
 use std::time::Instant;
@@ -83,7 +83,7 @@ impl SolarSystem {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let solar_system = canvas(&self.state).width(Fill).height(Fill);
 
         let backend = {
@@ -110,7 +110,6 @@ impl SolarSystem {
                 .align_bottom(Fill)
                 .padding(10)
         ]
-        .into()
     }
 
     fn theme(&self) -> Theme {
@@ -164,18 +163,18 @@ impl State {
     }
 
     fn generate_stars(width: f32, height: f32) -> Vec<(Point, f32)> {
-        use rand::Rng;
+        use rand::RngExt;
 
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         (0..100)
             .map(|_| {
                 (
                     Point::new(
-                        rng.gen_range((-width / 2.0)..(width / 2.0)),
-                        rng.gen_range((-height / 2.0)..(height / 2.0)),
+                        rng.random_range((-width / 2.0)..(width / 2.0)),
+                        rng.random_range((-height / 2.0)..(height / 2.0)),
                     ),
-                    rng.gen_range(0.5..1.0),
+                    rng.random_range(0.5..1.0),
                 )
             })
             .collect()

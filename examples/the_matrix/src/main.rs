@@ -1,7 +1,7 @@
 use iced::mouse;
 use iced::time::{self, milliseconds};
 use iced::widget::canvas;
-use iced::{Color, Element, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme};
+use iced::{Color, Fill, Font, Point, Rectangle, Renderer, Subscription, Theme, Widget};
 
 use std::cell::RefCell;
 
@@ -32,8 +32,8 @@ impl TheMatrix {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
-        canvas(self).width(Fill).height(Fill).into()
+    fn view(&self) -> impl Widget<Message> {
+        canvas(self).width(Fill).height(Fill)
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -52,8 +52,8 @@ impl<Message> canvas::Program<Message> for TheMatrix {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
-        use rand::Rng;
-        use rand::distributions::Distribution;
+        use rand::RngExt;
+        use rand::distr::Distribution;
 
         const CELL_SIZE: f32 = 10.0;
 
@@ -69,7 +69,7 @@ impl<Message> canvas::Program<Message> for TheMatrix {
             caches[self.tick % caches.len()].draw(renderer, bounds.size(), |frame| {
                 frame.fill_rectangle(Point::ORIGIN, frame.size(), Color::BLACK);
 
-                let mut rng = rand::thread_rng();
+                let mut rng = rand::rng();
                 let rows = (frame.height() / CELL_SIZE).ceil() as usize;
                 let columns = (frame.width() / CELL_SIZE).ceil() as usize;
 
@@ -80,11 +80,11 @@ impl<Message> canvas::Program<Message> for TheMatrix {
 
                         let alphas = [0.05, 0.1, 0.2, 0.5];
                         let weights = [10, 4, 2, 1];
-                        let distribution = rand::distributions::WeightedIndex::new(weights)
+                        let distribution = rand::distr::weighted::WeightedIndex::new(weights)
                             .expect("Create distribution");
 
                         frame.fill_text(canvas::Text {
-                            content: rng.gen_range('!'..'z').to_string(),
+                            content: rng.random_range('!'..'z').to_string(),
                             position,
                             color: Color {
                                 a: alphas[distribution.sample(&mut rng)],

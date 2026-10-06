@@ -11,6 +11,7 @@ pub use core::widget::{Id, Void};
 
 mod action;
 mod column;
+mod hover;
 mod mouse_area;
 mod pin;
 mod responsive;
@@ -69,6 +70,8 @@ pub use container::Container;
 pub use float::Float;
 #[doc(no_inline)]
 pub use grid::Grid;
+#[doc(no_inline)]
+pub use hover::Hover;
 #[doc(no_inline)]
 pub use lazy::Lazy;
 #[doc(no_inline)]
@@ -161,3 +164,336 @@ pub mod markdown;
 pub use crate::core::theme::{self, Theme};
 pub use action::Action;
 pub use renderer::Renderer;
+
+use crate::core::layout::{self, Layout};
+use crate::core::mouse;
+use crate::core::widget::tree;
+use crate::core::widget::{self, Tree};
+use crate::core::{Border, Color, Event, Length, Rectangle, Shell, Size, Vector};
+
+/// A boxed [`Widget`].
+///
+/// This is an alias of [`core::Element`] with default `Theme` and
+/// `Renderer` parameters.
+pub type Element<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> =
+    crate::core::Element<'a, Message, Theme, Renderer>;
+
+/// A widget that can be rendered by iced.
+///
+/// This trait extends [`core::Widget`] with a few convenient methods—like
+/// [`Widget::map`], [`Widget::boxed`], and [`Widget::explain`]—and defaults
+/// the `Theme` and `Renderer` parameters to iced's.
+pub trait Widget<Message, Theme = crate::Theme, Renderer = crate::Renderer>:
+    core::Widget<Message, Theme, Renderer>
+{
+    /// Applies a transformation to the produced message of this [`Widget`].
+    ///
+    /// This method is useful when you want to decouple different parts of your
+    /// UI and make them __composable__.
+    ///
+    /// # Example
+    /// Imagine we want to use [our counter](index.html#usage). But instead of
+    /// showing a single counter, we want to display many of them. We can reuse
+    /// the `Counter` type as it is!
+    ///
+    /// We use composition to model the __state__ of our new application:
+    ///
+    /// ```
+    /// # mod counter {
+    /// #     pub struct Counter;
+    /// # }
+    /// use counter::Counter;
+    ///
+    /// struct ManyCounters {
+    ///     counters: Vec<Counter>,
+    /// }
+    /// ```
+    ///
+    /// We can store the state of multiple counters now. However, the
+    /// __messages__ we implemented before describe the user interactions
+    /// of a __single__ counter. Right now, we need to also identify which
+    /// counter is receiving user interactions. Can we use composition again?
+    /// Yes.
+    ///
+    /// ```
+    /// # mod counter {
+    /// #     #[derive(Debug, Clone, Copy)]
+    /// #     pub enum Message {}
+    /// # }
+    /// #[derive(Debug, Clone, Copy)]
+    /// pub enum Message {
+    ///     Counter(usize, counter::Message)
+    /// }
+    /// ```
+    ///
+    /// We compose the previous __messages__ with the index of the counter
+    /// producing them. Let's implement our __view logic__ now:
+    ///
+    /// ```no_run
+    /// # mod iced {
+    /// #     pub use iced_widget::core::Function;
+    /// #     pub use iced_widget::Widget;
+    /// #     pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
+    /// #
+    /// #     pub mod widget {
+    /// #         pub fn row<'a, Message>(iter: impl IntoIterator<Item = super::Element<'a, Message>>) -> super::Element<'a, Message> {
+    /// #             unimplemented!()
+    /// #         }
+    /// #     }
+    /// # }
+    /// #
+    /// # mod counter {
+    /// #     #[derive(Debug, Clone, Copy)]
+    /// #     pub enum Message {}
+    /// #     pub struct Counter;
+    /// #
+    /// #     pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::core::Theme, ()>;
+    /// #
+    /// #     impl Counter {
+    /// #         pub fn view(&self) -> Element<Message> {
+    /// #             unimplemented!()
+    /// #         }
+    /// #     }
+    /// # }
+    /// #
+    /// use counter::Counter;
+    ///
+    /// use iced::widget::row;
+    /// use iced::{Function, Widget};
+    ///
+    /// struct ManyCounters {
+    ///     counters: Vec<Counter>,
+    /// }
+    ///
+    /// #[derive(Debug, Clone, Copy)]
+    /// pub enum Message {
+    ///     Counter(usize, counter::Message),
+    /// }
+    ///
+    /// impl ManyCounters {
+    ///     pub fn view(&self) -> impl Widget<Message, iced_widget::Theme, ()> {
+    ///         // We can quickly populate a `row` by mapping our counters
+    ///         row(
+    ///             self.counters
+    ///                 .iter()
+    ///                 .map(Counter::view)
+    ///                 .enumerate()
+    ///                 .map(|(index, counter)| {
+    ///                     // Here we turn our `Element<counter::Message>` into
+    ///                     // an `Element<Message>` by combining the `index` and the
+    ///                     // message of the `element`.
+    ///                     counter.map(Message::Counter.with(index)).boxed()
+    ///                 }),
+    ///         )
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Finally, our __update logic__ is pretty straightforward: simple
+    /// delegation.
+    ///
+    /// ```
+    /// # mod counter {
+    /// #     #[derive(Debug, Clone, Copy)]
+    /// #     pub enum Message {}
+    /// #     pub struct Counter;
+    /// #
+    /// #     impl Counter {
+    /// #         pub fn update(&mut self, _message: Message) {}
+    /// #     }
+    /// # }
+    /// #
+    /// # use counter::Counter;
+    /// #
+    /// # struct ManyCounters {
+    /// #     counters: Vec<Counter>,
+    /// # }
+    /// #
+    /// # #[derive(Debug, Clone, Copy)]
+    /// # pub enum Message {
+    /// #    Counter(usize, counter::Message)
+    /// # }
+    /// impl ManyCounters {
+    ///     pub fn update(&mut self, message: Message) {
+    ///         match message {
+    ///             Message::Counter(index, counter_msg) => {
+    ///                 if let Some(counter) = self.counters.get_mut(index) {
+    ///                     counter.update(counter_msg);
+    ///                 }
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    fn map<F, B>(self, f: F) -> widget::Map<Self, F, Message>
+    where
+        Self: Sized,
+        F: Fn(Message) -> B,
+    {
+        core::Widget::_map(self, f)
+    }
+
+    /// Boxes this [`Widget`], turning it into a generic [`Element`].
+    fn boxed<'a>(self) -> Element<'a, Message, Theme, Renderer>
+    where
+        Self: Sized + 'a,
+    {
+        core::Widget::_boxed(self)
+    }
+
+    /// Marks this [`Widget`] as _to-be-explained_.
+    ///
+    /// The [`Renderer`] will explain its layout graphically.
+    /// This can be very useful for debugging your layout!
+    ///
+    /// [`Renderer`]: crate::Renderer
+    fn explain(self, color: impl Into<Color>) -> impl core::Widget<Message, Theme, Renderer>
+    where
+        Self: Sized,
+        Renderer: core::Renderer,
+    {
+        Explain {
+            widget: self,
+            color: color.into(),
+        }
+    }
+}
+
+impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for T where
+    T: core::Widget<Message, Theme, Renderer>
+{
+}
+
+/// A [`Widget`] that explains the layout of its child.
+///
+/// The [`Renderer`] will explain the layout graphically. This can be very
+/// useful for debugging your layout!
+///
+/// This widget is returned by [`Widget::explain`].
+///
+/// [`Renderer`]: crate::Renderer
+pub struct Explain<W> {
+    widget: W,
+    color: Color,
+}
+
+impl<W> widget::Meta for Explain<W> {}
+
+impl<W, Message, Theme, Renderer> core::Widget<Message, Theme, Renderer> for Explain<W>
+where
+    W: core::Widget<Message, Theme, Renderer>,
+    Renderer: core::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        self.widget.size()
+    }
+
+    fn tag(&self) -> tree::Tag {
+        self.widget.tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.widget.state()
+    }
+
+    fn diff(&mut self, tree: &mut Tree) {
+        self.widget.diff(tree);
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.widget.layout(tree, renderer, limits);
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation,
+    ) {
+        self.widget
+            .operate(tree, layout, viewport, renderer, operation);
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &Event,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) {
+        self.widget
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &core::renderer::Style,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        fn explain_layout<Renderer: core::Renderer>(
+            tree: &Tree,
+            renderer: &mut Renderer,
+            color: Color,
+            layout: Layout,
+        ) {
+            renderer.fill_quad(
+                core::renderer::Quad {
+                    bounds: layout.bounds(),
+                    border: Border {
+                        color,
+                        width: 1.0,
+                        ..Border::default()
+                    },
+                    ..core::renderer::Quad::default()
+                },
+                Color::TRANSPARENT,
+            );
+
+            for (layout, tree) in layout.iter(&tree.children) {
+                explain_layout(tree, renderer, color, layout);
+            }
+        }
+
+        self.widget
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
+
+        renderer.with_layer(Rectangle::INFINITE, |renderer| {
+            explain_layout(tree, renderer, self.color, layout);
+        });
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.widget
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        tree: &'b mut Tree,
+        layout: Layout,
+        renderer: &Renderer,
+        viewport: &Rectangle,
+        translation: Vector,
+        window: Size,
+    ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
+        self.widget
+            .overlay(tree, layout, renderer, viewport, translation, window)
+    }
+}

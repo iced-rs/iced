@@ -7,7 +7,9 @@ use crate::text::editor;
 use crate::text::paragraph;
 use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};
 use crate::widget::operation::{Focusable, TextInput};
-use crate::{Color, Event, Font, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell};
+use crate::{
+    Color, Event, Font, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
+};
 
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -70,12 +72,7 @@ impl<R: text::Renderer> Input<R> {
         }
     }
 
-    pub fn layout(
-        &mut self,
-        renderer: &R,
-        limits: &layout::Limits,
-        layout: Layout<'_>,
-    ) -> layout::Node {
+    pub fn layout(&mut self, renderer: &R, limits: &layout::Limits, layout: Layout<'_>) -> Size {
         self.padding = layout.padding;
         self.multiline = layout.multiline;
 
@@ -103,7 +100,7 @@ impl<R: text::Renderer> Input<R> {
         let editor = self.secure.as_mut().unwrap_or(&mut self.editor);
 
         editor.update(
-            limits.max(),
+            limits.bounds(),
             font,
             size,
             line_height,
@@ -113,16 +110,7 @@ impl<R: text::Renderer> Input<R> {
             &mut text::parser::PlainText,
         );
 
-        let bounds = match layout.height {
-            Length::Fill
-            | Length::FillPortion(_)
-            | Length::Fixed(_)
-            | Length::Bounded { .. }
-            | Length::Fluid(_) => limits.max(),
-            Length::Shrink | Length::Fit => {
-                limits.resolve(layout.width, layout.height, editor.min_bounds())
-            }
-        };
+        let bounds = limits.resolve(layout.width, layout.height, editor.min_bounds());
 
         let _ = self.placeholder.update(Text {
             content: layout.placeholder,
@@ -138,7 +126,7 @@ impl<R: text::Renderer> Input<R> {
             hint_factor,
         });
 
-        layout::Node::new(bounds.expand(layout.padding))
+        bounds.expand(layout.padding)
     }
 
     pub fn update<Message>(

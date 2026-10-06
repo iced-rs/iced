@@ -3,8 +3,8 @@ use crate::core;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::Tree;
-use crate::core::{Element, Layout, Length, Rectangle, Size, Widget};
+use crate::core::widget::{Meta, Tree};
+use crate::core::{Layout, Length, Rectangle, Size, Widget};
 
 /// Creates a new [`Space`] widget that fills the available
 /// horizontal space.
@@ -35,8 +35,8 @@ impl Space {
     /// Creates some empty [`Space`] with no size.
     pub fn new() -> Self {
         Space {
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Length::Fit,
+            height: Length::Fit,
         }
     }
 
@@ -59,6 +59,8 @@ impl Default for Space {
     }
 }
 
+impl Meta for Space {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space
 where
     Renderer: core::Renderer,
@@ -70,13 +72,8 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width, self.height)
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width, self.height);
     }
 
     fn draw(
@@ -85,19 +82,9 @@ where
         _renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
-        _layout: Layout<'_>,
+        _layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Space> for Element<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-    Message: 'a,
-{
-    fn from(space: Space) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(space)
     }
 }

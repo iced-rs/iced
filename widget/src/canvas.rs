@@ -3,8 +3,8 @@
 //! # Example: Drawing a Simple Circle
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! #
 //! use iced::mouse;
 //! use iced::widget::canvas;
@@ -44,8 +44,8 @@
 //! }
 //!
 //! // Finally, we simply use our `Circle` to create the `Canvas`!
-//! fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-//!     canvas(Circle { radius: 50.0 }).into()
+//! fn view<Message>(_state: &State) -> impl Widget<Message> {
+//!     canvas(Circle { radius: 50.0 })
 //! }
 //! ```
 mod program;
@@ -64,9 +64,10 @@ use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{Element, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Length, Rectangle, Shell, Size, Vector, Widget};
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
@@ -88,8 +89,8 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// # Example: Drawing a Simple Circle
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// #
 /// use iced::mouse;
 /// use iced::widget::canvas;
@@ -129,8 +130,8 @@ pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
 /// }
 ///
 /// // Finally, we simply use our `Circle` to create the `Canvas`!
-/// fn view<'a, Message: 'a>(_state: &'a State) -> Element<'a, Message> {
-///     canvas(Circle { radius: 50.0 }).into()
+/// fn view<Message>(_state: &State) -> impl Widget<Message> {
+///     canvas(Circle { radius: 50.0 })
 /// }
 /// ```
 #[derive(Debug)]
@@ -181,6 +182,13 @@ where
     }
 }
 
+impl<P, Message, Theme, Renderer> Meta for Canvas<P, Message, Theme, Renderer>
+where
+    Renderer: geometry::Renderer,
+    P: Program<Message, Theme, Renderer>,
+{
+}
+
 impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Canvas<P, Message, Theme, Renderer>
 where
@@ -203,20 +211,15 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width, self.height)
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width, self.height);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -260,7 +263,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -277,7 +280,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -296,18 +299,5 @@ where
                 renderer.draw_geometry(layer);
             }
         });
-    }
-}
-
-impl<'a, P, Message, Theme, Renderer> From<Canvas<P, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + geometry::Renderer,
-    P: 'a + Program<Message, Theme, Renderer>,
-{
-    fn from(canvas: Canvas<P, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(canvas)
     }
 }

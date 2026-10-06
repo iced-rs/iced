@@ -2,9 +2,9 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::pin;
 //! use iced::Fill;
 //!
@@ -12,11 +12,10 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     pin("This text is displayed at coordinates (50, 50)!")
 //!         .x(50)
 //!         .y(50)
-//!         .into()
 //! }
 //! ```
 use crate::core::layout;
@@ -25,7 +24,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{
-    self, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
+    self, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
@@ -34,9 +33,9 @@ use crate::core::{
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::pin;
 /// use iced::Fill;
 ///
@@ -44,31 +43,24 @@ use crate::core::{
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     pin("This text is displayed at coordinates (50, 50)!")
 ///         .x(50)
 ///         .y(50)
-///         .into()
 /// }
 /// ```
-pub struct Pin<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
-    Renderer: core::Renderer,
-{
-    content: Element<'a, Message, Theme, Renderer>,
+pub struct Pin<W> {
+    content: W,
     width: Length,
     height: Length,
     position: Point,
 }
 
-impl<'a, Message, Theme, Renderer> Pin<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<W> Pin<W> {
     /// Creates a [`Pin`] widget with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: W) -> Self {
         Self {
-            content: content.into(),
+            content,
             width: Length::Fill,
             height: Length::Fill,
             position: Point::ORIGIN,
@@ -106,21 +98,23 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Pin<'_, Message, Theme, Renderer>
+impl<W> widget::Meta for Pin<W> {}
+
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Pin<W>
 where
+    W: Widget<Message, Theme, Renderer>,
     Renderer: core::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
-        self.content.as_widget().tag()
+        self.content.tag()
     }
 
     fn state(&self) -> widget::tree::State {
-        self.content.as_widget().state()
+        self.content.state()
     }
 
     fn diff(&mut self, tree: &mut widget::Tree) {
-        self.content.as_widget_mut().diff(tree);
+        tree.diff_children(std::slice::from_mut(&mut self.content));
     }
 
     fn size(&self) -> Size<Length> {
@@ -130,79 +124,63 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
         let limits = limits.width(self.width).height(self.height);
 
-        let available = limits.max() - Size::new(self.position.x, self.position.y);
+        let available = limits.bounds() - Size::new(self.position.x, self.position.y);
 
-        let node = self
-            .content
-            .as_widget_mut()
-            .layout(tree, renderer, &layout::Limits::new(Size::ZERO, available))
-            .move_to(self.position);
+        self.content.layout(
+            &mut tree.children[0],
+            renderer,
+            &layout::Limits::new(Size::ZERO, available),
+        );
 
-        let size = limits.resolve(self.width, self.height, node.size());
-        layout::Node::with_children(size, vec![node])
+        tree.children[0].translation = Vector::new(self.position.x, self.position.y);
+        tree.size = limits.resolve(self.width, self.height, tree.children[0].size);
     }
 
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            tree,
-            layout.children().next().unwrap(),
-            viewport,
-            renderer,
-            operation,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
-            tree,
-            event,
-            layout.children().next().unwrap(),
-            cursor,
-            renderer,
-            shell,
-            viewport,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            tree,
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-            renderer,
-        )
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+        self.content
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -211,19 +189,21 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
 
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
-            self.content.as_widget().draw(
+            let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+            self.content.draw(
                 tree,
                 renderer,
                 theme,
                 style,
-                layout.children().next().unwrap(),
+                layout,
                 cursor,
                 &clipped_viewport,
             );
@@ -233,29 +213,15 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'b>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            tree,
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
-    }
-}
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-impl<'a, Message, Theme, Renderer> From<Pin<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(pin: Pin<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(pin)
+        self.content
+            .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }

@@ -4,39 +4,32 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::Tree;
-use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
-use crate::space;
+use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that is aware of its dimensions.
 ///
 /// A [`Responsive`] widget will always try to fill all the available space of
 /// its parent.
-pub struct Responsive<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
-    view: Box<dyn Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a>,
+pub struct Responsive<'a, W> {
+    view: Box<dyn Fn(Size) -> W + 'a>,
     width: Length,
     height: Length,
-    content: Element<'a, Message, Theme, Renderer>,
+    content: Option<W>,
 }
 
-impl<'a, Message, Theme, Renderer> Responsive<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<'a, W> Responsive<'a, W> {
     /// Creates a new [`Responsive`] widget with a closure that produces its
     /// contents.
     ///
     /// The `view` closure will receive the maximum available space for
     /// the [`Responsive`] during layout. You can use this [`Size`] to
     /// conditionally build the contents.
-    pub fn new<E>(view: impl Fn(Size) -> E + 'a) -> Self
-    where
-        E: Into<Element<'a, Message, Theme, Renderer>>,
-    {
+    pub fn new(view: impl Fn(Size) -> W + 'a) -> Self {
         Self {
-            view: Box::new(move |size| view(size).into()),
+            view: Box::new(view),
             width: Length::Fill,
             height: Length::Fill,
-            content: Element::new(space()),
+            content: None,
         }
     }
 
@@ -53,10 +46,12 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Responsive<'_, Message, Theme, Renderer>
+impl<W> widget::Meta for Responsive<'_, W> {}
+
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Responsive<'_, W>
 where
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn diff(&mut self, _tree: &mut Tree) {
         // Diff is deferred to layout
@@ -69,47 +64,33 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
         let limits = limits.width(self.width).height(self.height);
-        let size = limits.max();
+        let size = limits.bounds();
 
-        self.content = (self.view)(size);
+        self.content = Some((self.view)(size));
         tree.diff_children(std::slice::from_mut(&mut self.content));
 
-        let node =
-            self.content
-                .as_widget_mut()
-                .layout(&mut tree.children[0], renderer, &limits.loose());
+        self.content
+            .layout(&mut tree.children[0], renderer, &limits.loose());
 
-        let size = limits.resolve(self.width, self.height, node.size());
-
-        layout::Node::with_children(size, vec![node])
+        tree.size = limits.resolve(self.width, self.height, tree.children[0].size);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget_mut().update(
-            &mut tree.children[0],
-            event,
-            layout.children().next().unwrap(),
-            cursor,
-            renderer,
-            shell,
-            viewport,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
     fn draw(
@@ -118,81 +99,56 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget().draw(
-            &tree.children[0],
-            renderer,
-            theme,
-            style,
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-        );
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+        self.content
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-            renderer,
-        )
+        let (layout, tree) = layout.iter(&tree.children).next().unwrap();
+
+        self.content
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn operate(
         &mut self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            viewport,
-            renderer,
-            operation,
-        );
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
+
+        self.content
+            .operate(tree, layout, viewport, renderer, operation);
     }
 
     fn overlay<'a>(
         &'a mut self,
         tree: &'a mut Tree,
-        layout: Layout<'a>,
+        layout: Layout,
         renderer: &Renderer,
         viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
-            layout.children().next().unwrap(),
-            renderer,
-            viewport,
-            translation,
-        )
-    }
-}
+        let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-impl<'a, Message, Theme, Renderer> From<Responsive<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(responsive: Responsive<'a, Message, Theme, Renderer>) -> Self {
-        Self::new(responsive)
+        self.content
+            .overlay(tree, layout, renderer, viewport, translation, window)
     }
 }

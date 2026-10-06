@@ -1,8 +1,8 @@
 //! Tests for [`Component`]s with overlays.
 use iced_test::Simulator;
 use iced_test::simulator;
-use iced_widget::core::{self, Element, Point, Size, mouse};
-use iced_widget::{Component, Renderer, Theme, button, component, tooltip};
+use iced_widget::core::{self, Point, Size, mouse};
+use iced_widget::{Component, Renderer, Widget, button, component, tooltip};
 
 use std::time::Duration;
 
@@ -27,11 +27,10 @@ impl<'a> Component<'a, Message> for WithTooltip {
         (event == Self::Event::Pressed).then_some(Message::Pressed)
     }
 
-    fn view(&self, _state: &()) -> Element<'a, Self::Event, Theme, Renderer> {
+    fn view(&self, _state: &()) -> impl Widget<Event> + 'a {
         tooltip(button("Press").on_press(Event::Pressed), "Hover me")
             .position(tooltip::Position::Top)
             .delay(Duration::ZERO)
-            .into()
     }
 }
 

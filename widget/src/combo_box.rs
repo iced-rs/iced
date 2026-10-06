@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::combo_box;
 //!
@@ -25,14 +25,13 @@
 //!     FruitSelected(Fruit),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     combo_box(
 //!         &state.fruits,
 //!         "Select your favorite fruit...",
 //!         state.favorite.as_ref(),
 //!         Message::FruitSelected
 //!     )
-//!     .into()
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -66,10 +65,8 @@ use crate::core::text::input;
 use crate::core::widget::operation::Focusable as _;
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{
-    Element, Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector,
-};
-use crate::overlay::menu;
+use crate::core::{Event, Font, Length, Padding, Pixels, Rectangle, Shell, Size, Theme, Vector};
+use crate::overlay::menu::{self, Menu};
 use crate::text::LineHeight;
 use crate::text_input;
 
@@ -81,7 +78,7 @@ use std::sync::atomic::{self, AtomicU64};
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::combo_box;
 ///
@@ -103,14 +100,13 @@ use std::sync::atomic::{self, AtomicU64};
 ///     FruitSelected(Fruit),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     combo_box(
 ///         &state.fruits,
 ///         "Select your favorite fruit...",
 ///         state.favorite.as_ref(),
 ///         Message::FruitSelected
 ///     )
-///     .into()
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -191,7 +187,7 @@ where
             ellipsis: text::Ellipsis::End,
             input_class: <Theme as Catalog>::default_input(),
             menu_class: <Theme as Catalog>::default_menu(),
-            menu_height: Length::Shrink,
+            menu_height: Length::Fit,
             last_status: None,
         }
     }
@@ -402,6 +398,8 @@ struct Editor<R: text::Renderer> {
     selection: Option<String>,
 }
 
+impl<T, Message, Theme> widget::Meta for ComboBox<'_, T, Message, Theme> where Theme: Catalog {}
+
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for ComboBox<'_, T, Message, Theme>
 where
@@ -417,15 +415,10 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
         let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
-        state.editor.input.layout(
+        tree.size = state.editor.input.layout(
             renderer,
             limits,
             input::Layout {
@@ -440,7 +433,7 @@ where
                 multiline: None,
                 is_secure: false,
             },
-        )
+        );
     }
 
     fn tag(&self) -> widget::tree::Tag {
@@ -470,7 +463,6 @@ where
             state.editor.input.overwrite(&self.selection);
             state.editor.selection = Some(self.selection.clone());
             state.filter(&self.state.options, &self.selection);
-
             state.version = self.state.version;
         }
     }
@@ -479,7 +471,7 @@ where
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -637,7 +629,7 @@ where
     fn mouse_interaction(
         &self,
         _tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -655,7 +647,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
@@ -692,37 +684,31 @@ where
     fn overlay<'b>(
         &'b mut self,
         tree: &'b mut widget::Tree,
-        layout: Layout<'_>,
-        _renderer: &Renderer,
-        viewport: &Rectangle,
+        layout: Layout,
+        renderer: &Renderer,
+        _viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let internal = tree.state.downcast_mut::<Internal<T, Renderer>>();
         let is_focused = internal.editor.input.is_focused();
 
         if is_focused {
-            let Internal {
-                menu,
-                filtered_options,
-                hovered_option,
-                editor,
-                ..
-            } = tree.state.downcast_mut::<Internal<T, Renderer>>();
-
-            if filtered_options.is_empty() {
+            if internal.filtered_options.is_empty() {
                 Vec::new()
             } else {
                 let bounds = layout.bounds();
+                let position = layout.position() + translation;
 
-                let mut menu = menu::Menu::new(
-                    menu,
-                    filtered_options,
-                    hovered_option,
+                let mut menu = Menu::new(
+                    &mut internal.menu,
+                    &internal.filtered_options,
+                    &mut internal.hovered_option,
                     &T::to_string,
                     |selection| {
-                        editor.selection = None;
-                        editor.input.overwrite("");
-                        editor.input.unfocus();
+                        internal.editor.selection = None;
+                        internal.editor.input.overwrite("");
+                        internal.editor.input.unfocus();
 
                         (self.on_selected)(selection)
                     },
@@ -730,6 +716,7 @@ where
                     &self.menu_class,
                 )
                 .width(bounds.width)
+                .height(self.menu_height)
                 .padding(self.padding)
                 .shaping(self.shaping)
                 .ellipsis(self.ellipsis);
@@ -742,12 +729,7 @@ where
                     menu = menu.text_size(size);
                 }
 
-                vec![menu.overlay(
-                    layout.position() + translation,
-                    *viewport,
-                    bounds.height,
-                    self.menu_height,
-                )]
+                vec![menu.overlay(renderer, position, window, bounds.height)]
             }
         } else {
             Vec::new()
@@ -757,7 +739,7 @@ where
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn widget::Operation,
@@ -767,19 +749,6 @@ where
 
         operation.focusable(self.id.as_ref(), bounds, &mut state.editor.input);
         operation.text_input(self.id.as_ref(), bounds, &mut state.editor.input);
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> From<ComboBox<'a, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Display + Clone + 'static,
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'static,
-{
-    fn from(combo_box: ComboBox<'a, T, Message, Theme>) -> Self {
-        Self::new(combo_box)
     }
 }
 

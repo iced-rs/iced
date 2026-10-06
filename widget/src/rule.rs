@@ -2,9 +2,9 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::rule;
 //!
 //! #[derive(Clone)]
@@ -12,8 +12,8 @@
 //!     // ...,
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     rule::horizontal(2).into()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     rule::horizontal(2)
 //! }
 //! ```
 use crate::core;
@@ -21,8 +21,8 @@ use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::Tree;
-use crate::core::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::core::widget::{Meta, Tree};
+use crate::core::{Color, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
 
 /// Creates a new horizontal [`Rule`] with the given height.
 pub fn horizontal<'a, Theme>(height: impl Into<Pixels>) -> Rule<'a, Theme>
@@ -52,9 +52,9 @@ where
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::rule;
 ///
 /// #[derive(Clone)]
@@ -62,8 +62,8 @@ where
 ///     // ...,
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     rule::horizontal(2).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     rule::horizontal(2)
 /// }
 /// ```
 pub struct Rule<'a, Theme = crate::Theme>
@@ -98,6 +98,8 @@ where
     }
 }
 
+impl<Theme> Meta for Rule<'_, Theme> where Theme: Catalog {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<'_, Theme>
 where
     Renderer: core::Renderer,
@@ -117,15 +119,10 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
         let size = <Self as Widget<(), Theme, Renderer>>::size(self);
 
-        layout::atomic(limits, size.width, size.height)
+        tree.size = layout::atomic(limits, size.width, size.height);
     }
 
     fn draw(
@@ -134,7 +131,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -183,17 +180,6 @@ where
             },
             style.color,
         );
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Rule<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + core::Renderer,
-{
-    fn from(rule: Rule<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(rule)
     }
 }
 
