@@ -676,8 +676,11 @@ where
 ///     .on_close(Message::Close)
 /// }
 /// ```
-pub fn popover<W, V, Message>(content: W, popover: Option<V>) -> crate::Popover<W, V, Message> {
-    Popover::new(content, popover)
+pub fn popover<W, V, Message>(
+    content: W,
+    popover: Option<V>,
+) -> crate::Popover<W, Opaque<V>, Message> {
+    Popover::new(content, popover.map(opaque))
 }
 
 /// Creates a new [`Tooltip`] for the provided content with the given

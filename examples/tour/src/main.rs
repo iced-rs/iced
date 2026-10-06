@@ -120,6 +120,7 @@ impl Tour {
             }
             Message::TogglePopover => {
                 self.popover_open = !self.popover_open;
+
                 if self.popover_open {
                     self.popover_opened = true;
                 }
@@ -405,10 +406,10 @@ impl Tour {
                 an element. Try hovering the first button:",
             tooltip(
                 padded_button("Hover me!"),
-                container(text(
+                container(
                     "Tooltips appear on hover and disappear when you move \
                     away.",
-                ))
+                )
                 .padding(10)
                 .style(container::rounded_box),
             )
@@ -424,11 +425,9 @@ impl Tour {
                 })
                 .on_press(Message::TogglePopover),
                 self.popover_open.then(|| {
-                    container(text(
-                        "This popover stays open until you click outside of it.",
-                    ))
-                    .padding(10)
-                    .style(container::rounded_box)
+                    container("This popover stays open until you click outside of it.")
+                        .padding(10)
+                        .style(container::rounded_box)
                 }),
             )
             .position(Position::Bottom)
