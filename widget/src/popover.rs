@@ -45,6 +45,7 @@
 //!     .on_close(Message::Close)
 //! }
 //! ```
+use crate::Opaque;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -157,6 +158,21 @@ impl<W, V, Message> Popover<W, V, Message> {
     pub fn snap_within_viewport(mut self, snap: bool) -> Self {
         self.snap_within_viewport = snap;
         self
+    }
+}
+
+impl<W, V, Message> Popover<W, Opaque<V>, Message> {
+    /// Makes interactions on the popup of the [`Popover`] fall through
+    /// to the base layer.
+    pub fn passthrough(self) -> Popover<W, V, Message> {
+        Popover {
+            content: self.content,
+            popup: self.popup.map(Opaque::into_inner),
+            position: self.position,
+            gap: self.gap,
+            snap_within_viewport: self.snap_within_viewport,
+            on_close: self.on_close,
+        }
     }
 }
 
