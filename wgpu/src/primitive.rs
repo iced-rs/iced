@@ -18,7 +18,7 @@ pub trait Primitive: Debug + MaybeSend + MaybeSync + 'static {
     /// a rendering pipeline, buffers, and textures.
     ///
     /// All instances of this [`Primitive`] type will share the same
-    /// [`Renderer`].
+    /// [`Pipeline`].
     type Pipeline: Pipeline + MaybeSend + MaybeSync;
 
     /// Processes the [`Primitive`], allowing for GPU buffer allocation.
