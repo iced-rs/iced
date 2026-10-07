@@ -13,7 +13,6 @@ use crate::pane_grid::{Draggable, TitleBar};
 pub struct Content<'a, Message, T, W, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     title_bar: Option<TitleBar<'a, Message, T, Theme, Renderer>>,
     body: W,
@@ -23,7 +22,6 @@ where
 impl<'a, Message, W, Theme, Renderer> Content<'a, Message, Void, W, Theme, Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
     pub fn new(body: W) -> Self {
@@ -38,7 +36,6 @@ where
 impl<'a, Message, T, W, Theme, Renderer> Content<'a, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     /// Sets the [`TitleBar`] of the [`Content`].
     pub fn title_bar<Title>(

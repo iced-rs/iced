@@ -21,7 +21,6 @@ pub fn table<'a, 'b, T, Message, Theme, Renderer>(
 where
     T: Clone,
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     Table::new(columns, rows)
 }
@@ -72,7 +71,6 @@ struct Column_ {
 impl<'a, Message, Theme, Renderer> Table<'a, Message, Theme, Renderer>
 where
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     /// Creates a new [`Table`] with the given columns and rows.
     ///

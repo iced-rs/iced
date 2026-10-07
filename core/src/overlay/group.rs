@@ -12,9 +12,7 @@ pub struct Group<'a, Message, Theme, Renderer> {
 
 fn sort_overlays<'a, Message, Theme, Renderer>(
     children: &mut [overlay::Element<'a, Message, Theme, Renderer>],
-) where
-    Renderer: renderer::Renderer,
-{
+) {
     use std::cmp;
 
     children.sort_by(|a, b| {
@@ -25,10 +23,7 @@ fn sort_overlays<'a, Message, Theme, Renderer>(
     });
 }
 
-impl<'a, Message, Theme, Renderer> Group<'a, Message, Theme, Renderer>
-where
-    Renderer: renderer::Renderer,
-{
+impl<'a, Message, Theme, Renderer> Group<'a, Message, Theme, Renderer> {
     /// Creates a [`Group`] container for the given overlays.
     ///
     /// The overlays are sorted by their
@@ -53,9 +48,7 @@ where
             theme: &Theme,
             style: &renderer::Style,
             cursor: mouse::Cursor,
-        ) where
-            Renderer: renderer::Renderer,
-        {
+        ) {
             for element in children {
                 // TODO: Get rid of cursor argument in `draw`
                 let is_over = cursor.position().is_some_and(|cursor_position| {
@@ -97,9 +90,7 @@ where
             children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
             renderer: &Renderer,
             operation: &mut dyn widget::Operation,
-        ) where
-            Renderer: renderer::Renderer,
-        {
+        ) {
             for element in children {
                 let overlay = element.as_overlay_mut();
 
@@ -132,10 +123,7 @@ where
             cursor: mouse::Cursor,
             renderer: &Renderer,
             shell: &mut Shell<'_, Message>,
-        ) -> bool
-        where
-            Renderer: renderer::Renderer,
-        {
+        ) -> bool {
             let mut is_over = false;
 
             for element in children {
@@ -196,10 +184,7 @@ where
             children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
             cursor: mouse::Cursor,
             renderer: &Renderer,
-        ) -> mouse::Interaction
-        where
-            Renderer: renderer::Renderer,
-        {
+        ) -> mouse::Interaction {
             children
                 .iter_mut()
                 .map(|element| {

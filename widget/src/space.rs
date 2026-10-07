@@ -1,5 +1,4 @@
 //! Add some explicit spacing between elements.
-use crate::core;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -61,10 +60,7 @@ impl Default for Space {
 
 impl Meta for Space {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space
-where
-    Renderer: core::Renderer,
-{
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space {
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,

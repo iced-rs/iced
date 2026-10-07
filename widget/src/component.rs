@@ -9,7 +9,7 @@ use crate::core::shell;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
-use crate::core::{self, Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Element, Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 use std::cell::{Cell, RefCell};
 
@@ -39,10 +39,7 @@ use std::cell::{Cell, RefCell};
 ///
 /// On the other hand, if a piece of state is only needed by the component itself,
 /// you can store it as part of its internal [`State`][Component::State].
-pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub trait Component<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     /// The internal state of this [`Component`].
     type State: Default + 'static;
 
@@ -120,7 +117,7 @@ where
     C::State: 'static,
     Message: 'a,
     Theme: 'a,
-    Renderer: core::Renderer + 'a,
+    Renderer: 'a,
 {
     Instance {
         component,
@@ -134,7 +131,6 @@ where
 struct Instance<'a, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
-    Renderer: core::Renderer,
 {
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
@@ -148,10 +144,8 @@ struct Internal<State, Event> {
     events: shell::Bus<Event>,
 }
 
-impl<'a, C, Message, Theme, Renderer> widget::Meta for Instance<'a, C, Message, Theme, Renderer>
-where
-    C: Component<'a, Message, Theme, Renderer> + 'a,
-    Renderer: core::Renderer,
+impl<'a, C, Message, Theme, Renderer> widget::Meta for Instance<'a, C, Message, Theme, Renderer> where
+    C: Component<'a, Message, Theme, Renderer> + 'a
 {
 }
 
@@ -159,7 +153,6 @@ impl<'a, C, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Instance<'a, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer> + 'a,
-    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<RefCell<Internal<C::State, C::Event>>>()
@@ -441,7 +434,6 @@ where
 struct Overlay<'a, 'b, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer>,
-    Renderer: core::Renderer,
 {
     component: &'b C,
     internal: &'b RefCell<Internal<C::State, C::Event>>,
@@ -453,7 +445,6 @@ impl<'a, 'b, C, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Rende
     for Overlay<'a, 'b, C, Message, Theme, Renderer>
 where
     C: Component<'a, Message, Theme, Renderer>,
-    Renderer: core::Renderer,
 {
     fn update(
         &mut self,

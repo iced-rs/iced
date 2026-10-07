@@ -377,10 +377,7 @@ where
 ///
 /// This trait allows the [`daemon`] builder to take any closure that
 /// returns any widget.
-pub trait ViewFn<'a, State, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Daemon`].
     fn view(
         &self,
@@ -394,7 +391,6 @@ where
     T: Fn(&'a State, window::Id) -> W,
     State: 'static,
     W: core::Widget<Message, Theme, Renderer> + 'a,
-    Renderer: core::Renderer,
 {
     #[inline]
     fn view(

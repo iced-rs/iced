@@ -1581,7 +1581,6 @@ pub fn themer<'a, Message, Theme, Renderer>(
 ) -> Themer<'a, Message, Theme, Renderer>
 where
     Theme: theme::Base,
-    Renderer: core::Renderer,
 {
     Themer::new(theme, content)
 }
@@ -1632,7 +1631,6 @@ pub fn pane_grid<'a, T, Message, Title, W, Theme, Renderer>(
 ) -> PaneGrid<'a, Message, Title, W, Theme, Renderer>
 where
     Theme: pane_grid::Catalog,
-    Renderer: core::Renderer,
 {
     PaneGrid::new(state, view)
 }

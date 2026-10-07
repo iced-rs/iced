@@ -177,7 +177,6 @@ impl<Key, W> Meta for Column<Key, W> where Key: Copy + PartialEq {}
 
 impl<Key, W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Column<Key, W>
 where
-    Renderer: crate::core::Renderer,
     Key: Copy + PartialEq + 'static,
     W: Widget<Message, Theme, Renderer>,
 {

@@ -5,7 +5,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector};
+use crate::core::{Event, Length, Rectangle, Shell, Size, Vector};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
@@ -44,7 +44,6 @@ impl<'a, W, Message, Theme, Renderer, Dependency> Widget<Message, Theme, Rendere
 where
     W: Widget<Message, Theme, Renderer> + 'static,
     Dependency: Hash + 'a,
-    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         struct Tag<T>(T);

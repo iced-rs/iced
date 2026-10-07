@@ -18,7 +18,6 @@ pub struct TitleBar<
     Renderer = crate::Renderer,
 > where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     content: C,
     controls: Option<Controls<'a, Message, Theme, Renderer>>,
@@ -30,7 +29,6 @@ pub struct TitleBar<
 impl<'a, Message, C, Theme, Renderer> TitleBar<'a, Message, C, Theme, Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new(content: C) -> Self {

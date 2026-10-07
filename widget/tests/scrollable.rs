@@ -764,10 +764,7 @@ impl Recorder {
 
 impl Meta for Recorder {}
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Recorder
-where
-    Renderer: core::Renderer,
-{
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Recorder {
     fn size(&self) -> Size<Length> {
         Size::new(Length::Fill, Length::Fill)
     }

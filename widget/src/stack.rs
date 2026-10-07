@@ -119,8 +119,8 @@ impl<W> Meta for Stack<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Stack<W>
 where
-    W: Widget<Message, Theme, Renderer>,
     Renderer: crate::core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn diff(&mut self, tree: &mut Tree) {
         tree.diff_children(&mut self.children);

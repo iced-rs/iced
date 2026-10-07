@@ -84,7 +84,6 @@ impl<W> widget::Meta for Opaque<W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Opaque<W>
 where
-    Renderer: crate::core::Renderer,
     W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
@@ -202,7 +201,7 @@ impl<'a, W, Message, Theme, Renderer> From<Opaque<W>> for Element<'a, Message, T
 where
     Message: 'a,
     Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
+    Renderer: 'a,
     W: Widget<Message, Theme, Renderer> + 'a,
 {
     fn from(opaque: Opaque<W>) -> Element<'a, Message, Theme, Renderer> {
