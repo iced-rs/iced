@@ -180,6 +180,7 @@ where
             tree.diff_children(std::slice::from_mut(&mut self.view));
 
             self.is_outdated.set(false);
+            self.limits = layout::Limits::new(Size::ZERO, Size::INFINITE);
         }
     }
 
@@ -483,7 +484,7 @@ where
 
         self.is_outdated.set(true);
 
-        shell.invalidate_layout();
+        shell.invalidate_layout_with(shell::Diff::Perform);
         shell.request_redraw();
     }
 
