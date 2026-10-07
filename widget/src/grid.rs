@@ -90,16 +90,16 @@ impl<W> Grid<W> {
     }
 
     /// Adds a [`Widget`] to the [`Grid`].
-    pub fn push(mut self, child: impl Into<W>) -> Self
+    pub fn push(mut self, child: W) -> Self
     where
         W: Meta,
     {
-        self.children.push(child.into());
+        self.children.push(child);
         self
     }
 
     /// Adds a widget to the [`Grid`], if `Some`.
-    pub fn push_maybe(self, child: Option<impl Into<W>>) -> Self
+    pub fn push_maybe(self, child: Option<W>) -> Self
     where
         W: Meta,
     {

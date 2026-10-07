@@ -70,12 +70,10 @@ impl<W> Stack<W> {
     }
 
     /// Adds a widget on top of the [`Stack`].
-    pub fn push(mut self, child: impl Into<W>) -> Self
+    pub fn push(mut self, child: W) -> Self
     where
         W: Meta,
     {
-        let child = child.into();
-
         if !child.is_void() {
             self.children.push(child);
         }
@@ -84,8 +82,8 @@ impl<W> Stack<W> {
     }
 
     /// Adds a widget under the [`Stack`].
-    pub fn push_under(mut self, child: impl Into<W>) -> Self {
-        self.children.insert(0, child.into());
+    pub fn push_under(mut self, child: W) -> Self {
+        self.children.insert(0, child);
         self.base_layer += 1;
         self
     }

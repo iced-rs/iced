@@ -121,12 +121,10 @@ impl<W> Row<W> {
     }
 
     /// Adds a [`Widget`] to the [`Row`].
-    pub fn push(mut self, child: impl Into<W>) -> Self
+    pub fn push(mut self, child: W) -> Self
     where
         W: Meta,
     {
-        let child = child.into();
-
         if !child.is_void() {
             self.children.push(child);
         }
