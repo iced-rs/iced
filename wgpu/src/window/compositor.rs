@@ -34,6 +34,20 @@ pub enum Error {
     RequestDeviceFailed(Vec<(wgpu::Limits, wgpu::RequestDeviceError)>),
 }
 
+fn required_features(adapter_features: wgpu::Features) -> wgpu::Features {
+    let mut required_features = wgpu::Features::empty();
+
+    if adapter_features.contains(wgpu::Features::SHADER_F16) {
+        required_features |= wgpu::Features::SHADER_F16;
+    }
+
+    if adapter_features.contains(wgpu::Features::TEXTURE_FORMAT_NV12) {
+        required_features |= wgpu::Features::TEXTURE_FORMAT_NV12;
+    }
+
+    required_features
+}
+
 impl From<Error> for backend::Error {
     fn from(error: Error) -> Self {
         Self::GraphicsAdapterNotFound {
@@ -164,12 +178,9 @@ impl Compositor {
             ..limits
         });
 
-        // Request SHADER_F16 only if the adapter supports it (e.g., not available in WebGL2)
-        let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
-            wgpu::Features::SHADER_F16
-        } else {
-            wgpu::Features::empty()
-        };
+        // Request SHADER_F16 and TEXTURE_FORMAT_NV12 independently, only if
+        // the adapter supports them (e.g., they are not available in WebGL2).
+        let required_features = required_features(adapter.features());
 
         let mut errors = Vec::new();
 
