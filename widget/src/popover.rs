@@ -317,6 +317,8 @@ where
             self.content
                 .overlay(base, layout, renderer, viewport, translation, window);
 
+        let viewport = *viewport + translation;
+
         if let (Some(popup), Some(popup_tree)) = (self.popup.as_mut(), popup_tree) {
             let state = tree.state.downcast_mut::<State>();
 
@@ -329,7 +331,7 @@ where
                     &layout::Limits::new(
                         Size::ZERO,
                         if self.snap_within_viewport {
-                            window
+                            viewport.size()
                         } else {
                             Size::INFINITE
                         },
@@ -348,7 +350,7 @@ where
                 popup_size,
                 self.gap,
                 Point::ORIGIN,
-                Rectangle::with_size(window),
+                viewport,
                 self.snap_within_viewport,
             );
 
@@ -358,7 +360,7 @@ where
                 layout: Layout::new(popup_size).move_to(popup_bounds.position()),
                 content_bounds,
                 on_close: self.on_close.clone(),
-                viewport: *viewport + translation,
+                viewport,
                 window,
             })));
         }
