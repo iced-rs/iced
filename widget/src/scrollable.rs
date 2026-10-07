@@ -673,7 +673,7 @@ where
             on_scroll(scroll).perform(state, bounds, content, shell);
 
             if let Event::Window(window::Event::RedrawRequested(_now)) = event {
-                state.last_translation = state.translation(self.direction, bounds, content);
+                state.last_translation = state.translation(self.direction, bounds.size(), content);
             }
         }
 
@@ -2636,7 +2636,7 @@ impl State {
                 interact.scroll = Some(notification);
             }
 
-            translation = self.translation(direction, bounds, content);
+            translation = self.translation(direction, bounds.size(), content);
             self.last_translation = translation;
 
             // Step the held-rail autoscroll, if any; the geometry is rebuilt
@@ -3115,7 +3115,7 @@ impl State {
 
     /// Returns the scrolling translation of the [`State`], given a [`Direction`],
     /// the bounds of the [`Scrollable`] and its contents.
-    fn translation(&self, direction: Direction, bounds: Rectangle, content: Size) -> Vector {
+    fn translation(&self, direction: Direction, bounds: Size, content: Size) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
                 self.offset_x
