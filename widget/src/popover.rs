@@ -180,10 +180,10 @@ impl<W, V, Message> widget::Meta for Popover<W, V, Message> {}
 
 impl<W, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Popover<W, V, Message>
 where
-    Message: Clone,
-    Renderer: crate::core::Renderer,
     W: Widget<Message, Theme, Renderer>,
     V: Widget<Message, Theme, Renderer>,
+    Message: Clone,
+    Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
         widget::tree::Tag::of::<State>()
@@ -367,20 +367,6 @@ where
     }
 }
 
-impl<'a, W, V, Message, Theme, Renderer> From<Popover<W, V, Message>>
-    for crate::Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a + Clone,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
-    W: Widget<Message, Theme, Renderer> + 'a,
-    V: Widget<Message, Theme, Renderer> + 'a,
-{
-    fn from(popover: Popover<W, V, Message>) -> crate::Element<'a, Message, Theme, Renderer> {
-        popover._boxed()
-    }
-}
-
 /// The position of the popover.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Position {
@@ -429,8 +415,8 @@ struct Overlay<'b, V, Message> {
 impl<V, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'_, V, Message>
 where
-    Renderer: crate::core::Renderer,
     V: Widget<Message, Theme, Renderer>,
+    Renderer: crate::core::Renderer,
 {
     fn update(
         &mut self,
