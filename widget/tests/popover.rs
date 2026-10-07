@@ -35,7 +35,7 @@ fn press(position: Point) -> (Event, Cursor) {
 
 /// A popover with a 50x50 base and an 80x80 popup (when `open`), with an
 /// `on_close` handler.
-fn new_popover(open: bool) -> popover::Popover<space::Space, space::Space, Message> {
+fn new_popover(open: bool) -> impl Widget<Message, Theme, ()> {
     popover(
         space().width(50).height(50),
         open.then(|| space().width(80).height(80)),
