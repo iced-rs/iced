@@ -9,7 +9,7 @@ publish = false
 iced.workspace = true
 iced.features = ["debug", "canvas", "tokio"]
 
-itertools = "0.12"
+itertools = "0.14"
 rustc-hash.workspace = true
 tokio = { workspace = true, features = ["sync"] }
 tracing-subscriber = "0.3"

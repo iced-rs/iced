@@ -2,21 +2,21 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{column, scrollable, space};
 //!
 //! enum Message {
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     scrollable(column![
 //!         "Scroll me!",
 //!         space().height(3000),
 //!         "You did it!",
-//!     ]).into()
+//!     ])
 //! }
 //! ```
 use crate::container;
@@ -35,8 +35,8 @@ use crate::core::widget::operation::{self, Animation, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, InputMethod, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
+    self, Background, Color, Event, InputMethod, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shadow, Shell, Size, Theme, Vector, Widget,
 };
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
@@ -46,21 +46,21 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, scrollable, space};
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     scrollable(column![
 ///         "Scroll me!",
 ///         space().height(3000),
 ///         "You did it!",
-///     ]).into()
+///     ])
 /// }
 /// ```
 ///
@@ -80,10 +80,9 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 ///
 /// With [`Self::click_to_scroll`] enabled, the behavior of the rail press
 /// and the `Shift`-click is inverted.
-pub struct Scrollable<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Scrollable<'a, Message, W = crate::Element<'a, Message>, Theme = crate::Theme>
 where
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     id: Option<widget::Id>,
     width: Length,
@@ -92,26 +91,22 @@ where
     auto_scroll: bool,
     smooth_scroll: bool,
     click_to_scroll: bool,
-    content: Element<'a, Message, Theme, Renderer>,
+    content: W,
     on_scroll: Option<Box<dyn Fn(Scroll) -> Action<Message> + 'a>>,
     class: Theme::Class<'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
+impl<'a, Message, W, Theme> Scrollable<'a, Message, W, Theme>
 where
     Theme: Catalog,
-    Renderer: text::Renderer,
 {
     /// Creates a new vertical [`Scrollable`].
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: W) -> Self {
         Self::with_direction(content, Direction::default())
     }
 
     /// Creates a new [`Scrollable`] with the given [`Direction`].
-    pub fn with_direction(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        direction: impl Into<Direction>,
-    ) -> Self {
+    pub fn with_direction(content: W, direction: impl Into<Direction>) -> Self {
         Scrollable {
             id: None,
             width: Length::Fit,
@@ -120,7 +115,7 @@ where
             auto_scroll: false,
             smooth_scroll: true,
             click_to_scroll: false,
-            content: content.into(),
+            content,
             on_scroll: None,
             class: Theme::default(),
         }
@@ -472,11 +467,14 @@ pub enum Anchor {
     End,
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Scrollable<'_, Message, Theme, Renderer>
+impl<Message, W, Theme> widget::Meta for Scrollable<'_, Message, W, Theme> where Theme: Catalog {}
+
+impl<Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Scrollable<'_, Message, W, Theme>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -498,7 +496,7 @@ where
             };
         }
 
-        let size = self.content.as_widget().size();
+        let size = self.content.size();
 
         self.width = self.width.stack(size.width);
         self.height = self.height.stack(size.height);
@@ -537,9 +535,7 @@ where
                         ),
                     );
 
-                    self.content
-                        .as_widget_mut()
-                        .layout(tree, renderer, &child_limits);
+                    self.content.layout(tree, renderer, &child_limits);
 
                     tree.size
                 },
@@ -632,13 +628,8 @@ where
         operation.container(self.id.as_ref(), content_bounds, &viewport);
 
         operation.traverse(&mut |operation| {
-            self.content.as_widget_mut().operate(
-                content_tree,
-                content_layout,
-                &viewport,
-                renderer,
-                operation,
-            );
+            self.content
+                .operate(content_tree, content_layout, &viewport, renderer, operation);
         });
     }
 
@@ -705,7 +696,7 @@ where
                 let viewport =
                     bounds.intersection(viewport).unwrap_or_default() + state.last_translation;
 
-                self.content.as_widget_mut().update(
+                self.content.update(
                     content_tree,
                     event,
                     content_layout,
@@ -836,7 +827,7 @@ where
                 renderer.with_translation(
                     -translation.hint(renderer.hint_factor().unwrap_or(1.0)),
                     |renderer| {
-                        self.content.as_widget().draw(
+                        self.content.draw(
                             content_tree,
                             renderer,
                             theme,
@@ -924,7 +915,7 @@ where
                 renderer.end_layer();
             }
         } else {
-            self.content.as_widget().draw(
+            self.content.draw(
                 content_tree,
                 renderer,
                 theme,
@@ -970,7 +961,7 @@ where
             _ => cursor.obstruct() + translation,
         };
 
-        self.content.as_widget().mouse_interaction(
+        self.content.mouse_interaction(
             content_tree,
             content_layout,
             cursor,
@@ -996,7 +987,7 @@ where
 
         let offset = state.last_translation;
 
-        let overlay = self.content.as_widget_mut().overlay(
+        let overlay = self.content.overlay(
             content_tree,
             content_layout,
             renderer,
@@ -1159,20 +1150,6 @@ where
 
     fn index(&self) -> f32 {
         f32::MAX
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<Scrollable<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + text::Renderer,
-{
-    fn from(
-        text_input: Scrollable<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text_input)
     }
 }
 
@@ -2969,7 +2946,7 @@ impl State {
                     return update;
                 }
 
-                let (delta, is_lines) = match *delta {
+                let (delta, is_significant) = match *delta {
                     mouse::ScrollDelta::Lines { x, y } => {
                         let is_shift_pressed = self.keyboard_modifiers.shift();
 
@@ -2987,7 +2964,10 @@ impl State {
                             Vector::new(y, x)
                         };
 
-                        (-movement * WHEEL_PX_PER_LINE, true)
+                        (
+                            -movement * WHEEL_PX_PER_LINE,
+                            x.abs() >= 0.5 || y.abs() >= 0.5,
+                        )
                     }
                     // Pixel deltas (e.g. from high-precision touchpads) are
                     // already smooth, so scrolling them immediately avoids
@@ -2997,7 +2977,7 @@ impl State {
 
                 let delta = direction.align(delta);
 
-                if smooth_scroll && is_lines {
+                if smooth_scroll && is_significant {
                     self.scroll_smoothly(delta, bounds, content, Instant::now());
                 } else {
                     self.scroll(delta, bounds, content);

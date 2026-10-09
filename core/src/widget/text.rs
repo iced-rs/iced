@@ -4,8 +4,9 @@
 //! ```no_run
 //! # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 //! #            pub use iced_core::color; }
+//! # pub trait Widget<Message>: iced_core::Widget<Message, iced_core::Theme, ()> {}
+//! # impl<T, Message> Widget<Message> for T where T: iced_core::Widget<Message, iced_core::Theme, ()> {}
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
 //! use iced::widget::text;
 //! use iced::color;
 //!
@@ -13,21 +14,23 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     text("Hello, this is iced!")
 //!         .size(20)
 //!         .color(color!(0x0000ff))
-//!         .into()
 //! }
 //! ```
 use crate::alignment;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text;
 use crate::text::paragraph::{self, Paragraph};
+use crate::text::{self, Target};
+use crate::widget;
+use crate::widget::operation;
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Font, Layout, Length, Pixels, Rectangle, Size, Theme, Widget};
+use crate::window;
+use crate::{Color, Event, Font, Layout, Length, Pixels, Point, Rectangle, Size, Theme, Widget};
 
 pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 
@@ -37,8 +40,9 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 /// ```no_run
 /// # mod iced { pub mod widget { pub fn text<T>(t: T) -> iced_core::widget::Text<'static, iced_core::Theme> { unimplemented!() } }
 /// #            pub use iced_core::color; }
+/// # pub trait Widget<Message>: iced_core::Widget<Message, iced_core::Theme, ()> {}
+/// # impl<T, Message> Widget<Message> for T where T: iced_core::Widget<Message, iced_core::Theme, ()> {}
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
 /// use iced::widget::text;
 /// use iced::color;
 ///
@@ -46,11 +50,10 @@ pub use text::{Alignment, Ellipsis, LineHeight, Position, Shaping, Wrapping};
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     text("Hello, this is iced!")
 ///         .size(20)
 ///         .color(color!(0x0000ff))
-///         .into()
 /// }
 /// ```
 #[must_use]
@@ -60,6 +63,7 @@ where
 {
     fragment: text::Fragment<'a>,
     format: Format,
+    selectable: bool,
     class: Theme::Class<'a>,
 }
 
@@ -72,6 +76,7 @@ where
         Text {
             fragment: fragment.into_fragment(),
             format: Format::default(),
+            selectable: false,
             class: Theme::default(),
         }
     }
@@ -148,6 +153,14 @@ where
         self
     }
 
+    /// Sets whether the [`Text`] can be selected.
+    ///
+    /// By default, it is `false`.
+    pub fn selectable(mut self, selectable: bool) -> Self {
+        self.selectable = selectable;
+        self
+    }
+
     /// Sets the style of the [`Text`].
     pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
     where
@@ -172,7 +185,10 @@ where
     {
         let color = color.map(Into::into);
 
-        self.style(move |_theme| Style { color })
+        self.style(move |_theme| Style {
+            color,
+            selection: None,
+        })
     }
 
     /// Sets the style class of the [`Text`].
@@ -183,22 +199,13 @@ where
     }
 }
 
-/// The internal state of a [`Text`] widget.
-pub type State<P> = paragraph::Plain<P>;
+impl<Theme> widget::Meta for Text<'_, Theme> where Theme: Catalog {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Text<'_, Theme>
 where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State<Renderer::Paragraph>>()
-    }
-
-    fn state(&self) -> tree::State {
-        tree::State::new(paragraph::Plain::<Renderer::Paragraph>::default())
-    }
-
     fn size(&self) -> Size<Length> {
         Size {
             width: self.format.width,
@@ -206,14 +213,56 @@ where
         }
     }
 
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::<Renderer::Paragraph>::default())
+    }
+
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
         tree.size = layout(
-            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            &mut state.paragraph,
             renderer,
             limits,
             &self.fragment,
             self.format,
         );
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut Tree,
+        event: &crate::Event,
+        layout: Layout,
+        cursor: mouse::Cursor,
+        _renderer: &Renderer,
+        _shell: &mut crate::Shell<'_, Message>,
+        _viewport: &Rectangle,
+    ) {
+        update::<Renderer::Paragraph>(tree, event, layout, cursor);
+    }
+
+    fn mouse_interaction(
+        &self,
+        tree: &Tree,
+        _layout: Layout,
+        _cursor: mouse::Cursor,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+    ) -> mouse::Interaction {
+        if self.selectable {
+            let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+
+            if state.is_hovered {
+                return mouse::Interaction::Text;
+            }
+        }
+
+        mouse::Interaction::None
     }
 
     fn draw(
@@ -233,21 +282,168 @@ where
             renderer,
             defaults,
             layout.bounds(),
-            state.raw(),
+            state.paragraph.raw(),
             style,
+            theme.selection(),
             viewport,
         );
     }
 
     fn operate(
         &mut self,
-        _tree: &mut Tree,
+        tree: &mut Tree,
         layout: Layout,
         _viewport: &Rectangle,
         _renderer: &Renderer,
         operation: &mut dyn super::Operation,
     ) {
-        operation.text(None, layout.bounds(), &self.fragment);
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+        operation.text(
+            None,
+            layout.bounds(),
+            &mut Operand {
+                paragraph: &mut state.paragraph,
+                layout,
+                selectable: self.selectable,
+            },
+        );
+    }
+}
+
+impl widget::Meta for &str {}
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for &str
+where
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fit,
+            height: Length::Fit,
+        }
+    }
+
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::<Renderer::Paragraph>::default())
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+        tree.size = layout(
+            &mut state.paragraph,
+            renderer,
+            limits,
+            self,
+            Format::default(),
+        );
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        defaults: &renderer::Style,
+        layout: Layout,
+        _cursor_position: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+        let style = theme.style(&Theme::default());
+
+        draw(
+            renderer,
+            defaults,
+            layout.bounds(),
+            state.paragraph.raw(),
+            style,
+            theme.selection(),
+            viewport,
+        );
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+        operation: &mut dyn super::Operation,
+    ) {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+        operation.text(
+            None,
+            layout.bounds(),
+            &mut Operand {
+                paragraph: &mut state.paragraph,
+                layout,
+                selectable: false,
+            },
+        );
+    }
+}
+
+#[derive(Default)]
+struct State<P: Paragraph> {
+    paragraph: paragraph::Plain<P>,
+    is_hovered: bool,
+}
+
+/// The state of a widget with text, operated on by [`super::Operation::text`].
+pub struct Operand<'a, P: Paragraph> {
+    /// The [`Paragraph`] of the widget.
+    pub paragraph: &'a mut paragraph::Plain<P>,
+
+    /// The layout of the widget.
+    pub layout: Layout,
+
+    /// Whether the text of the widget can be selected.
+    pub selectable: bool,
+}
+
+impl<P: Paragraph> operation::Text for Operand<'_, P> {
+    fn text(&self) -> text::Fragment<'_> {
+        self.paragraph.content().into()
+    }
+
+    fn select(&mut self, start: Point, end: Point, target: Target) {
+        if !self.selectable {
+            return;
+        }
+
+        let anchor = self.layout.bounds().anchor(
+            self.paragraph.min_bounds(),
+            self.paragraph.align_x(),
+            self.paragraph.align_y(),
+        );
+
+        let translation = anchor - Point::ORIGIN;
+
+        self.paragraph
+            .raw_mut()
+            .select(start - translation, end - translation, target);
+    }
+
+    fn select_all(&mut self) {
+        if !self.selectable {
+            return;
+        }
+
+        self.paragraph.raw_mut().select_all();
+    }
+
+    fn deselect(&mut self) {
+        self.paragraph.raw_mut().deselect();
+    }
+
+    fn copy(&mut self) -> Option<String> {
+        self.paragraph.raw_mut().copy()
     }
 }
 
@@ -284,6 +480,36 @@ impl Default for Format {
             wrapping: Wrapping::default(),
             ellipsis: Ellipsis::default(),
         }
+    }
+}
+
+fn update<P: Paragraph + 'static>(
+    tree: &mut Tree,
+    event: &crate::Event,
+    layout: Layout,
+    cursor: mouse::Cursor,
+) {
+    match event {
+        Event::Mouse(mouse::Event::CursorMoved { .. })
+        | Event::Window(window::Event::RedrawRequested(_)) => {
+            let state = tree.state.downcast_mut::<State<P>>();
+
+            let Some(position) = cursor.position_in(layout.bounds()) else {
+                state.is_hovered = false;
+                return;
+            };
+
+            let anchor = Rectangle::with_size(layout.size()).anchor(
+                state.paragraph.min_bounds(),
+                state.paragraph.align_x(),
+                state.paragraph.align_y(),
+            );
+
+            let translation = anchor - Point::ORIGIN;
+
+            state.is_hovered = state.paragraph.raw().hit_glyph(position - translation);
+        }
+        _ => {}
     }
 }
 
@@ -330,6 +556,7 @@ pub fn draw<Renderer>(
     bounds: Rectangle,
     paragraph: &Renderer::Paragraph,
     appearance: Style,
+    selection_color: Color,
     viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
@@ -346,15 +573,21 @@ pub fn draw<Renderer>(
         appearance.color.unwrap_or(style.text_color),
         *viewport,
     );
-}
 
-impl<'a, Message, Theme, Renderer> From<Text<'a, Theme>> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(text: Text<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(text)
+    let selection = paragraph.selection();
+
+    if !selection.is_empty() {
+        let translation = anchor - Point::ORIGIN;
+
+        for region in selection {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: *region + translation,
+                    ..renderer::Quad::default()
+                },
+                appearance.selection.unwrap_or(selection_color),
+            );
+        }
     }
 }
 
@@ -367,16 +600,6 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<&'a str> for Element<'a, Message, Theme, Renderer>
-where
-    Theme: Catalog + 'a,
-    Renderer: text::Renderer + 'a,
-{
-    fn from(content: &'a str) -> Self {
-        Text::from(content).into()
-    }
-}
-
 /// The appearance of some text.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Style {
@@ -384,6 +607,11 @@ pub struct Style {
     ///
     /// The default, `None`, means using the inherited color.
     pub color: Option<Color>,
+
+    /// The [`Color`] of the selection, if any.
+    ///
+    /// The default, `None`, means using the global selection color.
+    pub selection: Option<Color>,
 }
 
 /// The theme catalog of a [`Text`].
@@ -396,6 +624,9 @@ pub trait Catalog: Sized {
 
     /// The [`Style`] of a class with the given status.
     fn style(&self, item: &Self::Class<'_>) -> Style;
+
+    /// The global selection [`Color`].
+    fn selection(&self) -> Color;
 }
 
 /// A styling function for a [`Text`].
@@ -410,6 +641,10 @@ impl Catalog for Theme {
         Box::new(|_theme| Style::default())
     }
 
+    fn selection(&self) -> Color {
+        self.palette().background.strongest.color
+    }
+
     fn style(&self, class: &Self::Class<'_>) -> Style {
         class(self)
     }
@@ -417,13 +652,17 @@ impl Catalog for Theme {
 
 /// The default text styling; color is inherited.
 pub fn default(_theme: &Theme) -> Style {
-    Style { color: None }
+    Style {
+        color: None,
+        selection: None,
+    }
 }
 
 /// Text with the default base color.
 pub fn base(theme: &Theme) -> Style {
     Style {
         color: Some(theme.seed().text),
+        selection: None,
     }
 }
 
@@ -431,6 +670,7 @@ pub fn base(theme: &Theme) -> Style {
 pub fn primary(theme: &Theme) -> Style {
     Style {
         color: Some(theme.seed().primary),
+        selection: None,
     }
 }
 
@@ -438,6 +678,7 @@ pub fn primary(theme: &Theme) -> Style {
 pub fn secondary(theme: &Theme) -> Style {
     Style {
         color: Some(theme.palette().secondary.base.color),
+        selection: None,
     }
 }
 
@@ -445,6 +686,7 @@ pub fn secondary(theme: &Theme) -> Style {
 pub fn success(theme: &Theme) -> Style {
     Style {
         color: Some(theme.seed().success),
+        selection: None,
     }
 }
 
@@ -452,6 +694,7 @@ pub fn success(theme: &Theme) -> Style {
 pub fn warning(theme: &Theme) -> Style {
     Style {
         color: Some(theme.seed().warning),
+        selection: None,
     }
 }
 
@@ -459,5 +702,6 @@ pub fn warning(theme: &Theme) -> Style {
 pub fn danger(theme: &Theme) -> Style {
     Style {
         color: Some(theme.seed().danger),
+        selection: None,
     }
 }

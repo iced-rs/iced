@@ -18,9 +18,9 @@
 //!
 //! # Example
 //! ```no_run
-//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+//! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+//! # use iced::widget::Widget;
 //! # pub type State = ();
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 //! use iced::widget::{column, container, scrollable, sticky, space};
 //! use iced::Fill;
 //!
@@ -28,11 +28,11 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
+//! fn view(state: &State) -> impl Widget<Message> {
 //!     scrollable(column![
 //!         sticky(container("I always stay in view!").width(Fill).padding(10)),
 //!         space().height(3000),
-//!     ]).into()
+//!     ])
 //! }
 //! ```
 use crate::core;
@@ -42,7 +42,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Event, Layout, Length, Point, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that keeps its contents in view.
 ///
@@ -68,9 +68,9 @@ use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::core::Length::Fill; }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; pub use iced_widget::core::Length::Fill; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::{column, container, scrollable, sticky, space};
 /// use iced::Fill;
 ///
@@ -78,29 +78,21 @@ use crate::core::{Element, Event, Layout, Length, Point, Rectangle, Shell, Size,
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     scrollable(column![
 ///         sticky(container("I always stay in view!").width(Fill).padding(10)),
 ///         space().height(3000),
-///     ]).into()
+///     ])
 /// }
 /// ```
-pub struct Sticky<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
-where
-    Renderer: core::Renderer,
-{
-    content: Element<'a, Message, Theme, Renderer>,
+pub struct Sticky<W> {
+    content: W,
 }
 
-impl<'a, Message, Theme, Renderer> Sticky<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<W> Sticky<W> {
     /// Creates a new [`Sticky`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
-        Self {
-            content: content.into(),
-        }
+    pub fn new(content: W) -> Self {
+        Self { content }
     }
 }
 
@@ -108,10 +100,12 @@ struct State {
     is_stuck: bool,
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Sticky<'_, Message, Theme, Renderer>
+impl<W> widget::Meta for Sticky<W> {}
+
+impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Sticky<W>
 where
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> widget::tree::Tag {
         widget::tree::Tag::of::<State>()
@@ -126,13 +120,11 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits);
+        self.content.layout(&mut tree.children[0], renderer, limits);
 
         tree.size = tree.children[0].size;
     }
@@ -151,13 +143,8 @@ where
             return;
         }
 
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.content
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn update(
@@ -193,7 +180,7 @@ where
             return;
         }
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -218,13 +205,8 @@ where
             return mouse::Interaction::None;
         }
 
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -243,7 +225,7 @@ where
             return;
         }
 
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -299,7 +281,7 @@ where
                 window,
             }))]
         } else {
-            self.content.as_widget_mut().overlay(
+            self.content.overlay(
                 &mut tree.children[0],
                 layout,
                 renderer,
@@ -348,33 +330,15 @@ fn stuck_axis(
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Sticky<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(sticky: Sticky<'a, Message, Theme, Renderer>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(sticky)
-    }
-}
-
-struct Overlay<'a, 'b, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
-    content: &'b mut Element<'a, Message, Theme, Renderer>,
+struct Overlay<'b, W> {
+    content: &'b mut W,
     tree: &'b mut widget::Tree,
     layout: Layout,
     viewport: Rectangle,
     window: Size,
 }
 
-impl<Message, Theme, Renderer> Overlay<'_, '_, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+impl<W> Overlay<'_, W> {
     fn bounds(&self) -> Rectangle {
         self.viewport
             .intersection(&self.layout.bounds())
@@ -382,16 +346,15 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer>
-    for Overlay<'_, '_, Message, Theme, Renderer>
+impl<W, Message, Theme, Renderer> core::Overlay<Message, Theme, Renderer> for Overlay<'_, W>
 where
     Renderer: core::Renderer,
+    W: Widget<Message, Theme, Renderer>,
 {
     fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         let bounds = self.bounds();
 
         self.content
-            .as_widget_mut()
             .operate(self.tree, self.layout, &bounds, renderer, operation);
     }
 
@@ -404,7 +367,7 @@ where
     ) {
         let bounds = self.bounds();
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             self.tree,
             event,
             self.layout,
@@ -418,13 +381,9 @@ where
     fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
         let bounds = self.bounds();
 
-        let interaction = self.content.as_widget().mouse_interaction(
-            self.tree,
-            self.layout,
-            cursor,
-            &bounds,
-            renderer,
-        );
+        let interaction =
+            self.content
+                .mouse_interaction(self.tree, self.layout, cursor, &bounds, renderer);
 
         if interaction == mouse::Interaction::None && cursor.is_over(bounds) {
             mouse::Interaction::Idle
@@ -443,7 +402,7 @@ where
         let bounds = self.bounds();
 
         renderer.with_layer(bounds, |renderer| {
-            self.content.as_widget().draw(
+            self.content.draw(
                 self.tree,
                 renderer,
                 theme,
@@ -459,7 +418,7 @@ where
         &'c mut self,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'c, Message, Theme, Renderer>> {
-        self.content.as_widget_mut().overlay(
+        self.content.overlay(
             self.tree,
             self.layout,
             renderer,

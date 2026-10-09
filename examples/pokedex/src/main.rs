@@ -1,6 +1,6 @@
 use iced::futures;
 use iced::widget::{self, center, column, image, row, text};
-use iced::{Center, Element, Fill, Fit, Right, Task};
+use iced::{Center, Fill, Fit, Right, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
@@ -63,9 +63,9 @@ impl Pokedex {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
-        let content: Element<_> = match self {
-            Pokedex::Loading => text("Searching for Pokémon...").size(40).into(),
+    fn view(&self) -> impl Widget<Message> {
+        let content = match self {
+            Pokedex::Loading => text("Searching for Pokémon...").size(40).boxed(),
             Pokedex::Loaded { pokemon } => column![
                 pokemon.view(),
                 button("Keep searching!").on_press(Message::Search)
@@ -73,17 +73,17 @@ impl Pokedex {
             .width(Fit.max(500))
             .spacing(20)
             .align_x(Right)
-            .into(),
+            .boxed(),
             Pokedex::Errored => column![
                 text("Whoops! Something went wrong...").size(40),
                 button("Try again").on_press(Message::Search)
             ]
             .spacing(20)
             .align_x(Right)
-            .into(),
+            .boxed(),
         };
 
-        center(content).into()
+        center(content)
     }
 }
 
@@ -98,7 +98,7 @@ struct Pokemon {
 impl Pokemon {
     const TOTAL: u16 = 807;
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         row![
             image::viewer(self.image.clone()),
             column![
@@ -114,11 +114,9 @@ impl Pokemon {
         ]
         .spacing(20)
         .align_y(Center)
-        .into()
     }
 
     async fn search() -> Result<Pokemon, Error> {
-        use rand::Rng;
         use serde::Deserialize;
 
         #[derive(Debug, Deserialize)]
@@ -138,11 +136,7 @@ impl Pokemon {
             name: String,
         }
 
-        let id = {
-            let mut rng = rand::rngs::OsRng;
-
-            rng.gen_range(0..Pokemon::TOTAL)
-        };
+        let id = rand::random_range(0..Pokemon::TOTAL);
 
         let fetch_entry = async {
             let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
@@ -202,6 +196,6 @@ impl From<reqwest::Error> for Error {
     }
 }
 
-fn button(text: &str) -> widget::Button<'_, Message> {
+fn button(text: &str) -> widget::Button<'_, Message, &str> {
     widget::button(text).padding(10)
 }

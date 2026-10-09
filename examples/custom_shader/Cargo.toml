@@ -14,4 +14,4 @@ bytemuck.workspace = true
 glam.workspace = true
 glam.features = ["bytemuck"]
 
-rand = "0.8.5"
+rand = "0.10"

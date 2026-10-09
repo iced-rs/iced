@@ -4,10 +4,11 @@ use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    ContentFit, Element, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell,
-    Size, Vector, Widget,
+    ContentFit, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -94,6 +95,8 @@ impl<Handle> Viewer<Handle> {
         self
     }
 }
+
+impl<Handle> Meta for Viewer<Handle> {}
 
 impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer> for Viewer<Handle>
 where
@@ -382,18 +385,6 @@ impl State {
     /// Returns if the cursor is currently grabbed by the [`Viewer`].
     pub fn is_cursor_grabbed(&self) -> bool {
         self.cursor_grabbed_at.is_some()
-    }
-}
-
-impl<'a, Message, Theme, Renderer, Handle> From<Viewer<Handle>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Renderer: 'a + image::Renderer<Handle = Handle>,
-    Message: 'a,
-    Handle: Clone + 'a,
-{
-    fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(viewer)
     }
 }
 

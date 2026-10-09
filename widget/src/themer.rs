@@ -4,8 +4,8 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme;
-use crate::core::widget::Operation;
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{Meta, Operation};
 use crate::core::{
     Background, Color, Element, Event, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -30,12 +30,9 @@ where
 {
     /// Creates an empty [`Themer`] that applies the given `Theme`
     /// to the provided `content`.
-    pub fn new(
-        theme: Option<Theme>,
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    pub fn new(theme: Option<Theme>, content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            content: content.into(),
+            content: content._boxed(),
             theme,
             text_color: None,
             background: None,
@@ -55,6 +52,11 @@ where
     }
 }
 
+impl<Message, Theme, Renderer> Meta for Themer<'_, Message, Theme, Renderer> where
+    Renderer: crate::core::Renderer
+{
+}
+
 impl<Message, Theme, Renderer, AnyTheme> Widget<Message, AnyTheme, Renderer>
     for Themer<'_, Message, Theme, Renderer>
 where
@@ -63,23 +65,23 @@ where
     Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        self.content.as_widget().tag()
+        self.content.tag()
     }
 
     fn state(&self) -> tree::State {
-        self.content.as_widget().state()
+        self.content.state()
     }
 
     fn diff(&mut self, tree: &mut Tree) {
-        self.content.as_widget_mut().diff(tree);
+        self.content.diff(tree);
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.as_widget_mut().layout(tree, renderer, limits);
+        self.content.layout(tree, renderer, limits);
     }
 
     fn operate(
@@ -91,7 +93,6 @@ where
         operation: &mut dyn Operation,
     ) {
         self.content
-            .as_widget_mut()
             .operate(tree, layout, viewport, renderer, operation);
     }
 
@@ -106,7 +107,6 @@ where
         viewport: &Rectangle,
     ) {
         self.content
-            .as_widget_mut()
             .update(tree, event, layout, cursor, renderer, shell, viewport);
     }
 
@@ -119,7 +119,6 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content
-            .as_widget()
             .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
@@ -156,7 +155,6 @@ where
         };
 
         self.content
-            .as_widget()
             .draw(tree, renderer, theme, &style, layout, cursor, viewport);
     }
 
@@ -242,7 +240,6 @@ where
         }
 
         self.content
-            .as_widget_mut()
             .overlay(tree, layout, renderer, viewport, translation, window)
             .into_iter()
             .map(|content| {
@@ -252,20 +249,5 @@ where
                 }))
             })
             .collect()
-    }
-}
-
-impl<'a, Message, Theme, Renderer, AnyTheme> From<Themer<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, AnyTheme, Renderer>
-where
-    Message: 'a,
-    Theme: theme::Base + 'a,
-    AnyTheme: theme::Base,
-    Renderer: 'a + crate::core::Renderer,
-{
-    fn from(
-        themer: Themer<'a, Message, Theme, Renderer>,
-    ) -> Element<'a, Message, AnyTheme, Renderer> {
-        Element::new(themer)
     }
 }

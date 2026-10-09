@@ -2,7 +2,7 @@ use iced::keyboard;
 use iced::widget::{button, center_y, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
-use iced::{Center, ContentFit, Element, Fill, FillPortion, Rectangle, Subscription, Task};
+use iced::{Center, ContentFit, Fill, FillPortion, Rectangle, Subscription, Task, Widget};
 
 use ::image as img;
 use ::image::ColorType;
@@ -113,15 +113,15 @@ impl Example {
         Task::none()
     }
 
-    fn view(&self) -> Element<'_, Message> {
-        let image: Element<Message> = if let Some((_screenshot, handle)) = &self.screenshot {
+    fn view(&self) -> impl Widget<Message> {
+        let image = if let Some((_screenshot, handle)) = &self.screenshot {
             image(handle)
                 .content_fit(ContentFit::Contain)
                 .width(Fill)
                 .height(Fill)
-                .into()
+                .boxed()
         } else {
-            text("Press the button to take a screenshot!").into()
+            text("Press the button to take a screenshot!").boxed()
         };
 
         let image = center_y(image)
@@ -208,7 +208,7 @@ impl Example {
             .height(Fill)
             .align_y(Center);
 
-        container(content).padding(10).into()
+        container(content).padding(10)
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -249,7 +249,7 @@ async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
 #[derive(Clone, Debug)]
 struct PngError(String);
 
-fn numeric_input<'a>(value: Option<u32>) -> Element<'a, Option<u32>> {
+fn numeric_input(value: Option<u32>) -> impl Widget<Option<u32>> {
     text_input("0", value.unwrap_or_default())
         .on_input(move |text| {
             if text.is_empty() {
@@ -261,9 +261,8 @@ fn numeric_input<'a>(value: Option<u32>) -> Element<'a, Option<u32>> {
             }
         })
         .width(40)
-        .into()
 }
 
-fn centered_text(content: &str) -> Element<'_, Message> {
-    text(content).width(Fill).align_x(Center).into()
+fn centered_text(content: &str) -> impl Widget<Message> {
+    text(content).width(Fill).align_x(Center)
 }

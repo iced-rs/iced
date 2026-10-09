@@ -2,8 +2,8 @@
 //!
 //! [`lazy`]: iced_widget::lazy
 use iced_test::Simulator;
-use iced_widget::core::{Element, Length};
-use iced_widget::{lazy, row, text};
+use iced_widget::core::Length;
+use iced_widget::{Widget, lazy, row, text};
 
 /// A row with a [`lazy`] child whose cached content fills the main axis,
 /// followed by a static text.
@@ -15,12 +15,11 @@ use iced_widget::{lazy, row, text};
 /// with the whole available width and the static text is collapsed to zero.
 ///
 /// [`Lazy`]: iced_widget::Lazy
-fn view(dependency: u8) -> Element<'static, (), iced_widget::Theme, iced_widget::Renderer> {
+fn view(dependency: u8) -> impl Widget<()> {
     row![
         lazy(dependency, |_| text("fill").width(Length::Fill)),
         text("anchor"),
     ]
-    .into()
 }
 
 /// Asserts that the static text keeps a non-zero intrinsic width, which only
