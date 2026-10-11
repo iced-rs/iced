@@ -26,6 +26,11 @@ pub fn focus<T>(id: impl Into<Id>) -> Task<T> {
     task::effect(Action::widget(operation::focusable::focus(id.into())))
 }
 
+/// Unfocus any currently focused widget.
+pub fn unfocus<T>() -> Task<T> {
+    task::effect(Action::widget(operation::focusable::unfocus()))
+}
+
 /// Operations for widgets that can scroll.
 pub mod scrollable {
     use super::*;
