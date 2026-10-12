@@ -7,7 +7,7 @@ use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-/// A raster image that can be drawn.
+/// A vector image that can be drawn.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Svg<H = Handle> {
     /// The handle of the [`Svg`].
