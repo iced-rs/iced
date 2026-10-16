@@ -479,6 +479,7 @@ impl Layer {
                         num_gradients += 1;
                     }
                 }
+                index_offset += mesh.indices().len();
                 continue;
             };
 
