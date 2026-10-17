@@ -249,7 +249,6 @@ where
             if frame_time > period && self.frame_burst > 1 {
                 log::debug!("Frame dropped! (target={period:?}, took={frame_time:?})");
 
-                // Reanchor the frame clock
                 self.frame_clock.reanchor(now, period);
             }
         }
