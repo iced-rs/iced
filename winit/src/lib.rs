@@ -970,12 +970,12 @@ async fn run_instance<P>(
                                 | compositor::SurfaceError::Other => {
                                     present_span.finish();
 
-                                    // Reconfigure or recreate at most once a second,
-                                    // and do not request a redraw in between, so a
-                                    // surface that keeps failing cannot spin the loop.
-                                    let due = window
-                                        .surface_error_at
-                                        .is_none_or(|at| at.elapsed() > Duration::from_secs(1));
+                                    // Recreate at most once a second, and do not request a redraw in
+                                    // between, so a surface that keeps failing cannot spin the loop.
+                                    let due = matches!(error, compositor::SurfaceError::Outdated)
+                                        || window
+                                            .surface_error_at
+                                            .is_none_or(|at| at.elapsed() > Duration::from_secs(1));
 
                                     if due {
                                         window.surface_error_at = Some(Instant::now());
