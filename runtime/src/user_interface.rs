@@ -403,7 +403,7 @@ where
                         }),
                         event::Status::Ignored,
                     ) if matches!(key.as_ref(), keyboard::Key::Character("c"))
-                        && modifiers.control() =>
+                        && modifiers.command() =>
                     {
                         let mut copy = operation::text::copy();
                         self.operate(renderer, &mut operation::black_box(&mut copy));
