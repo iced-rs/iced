@@ -409,7 +409,7 @@ where
                         self.operate(renderer, &mut operation::black_box(&mut copy));
 
                         if let operation::Outcome::Some(text) = copy.finish()
-                            && !text.trim().is_empty()
+                            && !text.is_empty()
                         {
                             shell.write_clipboard(text);
                         }
