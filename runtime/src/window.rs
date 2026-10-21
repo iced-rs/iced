@@ -3,11 +3,13 @@ use crate::core::time::Instant;
 use crate::core::window::{
     Direction, Event, Icon, Id, Level, Mode, Screenshot, Settings, UserAttention,
 };
-use crate::core::{Point, Size, Window};
+use crate::core::{Size, Window};
 use crate::futures::Subscription;
 use crate::futures::event;
 use crate::futures::futures::channel::oneshot;
 use crate::task::{self, Task};
+
+use iced_core::window::{MonitorData, MonitorList, PositionOnMonitor};
 
 /// An operation to be performed on some window.
 pub enum Action {
@@ -59,7 +61,7 @@ pub enum Action {
     Minimize(Id, bool),
 
     /// Get the current logical coordinates of the window.
-    GetPosition(Id, oneshot::Sender<Option<Point>>),
+    GetPosition(Id, oneshot::Sender<Option<PositionOnMonitor>>),
 
     /// Get the current scale factor (DPI) of the window.
     GetScaleFactor(Id, oneshot::Sender<f32>),
@@ -67,7 +69,7 @@ pub enum Action {
     /// Move the window to the given logical coordinates.
     ///
     /// Unsupported on Wayland.
-    Move(Id, Point),
+    Move(Id, PositionOnMonitor),
 
     /// Change the [`Mode`] of the window.
     SetMode(Id, Mode),
@@ -171,7 +173,7 @@ pub enum Action {
     SetResizeIncrements(Id, Option<Size>),
 
     /// Get the logical dimensions of the monitor containing the window with the given [`Id`].
-    GetMonitorSize(Id, oneshot::Sender<Option<Size>>),
+    GetMonitor(Id, oneshot::Sender<Option<MonitorData>>),
 
     /// Set whether the system can automatically organize windows into tabs.
     ///
@@ -183,6 +185,9 @@ pub enum Action {
 
     /// Recompute the layouts of all the windows.
     RelayoutAll,
+
+    /// Lists all monitors with positions, resolutions and scaling factors.
+    ListMonitors(oneshot::Sender<MonitorList>),
 }
 
 /// Subscribes to the frames of the window of the running application.
@@ -266,6 +271,11 @@ pub fn open(settings: Settings) -> (Id, Task<Id>) {
     )
 }
 
+/// Lists all available monitors.
+pub fn list_monitors() -> Task<MonitorList> {
+    task::oneshot(|channel| crate::Action::Window(Action::ListMonitors(channel)))
+}
+
 /// Closes the window with `id`.
 pub fn close<T>(id: Id) -> Task<T> {
     task::effect(crate::Action::Window(Action::Close(id)))
@@ -346,7 +356,7 @@ pub fn minimize<T>(id: Id, minimized: bool) -> Task<T> {
 }
 
 /// Gets the position in logical coordinates of the window with the given [`Id`].
-pub fn position(id: Id) -> Task<Option<Point>> {
+pub fn position(id: Id) -> Task<Option<PositionOnMonitor>> {
     task::oneshot(move |channel| crate::Action::Window(Action::GetPosition(id, channel)))
 }
 
@@ -356,7 +366,7 @@ pub fn scale_factor(id: Id) -> Task<f32> {
 }
 
 /// Moves the window to the given logical coordinates.
-pub fn move_to<T>(id: Id, position: Point) -> Task<T> {
+pub fn move_to<T>(id: Id, position: PositionOnMonitor) -> Task<T> {
     task::effect(crate::Action::Window(Action::Move(id, position)))
 }
 
@@ -465,8 +475,8 @@ pub fn disable_mouse_passthrough<Message>(id: Id) -> Task<Message> {
 }
 
 /// Gets the logical dimensions of the monitor containing the window with the given [`Id`].
-pub fn monitor_size(id: Id) -> Task<Option<Size>> {
-    task::oneshot(move |channel| crate::Action::Window(Action::GetMonitorSize(id, channel)))
+pub fn monitor(id: Id) -> Task<Option<MonitorData>> {
+    task::oneshot(move |channel| crate::Action::Window(Action::GetMonitor(id, channel)))
 }
 
 /// Sets whether the system can automatically organize windows into tabs.
