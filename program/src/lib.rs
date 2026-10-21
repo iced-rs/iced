@@ -111,7 +111,12 @@ pub trait Program: Sized {
 pub fn with_subscription<P: Program>(
     program: P,
     f: impl Fn(&P::State) -> Subscription<P::Message>,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<
+    State = P::State,
+    Message = P::Message,
+    Theme = P::Theme,
+    Renderer = P::Renderer,
+> {
     struct WithSubscription<P, F> {
         program: P,
         subscription: F,
@@ -197,7 +202,12 @@ pub fn with_subscription<P: Program>(
 pub fn with_style<P: Program>(
     program: P,
     f: impl Fn(&P::State, &P::Theme) -> theme::Style,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<
+    State = P::State,
+    Message = P::Message,
+    Theme = P::Theme,
+    Renderer = P::Renderer,
+> {
     struct WithStyle<P, F> {
         program: P,
         style: F,
@@ -279,7 +289,12 @@ pub fn with_style<P: Program>(
 /// Decorates a [`Program`] with the given executor function.
 pub fn with_executor<P: Program, E: Executor>(
     program: P,
-) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
+) -> impl Program<
+    State = P::State,
+    Message = P::Message,
+    Theme = P::Theme,
+    Renderer = P::Renderer,
+> {
     use std::marker::PhantomData;
 
     struct WithExecutor<P, E> {

@@ -91,6 +91,8 @@ wayland = ["iced_renderer/wayland", "iced_winit/wayland"]
 wayland-dlopen = ["iced_winit/wayland-dlopen"]
 # Enables client-side decorations in Wayland
 wayland-decorations = ["iced_winit/wayland-decorations"]
+# Enables the Wayland layer-shell runner.
+layer-shell = ["dep:iced_layer_shell", "wgpu"]
 
 [dependencies]
 iced_debug.workspace = true
@@ -100,6 +102,8 @@ iced_renderer.workspace = true
 iced_runtime.workspace = true
 iced_widget.workspace = true
 iced_winit.workspace = true
+iced_layer_shell.workspace = true
+iced_layer_shell.optional = true
 
 iced_devtools.workspace = true
 iced_devtools.optional = true
@@ -163,6 +167,7 @@ members = [
     "wgpu",
     "widget",
     "winit",
+    "layer_shell",
     "examples/*",
 ]
 
@@ -196,6 +201,7 @@ iced_tiny_skia = { version = "0.15.0-dev", path = "tiny_skia", default-features 
 iced_wgpu = { version = "0.15.0-dev", path = "wgpu", default-features = false }
 iced_widget = { version = "0.15.0-dev", path = "widget" }
 iced_winit = { version = "0.15.0-dev", path = "winit", default-features = false }
+iced_layer_shell = { version = "0.15.0-dev", path = "layer_shell", default-features = false }
 
 arboard = { version = "3.6", default-features = false }
 bincode = "1.3"

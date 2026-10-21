@@ -664,6 +664,8 @@ pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
+#[cfg(feature = "layer-shell")]
+pub use iced_layer_shell::VisibilityCommand;
 pub use program::Program;
 pub use renderer::Renderer;
 pub use task::Task;

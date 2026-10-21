@@ -1,0 +1,31 @@
+[package]
+name = "iced_layer_shell"
+description = "A Wayland layer-shell host for Iced"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+arboard = { workspace = true, features = ["wayland-data-control"] }
+iced_core.workspace = true
+iced_futures.workspace = true
+iced_graphics.workspace = true
+iced_program.workspace = true
+iced_runtime.workspace = true
+iced_wgpu = { workspace = true, features = ["default"] }
+
+pollster = "0.4"
+libc = "0.2"
+raw-window-handle.workspace = true
+smithay-client-toolkit = "0.20"
+thiserror.workspace = true
+wayland-client = { version = "0.31", features = ["system"] }
+wayland-protocols-plasma = { version = "0.3.12", features = ["client"] }
