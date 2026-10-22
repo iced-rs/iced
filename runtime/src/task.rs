@@ -265,6 +265,17 @@ impl<T> Task<T> {
         }
     }
 
+    /// Creates a new [`Task`] that runs the given closure in a new thread and
+    /// produces its output.
+    pub fn blocking(f: impl FnOnce() -> T + Send + 'static) -> Self
+    where
+        T: Send + 'static,
+    {
+        let (result_tx, result_rx) = oneshot::channel();
+        let _ = thread::spawn(|| result_tx.send(f()));
+        Task::perform(result_rx, Result::ok).and_then(Task::done)
+    }
+
     /// Returns the amount of work "units" of the [`Task`].
     pub fn units(&self) -> usize {
         self.units
@@ -465,50 +476,6 @@ pub fn effect<T>(action: impl Into<Action<Infallible>>) -> Task<T> {
 /// Returns the underlying [`Stream`] of the [`Task`].
 pub fn into_stream<T>(task: Task<T>) -> Option<BoxStream<Action<T>>> {
     task.stream
-}
-
-/// Creates a new [`Task`] that will run the given closure in a new thread.
-///
-/// Any data sent by the closure through the [`mpsc::Sender`] will be produced
-/// by the [`Task`].
-pub fn blocking<T>(f: impl FnOnce(mpsc::Sender<T>) + Send + 'static) -> Task<T>
-where
-    T: Send + 'static,
-{
-    let (sender, receiver) = mpsc::channel(1);
-
-    let _ = thread::spawn(move || {
-        f(sender);
-    });
-
-    Task::stream(receiver)
-}
-
-/// Creates a new [`Task`] that will run the given closure that can fail in a new
-/// thread.
-///
-/// Any data sent by the closure through the [`mpsc::Sender`] will be produced
-/// by the [`Task`].
-pub fn try_blocking<T, E>(
-    f: impl FnOnce(mpsc::Sender<T>) -> Result<(), E> + Send + 'static,
-) -> Task<Result<T, E>>
-where
-    T: Send + 'static,
-    E: Send + 'static,
-{
-    let (sender, receiver) = mpsc::channel(1);
-    let (error_sender, error_receiver) = oneshot::channel();
-
-    let _ = thread::spawn(move || {
-        if let Err(error) = f(sender) {
-            let _ = error_sender.send(Err(error));
-        }
-    });
-
-    Task::stream(stream::select(
-        receiver.map(Ok),
-        stream::once(error_receiver).filter_map(async |result| result.ok()),
-    ))
 }
 
 async fn yield_now() {
