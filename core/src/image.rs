@@ -114,6 +114,19 @@ impl Handle {
         Self::Path(Id::path(&path), path)
     }
 
+    /// Creates an image [`Handle`] pointing to the image of the given path,
+    /// tagged with a caller-supplied version.
+    ///
+    /// The version is folded into the [`Id`], so changing it produces a new
+    /// identity even when the path is the same. This lets callers bust the
+    /// renderer's texture cache when the file at `path` has been rewritten
+    /// in place, for example by passing the file's modification time.
+    pub fn from_path_with_version<T: Into<PathBuf>>(path: T, version: u64) -> Handle {
+        let path = path.into();
+
+        Self::Path(Id::path_with_version(&path, version), path)
+    }
+
     /// Creates an image [`Handle`] containing the encoded image data directly.
     ///
     /// Makes an educated guess about the image format by examining the given data.
@@ -200,6 +213,18 @@ impl Id {
         let hash = {
             let mut hasher = FxHasher::default();
             path.as_ref().hash(&mut hasher);
+
+            hasher.finish()
+        };
+
+        Self(_Id::Hash(hash))
+    }
+
+    fn path_with_version(path: impl AsRef<Path>, version: u64) -> Self {
+        let hash = {
+            let mut hasher = FxHasher::default();
+            path.as_ref().hash(&mut hasher);
+            version.hash(&mut hasher);
 
             hasher.finish()
         };
