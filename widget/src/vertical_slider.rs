@@ -30,7 +30,10 @@
 //! ```
 use std::ops::RangeInclusive;
 
-pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn, default};
+pub use crate::slider::{
+    Catalog, Handle, HandleShape, Status, Style, StyleFn, danger, primary, secondary, success,
+    warning,
+};
 
 use crate::core::border::Border;
 use crate::core::keyboard;
