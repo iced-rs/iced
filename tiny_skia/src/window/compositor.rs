@@ -52,27 +52,16 @@ impl crate::graphics::Compositor for Compositor {
         Renderer::new(settings)
     }
 
-    fn create_surface(
-        &mut self,
-        window: impl compositor::Window + Clone,
-        width: u32,
-        height: u32,
-    ) -> Self::Surface {
+    fn create_surface(&mut self, window: impl compositor::Window + Clone) -> Self::Surface {
         let window = softbuffer::Surface::new(&self.context, Box::new(window.clone()) as _)
             .expect("Create softbuffer surface for window");
 
-        let mut surface = Surface {
+        Surface {
             window,
             clip_mask: tiny_skia::Mask::new(1, 1).expect("Create clip mask"),
             frames: VecDeque::new(),
             max_age: 0,
-        };
-
-        if width > 0 && height > 0 {
-            self.configure_surface(&mut surface, width, height);
         }
-
-        surface
     }
 
     fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {

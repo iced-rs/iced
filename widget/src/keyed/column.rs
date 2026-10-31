@@ -119,12 +119,10 @@ where
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push(mut self, key: Key, child: impl Into<W>) -> Self
+    pub fn push(mut self, key: Key, child: W) -> Self
     where
         W: Meta,
     {
-        let child = child.into();
-
         if !child.is_void() {
             self.keys.push(key);
             self.children.push(child);
@@ -134,7 +132,7 @@ where
     }
 
     /// Adds an element to the [`Column`], if `Some`.
-    pub fn push_maybe(self, key: Key, child: Option<impl Into<W>>) -> Self
+    pub fn push_maybe(self, key: Key, child: Option<W>) -> Self
     where
         W: Meta,
     {

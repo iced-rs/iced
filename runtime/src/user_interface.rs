@@ -376,45 +376,6 @@ where
                     }
                 }
 
-                match (&event, shell.event_status()) {
-                    (
-                        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
-                        event::Status::Ignored,
-                    ) => {
-                        if let Some(position) = cursor.position() {
-                            self.last_click = Some(mouse::Click::new(
-                                position,
-                                mouse::Button::Left,
-                                self.last_click,
-                            ));
-
-                            self.selection = Some((position, Point::ORIGIN));
-                        }
-                    }
-                    (Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)), _) => {
-                        self.selection = None;
-                    }
-                    (
-                        Event::Keyboard(keyboard::Event::KeyPressed {
-                            key,
-                            modifiers,
-                            repeat: false,
-                            ..
-                        }),
-                        event::Status::Ignored,
-                    ) if matches!(key.as_ref(), keyboard::Key::Character("c"))
-                        && modifiers.control() =>
-                    {
-                        let mut copy = operation::text::copy();
-                        self.operate(renderer, &mut operation::black_box(&mut copy));
-
-                        if let operation::Outcome::Some(text) = copy.finish() {
-                            shell.write_clipboard(text);
-                        }
-                    }
-                    _ => {}
-                }
-
                 status = status.max(invalidation);
                 redraw_request = redraw_request.min(shell.redraw_request());
                 input_method.merge(shell.input_method());
@@ -423,6 +384,49 @@ where
                 shell.event_status()
             })
             .collect();
+
+        for (event, &status) in events.iter().zip(&event_statuses) {
+            match (event, status) {
+                (
+                    Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)),
+                    event::Status::Ignored,
+                ) => {
+                    if let Some(position) = cursor.position() {
+                        self.last_click = Some(mouse::Click::new(
+                            position,
+                            mouse::Button::Left,
+                            self.last_click,
+                        ));
+
+                        self.selection = Some((position, Point::ORIGIN));
+                    }
+                }
+                (Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)), _) => {
+                    self.selection = None;
+                }
+                (
+                    Event::Keyboard(keyboard::Event::KeyPressed {
+                        key,
+                        modifiers,
+                        repeat: false,
+                        ..
+                    }),
+                    event::Status::Ignored,
+                ) if matches!(key.as_ref(), keyboard::Key::Character("c"))
+                    && modifiers.command() =>
+                {
+                    let mut copy = operation::text::copy();
+                    self.operate(renderer, &mut operation::black_box(&mut copy));
+
+                    if let operation::Outcome::Some(text) = copy.finish()
+                        && !text.is_empty()
+                    {
+                        clipboard.write = Some(text.into());
+                    }
+                }
+                _ => {}
+            }
+        }
 
         if let Some((start, end)) = self.selection.as_mut()
             && let Some(click) = self.last_click

@@ -114,6 +114,7 @@ impl Compositor {
                 const BLACKLIST: &[wgpu::TextureFormat] = &[
                     wgpu::TextureFormat::Rgb10a2Unorm,
                     wgpu::TextureFormat::Rgb10a2Uint,
+                    wgpu::TextureFormat::Rgba16Float,
                 ];
 
                 let mut formats = formats.filter(|format| {
@@ -298,22 +299,10 @@ impl graphics::Compositor for Compositor {
         Renderer::new(self.engine.clone(), settings)
     }
 
-    fn create_surface(
-        &mut self,
-        window: impl compositor::Window,
-        width: u32,
-        height: u32,
-    ) -> Self::Surface {
-        let mut surface = self
-            .instance
+    fn create_surface(&mut self, window: impl compositor::Window) -> Self::Surface {
+        self.instance
             .create_surface(wgpu::SurfaceTarget::Window(Box::new(window)))
-            .expect("Create surface");
-
-        if width > 0 && height > 0 {
-            self.configure_surface(&mut surface, width, height);
-        }
-
-        surface
+            .expect("Create surface")
     }
 
     fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {

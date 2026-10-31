@@ -21,4 +21,4 @@ trunk serve
 ```
 
 [`main`]: src/main.rs
-[`trunk`]: https://trunkrs.dev/
+[`trunk`]: https://trunk-rs.github.io/trunk/

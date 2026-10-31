@@ -493,6 +493,26 @@ impl core::text::Paragraph for Paragraph {
             return;
         };
 
+        let cursor = editor.cursor();
+
+        let selection = match editor.selection() {
+            cosmic_text::Selection::None => cursor,
+            cosmic_text::Selection::Normal(selection)
+            | cosmic_text::Selection::Line(selection)
+            | cosmic_text::Selection::Word(selection) => selection,
+        };
+
+        // If the cursor and selection both fall at either edge of the paragraph,
+        // nullify the selection.
+        if cursor == selection
+            && ((cursor.line == 0 && cursor.index == 0)
+                || (cursor.line + 1 == paragraph.buffer.lines.len()
+                    && cursor.index == paragraph.buffer.lines[cursor.line].text().len()))
+        {
+            paragraph.selection = None;
+            return;
+        }
+
         paragraph.selection = Some(Selection {
             start,
             end,
