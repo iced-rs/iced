@@ -316,7 +316,7 @@ impl graphics::Compositor for Compositor {
                 height,
                 alpha_mode: self.alpha_mode,
                 view_formats: vec![],
-                desired_maximum_frame_latency: 2,
+                desired_maximum_frame_latency: 1,
                 color_space: wgpu::SurfaceColorSpace::Auto,
             },
         );
