@@ -14,8 +14,8 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::text;
 use crate::core::theme;
-use crate::core::time::Instant;
-use crate::core::{Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector};
+use crate::core::time::{Duration, Instant};
+use crate::core::{Color, InputMethod, Padding, Point, Rectangle, Renderer, Size, Text, Vector};
 use crate::graphics::Compositor;
 use crate::program::{self, Program};
 
@@ -60,10 +60,12 @@ where
         system_theme: theme::Mode,
     ) -> &mut Window<P, C> {
         let state = State::new(program, id, &window, system_theme);
+        let mut surface = compositor.create_surface(window.clone());
         let surface_size = state.physical_size();
         let surface_version = state.surface_version();
-        let surface =
-            compositor.create_surface(window.clone(), surface_size.width, surface_size.height);
+
+        compositor.configure_surface(&mut surface, surface_size.width, surface_size.height);
+
         let renderer = compositor.create_renderer(renderer_settings);
 
         let waker = shell::Waker::new(move || {
@@ -88,8 +90,14 @@ where
                 renderer,
                 mouse_interaction: mouse::Interaction::None,
                 redraw_at: None,
+                frame_clock: FrameClock {
+                    anchor: Instant::now(),
+                    period: None,
+                },
                 preedit: None,
                 ime_state: None,
+                last_frame: None,
+                frame_burst: 0,
             },
         );
 
@@ -186,8 +194,39 @@ where
     pub surface_error_at: Option<Instant>,
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
+    frame_clock: FrameClock,
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Rectangle, input_method::Purpose)>,
+    last_frame: Option<Instant>,
+    frame_burst: usize,
+}
+
+struct FrameClock {
+    anchor: Instant,
+    period: Option<Duration>,
+}
+
+impl FrameClock {
+    fn reanchor(&mut self, now: Instant, period: Duration) {
+        if self.period != Some(period) {
+            log::info!("Frame clock period: {:?} -> {period:?}", self.period);
+        }
+
+        self.period = Some(period);
+        self.anchor = now - period / 2;
+    }
+
+    fn quantize(&self, now: Instant) -> Instant {
+        let Some(period) = self.period else {
+            return now;
+        };
+
+        let elapsed = now.saturating_duration_since(self.anchor);
+        let steps = elapsed.as_nanos() / period.as_nanos();
+        let snapped = Duration::from_nanos_u128(steps * period.as_nanos());
+
+        self.anchor + snapped
+    }
 }
 
 impl<P, C> Window<P, C>
@@ -196,6 +235,39 @@ where
     C: Compositor<Renderer = P::Renderer>,
     P::Theme: theme::Base,
 {
+    pub fn tick(&mut self, now: Instant) -> Instant {
+        let next = self.frame_clock.quantize(now);
+
+        if let Some(period) = self.frame_clock.period
+            && let Some(last) = self.last_frame
+        {
+            let frame_time = next.saturating_duration_since(last);
+
+            if frame_time > period && self.frame_burst > 1 {
+                log::debug!("Frame dropped! (target={period:?}, took={frame_time:?})");
+
+                self.frame_clock.reanchor(now, period);
+            }
+        }
+
+        self.last_frame = Some(next);
+        next
+    }
+
+    pub fn reanchor(&mut self, now: Instant) {
+        let period = self
+            .raw
+            .current_monitor()
+            .and_then(|monitor| monitor.refresh_rate_millihertz())
+            .map(|millihertz| {
+                Duration::from_nanos(1_000_000_000_000 / u64::from(millihertz.max(1)))
+            });
+
+        if let Some(period) = period {
+            self.frame_clock.reanchor(now, period);
+        }
+    }
+
     pub fn position(&self) -> Option<Point> {
         self.raw
             .outer_position()
@@ -207,16 +279,33 @@ where
             })
     }
 
+    pub fn configure_surface(&mut self, compositor: &mut C) {
+        let physical_size = self.state.physical_size();
+
+        if physical_size.width == 0 || physical_size.height == 0 {
+            return;
+        }
+
+        compositor.configure_surface(&mut self.surface, physical_size.width, physical_size.height);
+
+        self.renderer.hint(self.state.scale());
+        self.surface_version = self.state.surface_version();
+    }
+
     pub fn request_redraw(&mut self, redraw_request: RedrawRequest) {
         match redraw_request {
             RedrawRequest::NextFrame => {
                 self.raw.request_redraw();
                 self.redraw_at = None;
+                self.frame_burst += 1;
             }
             RedrawRequest::At(at) => {
                 self.redraw_at = Some(at);
+                self.frame_burst = 0;
             }
-            RedrawRequest::Wait => {}
+            RedrawRequest::Wait => {
+                self.frame_burst = 0;
+            }
         }
     }
 

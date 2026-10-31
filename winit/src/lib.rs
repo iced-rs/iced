@@ -754,9 +754,12 @@ async fn run_instance<P>(
                             continue;
                         }
 
+                        let frame_time = Instant::now();
+
                         // Window was resized between redraws
                         if window.surface_version != window.state.surface_version() {
-                            window.renderer.hint(window.state.scale());
+                            window.configure_surface(current_compositor);
+                            window.reanchor(frame_time);
 
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
@@ -764,18 +767,11 @@ async fn run_instance<P>(
                             let _ = user_interfaces
                                 .insert(id, ui.relayout(logical_size, &mut window.renderer));
                             layout_span.finish();
-
-                            current_compositor.configure_surface(
-                                &mut window.surface,
-                                physical_size.width,
-                                physical_size.height,
-                            );
-
-                            window.surface_version = window.state.surface_version();
                         }
 
-                        let redraw_event =
-                            core::Event::Window(window::Event::RedrawRequested(Instant::now()));
+                        let redraw_event = core::Event::Window(window::Event::RedrawRequested(
+                            window.tick(frame_time),
+                        ));
 
                         let cursor = window.state.cursor();
 
@@ -984,22 +980,12 @@ async fn run_instance<P>(
                                             "Error {error:?} when presenting surface. Recovering it."
                                         );
 
-                                        let physical_size = window.state.physical_size();
-
-                                        if matches!(error, compositor::SurfaceError::Outdated) {
-                                            current_compositor.configure_surface(
-                                                &mut window.surface,
-                                                physical_size.width,
-                                                physical_size.height,
-                                            );
-                                        } else {
-                                            window.surface = current_compositor.create_surface(
-                                                window.raw.clone(),
-                                                physical_size.width,
-                                                physical_size.height,
-                                            );
+                                        if matches!(error, compositor::SurfaceError::Lost) {
+                                            window.surface = current_compositor
+                                                .create_surface(window.raw.clone());
                                         }
 
+                                        window.configure_surface(current_compositor);
                                         window.raw.request_redraw();
                                     }
                                 }
@@ -1764,14 +1750,12 @@ fn run_action<'a, P, C>(
                 graphics::cache::invalidate_all();
 
                 window_manager.replace_with(|mut window| {
-                    let size = window.state.physical_size();
-
                     drop(window.renderer);
                     drop(window.surface);
 
                     window.renderer = new_compositor.create_renderer(*renderer_settings);
-                    window.surface =
-                        new_compositor.create_surface(window.raw.clone(), size.width, size.height);
+                    window.surface = new_compositor.create_surface(window.raw.clone());
+                    window.configure_surface(&mut new_compositor);
 
                     window
                 });
