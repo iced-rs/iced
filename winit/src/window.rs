@@ -202,10 +202,7 @@ where
 }
 
 struct FrameClock {
-    // The phase of the vsync grid; anchored so frame times land mid-interval,
-    // where the floor snap is stable
     anchor: Instant,
-    // The vsync period (1 / refresh rate) of the current monitor
     period: Option<Duration>,
 }
 
@@ -226,8 +223,8 @@ impl FrameClock {
 
         let elapsed = now.saturating_duration_since(self.anchor);
         let steps = elapsed.as_nanos() / period.as_nanos();
-        let snapped_nanos = steps * period.as_nanos();
-        let snapped = Duration::from_nanos(snapped_nanos.min(u64::MAX as u128) as u64);
+        let snapped = Duration::from_nanos_u128(steps * period.as_nanos());
+
         self.anchor + snapped
     }
 }
