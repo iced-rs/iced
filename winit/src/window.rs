@@ -236,7 +236,7 @@ where
     P::Theme: theme::Base,
 {
     pub fn tick(&mut self, now: Instant) -> Instant {
-        let next = self.frame_clock.quantize(now);
+        let mut next = self.frame_clock.quantize(now);
 
         if let Some(period) = self.frame_clock.period
             && let Some(last) = self.last_frame
@@ -247,6 +247,7 @@ where
                 log::debug!("Frame dropped! (target={period:?}, took={frame_time:?})");
 
                 self.frame_clock.reanchor(now, period);
+                next = self.frame_clock.quantize(now);
             }
         }
 
