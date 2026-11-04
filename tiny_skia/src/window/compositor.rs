@@ -23,6 +23,7 @@ pub struct Surface {
 #[derive(Clone)]
 struct Frame {
     background: Color,
+    scale_factor: f32,
     layers: Vec<Layer>,
 }
 
@@ -148,7 +149,9 @@ pub fn present(
 
     let damage = last_frame
         .and_then(|last_frame| {
-            (last_frame.background == background).then(|| {
+            (last_frame.background == background
+                && last_frame.scale_factor == viewport.scale_factor())
+            .then(|| {
                 damage::diff(
                     &last_frame.layers,
                     renderer.layers(),
@@ -166,6 +169,7 @@ pub fn present(
     } else {
         surface.frames.push_front(Frame {
             background,
+            scale_factor: viewport.scale_factor(),
             layers: renderer.layers().to_vec(),
         });
 
