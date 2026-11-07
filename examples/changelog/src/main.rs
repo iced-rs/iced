@@ -7,7 +7,7 @@ use iced::widget::{
     button, center, column, container, markdown, pick_list, progress_bar, rich_text, row,
     scrollable, span, stack, text, text_input,
 };
-use iced::{Center, Element, Fill, FillPortion, Font, Task, Theme};
+use iced::{Center, Fill, FillPortion, Font, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -208,9 +208,9 @@ impl Generator {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         match self {
-            Self::Loading => center("Loading...").into(),
+            Self::Loading => center(text("Loading...")).boxed(),
             Self::Done => center(
                 column![
                     text("Changelog is up-to-date! 🎉").shaping(text::Shaping::Advanced),
@@ -219,7 +219,7 @@ impl Generator {
                 .spacing(10)
                 .align_x(Center),
             )
-            .into(),
+            .boxed(),
             Self::Reviewing {
                 changelog,
                 pending,
@@ -243,8 +243,10 @@ impl Generator {
                     stack![bar, center(label)]
                 };
 
-                let form: Element<_> = match state {
-                    State::Loading(contribution) => text!("Loading #{}...", contribution.id).into(),
+                let form = match state {
+                    State::Loading(contribution) => {
+                        text!("Loading #{}...", contribution.id).boxed()
+                    }
                     State::Loaded {
                         pull_request,
                         description,
@@ -274,7 +276,6 @@ impl Generator {
                                 container(text(label).size(10).font(Font::MONOSPACE))
                                     .padding(5)
                                     .style(container::rounded_box)
-                                    .into()
                             }))
                             .spacing(10)
                             .wrap();
@@ -312,7 +313,7 @@ impl Generator {
 
                         column![details, row![title, category, next].spacing(10)]
                             .spacing(10)
-                            .into()
+                            .boxed()
                     }
                 };
 
@@ -322,6 +323,7 @@ impl Generator {
                             .padding(10)
                             .style(container::rounded_box),
                     )
+                    .boxed()
                 } else {
                     container(
                         scrollable(
@@ -338,13 +340,14 @@ impl Generator {
                     .width(Fill)
                     .padding(10)
                     .style(container::rounded_box)
+                    .boxed()
                 };
 
                 let review = column![container(form).height(Fill), progress]
                     .spacing(10)
                     .width(FillPortion(2));
 
-                row![review, preview].spacing(10).padding(10).into()
+                row![review, preview].spacing(10).padding(10).boxed()
             }
         }
     }

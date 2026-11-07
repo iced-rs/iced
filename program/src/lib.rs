@@ -14,7 +14,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::theme;
 use crate::core::window;
-use crate::core::{Element, Settings};
+use crate::core::{Settings, Widget};
 use crate::futures::{Executor, Subscription};
 use crate::graphics::compositor;
 use crate::runtime::Task;
@@ -32,10 +32,10 @@ pub trait Program: Sized {
     type Message: Send + 'static;
 
     /// The theme of the program.
-    type Theme: theme::Base;
+    type Theme: theme::Base + 'static;
 
     /// The renderer of the program.
-    type Renderer: Renderer;
+    type Renderer: Renderer + 'static;
 
     /// The executor of the program.
     type Executor: Executor;
@@ -55,7 +55,7 @@ pub trait Program: Sized {
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer>;
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a;
 
     fn title(&self, _state: &Self::State, _window: window::Id) -> String {
         let mut title = String::new();
@@ -162,7 +162,7 @@ pub fn with_subscription<P: Program>(
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.program.view(state, window)
         }
 
@@ -253,7 +253,7 @@ pub fn with_style<P: Program>(
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.program.view(state, window)
         }
 
@@ -332,7 +332,7 @@ pub fn with_executor<P: Program, E: Executor>(
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.program.view(state, window)
         }
 
@@ -396,7 +396,7 @@ impl<P: Program> Instance<P> {
 
     /// Produces the current widget tree of the [`Instance`].
     #[inline]
-    pub fn view(&self, window: window::Id) -> Element<'_, P::Message, P::Theme, P::Renderer> {
+    pub fn view(&self, window: window::Id) -> impl Widget<P::Message, P::Theme, P::Renderer> {
         self.program.view(&self.state, window)
     }
 

@@ -9,7 +9,7 @@ use crate::core::theme;
 use crate::core::time;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Element, Event, Point, Settings, Size, SmolStr};
+use crate::core::{Event, Point, Settings, Size, SmolStr, Widget};
 use crate::renderer;
 use crate::runtime::UserInterface;
 use crate::runtime::user_interface;
@@ -34,18 +34,19 @@ pub struct Simulator<'a, Message, Theme = core::Theme, Renderer = renderer::Rend
 
 impl<'a, Message, Theme, Renderer> Simulator<'a, Message, Theme, Renderer>
 where
-    Theme: theme::Base,
-    Renderer: core::Renderer + core::renderer::Headless,
+    Message: 'a,
+    Theme: theme::Base + 'a,
+    Renderer: core::Renderer + core::renderer::Headless + 'a,
 {
     /// Creates a new [`Simulator`] with default [`Settings`] and a default size (1024x768).
-    pub fn new(element: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(element: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self::with_settings(Settings::default(), element)
     }
 
     /// Creates a new [`Simulator`] with the given [`Settings`] and a default size (1024x768).
     pub fn with_settings(
         settings: Settings,
-        element: impl Into<Element<'a, Message, Theme, Renderer>>,
+        element: impl Widget<Message, Theme, Renderer> + 'a,
     ) -> Self {
         Self::with_size(settings, window::Settings::default().size, element)
     }
@@ -54,7 +55,7 @@ where
     pub fn with_size(
         settings: Settings,
         size: impl Into<Size>,
-        element: impl Into<Element<'a, Message, Theme, Renderer>>,
+        element: impl Widget<Message, Theme, Renderer> + 'a,
     ) -> Self {
         let size = size.into();
 
@@ -124,6 +125,36 @@ where
     /// This does _not_ produce mouse movement events!
     pub fn point_at(&mut self, position: impl Into<Point>) {
         self.cursor = mouse::Cursor::Available(position.into());
+    }
+
+    /// Applies a [`widget::Operation`] to the [`Simulator`]'s widget tree.
+    pub fn operate(&mut self, operation: &mut dyn widget::Operation) {
+        self.raw.operate(&self.renderer, operation);
+    }
+
+    /// Rebuilds the [`Simulator`]'s user interface with a new `element`,
+    /// preserving the state of widgets with an unchanged id.
+    pub fn rebuild(mut self, element: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
+        let cache = self.raw.into_cache();
+
+        Self {
+            raw: UserInterface::build(element, self.size, cache, &mut self.renderer),
+            renderer: self.renderer,
+            size: self.size,
+            cursor: self.cursor,
+            messages: self.messages,
+        }
+    }
+
+    /// Resizes the [`Simulator`]'s window to the given `size`, relaying out
+    /// the user interface and preserving widget state.
+    pub fn resize(mut self, size: impl Into<Size>) -> Self {
+        let size = size.into();
+
+        self.raw = self.raw.relayout(size, &mut self.renderer);
+        self.size = size;
+
+        self
     }
 
     /// Clicks the [`Bounded`] target found by the given [`Selector`], if any.
@@ -198,8 +229,10 @@ where
         statuses
     }
 
-    /// Draws and takes a [`Snapshot`] of the interface in the [`Simulator`].
-    pub fn snapshot(&mut self, theme: &Theme) -> Result<Snapshot, Error> {
+    /// Draws the interface in the [`Simulator`] with the given theme.
+    ///
+    /// A `RedrawRequested` event is processed before drawing.
+    pub fn draw(&mut self, theme: &Theme) {
         let base = theme.base();
 
         let _ = self.raw.update(
@@ -221,6 +254,13 @@ where
             },
             self.cursor,
         );
+    }
+
+    /// Draws and takes a [`Snapshot`] of the interface in the [`Simulator`].
+    pub fn snapshot(&mut self, theme: &Theme) -> Result<Snapshot, Error> {
+        let base = theme.base();
+
+        self.draw(theme);
 
         let scale_factor = 2.0;
 
@@ -242,6 +282,11 @@ where
     /// Turns the [`Simulator`] into the sequence of messages produced by any interactions.
     pub fn into_messages(self) -> impl Iterator<Item = Message> + use<Message, Theme, Renderer> {
         self.messages.into_iter()
+    }
+
+    /// Returns the messages published so far, clearing the queue.
+    pub fn drain(&mut self) -> impl Iterator<Item = Message> {
+        self.messages.drain().map(|(message, _)| message)
     }
 }
 
@@ -344,11 +389,12 @@ impl Snapshot {
 ///
 /// This is just a function version of [`Simulator::new`].
 pub fn simulator<'a, Message, Theme, Renderer>(
-    element: impl Into<Element<'a, Message, Theme, Renderer>>,
+    element: impl Widget<Message, Theme, Renderer> + 'a,
 ) -> Simulator<'a, Message, Theme, Renderer>
 where
-    Theme: theme::Base,
-    Renderer: core::Renderer + core::renderer::Headless,
+    Message: 'a,
+    Theme: theme::Base + 'a,
+    Renderer: core::Renderer + core::renderer::Headless + 'a,
 {
     Simulator::new(element)
 }

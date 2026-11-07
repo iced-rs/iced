@@ -16,8 +16,11 @@ use crate::test::selector;
 use std::cell::Cell;
 
 pub fn recorder<'a, Message, Theme, Renderer>(
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Recorder<'a, Message, Theme, Renderer> {
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> Recorder<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
     Recorder::new(content)
 }
 
@@ -28,9 +31,9 @@ pub struct Recorder<'a, Message, Theme, Renderer> {
 }
 
 impl<'a, Message, Theme, Renderer> Recorder<'a, Message, Theme, Renderer> {
-    pub fn new(content: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
         Self {
-            content: content.into(),
+            content: content._boxed(),
             on_record: None,
             has_overlay: false,
         }
@@ -46,6 +49,8 @@ struct State {
     last_hovered: Cell<Option<Rectangle>>,
     last_hovered_overlay: Cell<Option<Rectangle>>,
 }
+
+impl<Message, Theme, Renderer> widget::Meta for Recorder<'_, Message, Theme, Renderer> {}
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Recorder<'_, Message, Theme, Renderer>
@@ -69,14 +74,14 @@ where
     }
 
     fn size(&self) -> Size<Length> {
-        self.content.as_widget().size()
+        self.content.size()
     }
 
     fn update(
         &mut self,
         tree: &mut widget::Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -99,7 +104,7 @@ where
                 &state.last_hovered,
                 on_record,
                 |operation| {
-                    self.content.as_widget_mut().operate(
+                    self.content.operate(
                         &mut tree.children[0],
                         layout,
                         viewport,
@@ -110,7 +115,7 @@ where
             );
         }
 
-        self.content.as_widget_mut().update(
+        self.content.update(
             &mut tree.children[0],
             event,
             layout,
@@ -121,15 +126,10 @@ where
         );
     }
 
-    fn layout(
-        &mut self,
-        tree: &mut widget::Tree,
-        renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.content
-            .as_widget_mut()
-            .layout(&mut tree.children[0], renderer, limits)
+    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
+        self.content.layout(&mut tree.children[0], renderer, limits);
+
+        tree.size = tree.children[0].size;
     }
 
     fn draw(
@@ -138,11 +138,11 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget().draw(
+        self.content.draw(
             &tree.children[0],
             renderer,
             theme,
@@ -172,55 +172,46 @@ where
     fn mouse_interaction(
         &self,
         tree: &widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
-            &tree.children[0],
-            layout,
-            cursor,
-            viewport,
-            renderer,
-        )
+        self.content
+            .mouse_interaction(&tree.children[0], layout, cursor, viewport, renderer)
     }
 
     fn operate(
         &mut self,
         tree: &mut widget::Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         viewport: &Rectangle,
         renderer: &Renderer,
         operation: &mut dyn widget::Operation,
     ) {
-        self.content.as_widget_mut().operate(
-            &mut tree.children[0],
-            layout,
-            viewport,
-            renderer,
-            operation,
-        );
+        self.content
+            .operate(&mut tree.children[0], layout, viewport, renderer, operation);
     }
 
     fn overlay<'a>(
         &'a mut self,
         tree: &'a mut widget::Tree,
-        layout: Layout<'a>,
+        layout: Layout,
         renderer: &Renderer,
         _viewport: &Rectangle,
         translation: Vector,
+        window: Size,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.has_overlay = false;
 
         self.content
-            .as_widget_mut()
             .overlay(
                 &mut tree.children[0],
                 layout,
                 renderer,
                 &layout.bounds(),
                 translation,
+                window,
             )
             .into_iter()
             .map(|raw| {
@@ -238,18 +229,6 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Recorder<'a, Message, Theme, Renderer>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: theme::Base + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(recorder: Recorder<'a, Message, Theme, Renderer>) -> Self {
-        Element::new(recorder)
-    }
-}
-
 struct Overlay<'a, Message, Theme, Renderer> {
     raw: overlay::Element<'a, Message, Theme, Renderer>,
     bounds: Rectangle,
@@ -263,21 +242,14 @@ where
     Renderer: core::Renderer + 'a,
     Theme: theme::Base + 'a,
 {
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.raw.as_overlay_mut().layout(renderer, bounds)
-    }
-
     fn draw(
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
         style: &renderer::Style,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        self.raw
-            .as_overlay()
-            .draw(renderer, theme, style, layout, cursor);
+        self.raw.as_overlay().draw(renderer, theme, style, cursor);
 
         let Some(last_hovered) = self.last_hovered.get() else {
             return;
@@ -294,21 +266,13 @@ where
         });
     }
 
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        self.raw
-            .as_overlay_mut()
-            .operate(layout, renderer, operation);
+    fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
+        self.raw.as_overlay_mut().operate(renderer, operation);
     }
 
     fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -326,32 +290,22 @@ where
                 self.last_hovered,
                 on_event,
                 |operation| {
-                    self.raw
-                        .as_overlay_mut()
-                        .operate(layout, renderer, operation);
+                    self.raw.as_overlay_mut().operate(renderer, operation);
                 },
             );
         }
 
         self.raw
             .as_overlay_mut()
-            .update(event, layout, cursor, renderer, shell);
+            .update(event, cursor, renderer, shell);
     }
 
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.raw
-            .as_overlay()
-            .mouse_interaction(layout, cursor, renderer)
+    fn mouse_interaction(&self, cursor: mouse::Cursor, renderer: &Renderer) -> mouse::Interaction {
+        self.raw.as_overlay().mouse_interaction(cursor, renderer)
     }
 
     fn overlay<'b>(
         &'b mut self,
-        layout: Layout<'b>,
         renderer: &Renderer,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let Self {
@@ -362,7 +316,7 @@ where
         } = self;
 
         raw.as_overlay_mut()
-            .overlay(layout, renderer)
+            .overlay(renderer)
             .into_iter()
             .map(|raw| {
                 overlay::Element::new(Box::new(Overlay {

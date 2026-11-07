@@ -7,7 +7,7 @@ use iced::widget::{
 };
 use iced::{
     Center, Element, Fill, FillPortion, Font, Length, Point, Rectangle, Renderer, Shrink,
-    Subscription, Theme, color,
+    Subscription, Theme, Widget, color,
 };
 
 pub fn main() -> iced::Result {
@@ -76,7 +76,7 @@ impl Layout {
         })
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
             space::horizontal(),
@@ -91,11 +91,11 @@ impl Layout {
         .align_y(Center);
 
         let example = center(if self.explain {
-            self.example.view().explain(color!(0x0000ff))
+            self.example.view().explain(color!(0x0000ff)).boxed()
         } else {
-            self.example.view()
+            self.example.view().boxed()
         })
-        .style(|theme| {
+        .style(|theme: &Theme| {
             let palette = theme.palette();
 
             container::Style::default()
@@ -117,10 +117,7 @@ impl Layout {
             ),
         ];
 
-        column![header, example, controls]
-            .spacing(10)
-            .padding(20)
-            .into()
+        column![header, example, controls].spacing(10).padding(20)
     }
 
     fn theme(&self) -> Option<Theme> {
@@ -197,7 +194,7 @@ impl Example {
         Self::LIST.get(index + 1).copied().unwrap_or(self)
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         (self.view)()
     }
 }
@@ -215,7 +212,7 @@ impl PartialEq for Example {
 }
 
 fn centered<'a>() -> Element<'a, Message> {
-    center(text("I am centered!").size(50)).into()
+    center(text("I am centered!").size(50)).boxed()
 }
 
 fn column_<'a>() -> Element<'a, Message> {
@@ -229,7 +226,7 @@ fn column_<'a>() -> Element<'a, Message> {
         "elements can be configured!",
     ]
     .spacing(40)
-    .into()
+    .boxed()
 }
 
 fn row_<'a>() -> Element<'a, Message> {
@@ -241,11 +238,11 @@ fn row_<'a>() -> Element<'a, Message> {
         "but lays out widgets horizontally!",
     ]
     .spacing(40)
-    .into()
+    .boxed()
 }
 
 fn space_<'a>() -> Element<'a, Message> {
-    row!["Left!", space::horizontal(), "Right!"].into()
+    row!["Left!", space::horizontal(), "Right!"].boxed()
 }
 
 fn application<'a>() -> Element<'a, Message> {
@@ -260,7 +257,7 @@ fn application<'a>() -> Element<'a, Message> {
         .padding(10)
         .align_y(Center),
     )
-    .style(|theme| {
+    .style(|theme: &Theme| {
         let palette = theme.palette();
 
         container::Style::default().border(border::color(palette.background.strong.color).width(1))
@@ -295,22 +292,19 @@ fn application<'a>() -> Element<'a, Message> {
     .padding(10)
     .width(FillPortion(3));
 
-    column![header, row![sidebar, content]].into()
+    column![header, row![sidebar, content]].boxed()
 }
 
 fn quotes<'a>() -> Element<'a, Message> {
-    fn quote<'a>(content: impl Into<Element<'a, Message>>) -> Element<'a, Message> {
-        row![rule::vertical(1), content.into()]
-            .spacing(10)
-            .height(Shrink)
-            .into()
+    fn quote<'a>(content: impl Widget<Message> + 'a) -> impl Widget<Message> + 'a {
+        row![rule::vertical(1), content].spacing(10).height(Shrink)
     }
 
     fn reply<'a>(
-        original: impl Into<Element<'a, Message>>,
-        reply: impl Into<Element<'a, Message>>,
-    ) -> Element<'a, Message> {
-        column![quote(original), reply.into()].spacing(10).into()
+        original: impl Widget<Message> + 'a,
+        reply: impl Widget<Message> + 'a,
+    ) -> impl Widget<Message> {
+        column![quote(original), reply].spacing(10)
     }
 
     column![
@@ -323,7 +317,7 @@ fn quotes<'a>() -> Element<'a, Message> {
     ]
     .width(Shrink)
     .spacing(10)
-    .into()
+    .boxed()
 }
 
 fn pinning<'a>() -> Element<'a, Message> {
@@ -340,7 +334,7 @@ fn pinning<'a>() -> Element<'a, Message> {
     ]
     .align_x(Center)
     .spacing(10)
-    .into()
+    .boxed()
 }
 
 fn responsive_<'a>() -> Element<'a, Message> {
@@ -373,10 +367,10 @@ fn responsive_<'a>() -> Element<'a, Message> {
     .align_x(Center)
     .spacing(10)
     .padding(10)
-    .into()
+    .boxed()
 }
 
-fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
+fn square(size: impl Into<Length> + Copy) -> impl Widget<Message> {
     struct Square;
 
     impl canvas::Program<Message> for Square {
@@ -404,5 +398,5 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
         }
     }
 
-    canvas(Square).width(size).height(size).into()
+    canvas(Square).width(size).height(size)
 }

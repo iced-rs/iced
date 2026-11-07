@@ -225,7 +225,7 @@ pub struct Style {
 }
 
 /// The default blank style of a theme.
-pub trait Base {
+pub trait Base: 'static {
     /// Returns the default theme for the preferred [`Mode`].
     fn default(preference: Mode) -> Self;
 

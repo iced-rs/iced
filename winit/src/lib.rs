@@ -42,8 +42,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::theme;
-use crate::core::time::Instant;
-use crate::core::widget::operation;
+use crate::core::time::{Duration, Instant};
+use crate::core::widget::operation::{self, Operation};
 use crate::core::{Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
@@ -777,9 +777,12 @@ async fn run_instance<P>(
                             continue;
                         }
 
+                        let frame_time = Instant::now();
+
                         // Window was resized between redraws
                         if window.surface_version != window.state.surface_version() {
-                            window.renderer.hint(window.state.scale());
+                            window.configure_surface(current_compositor);
+                            window.reanchor(frame_time);
 
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
@@ -787,18 +790,11 @@ async fn run_instance<P>(
                             let _ = user_interfaces
                                 .insert(id, ui.relayout(logical_size, &mut window.renderer));
                             layout_span.finish();
-
-                            current_compositor.configure_surface(
-                                &mut window.surface,
-                                physical_size.width,
-                                physical_size.height,
-                            );
-
-                            window.surface_version = window.state.surface_version();
                         }
 
-                        let redraw_event =
-                            core::Event::Window(window::Event::RedrawRequested(Instant::now()));
+                        let redraw_event = core::Event::Window(window::Event::RedrawRequested(
+                            window.tick(frame_time),
+                        ));
 
                         let cursor = window.state.cursor();
 
@@ -819,17 +815,26 @@ async fn run_instance<P>(
                                 &mut messages,
                             );
 
-                            if message_count == messages.len() && !state.has_layout_changed() {
-                                break state;
-                            }
-
                             if redraw_count >= 2 {
                                 log::warn!(
-                                    "More than 3 consecutive RedrawRequested events \
-                                    produced layout invalidation"
+                                    "3 consecutive RedrawRequested events produced invalidation"
                                 );
 
                                 break state;
+                            }
+
+                            if message_count == messages.len() {
+                                match state {
+                                    user_interface::State::Outdated => {}
+                                    user_interface::State::Updated { change, .. } => match change {
+                                        user_interface::Change::None => break state,
+                                        user_interface::Change::Overlay => {
+                                            redraw_count += 1;
+                                            continue;
+                                        }
+                                        user_interface::Change::Layout => {}
+                                    },
+                                }
                             }
 
                             redraw_count += 1;
@@ -969,41 +974,41 @@ async fn run_instance<P>(
                                     // This is an unrecoverable error.
                                     panic!("{error:?}");
                                 }
-                                compositor::SurfaceError::Outdated
-                                | compositor::SurfaceError::Lost => {
-                                    present_span.finish();
-
-                                    // Reconfigure surface and try redrawing
-                                    let physical_size = window.state.physical_size();
-
-                                    if error == compositor::SurfaceError::Lost {
-                                        window.surface = current_compositor.create_surface(
-                                            window.raw.clone(),
-                                            physical_size.width,
-                                            physical_size.height,
-                                        );
-                                    } else {
-                                        current_compositor.configure_surface(
-                                            &mut window.surface,
-                                            physical_size.width,
-                                            physical_size.height,
-                                        );
-                                    }
-
-                                    window.raw.request_redraw();
-                                }
                                 compositor::SurfaceError::Occluded => {
                                     present_span.finish();
 
                                     // Do nothing and wait for window to become visible again
                                 }
-                                _ => {
+                                compositor::SurfaceError::Timeout => {
                                     present_span.finish();
 
-                                    log::warn!("Error {error:?} when presenting surface.");
+                                    window.raw.request_redraw();
+                                }
+                                compositor::SurfaceError::Lost
+                                | compositor::SurfaceError::Outdated
+                                | compositor::SurfaceError::Other => {
+                                    present_span.finish();
 
-                                    // Try rendering all windows again next frame.
-                                    for (_id, window) in window_manager.iter_mut() {
+                                    // Recreate at most once a second, and do not request a redraw in
+                                    // between, so a surface that keeps failing cannot spin the loop.
+                                    let due = matches!(error, compositor::SurfaceError::Outdated)
+                                        || window
+                                            .surface_error_at
+                                            .is_none_or(|at| at.elapsed() > Duration::from_secs(1));
+
+                                    if due {
+                                        window.surface_error_at = Some(Instant::now());
+
+                                        log::warn!(
+                                            "Error {error:?} when presenting surface. Recovering it."
+                                        );
+
+                                        if matches!(error, compositor::SurfaceError::Lost) {
+                                            window.surface = current_compositor
+                                                .create_surface(window.raw.clone());
+                                        }
+
+                                        window.configure_surface(current_compositor);
                                         window.raw.request_redraw();
                                     }
                                 }
@@ -1792,14 +1797,12 @@ fn run_action<'a, P, C>(
                 graphics::cache::invalidate_all();
 
                 window_manager.replace_with(|mut window| {
-                    let size = window.state.physical_size();
-
                     drop(window.renderer);
                     drop(window.surface);
 
                     window.renderer = new_compositor.create_renderer(*renderer_settings);
-                    window.surface =
-                        new_compositor.create_surface(window.raw.clone(), size.width, size.height);
+                    window.surface = new_compositor.create_surface(window.raw.clone());
+                    window.configure_surface(&mut new_compositor);
 
                     window
                 });

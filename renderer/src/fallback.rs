@@ -295,19 +295,10 @@ where
         }
     }
 
-    fn create_surface(
-        &mut self,
-        window: impl compositor::Window + Clone,
-        width: u32,
-        height: u32,
-    ) -> Self::Surface {
+    fn create_surface(&mut self, window: impl compositor::Window + Clone) -> Self::Surface {
         match self {
-            Self::Primary(compositor) => {
-                Surface::Primary(compositor.create_surface(window, width, height))
-            }
-            Self::Secondary(compositor) => {
-                Surface::Secondary(compositor.create_surface(window, width, height))
-            }
+            Self::Primary(compositor) => Surface::Primary(compositor.create_surface(window)),
+            Self::Secondary(compositor) => Surface::Secondary(compositor.create_surface(window)),
         }
     }
 

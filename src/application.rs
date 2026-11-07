@@ -2,7 +2,7 @@
 //!
 //! # Example
 //! ```no_run,standalone_crate
-//! use iced::widget::{button, column, text, Column};
+//! use iced::widget::{button, column, text, Widget};
 //! use iced::Theme;
 //!
 //! pub fn main() -> iced::Result {
@@ -23,7 +23,7 @@
 //!     }
 //! }
 //!
-//! fn view(value: &u64) -> Column<Message> {
+//! fn view(value: &u64) -> impl Widget<Message> {
 //!     column![
 //!         text(value),
 //!         button("+").on_press(Message::Increment),
@@ -31,6 +31,7 @@
 //! }
 //! ```
 use crate::backend;
+use crate::core::Widget;
 use crate::message;
 use crate::program::{self, Program};
 use crate::shell;
@@ -38,8 +39,7 @@ use crate::theme;
 use crate::widget::text;
 use crate::window;
 use crate::{
-    Backend, Element, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task,
-    Theme,
+    Backend, Executor, Font, Never, Preset, Result, Settings, Size, Subscription, Task, Theme,
 };
 
 #[cfg(feature = "hot")]
@@ -55,7 +55,7 @@ pub use timed::timed;
 ///
 /// # Example
 /// ```no_run,standalone_crate
-/// use iced::widget::{button, column, text, Column};
+/// use iced::widget::{button, column, text, Widget};
 ///
 /// pub fn main() -> iced::Result {
 ///     iced::application(u64::default, update, view).run()
@@ -72,7 +72,7 @@ pub use timed::timed;
 ///     }
 /// }
 ///
-/// fn view(value: &u64) -> Column<Message> {
+/// fn view(value: &u64) -> impl Widget<Message> {
 ///     column![
 ///         text(value),
 ///         button("+").on_press(Message::Increment),
@@ -136,7 +136,7 @@ where
             &self,
             state: &'a Self::State,
             _window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Message, Theme, Renderer> + 'a {
             self.view.view(state)
         }
 
@@ -507,7 +507,7 @@ impl<P: Program> Program for Application<P> {
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<P::Message, P::Theme, P::Renderer> + 'a {
         self.raw.view(state, window)
     }
 
@@ -676,22 +676,28 @@ where
 /// The view logic of some [`Application`].
 ///
 /// This trait allows the [`application`] builder to take any closure that
-/// returns any `Into<Element<'_, Message>>`.
-pub trait ViewFn<'a, State, Message, Theme, Renderer> {
+/// returns any widget.
+pub trait ViewFn<'a, State, Message, Theme, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
     /// Produces the widget of the [`Application`].
-    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer>;
+    fn view(&self, state: &'a State) -> impl Widget<Message, Theme, Renderer> + 'a;
 }
 
-impl<'a, T, State, Message, Theme, Renderer, Widget> ViewFn<'a, State, Message, Theme, Renderer>
-    for T
+impl<'a, T, State, Message, Theme, Renderer, W> ViewFn<'a, State, Message, Theme, Renderer> for T
 where
-    T: Fn(&'a State) -> Widget,
+    T: Fn(&'a State) -> W,
     State: 'static,
-    Widget: Into<Element<'a, Message, Theme, Renderer>>,
+    Message: 'static,
+    Theme: 'static,
+    Renderer: 'static,
+    W: Widget<Message, Theme, Renderer> + 'a,
+    Renderer: crate::core::Renderer,
 {
     #[inline]
-    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer> {
-        self(state).into()
+    fn view(&self, state: &'a State) -> impl Widget<Message, Theme, Renderer> + 'a {
+        self(state)
     }
 }
 
@@ -751,7 +757,7 @@ fn with_title<P: Program>(
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.program.view(state, window)
         }
 
@@ -839,7 +845,7 @@ fn with_theme<P: Program>(
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.program.view(state, window)
         }
 
@@ -918,7 +924,7 @@ fn with_scale_factor<P: Program>(
             &self,
             state: &'a Self::State,
             window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.program.view(state, window)
         }
 

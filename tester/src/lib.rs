@@ -18,7 +18,7 @@ use crate::core::border;
 use crate::core::mouse;
 use crate::core::theme;
 use crate::core::window;
-use crate::core::{Color, Element, Font, Settings, Size, Theme};
+use crate::core::{Color, Font, Settings, Size, Theme, Widget};
 use crate::futures::futures::channel::mpsc;
 use crate::program::Program;
 use crate::runtime::task::{self, Task};
@@ -27,8 +27,8 @@ use crate::test::ice;
 use crate::test::instruction;
 use crate::test::{Emulator, Ice, Instruction};
 use crate::widget::{
-    button, center, column, combo_box, container, pick_list, row, rule, scrollable, slider, space,
-    stack, text, text_editor, themer,
+    Widget as _, button, center, column, combo_box, container, pick_list, row, rule, scrollable,
+    slider, space, stack, text, text_editor, themer,
 };
 
 use std::ops::RangeInclusive;
@@ -89,7 +89,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         state.view(&self.program, window).map(Message)
     }
 
@@ -532,7 +532,7 @@ impl<P: Program + 'static> Tester<P> {
         &'a self,
         program: &P,
         window: window::Id,
-    ) -> Element<'a, Tick<P>, Theme, P::Renderer> {
+    ) -> impl Widget<Tick<P>, Theme, P::Renderer> + 'a {
         let status = {
             let (icon, label) = match &self.state {
                 State::Empty | State::Idle { .. } => (text(""), "Idle"),
@@ -567,17 +567,17 @@ impl<P: Program + 'static> Tester<P> {
         };
 
         let view = match &self.state {
-            State::Empty => Element::from(space()),
-            State::Idle { state } => program.view(state, window).map(Tick::Program),
+            State::Empty => space().boxed(),
+            State::Idle { state } => program.view(state, window).map(Tick::Program).boxed(),
             State::Recording { emulator } => recorder(emulator.view(program).map(Tick::Program))
                 .on_record(Tick::Record)
-                .into(),
+                .boxed(),
             State::Asserting { state, window, .. } => {
                 recorder(program.view(state, *window).map(Tick::Program))
                     .on_record(Tick::Assert)
-                    .into()
+                    .boxed()
             }
-            State::Playing { emulator, .. } => emulator.view(program).map(Tick::Program),
+            State::Playing { emulator, .. } => emulator.view(program).map(Tick::Program).boxed(),
         };
 
         let viewport = container(
@@ -616,13 +616,12 @@ impl<P: Program + 'static> Tester<P> {
             container(self.controls().map(Tick::Tester))
                 .width(250)
                 .padding(10)
-                .style(|theme| container::Style::default()
+                .style(|theme: &Theme| container::Style::default()
                     .background(theme.palette().background.weakest.color)),
         ]
-        .into()
     }
 
-    fn controls(&self) -> Element<'_, Event, Theme, P::Renderer> {
+    fn controls(&self) -> impl Widget<Event, Theme, P::Renderer> {
         let viewport = column![
             labeled_slider(
                 "Width",
@@ -672,15 +671,16 @@ impl<P: Program + 'static> Tester<P> {
                     .height(Fill)
                     .font(Font::MONOSPACE)
                     .on_action(Event::Edited)
-                    .into()
+                    .boxed()
             } else if self.instructions.is_empty() {
-                Element::from(center(
+                center(
                     text("No instructions recorded yet!")
                         .size(14)
                         .font(Font::MONOSPACE)
                         .width(Fill)
                         .center(),
-                ))
+                )
+                .boxed()
             } else {
                 scrollable(
                     column(
@@ -717,8 +717,8 @@ impl<P: Program + 'static> Tester<P> {
                                             }
                                             _ => None,
                                         },
+                                        selection: None,
                                     })
-                                    .into()
                             }),
                     )
                     .spacing(5),
@@ -726,7 +726,7 @@ impl<P: Program + 'static> Tester<P> {
                 .width(Fill)
                 .height(Fill)
                 .spacing(5)
-                .into()
+                .boxed()
             };
 
             let control = |icon: text::Text<'static, _>| {
@@ -766,19 +766,19 @@ impl<P: Program + 'static> Tester<P> {
         };
 
         let edit = if self.is_busy() {
-            Element::from(space::horizontal())
+            space::horizontal().boxed()
         } else if self.edit.is_none() {
             button(icon::pencil().size(14))
                 .padding(0)
                 .on_press(Event::Edit)
                 .style(button::text)
-                .into()
+                .boxed()
         } else {
             button(icon::check().size(14))
                 .padding(0)
                 .on_press(Event::Confirm)
                 .style(button::text)
-                .into()
+                .boxed()
         };
 
         column![
@@ -788,31 +788,25 @@ impl<P: Program + 'static> Tester<P> {
             labeled_with("Instructions", edit, player)
         ]
         .spacing(10)
-        .into()
     }
 }
 
 fn labeled<'a, Message, Renderer>(
     fragment: impl text::IntoFragment<'a>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Element<'a, Message, Theme, Renderer>
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Renderer: program::Renderer + 'a,
 {
-    column![
-        text(fragment).size(14).font(Font::MONOSPACE),
-        content.into()
-    ]
-    .spacing(5)
-    .into()
+    column![text(fragment).size(14).font(Font::MONOSPACE), content].spacing(5)
 }
 
 fn labeled_with<'a, Message, Renderer>(
     fragment: impl text::IntoFragment<'a>,
-    control: impl Into<Element<'a, Message, Theme, Renderer>>,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Element<'a, Message, Theme, Renderer>
+    control: impl Widget<Message, Theme, Renderer> + 'a,
+    content: impl Widget<Message, Theme, Renderer> + 'a,
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: 'a,
     Renderer: program::Renderer + 'a,
@@ -821,14 +815,13 @@ where
         row![
             text(fragment).size(14).font(Font::MONOSPACE),
             space::horizontal(),
-            control.into()
+            control,
         ]
         .spacing(5)
         .align_y(Center),
-        content.into()
+        content
     ]
     .spacing(5)
-    .into()
 }
 
 fn labeled_slider<'a, Message, Renderer>(
@@ -837,7 +830,7 @@ fn labeled_slider<'a, Message, Renderer>(
     current: f32,
     on_change: impl Fn(f32) -> Message + 'a,
     to_string: impl Fn(&f32) -> String,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Message: Clone + 'a,
     Renderer: core::text::Renderer + 'a,
@@ -875,13 +868,14 @@ where
                     }
                 })
         )
-        .style(|theme| container::Style::default()
+        .style(|theme: &Theme| container::Style::default()
             .background(theme.palette().background.weak.color)
             .border(border::rounded(2))),
         row![
             text(label).size(14).style(|theme: &core::Theme| {
                 text::Style {
                     color: Some(theme.palette().background.weak.text),
+                    selection: None,
                 }
             }),
             space::horizontal(),
@@ -891,5 +885,4 @@ where
         .height(Fill)
         .align_y(Center),
     ]
-    .into()
 }

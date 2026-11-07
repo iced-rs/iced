@@ -1,5 +1,5 @@
 use iced::widget::{button, column, lazy, pick_list, row, scrollable, space, text, text_input};
-use iced::{Element, Fill};
+use iced::{Fill, Widget};
 
 use std::collections::HashSet;
 use std::hash::Hash;
@@ -151,7 +151,7 @@ impl App {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let options = lazy(self.version, |_| {
             let mut items: Vec<_> = self.items.iter().cloned().collect();
 
@@ -173,7 +173,6 @@ impl App {
                     button
                 ]
                 .spacing(20)
-                .into()
             }))
             .spacing(10)
         });
@@ -190,7 +189,6 @@ impl App {
         ]
         .spacing(20)
         .padding(20)
-        .into()
     }
 }
 

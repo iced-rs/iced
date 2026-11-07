@@ -47,21 +47,21 @@ pub use column::Column;
 ///
 /// # Example
 /// ```no_run
-/// # mod iced { pub mod widget { pub use iced_widget::*; } }
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
 /// # pub type State = ();
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
 /// use iced::widget::keyed_column;
 ///
 /// enum Message {
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
+/// fn view(state: &State) -> impl Widget<Message> {
 ///     keyed_column![
 ///         (0, "Item 0"),
 ///         (1, "Item 1"),
 ///         (2, "Item 2"),
-///     ].into()
+///     ]
 /// }
 /// ```
 #[macro_export]
@@ -70,6 +70,6 @@ macro_rules! keyed_column {
         $crate::keyed::Column::new()
     );
     ($(($key:expr, $x:expr)),+ $(,)?) => (
-        $crate::keyed::Column::with_children(vec![$(($key, $crate::core::Element::from($x))),+])
+        $crate::keyed::Column::with_children(vec![$(($key, $crate::core::Widget::_boxed($x))),+])
     );
 }

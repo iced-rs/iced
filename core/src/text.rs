@@ -274,18 +274,11 @@ impl Hash for LineHeight {
 
 /// The result of hit testing on text.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Hit {
-    /// The point was within the bounds of the returned character index.
-    CharOffset(usize),
-}
-
-impl Hit {
-    /// Computes the cursor position of the [`Hit`] .
-    pub fn cursor(self) -> usize {
-        match self {
-            Self::CharOffset(i) => i,
-        }
-    }
+pub struct Hit {
+    /// The line of the hit.
+    pub line: usize,
+    /// The first byte index of the closest glyph.
+    pub index: usize,
 }
 
 /// The difference detected in some text.
@@ -634,6 +627,25 @@ pub struct Position {
 
     /// The first byte index of a character boundary in the line.
     pub index: usize,
+}
+
+/// The granularity of a text selection.
+///
+/// The target determines how a selection is expanded around its
+/// starting position:
+///
+/// - [`Target::Character`] selects the individual characters between
+///   the given positions;
+/// - [`Target::Word`] expands the selection to the nearest whole words;
+/// - [`Target::Line`] expands the selection to the nearest whole lines.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Target {
+    /// Selects individual characters.
+    Character,
+    /// Selects whole words.
+    Word,
+    /// Selects whole lines.
+    Line,
 }
 
 /// A fragment of [`Text`].

@@ -1,10 +1,11 @@
 //! Decorates a [`Program`] with hot reloading support.
 //!
 //! This module is only available when the `hot` feature is enabled.
+use crate::core::Widget;
 use crate::program::Program;
 use crate::theme;
 use crate::window;
-use crate::{Element, Preset, Settings, Subscription, Task};
+use crate::{Preset, Settings, Subscription, Task};
 
 use iced_debug as debug;
 
@@ -60,7 +61,7 @@ impl<P: Program> Program for Hot<P> {
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         debug::hot(|| self.program.view(state, window))
     }
 

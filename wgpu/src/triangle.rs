@@ -479,6 +479,7 @@ impl Layer {
                         num_gradients += 1;
                     }
                 }
+                index_offset += mesh.indices().len();
                 continue;
             };
 
@@ -709,7 +710,7 @@ mod solid {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: Some("solid_vs_main"),
-                    buffers: &[wgpu::VertexBufferLayout {
+                    buffers: &[Some(wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<mesh::SolidVertex2D>() as u64,
                         step_mode: wgpu::VertexStepMode::Vertex,
                         attributes: &wgpu::vertex_attr_array!(
@@ -718,7 +719,7 @@ mod solid {
                             // Color
                             1 => Float32x4,
                         ),
-                    }],
+                    })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
@@ -843,7 +844,7 @@ mod gradient {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: Some("gradient_vs_main"),
-                    buffers: &[wgpu::VertexBufferLayout {
+                    buffers: &[Some(wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<mesh::GradientVertex2D>() as u64,
                         step_mode: wgpu::VertexStepMode::Vertex,
                         attributes: &wgpu::vertex_attr_array!(
@@ -862,7 +863,7 @@ mod gradient {
                             // Direction
                             6 => Float32x4
                         ),
-                    }],
+                    })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {

@@ -20,8 +20,8 @@ version = "0.12"
 features = ["json"]
 
 [dependencies.rand]
-version = "0.8"
+version = "0.10"
 
 [dependencies.getrandom]
-version = "0.2"
-features = ["js"]
+version = "0.4"
+features = ["wasm_js"]

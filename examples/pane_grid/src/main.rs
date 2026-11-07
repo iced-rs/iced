@@ -1,7 +1,7 @@
 use iced::keyboard;
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{button, center_y, column, container, responsive, row, scrollable, text};
-use iced::{Center, Color, Element, Fill, Fit, Size, Subscription};
+use iced::{Center, Color, Fill, Fit, Size, Subscription, Widget};
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
@@ -120,7 +120,7 @@ impl Example {
         })
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
@@ -178,7 +178,7 @@ impl Example {
         .on_drag(Message::Dragged)
         .on_resize(10, Message::Resized);
 
-        container(pane_grid).padding(10).into()
+        container(pane_grid).padding(10)
     }
 }
 
@@ -237,12 +237,12 @@ impl Pane {
     }
 }
 
-fn view_content<'a>(
+fn view_content(
     pane: pane_grid::Pane,
     total_panes: usize,
     is_pinned: bool,
     size: Size,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> {
     let button = |label, message| {
         button(text(label).width(Fill).align_x(Center).size(16))
             .padding(8)
@@ -272,15 +272,15 @@ fn view_content<'a>(
         .width(Fill)
         .align_x(Center);
 
-    center_y(scrollable(content)).padding(5).into()
+    center_y(scrollable(content)).padding(5)
 }
 
-fn view_controls<'a>(
+fn view_controls(
     pane: pane_grid::Pane,
     total_panes: usize,
     is_pinned: bool,
     is_maximized: bool,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> {
     let maximize = if total_panes > 1 {
         let (content, message) = if is_maximized {
             ("Restore", Message::Restore)
@@ -307,7 +307,7 @@ fn view_controls<'a>(
             None
         });
 
-    row![maximize, close].spacing(5).into()
+    row![maximize, close].spacing(5)
 }
 
 mod style {

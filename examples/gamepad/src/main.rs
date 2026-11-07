@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use iced::{
     Alignment::*,
-    Element, Length, Subscription,
+    Length, Subscription, Widget,
     border::Radius,
     color, gamepad,
     widget::{Row, button, center, column, container, pin, progress_bar, row, space, stack, text},
@@ -86,7 +86,7 @@ impl App {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let tabs = self
             .connected_gamepads
             .iter()
@@ -109,9 +109,8 @@ impl App {
                 } else {
                     button::subtle
                 })
-                .into()
             })
-            .collect::<Row<'_, Message>>()
+            .collect::<Row<_>>()
             .align_y(End)
             .width(Length::Fill);
 
@@ -300,9 +299,9 @@ impl App {
             ]
             .padding(10)
             .align_x(Center)
-            .into()
+            .boxed()
         } else {
-            center("Connect a gamepad to view demo.").into()
+            center("Connect a gamepad to view demo.").boxed()
         }
     }
 
@@ -382,7 +381,7 @@ impl App {
         }
     }
 
-    fn thumbstick_graph(&self, thumbstick: Thumbstick, pressed: bool) -> Element<'_, Message> {
+    fn thumbstick_graph(&self, thumbstick: Thumbstick, pressed: bool) -> impl Widget<Message> {
         const BOX_SIZE: f32 = 256.0;
 
         // map -1.0 to 0, 1.0 to BOX_SIZE, and interpolate inbetween
@@ -438,7 +437,6 @@ impl App {
             .spacing(3),
         ]
         .spacing(3)
-        .into()
     }
 }
 

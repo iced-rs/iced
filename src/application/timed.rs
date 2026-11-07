@@ -1,10 +1,11 @@
 //! An [`Application`] that receives an [`Instant`] in update logic.
 use crate::application::{Application, BootFn, ViewFn};
+use crate::core::Widget;
 use crate::program;
 use crate::theme;
 use crate::time::Instant;
 use crate::window;
-use crate::{Element, Program, Settings, Subscription, Task};
+use crate::{Program, Settings, Subscription, Task};
 
 /// Creates an [`Application`] with an `update` function that also
 /// takes the [`Instant`] of each `Message`.
@@ -96,10 +97,10 @@ where
             &self,
             state: &'a Self::State,
             _window: window::Id,
-        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+        ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
             self.view
                 .view(state)
-                .map(|message| (message, Instant::now()))
+                ._map(|message| (message, Instant::now()))
         }
 
         #[inline]

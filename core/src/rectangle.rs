@@ -406,6 +406,15 @@ impl From<Rectangle<u32>> for Rectangle<f32> {
     }
 }
 
+impl<T> From<Rectangle<T>> for Size<T> {
+    fn from(rectangle: Rectangle<T>) -> Size<T> {
+        Size {
+            width: rectangle.width,
+            height: rectangle.height,
+        }
+    }
+}
+
 impl<T> std::ops::Add<Vector<T>> for Rectangle<T>
 where
     T: std::ops::Add<Output = T>,

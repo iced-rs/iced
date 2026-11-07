@@ -4,7 +4,7 @@ use iced::widget::{
     toggler, tooltip,
 };
 use iced::window;
-use iced::{Center, Element, Fill, Font, Task, Theme, Window};
+use iced::{Center, Fill, Font, Task, Theme, Widget, Window};
 
 use std::ffi;
 use std::io;
@@ -141,7 +141,7 @@ impl Editor {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let controls = row![
             action(new_icon(), "New file", Some(Message::NewFile)),
             action(
@@ -215,7 +215,6 @@ impl Editor {
         ]
         .spacing(10)
         .padding(10)
-        .into()
     }
 
     fn theme(&self) -> Theme {
@@ -275,10 +274,10 @@ async fn save_file(path: Option<PathBuf>, contents: String) -> Result<PathBuf, E
 }
 
 fn action<'a, Message: Clone + 'a>(
-    content: impl Into<Element<'a, Message>>,
+    content: impl Widget<Message> + 'a,
     label: &'a str,
     on_press: Option<Message>,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> {
     let action = button(center_x(content).width(30));
 
     if let Some(on_press) = on_press {
@@ -288,31 +287,30 @@ fn action<'a, Message: Clone + 'a>(
             tooltip::Position::FollowCursor,
         )
         .style(container::rounded_box)
-        .into()
+        .boxed()
     } else {
-        action.style(button::secondary).into()
+        action.style(button::secondary).boxed()
     }
 }
 
-fn new_icon<'a, Message>() -> Element<'a, Message> {
+fn new_icon<Message>() -> impl Widget<Message> {
     icon('\u{0e800}')
 }
 
-fn save_icon<'a, Message>() -> Element<'a, Message> {
+fn save_icon<Message>() -> impl Widget<Message> {
     icon('\u{0e801}')
 }
 
-fn open_icon<'a, Message>() -> Element<'a, Message> {
+fn open_icon<Message>() -> impl Widget<Message> {
     icon('\u{0f115}')
 }
 
-fn icon<'a, Message>(codepoint: char) -> Element<'a, Message> {
+fn icon<Message>(codepoint: char) -> impl Widget<Message> {
     const ICON_FONT: Font = Font::new("editor-icons");
 
     text(codepoint)
         .font(ICON_FONT)
         .shaping(text::Shaping::Basic)
-        .into()
 }
 
 const EDITOR: &str = "editor";

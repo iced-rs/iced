@@ -16,9 +16,9 @@ use crate::core::time::seconds;
 use crate::core::window;
 use crate::core::{
     Alignment::Center,
-    Color, Element, Font,
+    Color, Font,
     Length::{Fill, Fit},
-    Settings,
+    Settings, Widget,
 };
 use crate::futures::Subscription;
 use crate::program::Program;
@@ -26,8 +26,8 @@ use crate::program::message;
 use crate::runtime::task::{self, Task};
 use crate::time_machine::TimeMachine;
 use crate::widget::{
-    bottom_right, button, center, column, container, opaque, row, scrollable, space, stack, text,
-    themer,
+    Widget as _, bottom_right, button, center, column, container, opaque, row, scrollable, space,
+    stack, text, themer,
 };
 
 use std::fmt;
@@ -91,7 +91,7 @@ where
         &self,
         state: &'a Self::State,
         window: window::Id,
-    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
+    ) -> impl Widget<Self::Message, Self::Theme, Self::Renderer> + 'a {
         state.view(&self.program, window)
     }
 
@@ -308,17 +308,19 @@ where
         &self,
         program: &P,
         window: window::Id,
-    ) -> Element<'_, Event<P::Message>, P::Theme, P::Renderer> {
+    ) -> impl Widget<Event<P::Message>, P::Theme, P::Renderer> + '_ {
         let state = self.state();
 
         let view = {
             let view = program.view(state, window);
 
-            if self.time_machine.is_rewinding() {
-                view.map(|_| Event::Discard)
-            } else {
-                view.map(Event::Program)
-            }
+            view.map(|message| {
+                if self.time_machine.is_rewinding() {
+                    Event::Discard
+                } else {
+                    Event::Program(message)
+                }
+            })
         };
 
         let theme = || {
@@ -330,9 +332,9 @@ where
         };
 
         let setup = if let Mode::Setup(setup) = &self.mode {
-            let stage: Element<'_, _, Theme, P::Renderer> = match setup {
-                Setup::Idle { goal } => self::setup(goal),
-                Setup::Running { logs } => installation(logs),
+            let stage = match setup {
+                Setup::Idle { goal } => self::setup(goal).boxed(),
+                Setup::Running { logs } => installation(logs).boxed(),
             };
 
             let setup = center(
@@ -365,10 +367,7 @@ where
                 )
             });
 
-        stack![view, setup, notification]
-            .width(Fill)
-            .height(Fill)
-            .into()
+        stack![view, setup, notification].width(Fill).height(Fill)
     }
 
     pub fn subscription(&self, program: &P) -> Subscription<Event<P::Message>> {
@@ -428,7 +427,7 @@ where
     }
 }
 
-fn setup<Renderer>(goal: &Goal) -> Element<'_, Message, Theme, Renderer>
+fn setup<Renderer>(goal: &Goal) -> impl Widget<Message, Theme, Renderer>
 where
     Renderer: program::Renderer + 'static,
 {
@@ -465,7 +464,7 @@ where
     .padding(5)
     .style(container::dark);
 
-    Element::from(match goal {
+    match goal {
         Goal::Installation => column![
             text("comet is not installed!").size(20),
             "In order to display performance \
@@ -513,10 +512,10 @@ where
             ]
             .spacing(20)
         }
-    })
+    }
 }
 
-fn installation<'a, Renderer>(logs: &'a [String]) -> Element<'a, Message, Theme, Renderer>
+fn installation<'a, Renderer>(logs: &'a [String]) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Renderer: program::Renderer + 'a,
 {
@@ -526,7 +525,7 @@ where
             scrollable(
                 column(
                     logs.iter()
-                        .map(|log| { text(log).size(12).font(Font::MONOSPACE).into() })
+                        .map(|log| text(log).size(12).font(Font::MONOSPACE))
                 )
                 .spacing(3),
             )
@@ -539,12 +538,11 @@ where
         .style(container::dark)
     ]
     .spacing(20)
-    .into()
 }
 
 fn inline_code<'a, Renderer>(
     code: impl text::IntoFragment<'a>,
-) -> Element<'a, Message, Theme, Renderer>
+) -> impl Widget<Message, Theme, Renderer> + 'a
 where
     Renderer: program::Renderer + 'a,
 {
@@ -555,5 +553,4 @@ where
                 .border(border::rounded(2))
         })
         .padding([2, 4])
-        .into()
 }

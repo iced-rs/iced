@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::progress_bar;
 //!
@@ -15,18 +15,16 @@
 //!     // ...
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     progress_bar(0.0..=100.0, state.progress).into()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     progress_bar(0.0..=100.0, state.progress)
 //! }
 //! ```
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::Tree;
-use crate::core::{
-    self, Background, Color, Element, Layout, Length, Rectangle, Size, Theme, Widget,
-};
+use crate::core::widget::{Meta, Tree};
+use crate::core::{self, Background, Color, Layout, Length, Rectangle, Size, Theme, Widget};
 
 use std::ops::RangeInclusive;
 
@@ -35,7 +33,7 @@ use std::ops::RangeInclusive;
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::progress_bar;
 ///
@@ -47,8 +45,8 @@ use std::ops::RangeInclusive;
 ///     // ...
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     progress_bar(0.0..=100.0, state.progress).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     progress_bar(0.0..=100.0, state.progress)
 /// }
 /// ```
 pub struct ProgressBar<'a, Theme = crate::Theme>
@@ -141,6 +139,8 @@ where
     }
 }
 
+impl<Theme> Meta for ProgressBar<'_, Theme> where Theme: Catalog {}
+
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for ProgressBar<'_, Theme>
 where
     Theme: Catalog,
@@ -153,13 +153,8 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width(), self.height())
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width(), self.height());
     }
 
     fn draw(
@@ -168,7 +163,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -224,18 +219,6 @@ where
                 style.bar,
             );
         }
-    }
-}
-
-impl<'a, Message, Theme, Renderer> From<ProgressBar<'a, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a + Catalog,
-    Renderer: 'a + core::Renderer,
-{
-    fn from(progress_bar: ProgressBar<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(progress_bar)
     }
 }
 
