@@ -18,19 +18,19 @@ pub fn main() -> iced::Result {
 }
 
 struct Clock {
-    now: chrono::DateTime<chrono::Local>,
+    now: jiff::Zoned,
     clock: Cache,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
-    Tick(chrono::DateTime<chrono::Local>),
+    Tick(jiff::Zoned),
 }
 
 impl Clock {
     fn new() -> Self {
         Self {
-            now: chrono::offset::Local::now(),
+            now: jiff::Zoned::now(),
             clock: Cache::default(),
         }
     }
@@ -55,11 +55,11 @@ impl Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(milliseconds(500)).map(|_| Message::Tick(chrono::offset::Local::now()))
+        time::every(milliseconds(500)).map(|_| Message::Tick(jiff::Zoned::now()))
     }
 
     fn theme(&self) -> Theme {
-        Theme::ALL[(self.now.timestamp() as usize / 10) % Theme::ALL.len()].clone()
+        Theme::ALL[(self.now.timestamp().as_second() as usize / 10) % Theme::ALL.len()].clone()
     }
 }
 
@@ -74,8 +74,6 @@ impl<Message> canvas::Program<Message> for Clock {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        use chrono::Timelike;
-
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
             let palette = theme.palette();
             let center = frame.center();
@@ -185,7 +183,7 @@ impl<Message> canvas::Program<Message> for Clock {
     }
 }
 
-fn hand_rotation(n: u32, total: u32) -> Degrees {
+fn hand_rotation(n: i8, total: u32) -> Degrees {
     let turns = n as f32 / total as f32;
 
     Degrees(360.0 * turns)

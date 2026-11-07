@@ -8,5 +8,5 @@ publish = false
 [dependencies]
 iced.workspace = true
 iced.features = ["canvas", "tokio", "debug"]
-chrono = "0.4"
+jiff = "0.2.31"
 tracing-subscriber = "0.3"
