@@ -1,0 +1,9 @@
+[package]
+name = "badged_button"
+version = "0.1.0"
+authors = ["Tony Bierman<tonybierman@gmail.com>"]
+edition = "2024"
+publish = false
+
+[dependencies]
+iced.workspace = true
