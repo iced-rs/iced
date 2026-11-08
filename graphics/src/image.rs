@@ -146,6 +146,10 @@ pub fn load(handle: &image::Handle) -> Result<Buffer, image::Error> {
         } => (*width, *height, pixels.clone()),
     };
 
+    if width == 0 || height == 0 {
+        return Err(image::Error::Empty);
+    }
+
     if let Some(image) = ::image::ImageBuffer::from_raw(width, height, pixels) {
         Ok(image)
     } else {
