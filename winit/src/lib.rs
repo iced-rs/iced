@@ -1781,6 +1781,8 @@ fn run_action<'a, P, C>(
                     continue;
                 };
 
+                window.state.synchronize(program, id, &window.raw);
+
                 let cache = ui.into_cache();
                 let size = window.state.logical_size();
 
