@@ -364,6 +364,10 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn paste(&mut self, frame: Frame) {
+        // Flush what was drawn before, so the pasted frame goes on top of it
+        let buffers = std::mem::replace(&mut self.buffers, BufferStack::new());
+        self.meshes.extend(buffers.into_meshes(self.clip_bounds));
+
         self.meshes.extend(frame.meshes);
         self.meshes
             .extend(frame.buffers.into_meshes(frame.clip_bounds));
