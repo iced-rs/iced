@@ -166,15 +166,25 @@ impl Renderer {
                     let render_span = debug::render(debug::Primitive::Image);
 
                     for group in &layer.text {
+                        let Some(group_bounds) =
+                            (group.clip_bounds() * scale_factor).intersection(&layer_bounds)
+                        else {
+                            continue;
+                        };
+
+                        engine::adjust_clip_mask(clip_mask, group_bounds);
+
                         for text in group.as_slice() {
                             self.engine.draw_text(
                                 text,
                                 Transformation::scale(scale_factor) * group.transformation(),
                                 pixels,
                                 clip_mask,
-                                layer_bounds,
+                                group_bounds,
                             );
                         }
+
+                        engine::adjust_clip_mask(clip_mask, layer_bounds);
                     }
 
                     render_span.finish();
