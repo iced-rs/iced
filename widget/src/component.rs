@@ -492,7 +492,7 @@ where
 
         self.is_outdated.set(true);
 
-        shell.invalidate_layout();
+        shell.invalidate_widgets();
         shell.request_redraw();
     }
 
