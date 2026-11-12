@@ -144,7 +144,6 @@ impl<Message, W, P> widget::Meta for Transition<'_, Message, W, P> where P: Prog
 impl<Message, W, Theme, Renderer, P> Widget<Message, Theme, Renderer>
     for Transition<'_, Message, W, P>
 where
-    Renderer: core::Renderer,
     P: Program,
     W: Widget<Message, Theme, Renderer>,
 {

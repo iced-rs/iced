@@ -5648,13 +5648,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tooltip"
-version = "0.1.0"
-dependencies = [
- "iced",
-]
-
-[[package]]
 name = "tour"
 version = "0.1.0"
 dependencies = [

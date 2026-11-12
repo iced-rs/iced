@@ -283,10 +283,9 @@ fn action<'a, Message: Clone + 'a>(
     if let Some(on_press) = on_press {
         tooltip(
             action.on_press(on_press),
-            label,
-            tooltip::Position::FollowCursor,
+            container(label).padding(10).style(container::rounded_box),
         )
-        .style(container::rounded_box)
+        .position(tooltip::Position::FollowCursor)
         .boxed()
     } else {
         action.style(button::secondary).boxed()

@@ -27,9 +27,11 @@ pub mod float;
 pub mod grid;
 pub mod keyed;
 pub mod lazy;
+pub mod opaque;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
+pub mod popover;
 pub mod progress_bar;
 pub mod radio;
 pub mod row;
@@ -75,11 +77,15 @@ pub use lazy::Lazy;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
 #[doc(no_inline)]
+pub use opaque::Opaque;
+#[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
 pub use pick_list::PickList;
 #[doc(no_inline)]
 pub use pin::Pin;
+#[doc(no_inline)]
+pub use popover::Popover;
 #[doc(no_inline)]
 pub use progress_bar::ProgressBar;
 #[doc(no_inline)]

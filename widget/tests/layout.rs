@@ -1,8 +1,9 @@
 //! Layout tests with the built-in widgets.
-use iced::advanced::layout;
-use iced::advanced::widget::{self, Widget};
-use iced::widget::{column, row, space};
-use iced::{Fill, FillPortion, Never, Pixels, Size, Theme};
+use iced_widget::core::Length::{Fill, FillPortion};
+use iced_widget::core::layout;
+use iced_widget::core::widget::{self, Widget};
+use iced_widget::core::{Never, Pixels, Size, Theme};
+use iced_widget::{column, row, space};
 
 const DEFAULT_LIMITS: layout::Limits = layout::Limits::new(
     Size::ZERO,

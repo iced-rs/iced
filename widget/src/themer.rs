@@ -14,20 +14,14 @@ use crate::core::{
 ///
 /// This widget can be useful to leverage multiple `Theme`
 /// types in an application.
-pub struct Themer<'a, Message, Theme, Renderer = crate::Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+pub struct Themer<'a, Message, Theme, Renderer = crate::Renderer> {
     content: Element<'a, Message, Theme, Renderer>,
     theme: Option<Theme>,
     text_color: Option<fn(&Theme) -> Color>,
     background: Option<fn(&Theme) -> Background>,
 }
 
-impl<'a, Message, Theme, Renderer> Themer<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+impl<'a, Message, Theme, Renderer> Themer<'a, Message, Theme, Renderer> {
     /// Creates an empty [`Themer`] that applies the given `Theme`
     /// to the provided `content`.
     pub fn new(theme: Option<Theme>, content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {
@@ -52,10 +46,7 @@ where
     }
 }
 
-impl<Message, Theme, Renderer> Meta for Themer<'_, Message, Theme, Renderer> where
-    Renderer: crate::core::Renderer
-{
-}
+impl<Message, Theme, Renderer> Meta for Themer<'_, Message, Theme, Renderer> {}
 
 impl<Message, Theme, Renderer, AnyTheme> Widget<Message, AnyTheme, Renderer>
     for Themer<'_, Message, Theme, Renderer>
@@ -177,7 +168,6 @@ where
         where
             Theme: theme::Base,
             AnyTheme: theme::Base,
-            Renderer: crate::core::Renderer,
         {
             fn draw(
                 &self,

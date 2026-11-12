@@ -103,10 +103,7 @@ pub fn resolve<Message, Theme, Renderer>(
     children: &mut [widget::Tree],
     items: &mut [impl Widget<Message, Theme, Renderer>],
     cache: &mut Cache,
-) -> Size
-where
-    Renderer: crate::Renderer,
-{
+) -> Size {
     let limits = limits.width(width).height(height).shrink(padding);
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;
     let max_cross = axis.cross(limits.max);

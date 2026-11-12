@@ -12,10 +12,7 @@ use crate::widget::Tree;
 use crate::{Event, Layout, Rectangle, Shell, Size, Vector, Widget};
 
 /// An interactive component that can be displayed on top of other widgets.
-pub trait Overlay<Message, Theme, Renderer>
-where
-    Renderer: crate::Renderer,
-{
+pub trait Overlay<Message, Theme, Renderer> {
     /// Draws the [`Overlay`] using the associated `Renderer`.
     ///
     /// Implementors are expected to call
@@ -86,10 +83,7 @@ pub fn from_children<'a, Message, Theme, Renderer>(
     viewport: &Rectangle,
     translation: Vector,
     window: Size,
-) -> Vec<Element<'a, Message, Theme, Renderer>>
-where
-    Renderer: crate::Renderer,
-{
+) -> Vec<Element<'a, Message, Theme, Renderer>> {
     children
         .iter_mut()
         .zip(layout.iter_mut(&mut tree.children))

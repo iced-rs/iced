@@ -17,10 +17,7 @@ use std::cell::Cell;
 
 pub fn recorder<'a, Message, Theme, Renderer>(
     content: impl Widget<Message, Theme, Renderer> + 'a,
-) -> Recorder<'a, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+) -> Recorder<'a, Message, Theme, Renderer> {
     Recorder::new(content)
 }
 
