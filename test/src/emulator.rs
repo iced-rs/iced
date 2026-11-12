@@ -487,7 +487,7 @@ impl<P: Program + 'static> Emulator<P> {
             &[core::Event::Window(window::Event::RedrawRequested(
                 Instant::now(),
             ))],
-            mouse::Cursor::Unavailable,
+            self.cursor,
             &mut self.renderer,
             &mut shell::Bus::new(),
         );
@@ -498,7 +498,7 @@ impl<P: Program + 'static> Emulator<P> {
             &renderer::Style {
                 text_color: style.text_color,
             },
-            mouse::Cursor::Unavailable,
+            self.cursor,
         );
 
         self.cache = Some(user_interface.into_cache());
