@@ -642,14 +642,12 @@ mod tests {
             height: 20.0,
         };
 
-        let make_image = |handle: u32| {
-            Image::Raster {
-                image: crate::core::image::Image::new(crate::core::image::Handle::from_bytes(
-                    vec![handle as u8; 4],
-                )),
-                bounds: image_bounds,
-                clip_bounds: bounds,
-            }
+        let make_image = |handle: u32| Image::Raster {
+            image: crate::core::image::Image::new(crate::core::image::Handle::from_bytes(
+                vec![handle as u8; 4],
+            )),
+            bounds: image_bounds,
+            clip_bounds: bounds,
         };
 
         let mut previous = layer(bounds);
@@ -681,10 +679,7 @@ mod tests {
     fn rect_path(x0: f64, y0: f64, x1: f64, y1: f64) -> vello_cpu::kurbo::BezPath {
         use vello_cpu::kurbo::Shape;
 
-        vello_cpu::kurbo::Rect {
-            x0, y0, x1, y1,
-        }
-        .to_path(0.0)
+        vello_cpu::kurbo::Rect { x0, y0, x1, y1 }.to_path(crate::ACCURACY)
     }
 
     #[cfg(feature = "geometry")]

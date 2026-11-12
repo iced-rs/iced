@@ -84,20 +84,23 @@ impl Renderer {
             for (quad, background) in &layer.quads {
                 renderer.set_paint(into_background(background, quad.bounds));
 
-                let shadow = quad.shadow;
+                #[cfg(not(feature = "multithreading"))]
+                {
+                    let shadow = quad.shadow;
 
-                if shadow.color.a > 0.0 {
-                    renderer.set_filter_effect(
-                        vello_cpu::filter_effects::Filter::from_primitive(
-                            vello_cpu::filter_effects::FilterPrimitive::DropShadow {
-                                dx: shadow.offset.x,
-                                dy: shadow.offset.y,
-                                std_deviation: shadow.blur_radius,
-                                color: into_color(shadow.color),
-                                edge_mode: vello_cpu::filter_effects::EdgeMode::None,
-                            },
-                        ),
-                    );
+                    if shadow.color.a > 0.0 {
+                        renderer.set_filter_effect(
+                            vello_cpu::filter_effects::Filter::from_primitive(
+                                vello_cpu::filter_effects::FilterPrimitive::DropShadow {
+                                    dx: shadow.offset.x,
+                                    dy: shadow.offset.y,
+                                    std_deviation: shadow.blur_radius,
+                                    color: into_color(shadow.color),
+                                    edge_mode: vello_cpu::filter_effects::EdgeMode::None,
+                                },
+                            ),
+                        );
+                    }
                 }
 
                 if quad.border.radius == border::Radius::default() {
@@ -130,6 +133,7 @@ impl Renderer {
                     }
                 }
 
+                #[cfg(not(feature = "multithreading"))]
                 renderer.reset_filter_effect();
             }
 
@@ -758,21 +762,44 @@ impl graphics::Compositor for Compositor {
             layers: renderer.layers().to_vec(),
         });
 
-        surface.renderer.reset();
-        renderer.draw(&mut surface.renderer, viewport, background_color);
-        surface.renderer.flush();
+        if background_color.a < 1.0 {
+            // Transparent window: incremental rendering can't preserve
+            // history, so render the whole scene and present it in full.
+            draw_to_buffer(
+                renderer,
+                &mut surface.renderer,
+                &mut surface.resources,
+                viewport,
+                background_color,
+                bytemuck::cast_slice_mut(&mut buffer),
+                &[],
+            );
 
-        let pixmap = vello_cpu::PixmapMut::new(
-            surface.renderer.width(),
-            surface.renderer.height(),
+            on_pre_present();
+            return buffer.present().map_err(|_| compositor::SurfaceError::Lost);
+        }
+
+        // Opaque window: clip the scene to the damaged regions and rasterize
+        // with `SrcOver` so undamaged pixels are preserved.
+        let damage = graphics::damage::group(damage, Rectangle::with_size(viewport.logical_size()));
+        let physical = physical_damage(&damage, viewport);
+
+        draw_to_buffer(
+            renderer,
+            &mut surface.renderer,
+            &mut surface.resources,
+            viewport,
+            background_color,
             bytemuck::cast_slice_mut(&mut buffer),
-        )
-        .expect("Buffer size matches renderer dimensions");
-
-        surface.renderer.render(pixmap, &mut surface.resources);
+            &physical,
+        );
 
         on_pre_present();
-        buffer.present().map_err(|_| compositor::SurfaceError::Lost)
+
+        // Report the actually-drawn (physical) regions to the compositor.
+        buffer
+            .present_with_damage(&physical)
+            .map_err(|_| compositor::SurfaceError::Lost)
     }
 
     fn screenshot(
@@ -822,6 +849,111 @@ impl renderer::Headless for Renderer {
     }
 }
 
+/// Draws the scene into `buffer`, optionally clipping it to the given damage
+/// regions (logical coordinates).
+///
+/// When `damage` is `None` the whole scene is rendered and the target is
+/// cleared first. When it is `Some` the scene is clipped to the union of the
+/// regions and rasterized with `SrcOver`, so that pixels outside the damaged
+/// regions are preserved.
+fn draw_to_buffer(
+    renderer: &mut Renderer,
+    vello: &mut vello_cpu::RenderContext,
+    resources: &mut vello_cpu::Resources,
+    viewport: &Viewport,
+    background_color: Color,
+    buffer: &mut [u8],
+    damage: &[softbuffer::Rect],
+) {
+    use vello_cpu::kurbo::Shape;
+
+    vello.reset();
+
+    // Clip the scene to the union of the damaged regions. The clip is pushed
+    // *before* the scale transform is applied, so the (physical, integer)
+    // damage rects are used directly in device space — avoiding the subpixel
+    // offsets a logical -> physical transform of the clip edges would
+    // introduce.
+    if !damage.is_empty() {
+        let mut clip = vello_cpu::kurbo::BezPath::new();
+
+        for region in damage {
+            clip.extend(
+                vello_cpu::kurbo::Rect {
+                    x0: f64::from(region.x),
+                    y0: f64::from(region.y),
+                    x1: f64::from(region.x + u32::from(region.width)),
+                    y1: f64::from(region.y + u32::from(region.height)),
+                }
+                .to_path(ACCURACY),
+            );
+        }
+        vello.push_clip_path(&clip);
+    }
+
+    let scale = vello_cpu::kurbo::Affine::scale(f64::from(viewport.scale_factor()));
+    vello.set_transform(scale);
+
+    renderer.draw(vello, viewport, background_color);
+
+    if !damage.is_empty() {
+        vello.pop_clip();
+    }
+    vello.flush();
+
+    let pixmap = vello_cpu::PixmapMut::new(
+        viewport.physical_width() as u16,
+        viewport.physical_height() as u16,
+        buffer,
+    )
+    .expect("Buffer size matches renderer dimensions");
+
+    // Undamaged pixels are only preserved when rasterizing with `SrcOver`; a
+    // full render clears the target first.
+    if damage.is_empty() {
+        vello.render(pixmap, resources);
+    } else {
+        vello.render_with(
+            pixmap,
+            resources,
+            vello_cpu::RasterizerSettings {
+                target_init: vello_cpu::TargetInit::SrcOver,
+                ..Default::default()
+            },
+        );
+    }
+}
+
+/// Converts logical damage regions into the physical rectangles reported to the
+/// compositor, clamped to the viewport and with zero-area regions dropped.
+fn physical_damage(damage: &[Rectangle], viewport: &Viewport) -> Vec<softbuffer::Rect> {
+    let scale = viewport.scale_factor();
+    let width = viewport.physical_width() as f32;
+    let height = viewport.physical_height() as f32;
+
+    damage
+        .iter()
+        .map(|region| *region * scale)
+        .filter_map(|region| {
+            let region = region.expand(2.0);
+            let x0 = region.x.round().clamp(0.0, width) as u32;
+            let y0 = region.y.round().clamp(0.0, height) as u32;
+            let x1 = (region.x + region.width).round().clamp(x0 as f32, width) as u32;
+            let y1 = (region.y + region.height).round().clamp(y0 as f32, height) as u32;
+
+            match (NonZeroU32::new(x1 - x0), NonZeroU32::new(y1 - y0)) {
+                (Some(width), Some(height)) => Some(softbuffer::Rect {
+                    x: x0,
+                    y: y0,
+                    width,
+                    height,
+                }),
+                _ => None,
+            }
+        })
+        .collect()
+}
+
 fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Color) -> Vec<u8> {
     let mut vello = vello_cpu::RenderContext::new(
         viewport.physical_width() as u16,
@@ -848,4 +980,204 @@ fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Co
     }
 
     screenshot
+}
+
+#[cfg(test)]
+mod damage_clip {
+    use super::*;
+    use iced_graphics::core::Renderer as _;
+    use iced_graphics::core::renderer::Quad;
+
+    fn scene() -> Renderer {
+        let mut renderer = Renderer::new(renderer::Settings::default());
+
+        renderer.start_layer(Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 100.0,
+            height: 100.0,
+        });
+
+        // Red quad, top-left.
+        renderer.fill_quad(
+            Quad {
+                bounds: Rectangle {
+                    x: 10.0,
+                    y: 10.0,
+                    width: 30.0,
+                    height: 30.0,
+                },
+                ..Default::default()
+            },
+            Background::Color(Color::from_rgb(1.0, 0.0, 0.0)),
+        );
+
+        // Green quad, bottom-right.
+        renderer.fill_quad(
+            Quad {
+                bounds: Rectangle {
+                    x: 60.0,
+                    y: 60.0,
+                    width: 30.0,
+                    height: 30.0,
+                },
+                ..Default::default()
+            },
+            Background::Color(Color::from_rgb(0.0, 1.0, 0.0)),
+        );
+
+        renderer.end_layer();
+        renderer
+    }
+
+    fn pixel(buffer: &[u8], width: u32, x: u32, y: u32) -> [u8; 4] {
+        let i = ((y * width + x) as usize) * 4;
+        [buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]]
+    }
+
+    fn assert_incremental(scale: f32) {
+        let physical = (100.0 * scale) as u32;
+        let viewport = Viewport::with_physical_size(
+            Size::new(physical, physical),
+            renderer::Scale {
+                window: 1.0,
+                application: scale,
+            },
+        );
+        let background = Color::from_rgb(0.1, 0.1, 0.1);
+
+        let mut vello = vello_cpu::RenderContext::new(physical as u16, physical as u16);
+
+        // Full render (ground truth).
+        let mut full = vec![0; (physical * physical) as usize * 4];
+        draw_to_buffer(
+            &mut scene(),
+            &mut vello,
+            &mut vello_cpu::Resources::new(),
+            &viewport,
+            background,
+            &mut full,
+            &[],
+        );
+
+        // Back buffer holding a distinct previous frame.
+        let mut back = vec![0; (physical * physical) as usize * 4];
+        for chunk in back.as_chunks_mut::<4>().0 {
+            *chunk = [0, 0, 255, 255];
+        }
+
+        // Incrementally render the region around the red quad. The damage is
+        // specified in logical coordinates and converted to the physical rects
+        // that `draw_to_buffer` clips to (via the same helper `present()` uses).
+        let damage = vec![Rectangle {
+            x: 5.0,
+            y: 5.0,
+            width: 50.0,
+            height: 50.0,
+        }];
+        let regions = physical_damage(&damage, &viewport);
+
+        draw_to_buffer(
+            &mut scene(),
+            &mut vello,
+            &mut vello_cpu::Resources::new(),
+            &viewport,
+            background,
+            &mut back,
+            &regions,
+        );
+
+        // Sample points, in physical coordinates.
+        let red_center = (30.0 * scale) as u32; // inside the red quad
+        let background_point = (8.0 * scale) as u32; // inside the clip, plain background
+        let green_center = (75.0 * scale) as u32; // inside the green quad
+
+        // The damaged region matches a full render.
+        assert_eq!(
+            pixel(&back, physical, red_center, red_center),
+            pixel(&full, physical, red_center, red_center)
+        );
+        assert_eq!(
+            pixel(&back, physical, background_point, background_point),
+            pixel(&full, physical, background_point, background_point)
+        );
+
+        // The undamaged region (green quad) keeps the previous content.
+        assert_eq!(
+            pixel(&back, physical, green_center, green_center),
+            [0, 0, 255, 255]
+        );
+    }
+
+    #[test]
+    fn incremental_render_preserves_undamaged_pixels() {
+        assert_incremental(1.0);
+        assert_incremental(2.0);
+    }
+
+    #[test]
+    fn physical_damage_scales_clamps_and_drops() {
+        // 100x100 physical at scale 2.0 => 50x50 logical.
+        let viewport = Viewport::with_physical_size(
+            Size::new(100, 100),
+            renderer::Scale {
+                window: 1.0,
+                application: 2.0,
+            },
+        );
+
+        fn as_tuple(rects: &[softbuffer::Rect]) -> Vec<(u32, u32, u32, u32)> {
+            rects
+                .iter()
+                .map(|r| (r.x, r.y, r.width.get(), r.height.get()))
+                .collect()
+        }
+
+        // Scaled then expanded by the 2px margin: (10,10,20,20)*2 = (20,20,40,40),
+        // expanded to (18,18,44,44).
+        let damage = vec![Rectangle {
+            x: 10.0,
+            y: 10.0,
+            width: 20.0,
+            height: 20.0,
+        }];
+        assert_eq!(
+            as_tuple(&physical_damage(&damage, &viewport)),
+            vec![(18, 18, 44, 44)]
+        );
+
+        // Clamped at the top-left (the expand pushes it negative; the clipped
+        // part is dropped, so the width shrinks accordingly).
+        let damage = vec![Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 5.0,
+            height: 5.0,
+        }];
+        assert_eq!(
+            as_tuple(&physical_damage(&damage, &viewport)),
+            vec![(0, 0, 12, 12)]
+        );
+
+        // Clamped at the bottom-right (extends past the viewport).
+        let damage = vec![Rectangle {
+            x: 45.0,
+            y: 45.0,
+            width: 20.0,
+            height: 20.0,
+        }];
+        assert_eq!(
+            as_tuple(&physical_damage(&damage, &viewport)),
+            vec![(88, 88, 12, 12)]
+        );
+
+        // Entirely outside the viewport => dropped (zero area after clamping).
+        let damage = vec![Rectangle {
+            x: 55.0,
+            y: 55.0,
+            width: 10.0,
+            height: 10.0,
+        }];
+        assert!(physical_damage(&damage, &viewport).is_empty());
+    }
 }

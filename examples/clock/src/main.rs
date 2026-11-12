@@ -1,11 +1,10 @@
 use iced::alignment;
 use iced::mouse;
 use iced::time::{self, milliseconds};
-use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
+use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
 use iced::widget::{canvas, container, text};
 use iced::{
-    Degrees, Fill, Font, Point, Radians, Rectangle, Renderer, Size, Subscription, Theme,
-    Widget,
+    Degrees, Fill, Font, Point, Radians, Rectangle, Renderer, Size, Subscription, Theme, Widget,
 };
 
 pub fn main() -> iced::Result {
