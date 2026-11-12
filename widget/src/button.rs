@@ -16,6 +16,7 @@
 //!     button("Press me!").on_press(Message::ButtonPressed)
 //! }
 //! ```
+use crate::cloneable::Emit;
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
@@ -73,27 +74,13 @@ where
     Theme: Catalog,
 {
     content: W,
-    on_press: Option<OnPress<'a, Message>>,
+    on_press: Option<Emit<'a, Message>>,
     width: Length,
     height: Length,
     padding: Padding,
     clip: bool,
     class: Theme::Class<'a>,
     status: Option<Status>,
-}
-
-enum OnPress<'a, Message> {
-    Direct(Message),
-    Closure(Box<dyn Fn() -> Message + 'a>),
-}
-
-impl<Message: Clone> OnPress<'_, Message> {
-    fn get(&self) -> Message {
-        match self {
-            OnPress::Direct(message) => message.clone(),
-            OnPress::Closure(f) => f(),
-        }
-    }
 }
 
 impl<'a, Message, W, Theme> Button<'a, Message, W, Theme>
@@ -135,8 +122,23 @@ where
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
     /// Unless `on_press` is called, the [`Button`] will be disabled.
-    pub fn on_press(mut self, on_press: Message) -> Self {
-        self.on_press = Some(OnPress::Direct(on_press));
+    pub fn on_press(mut self, on_press: Message) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_press = Some(Emit::direct(on_press));
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Button`] is pressed,
+    /// if `Some`.
+    ///
+    /// If `None`, the [`Button`] will be disabled.
+    pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self
+    where
+        Message: Clone,
+    {
+        self.on_press = on_press.map(Emit::direct);
         self
     }
 
@@ -149,16 +151,7 @@ where
     /// therefore, this method is useful to reduce overhead if creating the resulting
     /// message is slow.
     pub fn on_press_with(mut self, on_press: impl Fn() -> Message + 'a) -> Self {
-        self.on_press = Some(OnPress::Closure(Box::new(on_press)));
-        self
-    }
-
-    /// Sets the message that will be produced when the [`Button`] is pressed,
-    /// if `Some`.
-    ///
-    /// If `None`, the [`Button`] will be disabled.
-    pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
-        self.on_press = on_press.map(OnPress::Direct);
+        self.on_press = Some(Emit::closure(on_press));
         self
     }
 
@@ -174,7 +167,7 @@ where
     ///
     /// If `None`, the [`Button`] will be disabled.
     pub fn on_press_maybe_with(mut self, on_press: Option<impl Fn() -> Message + 'a>) -> Self {
-        self.on_press = on_press.map(|on_press| OnPress::Closure(Box::new(on_press)));
+        self.on_press = on_press.map(|on_press| Emit::closure(on_press));
         self
     }
 
@@ -214,7 +207,7 @@ impl<'a, Message, W, Theme> Meta for Button<'a, Message, W, Theme> where Theme: 
 impl<'a, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Button<'a, Message, W, Theme>
 where
-    Message: 'a + Clone,
+    Message: 'a,
     W: Widget<Message, Theme, Renderer>,
     Renderer: 'a + crate::core::Renderer,
     Theme: Catalog,
