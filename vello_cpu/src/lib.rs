@@ -625,6 +625,17 @@ struct Frame {
     layers: Vec<layer::Layer>,
 }
 
+impl Frame {
+    fn damage(&self, layers: &[layer::Layer]) -> Vec<Rectangle> {
+        graphics::damage::diff(
+            &self.layers,
+            layers,
+            |layer| vec![layer.bounds],
+            layer::Layer::damage,
+        )
+    }
+}
+
 pub struct Surface {
     window: softbuffer::Surface<Box<dyn compositor::Display>, Box<dyn compositor::Window>>,
     renderer: vello_cpu::RenderContext,
@@ -714,49 +725,12 @@ impl graphics::Compositor for Compositor {
             .buffer_mut()
             .map_err(|_| compositor::SurfaceError::Lost)?;
 
-        let last_frame = {
-            let age = buffer.age();
-
-            surface.max_age = surface.max_age.max(age);
-            surface.frames.truncate(surface.max_age as usize);
-
-            if age > 0 {
-                surface.frames.get(age as usize - 1)
-            } else {
-                None
-            }
-        };
-
-        let damage = last_frame
-            .and_then(|last_frame| {
-                (last_frame.background == background_color).then(|| {
-                    graphics::damage::diff(
-                        &last_frame.layers,
-                        renderer.layers(),
-                        |layer| vec![layer.bounds],
-                        layer::Layer::damage,
-                    )
-                })
-            })
-            .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
-
-        if damage.is_empty() {
-            if let Some(last_frame) = last_frame {
-                surface.frames.push_front(last_frame.clone());
-            }
-
-            on_pre_present();
-            return buffer.present().map_err(|_| compositor::SurfaceError::Lost);
-        }
-
-        surface.frames.push_front(Frame {
-            background: background_color,
-            layers: renderer.layers().to_vec(),
-        });
-
         if background_color.a < 1.0 {
             // Transparent window: incremental rendering can't preserve
             // history, so render the whole scene and present it in full.
+            // TODO: Clear damage regions manually
+            surface.frames.clear();
+
             draw_to_buffer(
                 renderer,
                 &mut surface.renderer,
@@ -771,8 +745,55 @@ impl graphics::Compositor for Compositor {
             return buffer.present().map_err(|_| compositor::SurfaceError::Lost);
         }
 
-        let damage = graphics::damage::group(damage, Rectangle::with_size(viewport.logical_size()));
-        let physical: Vec<_> = physical_damage(&damage, viewport).collect();
+        let age = buffer.age();
+
+        let old_frame = {
+            surface.max_age = surface.max_age.max(age);
+            surface.frames.truncate(surface.max_age as usize);
+
+            if age > 0 {
+                surface.frames.get(age as usize - 1)
+            } else {
+                None
+            }
+        };
+
+        let damage = old_frame
+            .and_then(|last_frame| {
+                (last_frame.background == background_color)
+                    .then(|| last_frame.damage(renderer.layers()))
+            })
+            .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+
+        let buffer_damage = if damage.is_empty() {
+            vec![]
+        } else {
+            physical_damage(damage, viewport).collect()
+        };
+
+        let screen_damage = if age <= 1 {
+            None
+        } else {
+            let damage = surface
+                .frames
+                .front()
+                .and_then(|current_frame| {
+                    (current_frame.background == background_color)
+                        .then(|| current_frame.damage(renderer.layers()))
+                })
+                .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+
+            Some(physical_damage(damage, viewport).collect())
+        };
+
+        if screen_damage.as_ref().unwrap_or(&buffer_damage).is_empty() {
+            return Ok(());
+        }
+
+        surface.frames.push_front(Frame {
+            background: background_color,
+            layers: renderer.layers().to_vec(),
+        });
 
         draw_to_buffer(
             renderer,
@@ -781,13 +802,12 @@ impl graphics::Compositor for Compositor {
             viewport,
             background_color,
             bytemuck::cast_slice_mut(&mut buffer),
-            &physical,
+            &buffer_damage,
         );
 
         on_pre_present();
-
         buffer
-            .present_with_damage(&physical)
+            .present_with_damage(&screen_damage.unwrap_or(buffer_damage))
             .map_err(|_| compositor::SurfaceError::Lost)
     }
 
@@ -858,11 +878,6 @@ fn draw_to_buffer(
 
     vello.reset();
 
-    // Clip the scene to the union of the damaged regions. The clip is pushed
-    // *before* the scale transform is applied, so the (physical, integer)
-    // damage rects are used directly in device space — avoiding the subpixel
-    // offsets a logical -> physical transform of the clip edges would
-    // introduce.
     if !damage.is_empty() {
         let mut clip = vello_cpu::kurbo::BezPath::new();
 
@@ -877,6 +892,7 @@ fn draw_to_buffer(
                 .to_path(ACCURACY),
             );
         }
+
         vello.push_clip_path(&clip);
     }
 
@@ -914,32 +930,23 @@ fn draw_to_buffer(
 }
 
 fn physical_damage(
-    damage: &[Rectangle],
+    damage: Vec<Rectangle>,
     viewport: &Viewport,
 ) -> impl Iterator<Item = softbuffer::Rect> {
-    let scale = viewport.scale_factor();
-    let Size { width, height } = viewport.physical_size();
-
-    damage
-        .iter()
-        .map(move |region| *region * scale)
-        .filter_map(move |region| {
-            let region = region.expand(2).snap()?;
-            let left = region.x.min(width);
-            let top = region.y.min(height);
-            let right = (region.x + region.width).min(width);
-            let bottom = (region.y + region.height).min(height);
-
-            match (NonZeroU32::new(right - left), NonZeroU32::new(bottom - top)) {
-                (Some(width), Some(height)) => Some(softbuffer::Rect {
-                    x: left,
-                    y: top,
-                    width,
-                    height,
-                }),
-                _ => None,
-            }
+    let to_rect = |rectangle: Rectangle<u32>| {
+        Some(softbuffer::Rect {
+            x: rectangle.x,
+            y: rectangle.y,
+            width: NonZeroU32::new(rectangle.width)?,
+            height: NonZeroU32::new(rectangle.height)?,
         })
+    };
+
+    graphics::damage::physical(
+        graphics::damage::group(damage, Rectangle::with_size(viewport.logical_size())),
+        viewport,
+    )
+    .filter_map(to_rect)
 }
 
 fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Color) -> Vec<u8> {
@@ -1063,7 +1070,7 @@ mod damage_clip {
             width: 50.0,
             height: 50.0,
         }];
-        let regions: Vec<_> = physical_damage(&damage, &viewport).collect();
+        let regions: Vec<_> = physical_damage(damage, &viewport).collect();
 
         draw_to_buffer(
             &mut scene(),
@@ -1129,7 +1136,7 @@ mod damage_clip {
             height: 20.0,
         }];
         assert_eq!(
-            as_tuple(physical_damage(&damage, &viewport)),
+            as_tuple(physical_damage(damage, &viewport)),
             vec![(18, 18, 44, 44)]
         );
 
@@ -1142,7 +1149,7 @@ mod damage_clip {
             height: 5.0,
         }];
         assert_eq!(
-            as_tuple(physical_damage(&damage, &viewport)),
+            as_tuple(physical_damage(damage, &viewport)),
             vec![(0, 0, 12, 12)]
         );
 
@@ -1154,7 +1161,7 @@ mod damage_clip {
             height: 20.0,
         }];
         assert_eq!(
-            as_tuple(physical_damage(&damage, &viewport)),
+            as_tuple(physical_damage(damage, &viewport)),
             vec![(88, 88, 12, 12)]
         );
 
@@ -1165,6 +1172,6 @@ mod damage_clip {
             width: 10.0,
             height: 10.0,
         }];
-        assert_eq!(physical_damage(&damage, &viewport).count(), 0);
+        assert_eq!(physical_damage(damage, &viewport).count(), 0);
     }
 }
