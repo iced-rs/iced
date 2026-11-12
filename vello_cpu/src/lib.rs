@@ -26,6 +26,7 @@ use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::{Shell, Text, Viewport};
 
+use std::collections::VecDeque;
 use std::num::NonZeroU32;
 
 const ACCURACY: f64 = 0.1;
@@ -53,6 +54,11 @@ impl Renderer {
             vector: vector::Pipeline::new(),
             scale: None,
         }
+    }
+
+    pub fn layers(&mut self) -> &[layer::Layer] {
+        self.layers.flush();
+        self.layers.as_slice()
     }
 
     pub fn draw(
@@ -609,10 +615,20 @@ pub struct Compositor {
     settings: backend::Settings,
 }
 
+#[derive(Debug, Clone)]
+struct Frame {
+    background: Color,
+    layers: Vec<layer::Layer>,
+}
+
 pub struct Surface {
     window: softbuffer::Surface<Box<dyn compositor::Display>, Box<dyn compositor::Window>>,
     renderer: vello_cpu::RenderContext,
     resources: vello_cpu::Resources,
+    /// The frames drawn into the back buffers, indexed by buffer age.
+    frames: VecDeque<Frame>,
+    /// The maximum buffer age seen so far; the history is truncated to this bound.
+    max_age: u8,
 }
 
 impl graphics::Compositor for Compositor {
@@ -653,6 +669,8 @@ impl graphics::Compositor for Compositor {
             window,
             renderer: vello_cpu::RenderContext::new(1, 1),
             resources: vello_cpu::Resources::new(),
+            frames: VecDeque::new(),
+            max_age: 0,
         }
     }
 
@@ -666,6 +684,10 @@ impl graphics::Compositor for Compositor {
             .expect("Resize surface");
 
         surface.renderer = vello_cpu::RenderContext::new(width as u16, height as u16);
+
+        // The back buffers are reallocated, so all frame history is invalid.
+        surface.frames.clear();
+        surface.max_age = 0;
     }
 
     fn information(&self) -> compositor::Information {
@@ -687,6 +709,54 @@ impl graphics::Compositor for Compositor {
             .window
             .buffer_mut()
             .map_err(|_| compositor::SurfaceError::Lost)?;
+
+        // Identify the last frame drawn into this particular back buffer, if any.
+        // The buffer age tells us how many frames ago it was presented, so the
+        // matching history entry is `age - 1` frames back.
+        let last_frame = {
+            let age = buffer.age();
+
+            surface.max_age = surface.max_age.max(age);
+            surface.frames.truncate(surface.max_age as usize);
+
+            if age > 0 {
+                surface.frames.get(age as usize - 1)
+            } else {
+                None
+            }
+        };
+
+        // Determine the damage against that frame. Fall back to full damage when
+        // the background changed or there is no history for this buffer.
+        let damage = last_frame
+            .and_then(|last_frame| {
+                (last_frame.background == background_color).then(|| {
+                    graphics::damage::diff(
+                        &last_frame.layers,
+                        renderer.layers(),
+                        |layer| vec![layer.bounds],
+                        layer::Layer::damage,
+                    )
+                })
+            })
+            .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+
+        // Unchanged scene: skip scene construction and rasterization entirely
+        // and just re-present the existing buffer. The frame must still be
+        // re-pushed so queue indices stay aligned with buffer ages.
+        if damage.is_empty() {
+            if let Some(last_frame) = last_frame {
+                surface.frames.push_front(last_frame.clone());
+            }
+
+            on_pre_present();
+            return buffer.present().map_err(|_| compositor::SurfaceError::Lost);
+        }
+
+        surface.frames.push_front(Frame {
+            background: background_color,
+            layers: renderer.layers().to_vec(),
+        });
 
         surface.renderer.reset();
         renderer.draw(&mut surface.renderer, viewport, background_color);
