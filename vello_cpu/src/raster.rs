@@ -85,8 +85,9 @@ impl Pipeline {
         renderer.set_paint(vello_cpu::peniko::Brush::Image(
             vello_cpu::peniko::ImageBrush {
                 image: vello_cpu::ImageSource::Pixmap(pixmap),
-                sampler: vello_cpu::peniko::ImageSampler::new().with_quality(quality),
-                // .with_alpha(image.opacity), TODO: Enable once `vello_cpu` supports it
+                sampler: vello_cpu::peniko::ImageSampler::new()
+                    .with_quality(quality)
+                    .with_alpha(image.opacity),
             },
         ));
 
