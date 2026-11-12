@@ -199,6 +199,11 @@ pub fn window_event(
                 }))
             }
         },
+        WindowEvent::PinchGesture { delta, .. } => {
+            Some(Event::Mouse(mouse::Event::PinchGesture {
+                delta: delta as f32,
+            }))
+        }
         // Ignore keyboard presses/releases during window focus/unfocus
         WindowEvent::KeyboardInput { is_synthetic, .. } if is_synthetic => None,
         WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
