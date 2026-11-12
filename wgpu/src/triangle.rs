@@ -5,6 +5,7 @@ use crate::Buffer;
 use crate::core::{Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::Antialiasing;
 use crate::graphics::mesh::{self, Mesh};
+use crate::nudge;
 
 use rustc_hash::FxHashMap;
 use std::collections::hash_map;
@@ -395,8 +396,7 @@ impl Layer {
 
         for mesh in meshes {
             let clip_bounds = mesh.clip_bounds() * transformation;
-            let snap_distance = clip_bounds
-                .snap()
+            let snap_distance = nudge::snap(clip_bounds)
                 .map(|snapped_bounds| {
                     Point::new(snapped_bounds.x as f32, snapped_bounds.y as f32)
                         - clip_bounds.position()
@@ -467,7 +467,7 @@ impl Layer {
         for mesh in meshes {
             let Some(clip_bounds) = bounds
                 .intersection(&(mesh.clip_bounds() * transformation))
-                .and_then(Rectangle::snap)
+                .and_then(nudge::snap)
             else {
                 match mesh {
                     Mesh::Solid { buffers, .. } => {
@@ -479,6 +479,7 @@ impl Layer {
                         num_gradients += 1;
                     }
                 }
+                index_offset += mesh.indices().len();
                 continue;
             };
 
@@ -709,7 +710,7 @@ mod solid {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: Some("solid_vs_main"),
-                    buffers: &[wgpu::VertexBufferLayout {
+                    buffers: &[Some(wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<mesh::SolidVertex2D>() as u64,
                         step_mode: wgpu::VertexStepMode::Vertex,
                         attributes: &wgpu::vertex_attr_array!(
@@ -718,7 +719,7 @@ mod solid {
                             // Color
                             1 => Float32x4,
                         ),
-                    }],
+                    })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {
@@ -843,7 +844,7 @@ mod gradient {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: Some("gradient_vs_main"),
-                    buffers: &[wgpu::VertexBufferLayout {
+                    buffers: &[Some(wgpu::VertexBufferLayout {
                         array_stride: std::mem::size_of::<mesh::GradientVertex2D>() as u64,
                         step_mode: wgpu::VertexStepMode::Vertex,
                         attributes: &wgpu::vertex_attr_array!(
@@ -862,7 +863,7 @@ mod gradient {
                             // Direction
                             6 => Float32x4
                         ),
-                    }],
+                    })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
                 },
                 fragment: Some(wgpu::FragmentState {

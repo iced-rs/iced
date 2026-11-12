@@ -417,6 +417,61 @@ pub fn hint_factor(_size: Pixels, _scale_factor: Option<f32>) -> Option<f32> {
     None // Disable all text hinting for now
 }
 
+/// Computes selection regions in the given buffer.
+pub fn regions(
+    buffer: &cosmic_text::Buffer,
+    start: cosmic_text::Cursor,
+    end: cosmic_text::Cursor,
+) -> Vec<Rectangle> {
+    let mut regions = Vec::new();
+    let scroll = buffer.scroll();
+
+    for run in buffer.layout_runs() {
+        let line_i = run.line_i;
+        let line_w = run.line_w;
+        let line_top = run.line_top;
+        let line_height = run.line_height;
+        let line_break = run.line_height / 2.0;
+
+        if line_i >= start.line && line_i <= end.line {
+            let mut highlights = run.highlight(start, end).peekable();
+
+            if highlights.peek().is_none() && run.glyphs.is_empty() && end.line > line_i {
+                regions.push(Rectangle {
+                    x: 0.0,
+                    y: line_top,
+                    width: line_break,
+                    height: line_height,
+                });
+            }
+
+            while let Some((x, width)) = highlights.next() {
+                let mut min = x;
+                let mut max = x + width;
+
+                // Extend the last rect to the line edge for
+                // multi-line selections
+                if highlights.peek().is_none() && end.line > line_i {
+                    if run.rtl {
+                        min = 0.0;
+                    } else {
+                        max = line_w + line_break;
+                    }
+                }
+
+                regions.push(Rectangle {
+                    x: min - scroll.horizontal,
+                    y: line_top,
+                    width: (max - min).max(0.0),
+                    height: line_height,
+                });
+            }
+        }
+    }
+
+    regions
+}
+
 /// A text renderer coupled to `iced_graphics`.
 pub trait Renderer {
     /// Draws the given [`Raw`] text.

@@ -340,9 +340,7 @@ impl geometry::frame::Backend for Frame {
     }
 
     #[inline]
-    fn scale(&mut self, scale: impl Into<f32>) {
-        let scale = scale.into();
-
+    fn scale(&mut self, scale: f32) {
         self.scale_nonuniform(Vector { x: scale, y: scale });
     }
 

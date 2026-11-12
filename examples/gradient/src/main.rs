@@ -1,7 +1,7 @@
 use iced::gradient;
 use iced::theme;
 use iced::widget::{checkbox, column, container, row, slider, space, text};
-use iced::{Center, Color, Element, Fill, Radians, Theme, color};
+use iced::{Center, Color, Fill, Radians, Theme, Widget, color};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -49,7 +49,7 @@ impl Gradient {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let Self {
             start,
             end,
@@ -90,7 +90,6 @@ impl Gradient {
             transparency_toggle,
             gradient_box,
         ]
-        .into()
     }
 
     fn style(&self, theme: &Theme) -> theme::Style {
@@ -111,7 +110,7 @@ impl Default for Gradient {
     }
 }
 
-fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
+fn color_picker(label: &str, color: Color) -> impl Widget<Color> {
     row![
         text(label).width(64),
         slider(0.0..=1.0, color.r, move |r| { Color { r, ..color } }).step(0.01),
@@ -122,5 +121,4 @@ fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
     .spacing(8)
     .padding(8)
     .align_y(Center)
-    .into()
 }

@@ -103,6 +103,7 @@ struct Cache {
     tree_hits: FxHashSet<u64>,
     rasters: FxHashMap<RasterKey, Arc<vello_cpu::Pixmap>>,
     raster_hits: FxHashSet<RasterKey>,
+    #[cfg(feature = "svg-text")]
     fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
@@ -118,6 +119,7 @@ impl Cache {
         let id = handle.id();
 
         // TODO: Reuse `cosmic-text` font database
+        #[cfg(feature = "svg-text")]
         if self.fontdb.is_none() {
             let mut fontdb = usvg::fontdb::Database::new();
             fontdb.load_system_fonts();
@@ -126,6 +128,7 @@ impl Cache {
         }
 
         let options = usvg::Options {
+            #[cfg(feature = "svg-text")]
             fontdb: self
                 .fontdb
                 .as_ref()

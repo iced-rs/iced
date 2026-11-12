@@ -1,6 +1,6 @@
 use crate::core::widget::Id;
 use crate::core::widget::operation::{Focusable, Scrollable, TextInput};
-use crate::core::{Rectangle, Vector};
+use crate::core::{Rectangle, Size, Vector};
 
 use std::any::Any;
 
@@ -22,7 +22,7 @@ pub enum Target {
         id: Option<Id>,
         bounds: Rectangle,
         visible_bounds: Option<Rectangle>,
-        content_bounds: Rectangle,
+        content: Size,
         translation: Vector,
     },
     TextInput {
@@ -96,14 +96,14 @@ impl From<Candidate<'_>> for Target {
                 id,
                 bounds,
                 visible_bounds,
-                content_bounds,
+                content,
                 translation,
                 ..
             } => Self::Scrollable {
                 id: id.cloned(),
                 bounds,
                 visible_bounds,
-                content_bounds,
+                content,
                 translation,
             },
             Candidate::TextInput {
@@ -115,7 +115,7 @@ impl From<Candidate<'_>> for Target {
                 id: id.cloned(),
                 bounds,
                 visible_bounds,
-                content: state.text().to_owned(),
+                content: state.text().into_owned(),
             },
             Candidate::Text {
                 id,
@@ -172,7 +172,7 @@ pub enum Candidate<'a> {
     Scrollable {
         id: Option<&'a Id>,
         bounds: Rectangle,
-        content_bounds: Rectangle,
+        content: Size,
         visible_bounds: Option<Rectangle>,
         translation: Vector,
         state: &'a dyn Scrollable,

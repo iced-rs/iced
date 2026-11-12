@@ -1,170 +1,212 @@
-use crate::layout;
+use crate::event;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Event, Layout, Overlay, Shell, Size};
+use crate::{Event, Shell};
 
-/// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
-/// children.
+/// A container of nested overlays.
 pub struct Group<'a, Message, Theme, Renderer> {
     children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
 }
 
-impl<'a, Message, Theme, Renderer> Group<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + crate::Renderer,
-{
-    /// Creates an empty [`Group`].
-    pub fn new() -> Self {
-        Self::default()
-    }
+fn sort_overlays<'a, Message, Theme, Renderer>(
+    children: &mut [overlay::Element<'a, Message, Theme, Renderer>],
+) {
+    use std::cmp;
 
-    /// Creates a [`Group`] with the given elements.
-    pub fn with_children(
-        mut children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
-        use std::cmp;
-
-        children.sort_unstable_by(|a, b| {
-            a.as_overlay()
-                .index()
-                .partial_cmp(&b.as_overlay().index())
-                .unwrap_or(cmp::Ordering::Equal)
-        });
-
-        Group { children }
-    }
-
-    /// Turns the [`Group`] into an overlay [`overlay::Element`].
-    pub fn overlay(self) -> overlay::Element<'a, Message, Theme, Renderer> {
-        overlay::Element::new(Box::new(self))
-    }
+    children.sort_by(|a, b| {
+        a.as_overlay()
+            .index()
+            .partial_cmp(&b.as_overlay().index())
+            .unwrap_or(cmp::Ordering::Equal)
+    });
 }
 
-impl<'a, Message, Theme, Renderer> Default for Group<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + crate::Renderer,
-{
-    fn default() -> Self {
-        Self::with_children(Vec::new())
-    }
-}
+impl<'a, Message, Theme, Renderer> Group<'a, Message, Theme, Renderer> {
+    /// Creates a [`Group`] container for the given overlays.
+    ///
+    /// The overlays are sorted by their
+    /// [`index`](crate::Overlay::index).
+    pub fn new(mut children: Vec<overlay::Element<'a, Message, Theme, Renderer>>) -> Self {
+        sort_overlays(&mut children);
 
-impl<Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
-    for Group<'_, Message, Theme, Renderer>
-where
-    Renderer: crate::Renderer,
-{
-    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        layout::Node::with_children(
-            bounds,
-            self.children
-                .iter_mut()
-                .map(|child| child.as_overlay_mut().layout(renderer, bounds))
-                .collect(),
-        )
+        Self { children }
     }
 
-    fn update(
+    /// Draws the [`Group`] overlay using the associated `Renderer`.
+    pub fn draw(
+        &mut self,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        cursor: mouse::Cursor,
+    ) {
+        fn recurse<Message, Theme, Renderer>(
+            children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
+            renderer: &mut Renderer,
+            theme: &Theme,
+            style: &renderer::Style,
+            cursor: mouse::Cursor,
+        ) {
+            for element in children {
+                // TODO: Get rid of cursor argument in `draw`
+                let is_over = cursor.position().is_some_and(|cursor_position| {
+                    let nested = element.as_overlay_mut().overlay(renderer);
+
+                    !nested.is_empty()
+                        && Group::new(nested)
+                            .mouse_interaction(mouse::Cursor::Available(cursor_position), renderer)
+                            != mouse::Interaction::None
+                });
+
+                element.as_overlay().draw(
+                    renderer,
+                    theme,
+                    style,
+                    if is_over {
+                        mouse::Cursor::Unavailable
+                    } else {
+                        cursor
+                    },
+                );
+
+                let mut nested = element.as_overlay_mut().overlay(renderer);
+
+                if !nested.is_empty() {
+                    sort_overlays(&mut nested);
+
+                    recurse(&mut nested, renderer, theme, style, cursor);
+                }
+            }
+        }
+
+        recurse(&mut self.children, renderer, theme, style, cursor);
+    }
+
+    /// Applies a [`widget::Operation`] to the [`Group`] overlay.
+    pub fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
+        fn recurse<Message, Theme, Renderer>(
+            children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
+            renderer: &Renderer,
+            operation: &mut dyn widget::Operation,
+        ) {
+            for element in children {
+                let overlay = element.as_overlay_mut();
+
+                overlay.operate(renderer, operation);
+
+                let mut nested = overlay.overlay(renderer);
+
+                if !nested.is_empty() {
+                    sort_overlays(&mut nested);
+
+                    recurse(&mut nested, renderer, operation);
+                }
+            }
+        }
+
+        recurse(&mut self.children, renderer, operation);
+    }
+
+    /// Processes a runtime [`Event`].
+    pub fn update(
         &mut self,
         event: &Event,
-        layout: Layout<'_>,
         cursor: mouse::Cursor,
         renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
     ) {
-        for (child, layout) in self.children.iter_mut().zip(layout.children()) {
-            child
-                .as_overlay_mut()
-                .update(event, layout, cursor, renderer, shell);
+        fn recurse<Message, Theme, Renderer>(
+            children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
+            event: &Event,
+            cursor: mouse::Cursor,
+            renderer: &Renderer,
+            shell: &mut Shell<'_, Message>,
+        ) -> bool {
+            let mut is_over = false;
+
+            for element in children {
+                if shell.event_status() != event::Status::Ignored {
+                    return is_over;
+                }
+
+                let overlay = element.as_overlay_mut();
+
+                let nested = overlay.overlay(renderer);
+                let nested_is_over = (!nested.is_empty())
+                    .then_some(nested)
+                    .map(|mut nested| {
+                        sort_overlays(&mut nested);
+
+                        recurse(&mut nested, event, cursor, renderer, shell)
+                    })
+                    .unwrap_or_default();
+
+                if shell.event_status() != event::Status::Ignored {
+                    return nested_is_over || is_over;
+                }
+
+                let child_is_over = nested_is_over
+                    || cursor.position().is_some_and(|cursor_position| {
+                        overlay
+                            .mouse_interaction(mouse::Cursor::Available(cursor_position), renderer)
+                            != mouse::Interaction::None
+                    });
+
+                overlay.update(
+                    event,
+                    if nested_is_over {
+                        mouse::Cursor::Unavailable
+                    } else {
+                        cursor
+                    },
+                    renderer,
+                    shell,
+                );
+
+                is_over |= child_is_over;
+            }
+
+            is_over
         }
+
+        let _ = recurse(&mut self.children, event, cursor, renderer, shell);
     }
 
-    fn draw(
-        &self,
-        renderer: &mut Renderer,
-        theme: &Theme,
-        style: &renderer::Style,
-        layout: Layout<'_>,
-        cursor: mouse::Cursor,
-    ) {
-        for (child, layout) in self.children.iter().zip(layout.children()) {
-            child
-                .as_overlay()
-                .draw(renderer, theme, style, layout, cursor);
-        }
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
+    /// Returns the current [`mouse::Interaction`] of the [`Group`] overlay.
+    pub fn mouse_interaction(
+        &mut self,
         cursor: mouse::Cursor,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.children
-            .iter()
-            .zip(layout.children())
-            .map(|(child, layout)| {
-                child
-                    .as_overlay()
-                    .mouse_interaction(layout, cursor, renderer)
-            })
-            .max()
-            .unwrap_or_default()
-    }
-
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation,
-    ) {
-        operation.traverse(&mut |operation| {
-            self.children
+        fn recurse<Message, Theme, Renderer>(
+            children: &mut [overlay::Element<'_, Message, Theme, Renderer>],
+            cursor: mouse::Cursor,
+            renderer: &Renderer,
+        ) -> mouse::Interaction {
+            children
                 .iter_mut()
-                .zip(layout.children())
-                .for_each(|(child, layout)| {
-                    child.as_overlay_mut().operate(layout, renderer, operation);
-                });
-        });
-    }
+                .map(|element| {
+                    let overlay = element.as_overlay_mut();
+                    let interaction = overlay.mouse_interaction(cursor, renderer);
 
-    fn overlay<'a>(
-        &'a mut self,
-        layout: Layout<'a>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
-        let children = self
-            .children
-            .iter_mut()
-            .zip(layout.children())
-            .filter_map(|(child, layout)| child.as_overlay_mut().overlay(layout, renderer))
-            .collect::<Vec<_>>();
+                    let nested = overlay.overlay(renderer);
+                    let nested_interaction = (!nested.is_empty())
+                        .then_some(nested)
+                        .map(|mut nested| {
+                            sort_overlays(&mut nested);
 
-        (!children.is_empty()).then(|| Group::with_children(children).overlay())
-    }
+                            recurse(&mut nested, cursor, renderer)
+                        })
+                        .unwrap_or_default();
 
-    fn index(&self) -> f32 {
-        self.children
-            .first()
-            .map(|child| child.as_overlay().index())
-            .unwrap_or(1.0)
-    }
-}
+                    nested_interaction.max(interaction)
+                })
+                .max()
+                .unwrap_or_default()
+        }
 
-impl<'a, Message, Theme, Renderer> From<Group<'a, Message, Theme, Renderer>>
-    for overlay::Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + crate::Renderer,
-{
-    fn from(group: Group<'a, Message, Theme, Renderer>) -> Self {
-        group.overlay()
+        recurse(&mut self.children, cursor, renderer)
     }
 }

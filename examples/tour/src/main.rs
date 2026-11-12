@@ -1,9 +1,10 @@
-use iced::widget::{Button, Column, Container, Slider};
+use iced::widget::popover::Position;
+use iced::widget::{Button, Column, Container, Image, Slider};
 use iced::widget::{
-    button, center_x, center_y, checkbox, column, image, radio, rich_text, row, scrollable, slider,
-    space, span, text, text_input, toggler,
+    button, center_x, center_y, checkbox, column, container, image, popover, radio, rich_text, row,
+    scrollable, slider, space, span, text, text_input, toggler, tooltip,
 };
-use iced::{Center, Color, Element, Fill, Font, Pixels, color};
+use iced::{Center, Color, Element, Fill, Fit, Font, Widget, color};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -34,8 +35,9 @@ pub struct Tour {
     image_filter_method: image::FilterMethod,
     input_value: String,
     input_is_secure: bool,
-    input_is_showing_icon: bool,
     debug: bool,
+    popover_open: bool,
+    popover_opened: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -52,29 +54,16 @@ pub enum Message {
     ImageUseNearestToggled(bool),
     InputChanged(String),
     ToggleSecureInput(bool),
-    ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
+    TogglePopover,
+    ClosePopover,
     OpenTrunk,
 }
 
 impl Tour {
     fn title(&self) -> String {
-        let screen = match self.screen {
-            Screen::Welcome => "Welcome",
-            Screen::Radio => "Radio button",
-            Screen::Toggler => "Toggler",
-            Screen::Slider => "Slider",
-            Screen::Text => "Text",
-            Screen::Image => "Image",
-            Screen::RowsAndColumns => "Rows and columns",
-            Screen::Scrollable => "Scrollable",
-            Screen::TextInput => "Text input",
-            Screen::Debugger => "Debugger",
-            Screen::End => "End",
-        };
-
-        format!("{screen} - Iced")
+        format!("{} - Iced", self.screen.title())
     }
 
     fn update(&mut self, event: Message) {
@@ -123,23 +112,30 @@ impl Tour {
             Message::ToggleSecureInput(is_secure) => {
                 self.input_is_secure = is_secure;
             }
-            Message::ToggleTextInputIcon(show_icon) => {
-                self.input_is_showing_icon = show_icon;
-            }
             Message::DebugToggled(debug) => {
                 self.debug = debug;
             }
             Message::TogglerChanged(toggler) => {
                 self.toggler = toggler;
             }
+            Message::TogglePopover => {
+                self.popover_open = !self.popover_open;
+
+                if self.popover_open {
+                    self.popover_opened = true;
+                }
+            }
+            Message::ClosePopover => {
+                self.popover_open = false;
+            }
             Message::OpenTrunk => {
                 #[cfg(not(target_arch = "wasm32"))]
-                let _ = open::that_in_background("https://trunkrs.dev");
+                let _ = open::that_in_background("https://trunk-rs.github.io/trunk/");
             }
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let controls = row![
             self.screen.previous().is_some().then(|| {
                 padded_button("Back")
@@ -151,31 +147,36 @@ impl Tour {
                 .then(|| { padded_button("Next").on_press(Message::NextPressed) })
         ];
 
-        let screen = match self.screen {
-            Screen::Welcome => self.welcome(),
-            Screen::Radio => self.radio(),
-            Screen::Toggler => self.toggler(),
-            Screen::Slider => self.slider(),
-            Screen::Text => self.text(),
-            Screen::Image => self.image(),
-            Screen::RowsAndColumns => self.rows_and_columns(),
-            Screen::Scrollable => self.scrollable(),
-            Screen::TextInput => self.text_input(),
-            Screen::Debugger => self.debugger(),
-            Screen::End => self.end(),
+        let screen = {
+            let content = match self.screen {
+                Screen::Welcome => self.welcome(),
+                Screen::Radio => self.radio(),
+                Screen::Toggler => self.toggler(),
+                Screen::Slider => self.slider(),
+                Screen::Text => self.text(),
+                Screen::Image => self.image(),
+                Screen::RowsAndColumns => self.rows_and_columns(),
+                Screen::Scrollable => self.scrollable(),
+                Screen::TextInput => self.text_input(),
+                Screen::Overlays => self.overlays(),
+                Screen::Debugger => self.debugger(),
+                Screen::End => self.end(),
+            };
+
+            column![text(self.screen.title()).size(50), content.spacing(20)].spacing(20)
         };
 
-        let content: Element<_> = column![screen, controls].max_width(540).spacing(20).into();
+        let content = column![screen, controls].width(Fit.max(540)).spacing(20);
 
         let scrollable = scrollable(center_x(if self.debug {
-            content.explain(Color::BLACK)
+            content.explain(Color::BLACK).boxed()
         } else {
-            content
+            content.boxed()
         }))
         .spacing(10)
         .auto_scroll(true);
 
-        center_y(scrollable).padding(10).into()
+        center_y(scrollable).padding(10)
     }
 
     fn can_continue(&self) -> bool {
@@ -189,64 +190,51 @@ impl Tour {
             Screen::RowsAndColumns => true,
             Screen::Scrollable => true,
             Screen::TextInput => !self.input_value.is_empty(),
+            Screen::Overlays => self.popover_opened,
             Screen::Debugger => true,
             Screen::End => false,
         }
     }
 
-    fn welcome(&self) -> Column<'_, Message> {
-        Self::container("Welcome!")
-            .push(
-                "This is a simple tour meant to showcase a bunch of \
-                widgets that come bundled in Iced.",
-            )
-            .push(
-                "Iced is a cross-platform GUI library for Rust focused on \
-                 simplicity and type-safety. It is heavily inspired by Elm.",
-            )
-            .push(
-                "It was originally born as part of Coffee, an opinionated \
-                 2D game engine for Rust.",
-            )
-            .push(
-                "On native platforms, Iced provides by default a renderer \
-                 built on top of wgpu, a graphics library supporting Vulkan, \
-                 Metal, DX11, and DX12.",
-            )
-            .push(
-                rich_text![
-                    "Additionally, this tour can also run on WebAssembly ",
-                    "by leveraging ",
-                    span("trunk")
-                        .color(color!(0x7777FF))
-                        .underline(true)
-                        .font(Font::MONOSPACE)
-                        .link(Message::OpenTrunk),
-                    "."
-                ]
-                .on_link_click(std::convert::identity),
-            )
-            .push(
-                "You will need to interact with the UI in order to reach \
-                 the end!",
-            )
+    fn welcome(&self) -> Column<Element<'_, Message>> {
+        column![
+            "This is a simple tour meant to showcase a bunch of \
+        widgets that come bundled in Iced.",
+            "Iced is a cross-platform GUI library for Rust focused on \
+         simplicity and type-safety. It is heavily inspired by Elm.",
+            "It was originally born as part of Coffee, an opinionated \
+         2D game engine for Rust.",
+            "On native platforms, Iced provides by default a renderer \
+         built on top of wgpu, a graphics library supporting Vulkan, \
+         Metal, DX11, and DX12.",
+            rich_text![
+                "Additionally, this tour can also run on WebAssembly ",
+                "by leveraging ",
+                span("trunk")
+                    .color(color!(0x7777FF))
+                    .underline(true)
+                    .font(Font::MONOSPACE)
+                    .link(Message::OpenTrunk),
+                "."
+            ]
+            .on_link_click(std::convert::identity),
+            "You will need to interact with the UI in order to reach \
+         the end!"
+        ]
     }
 
-    fn slider(&self) -> Column<'_, Message> {
-        Self::container("Slider")
-            .push(
-                "A slider allows you to smoothly select a value from a range \
-                 of values.",
-            )
-            .push(
-                "The following slider lets you choose an integer from \
-                 0 to 100:",
-            )
-            .push(slider(0..=100, self.slider, Message::SliderChanged))
-            .push(text(self.slider.to_string()).width(Fill).align_x(Center))
+    fn slider(&self) -> Column<Element<'_, Message>> {
+        column![
+            "A slider allows you to smoothly select a value from a range \
+                of values.",
+            "The following slider lets you choose an integer from \
+                0 to 100:",
+            slider(0..=100, self.slider, Message::SliderChanged),
+            text(self.slider.to_string()).width(Fill).align_x(Center),
+        ]
     }
 
-    fn rows_and_columns(&self) -> Column<'_, Message> {
+    fn rows_and_columns(&self) -> Column<Element<'_, Message>> {
         let row_radio = radio(
             "Row",
             Layout::Row,
@@ -261,11 +249,11 @@ impl Tour {
             Message::LayoutChanged,
         );
 
-        let layout_section: Element<_> = match self.layout {
-            Layout::Row => row![row_radio, column_radio].spacing(self.spacing).into(),
+        let layout_section = match self.layout {
+            Layout::Row => row![row_radio, column_radio].spacing(self.spacing).boxed(),
             Layout::Column => column![row_radio, column_radio]
                 .spacing(self.spacing)
-                .into(),
+                .boxed(),
         };
 
         let spacing_section = column![
@@ -274,22 +262,18 @@ impl Tour {
         ]
         .spacing(10);
 
-        Self::container("Rows and columns")
-            .spacing(self.spacing)
-            .push(
-                "Iced uses a layout model based on flexbox to position UI \
-                 elements.",
-            )
-            .push(
-                "Rows and columns can be used to distribute content \
-                 horizontally or vertically, respectively.",
-            )
-            .push(layout_section)
-            .push("You can also easily change the spacing between elements:")
-            .push(spacing_section)
+        column![
+            "Iced uses a layout model based on flexbox to position UI \
+                elements.",
+            "Rows and columns can be used to distribute content \
+                horizontally or vertically, respectively.",
+            layout_section,
+            "You can also easily change the spacing between elements:",
+            spacing_section,
+        ]
     }
 
-    fn text(&self) -> Column<'_, Message> {
+    fn text(&self) -> Column<Element<'_, Message>> {
         let size = self.text_size;
         let color = self.text_color;
 
@@ -316,168 +300,161 @@ impl Tour {
         .padding(20)
         .spacing(20);
 
-        Self::container("Text")
-            .push(
-                "Text is probably the most essential widget for your UI. \
-                 It will try to adapt to the dimensions of its container.",
-            )
-            .push(size_section)
-            .push(color_section)
+        column![
+            "Text is probably the most essential widget for your UI. \
+                It will try to adapt to the dimensions of its container.",
+            size_section,
+            color_section,
+        ]
     }
 
-    fn radio(&self) -> Column<'_, Message> {
+    fn radio(&self) -> Column<Element<'_, Message>> {
         let question = column![
             text("Iced is written in...").size(24),
-            column(
-                Language::all()
-                    .iter()
-                    .copied()
-                    .map(|language| {
-                        radio(language, language, self.language, Message::LanguageSelected)
-                    })
-                    .map(Element::from)
-            )
+            column(Language::all().iter().copied().map(|language| {
+                radio(language, language, self.language, Message::LanguageSelected)
+            }))
             .spacing(10)
         ]
         .padding(20)
         .spacing(10);
 
-        Self::container("Radio button")
-            .push(
-                "A radio button is normally used to represent a choice... \
-                 Surprise test!",
-            )
-            .push(question)
-            .push(
-                "Iced works very well with iterators! The list above is \
-                 basically created by folding a column over the different \
-                 choices, creating a radio button for each one of them!",
-            )
+        column![
+            "A radio button is normally used to represent a choice... \
+                Surprise test!",
+            question,
+            "Iced works very well with iterators! The list above is \
+                basically created by folding a column over the different \
+                choices, creating a radio button for each one of them!",
+        ]
     }
 
-    fn toggler(&self) -> Column<'_, Message> {
-        Self::container("Toggler")
-            .push("A toggler is mostly used to enable or disable something.")
-            .push(
-                Container::new(
-                    toggler(self.toggler)
-                        .label("Toggle me to continue...")
-                        .on_toggle(Message::TogglerChanged),
-                )
-                .padding([0, 40]),
+    fn toggler(&self) -> Column<Element<'_, Message>> {
+        column![
+            "A toggler is mostly used to enable or disable something.",
+            container(
+                toggler(self.toggler)
+                    .label("Toggle me to continue...")
+                    .on_toggle(Message::TogglerChanged),
             )
+            .padding([0, 40]),
+        ]
     }
 
-    fn image(&self) -> Column<'_, Message> {
+    fn image(&self) -> Column<Element<'_, Message>> {
         let width = self.image_width;
         let filter_method = self.image_filter_method;
 
-        Self::container("Image")
-            .push("An image that tries to keep its aspect ratio.")
-            .push(ferris(width, filter_method))
-            .push(slider(100..=500, width, Message::ImageWidthChanged))
-            .push(text!("Width: {width} px").width(Fill).align_x(Center))
-            .push(
-                checkbox(filter_method == image::FilterMethod::Nearest)
-                    .label("Use nearest interpolation")
-                    .on_toggle(Message::ImageUseNearestToggled),
-            )
-            .align_x(Center)
+        column![
+            "An image that tries to keep its aspect ratio.",
+            ferris(width, filter_method),
+            slider(100..=500, width, Message::ImageWidthChanged),
+            text!("Width: {width} px").width(Fill).align_x(Center),
+            checkbox(filter_method == image::FilterMethod::Nearest)
+                .label("Use nearest interpolation")
+                .on_toggle(Message::ImageUseNearestToggled),
+        ]
+        .align_x(Center)
     }
 
-    fn scrollable(&self) -> Column<'_, Message> {
-        Self::container("Scrollable")
-            .push(
-                "Iced supports scrollable content. Try it out! Find the \
-                 button further below.",
-            )
-            .push(text("Tip: You can use the scrollbar to scroll down faster!").size(16))
-            .push(space().height(4096))
-            .push(
-                text("You are halfway there!")
-                    .width(Fill)
-                    .size(30)
-                    .align_x(Center),
-            )
-            .push(space().height(4096))
-            .push(ferris(300, image::FilterMethod::Linear))
-            .push(text("You made it!").width(Fill).size(50).align_x(Center))
+    fn scrollable(&self) -> Column<Element<'_, Message>> {
+        column![
+            "Iced supports scrollable content. Try it out! Find the \
+                button further below.",
+            text("Tip: You can use the scrollbar to scroll down faster!").size(16),
+            space().height(4096),
+            text("You are halfway there!")
+                .width(Fill)
+                .size(30)
+                .align_x(Center),
+            space().height(4096),
+            ferris(300, image::FilterMethod::Linear),
+            text("You made it!").width(Fill).size(50).align_x(Center),
+        ]
     }
 
-    fn text_input(&self) -> Column<'_, Message> {
+    fn text_input(&self) -> Column<Element<'_, Message>> {
         let value = &self.input_value;
         let is_secure = self.input_is_secure;
-        let is_showing_icon = self.input_is_showing_icon;
 
-        let mut text_input = text_input("Type something to continue...", value)
+        let text_input = text_input("Type something to continue...", value)
             .on_input(Message::InputChanged)
             .padding(10)
             .size(30);
 
-        if is_showing_icon {
-            text_input = text_input.icon(text_input::Icon {
-                font: Font::default(),
-                code_point: '🚀',
-                size: Some(Pixels(28.0)),
-                spacing: 10.0,
-                side: text_input::Side::Right,
-            });
-        }
+        column![
+            "Use a text input to ask for different kinds of information.",
+            text_input.secure(is_secure),
+            checkbox(is_secure)
+                .label("Enable password mode")
+                .on_toggle(Message::ToggleSecureInput),
+            "A text input produces a message every time it changes. It is \
+                very easy to keep track of its contents:",
+            text(if value.is_empty() {
+                "You have not typed anything yet..."
+            } else {
+                value
+            })
+            .width(Fill)
+            .align_x(Center),
+        ]
+    }
 
-        Self::container("Text input")
-            .push("Use a text input to ask for different kinds of information.")
-            .push(text_input.secure(is_secure))
-            .push(
-                checkbox(is_secure)
-                    .label("Enable password mode")
-                    .on_toggle(Message::ToggleSecureInput),
+    fn overlays(&self) -> Column<Element<'_, Message>> {
+        column![
+            "A tooltip is a small hint that appears when you hover over \
+                an element. Try hovering the first button:",
+            tooltip(
+                padded_button("Hover me!"),
+                container(
+                    "Tooltips appear on hover and disappear when you move \
+                    away.",
+                )
+                .padding(10)
+                .style(container::rounded_box),
             )
-            .push(
-                checkbox(is_showing_icon)
-                    .label("Show icon")
-                    .on_toggle(Message::ToggleTextInputIcon),
-            )
-            .push(
-                "A text input produces a message every time it changes. It is \
-                 very easy to keep track of its contents:",
-            )
-            .push(
-                text(if value.is_empty() {
-                    "You have not typed anything yet..."
+            .gap(10),
+            "A popover is a floating panel anchored to its base element. \
+                It stays open until you click outside of it. Try the second \
+                button:",
+            popover(
+                padded_button(if self.popover_open {
+                    "Close the popover"
                 } else {
-                    value
+                    "Open the popover"
                 })
-                .width(Fill)
-                .align_x(Center),
+                .on_press(Message::TogglePopover),
+                self.popover_open.then(|| {
+                    container("This popover stays open until you click outside of it.")
+                        .padding(10)
+                        .style(container::rounded_box)
+                }),
             )
+            .position(Position::Bottom)
+            .gap(10)
+            .on_close(Message::ClosePopover),
+        ]
+        .align_x(Center)
     }
 
-    fn debugger(&self) -> Column<'_, Message> {
-        Self::container("Debugger")
-            .push(
-                "You can ask Iced to visually explain the layouting of the \
-                 different elements comprising your UI!",
-            )
-            .push(
-                "Give it a shot! Check the following checkbox to be able to \
-                 see element boundaries.",
-            )
-            .push(
-                checkbox(self.debug)
-                    .label("Explain layout")
-                    .on_toggle(Message::DebugToggled),
-            )
-            .push("Feel free to go back and take a look.")
+    fn debugger(&self) -> Column<Element<'_, Message>> {
+        column![
+            "You can ask Iced to visually explain the layouting of the \
+                different elements comprising your UI!",
+            "Give it a shot! Check the following checkbox to be able to \
+                see element boundaries.",
+            checkbox(self.debug)
+                .label("Explain layout")
+                .on_toggle(Message::DebugToggled),
+            "Feel free to go back and take a look.",
+        ]
     }
 
-    fn end(&self) -> Column<'_, Message> {
-        Self::container("You reached the end!")
-            .push("This tour will be updated as more features are added.")
-            .push("Make sure to keep an eye on it!")
-    }
-
-    fn container(title: &str) -> Column<'_, Message> {
-        column![text(title).size(50)].spacing(20)
+    fn end(&self) -> Column<Element<'_, Message>> {
+        column![
+            "This tour will be updated as more features are added.",
+            "Make sure to keep an eye on it!",
+        ]
     }
 }
 
@@ -492,6 +469,7 @@ enum Screen {
     Image,
     Scrollable,
     TextInput,
+    Overlays,
     Debugger,
     End,
 }
@@ -507,9 +485,27 @@ impl Screen {
         Self::Image,
         Self::Scrollable,
         Self::TextInput,
+        Self::Overlays,
         Self::Debugger,
         Self::End,
     ];
+
+    pub fn title(self) -> &'static str {
+        match self {
+            Screen::Welcome => "Welcome",
+            Screen::Radio => "Radio button",
+            Screen::Toggler => "Toggler",
+            Screen::Slider => "Slider",
+            Screen::Text => "Text",
+            Screen::Image => "Image",
+            Screen::RowsAndColumns => "Rows and columns",
+            Screen::Scrollable => "Scrollable",
+            Screen::TextInput => "Text input",
+            Screen::Overlays => "Tooltips and popovers",
+            Screen::Debugger => "Debugger",
+            Screen::End => "End",
+        }
+    }
 
     pub fn next(self) -> Option<Screen> {
         Self::ALL
@@ -539,7 +535,10 @@ impl Screen {
     }
 }
 
-fn ferris<'a>(width: u32, filter_method: image::FilterMethod) -> Container<'a, Message> {
+fn ferris<'a>(
+    width: u32,
+    filter_method: image::FilterMethod,
+) -> Container<'a, Image<image::Handle>> {
     center_x(
         // This should go away once we unify resource loading on native
         // platforms
@@ -553,8 +552,8 @@ fn ferris<'a>(width: u32, filter_method: image::FilterMethod) -> Container<'a, M
     )
 }
 
-fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {
-    button(text(label)).padding([12, 24])
+fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message, &str> {
+    button(label).padding([12, 24])
 }
 
 fn color_slider<'a>(
@@ -624,8 +623,9 @@ impl Default for Tour {
             image_filter_method: image::FilterMethod::Linear,
             input_value: String::new(),
             input_is_secure: false,
-            input_is_showing_icon: false,
             debug: false,
+            popover_open: false,
+            popover_opened: false,
         }
     }
 }

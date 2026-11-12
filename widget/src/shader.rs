@@ -9,7 +9,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
-use crate::core::{Element, Event, Length, Rectangle, Shell, Size};
+use crate::core::{Event, Length, Rectangle, Shell, Size};
 use crate::renderer::wgpu::primitive;
 
 use std::marker::PhantomData;
@@ -53,6 +53,8 @@ impl<Message, P: Program<Message>> Shader<Message, P> {
     }
 }
 
+impl<Message, P> widget::Meta for Shader<Message, P> where P: Program<Message> {}
+
 impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Shader<Message, P>
 where
     P: Program<Message>,
@@ -74,20 +76,15 @@ where
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width, self.height)
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width, self.height);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -115,7 +112,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -132,7 +129,7 @@ where
         renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -140,18 +137,6 @@ where
         let state = tree.state.downcast_ref::<P::State>();
 
         renderer.draw_primitive(bounds, self.program.draw(state, cursor_position, bounds));
-    }
-}
-
-impl<'a, Message, Theme, Renderer, P> From<Shader<Message, P>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    Message: 'a,
-    Renderer: primitive::Renderer,
-    P: Program<Message> + 'a,
-{
-    fn from(custom: Shader<Message, P>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(custom)
     }
 }
 

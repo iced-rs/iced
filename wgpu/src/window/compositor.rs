@@ -82,11 +82,17 @@ impl Compositor {
             .create_surface(wgpu::SurfaceTarget::Window(Box::new(compatible_window)))
             .ok();
 
+        let power_preference = match settings.power_preference {
+            backend::PowerPreference::None => wgpu::PowerPreference::None,
+            backend::PowerPreference::LowPower => wgpu::PowerPreference::LowPower,
+            backend::PowerPreference::HighPerformance => wgpu::PowerPreference::HighPerformance,
+        };
+
         let adapter_options = wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::from_env()
-                .unwrap_or(wgpu::PowerPreference::HighPerformance),
+            power_preference: wgpu::PowerPreference::from_env().unwrap_or(power_preference),
             compatible_surface: compatible_surface.as_ref(),
             force_fallback_adapter: false,
+            apply_limit_buckets: false,
         };
 
         let adapter = instance
@@ -108,6 +114,7 @@ impl Compositor {
                 const BLACKLIST: &[wgpu::TextureFormat] = &[
                     wgpu::TextureFormat::Rgb10a2Unorm,
                     wgpu::TextureFormat::Rgb10a2Uint,
+                    wgpu::TextureFormat::Rgba16Float,
                 ];
 
                 let mut formats = formats.filter(|format| {
@@ -148,10 +155,12 @@ impl Compositor {
         let limits = [wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())];
 
         #[cfg(not(target_arch = "wasm32"))]
-        let limits = [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
+        let limits = [
+            wgpu::Limits::default().using_resolution(adapter.limits()),
+            wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits()),
+        ];
 
         let limits = limits.into_iter().map(|limits| wgpu::Limits {
-            max_bind_groups: 2,
             max_non_sampler_bindings: 2048,
             ..limits
         });
@@ -240,7 +249,7 @@ pub fn present(
 
             // Present the frame
             on_pre_present();
-            frame.present();
+            renderer.engine.queue.present(frame);
 
             Ok(())
         }
@@ -290,22 +299,10 @@ impl graphics::Compositor for Compositor {
         Renderer::new(self.engine.clone(), settings)
     }
 
-    fn create_surface(
-        &mut self,
-        window: impl compositor::Window,
-        width: u32,
-        height: u32,
-    ) -> Self::Surface {
-        let mut surface = self
-            .instance
+    fn create_surface(&mut self, window: impl compositor::Window) -> Self::Surface {
+        self.instance
             .create_surface(wgpu::SurfaceTarget::Window(Box::new(window)))
-            .expect("Create surface");
-
-        if width > 0 && height > 0 {
-            self.configure_surface(&mut surface, width, height);
-        }
-
-        surface
+            .expect("Create surface")
     }
 
     fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
@@ -320,6 +317,7 @@ impl graphics::Compositor for Compositor {
                 alpha_mode: self.alpha_mode,
                 view_formats: vec![],
                 desired_maximum_frame_latency: 1,
+                color_space: wgpu::SurfaceColorSpace::Auto,
             },
         );
     }
@@ -371,6 +369,11 @@ pub struct Settings {
     /// The graphics backends to use.
     pub backends: wgpu::Backends,
 
+    /// The power-usage preference for graphics adapters.
+    ///
+    /// By default, it is [`backend::PowerPreference::None`].
+    pub power_preference: backend::PowerPreference,
+
     /// The antialiasing strategy that will be used for triangle primitives.
     ///
     /// By default, it is `None`.
@@ -382,6 +385,7 @@ impl Default for Settings {
         Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
             backends: wgpu::Backends::all(),
+            power_preference: backend::PowerPreference::None,
             antialiasing: None,
         }
     }
@@ -410,6 +414,7 @@ impl From<backend::Settings> for Settings {
             },
             antialiasing: settings.antialiasing.then_some(Antialiasing::MSAAx4),
             backends,
+            power_preference: settings.power_preference,
         }
     }
 }

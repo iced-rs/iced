@@ -14,8 +14,8 @@ use crate::core::renderer;
 use crate::core::shell;
 use crate::core::text;
 use crate::core::theme;
-use crate::core::time::Instant;
-use crate::core::{Color, InputMethod, Padding, Point, Rectangle, Size, Text, Vector};
+use crate::core::time::{Duration, Instant};
+use crate::core::{Color, InputMethod, Padding, Point, Rectangle, Renderer, Size, Text, Vector};
 use crate::graphics::Compositor;
 use crate::program::{self, Program};
 
@@ -60,10 +60,12 @@ where
         system_theme: theme::Mode,
     ) -> &mut Window<P, C> {
         let state = State::new(program, id, &window, system_theme);
+        let mut surface = compositor.create_surface(window.clone());
         let surface_size = state.physical_size();
         let surface_version = state.surface_version();
-        let surface =
-            compositor.create_surface(window.clone(), surface_size.width, surface_size.height);
+
+        compositor.configure_surface(&mut surface, surface_size.width, surface_size.height);
+
         let renderer = compositor.create_renderer(renderer_settings);
 
         let waker = shell::Waker::new(move || {
@@ -84,11 +86,18 @@ where
                 exit_on_close_request,
                 surface,
                 surface_version,
+                surface_error_at: None,
                 renderer,
                 mouse_interaction: mouse::Interaction::None,
                 redraw_at: None,
+                frame_clock: FrameClock {
+                    anchor: Instant::now(),
+                    period: None,
+                },
                 preedit: None,
                 ime_state: None,
+                last_frame: None,
+                frame_burst: 0,
             },
         );
 
@@ -182,10 +191,49 @@ where
     pub mouse_interaction: mouse::Interaction,
     pub surface: C::Surface,
     pub surface_version: u64,
+    pub surface_error_at: Option<Instant>,
     pub renderer: P::Renderer,
     pub redraw_at: Option<Instant>,
+    frame_clock: FrameClock,
     preedit: Option<Preedit<P::Renderer>>,
     ime_state: Option<(Rectangle, input_method::Purpose)>,
+    last_frame: Option<Instant>,
+    frame_burst: usize,
+}
+
+struct FrameClock {
+    anchor: Instant,
+    period: Option<Duration>,
+}
+
+impl FrameClock {
+    fn reanchor(&mut self, now: Instant, period: Duration) {
+        if self.period != Some(period) {
+            log::info!("Frame clock period: {:?} -> {period:?}", self.period);
+        }
+
+        self.period = Some(period);
+        self.anchor = now - period / 2;
+    }
+
+    /// Snaps the given time to the frame grid, rounding up to the next
+    /// point of the grid.
+    ///
+    /// The event loop wakes up slightly after a `WaitUntil` deadline, so
+    /// rounding down could stamp the frame before the redraw was requested,
+    /// scheduling the next redraw (e.g. a cursor blink) in the past and
+    /// making the loop draw redundant frames.
+    fn quantize(&self, now: Instant) -> Instant {
+        let Some(period) = self.period else {
+            return now;
+        };
+
+        let elapsed = now.saturating_duration_since(self.anchor);
+        let steps = elapsed.as_nanos().div_ceil(period.as_nanos());
+        let snapped = Duration::from_nanos_u128(steps * period.as_nanos());
+
+        self.anchor + snapped
+    }
 }
 
 impl<P, C> Window<P, C>
@@ -194,6 +242,40 @@ where
     C: Compositor<Renderer = P::Renderer>,
     P::Theme: theme::Base,
 {
+    pub fn tick(&mut self, now: Instant) -> Instant {
+        let mut next = self.frame_clock.quantize(now);
+
+        if let Some(period) = self.frame_clock.period
+            && let Some(last) = self.last_frame
+        {
+            let frame_time = next.saturating_duration_since(last);
+
+            if frame_time > period && self.frame_burst > 1 {
+                log::debug!("Frame dropped! (target={period:?}, took={frame_time:?})");
+
+                self.frame_clock.reanchor(now, period);
+                next = self.frame_clock.quantize(now);
+            }
+        }
+
+        self.last_frame = Some(next);
+        next
+    }
+
+    pub fn reanchor(&mut self, now: Instant) {
+        let period = self
+            .raw
+            .current_monitor()
+            .and_then(|monitor| monitor.refresh_rate_millihertz())
+            .map(|millihertz| {
+                Duration::from_nanos(1_000_000_000_000 / u64::from(millihertz.max(1)))
+            });
+
+        if let Some(period) = period {
+            self.frame_clock.reanchor(now, period);
+        }
+    }
+
     pub fn position(&self) -> Option<Point> {
         self.raw
             .outer_position()
@@ -205,16 +287,33 @@ where
             })
     }
 
+    pub fn configure_surface(&mut self, compositor: &mut C) {
+        let physical_size = self.state.physical_size();
+
+        if physical_size.width == 0 || physical_size.height == 0 {
+            return;
+        }
+
+        compositor.configure_surface(&mut self.surface, physical_size.width, physical_size.height);
+
+        self.renderer.hint(self.state.scale());
+        self.surface_version = self.state.surface_version();
+    }
+
     pub fn request_redraw(&mut self, redraw_request: RedrawRequest) {
         match redraw_request {
             RedrawRequest::NextFrame => {
                 self.raw.request_redraw();
                 self.redraw_at = None;
+                self.frame_burst += 1;
             }
             RedrawRequest::At(at) => {
                 self.redraw_at = Some(at);
+                self.frame_burst = 0;
             }
-            RedrawRequest::Wait => {}
+            RedrawRequest::Wait => {
+                self.frame_burst = 0;
+            }
         }
     }
 
@@ -311,7 +410,7 @@ where
 {
     position: Point,
     content: Renderer::Paragraph,
-    spans: Vec<text::Span<'static, (), Renderer::Font>>,
+    spans: Vec<text::Span<'static, ()>>,
 }
 
 impl<Renderer> Preedit<Renderer>
@@ -362,15 +461,15 @@ where
             self.content = Renderer::Paragraph::with_spans(Text {
                 content: &spans,
                 bounds: Size::INFINITE,
-                size: preedit.text_size.unwrap_or_else(|| renderer.default_size()),
-                line_height: text::LineHeight::default(),
-                font: renderer.default_font(),
+                size: preedit.text_size.unwrap_or_else(|| renderer.text_size()),
+                line_height: renderer.line_height(),
+                font: renderer.font(),
                 align_x: text::Alignment::Default,
                 align_y: alignment::Vertical::Top,
                 shaping: text::Shaping::Advanced,
                 wrapping: text::Wrapping::None,
                 ellipsis: text::Ellipsis::None,
-                hint_factor: renderer.scale_factor(),
+                hint_factor: renderer.hint_factor(),
             });
 
             self.spans.clear();
@@ -440,5 +539,182 @@ where
                 );
             }
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FrameClock;
+    use crate::core::time::{Duration, Instant};
+
+    /// The period of a 60 Hz frame clock, as derived by `Window::reanchor`
+    /// from a monitor with a 60 000 mHz refresh rate.
+    const PERIOD: Duration = Duration::from_nanos(1_000_000_000_000 / 60_000);
+
+    /// The interval of the text editor's blinking cursor
+    /// (`core::text::editor::Focus::CURSOR_BLINK_INTERVAL_MILLIS`).
+    const BLINK: u128 = 500;
+
+    fn clock(anchor: Instant) -> FrameClock {
+        FrameClock {
+            anchor,
+            period: Some(PERIOD),
+        }
+    }
+
+    /// The next blink boundary after the given stamped time, as computed by
+    /// `core::text::editor::Focus` when handling a `RedrawRequested` event.
+    fn next_blink(updated_at: Instant, stamped_now: Instant) -> Instant {
+        let elapsed = stamped_now.saturating_duration_since(updated_at);
+        let millis_until = BLINK - (elapsed.as_millis() % BLINK);
+
+        stamped_now + Duration::from_millis(millis_until as u64)
+    }
+
+    /// Simulates the event loop settling around a scheduled redraw (a cursor
+    /// blink): the loop waits until the deadline, wakes up `wakeup` late,
+    /// draws a frame (costing `frame_cost`), stamps it with the frame clock,
+    /// and schedules the next redraw from the stamp. A deadline in the past
+    /// is processed immediately, as the real event loop does: a
+    /// `ControlFlow::WaitUntil` of a past deadline wakes up without waiting,
+    /// and the loop draws again until the next deadline is in the future.
+    ///
+    /// Returns the stamps of the frames drawn while settling.
+    fn settle(
+        clock: &FrameClock,
+        updated_at: Instant,
+        deadline: Instant,
+        wakeup: Duration,
+        frame_cost: Duration,
+    ) -> Vec<Instant> {
+        let mut stamps = Vec::new();
+        let mut now = deadline + wakeup;
+
+        loop {
+            let stamp = clock.quantize(now);
+            stamps.push(stamp);
+
+            let next = next_blink(updated_at, stamp);
+            now += frame_cost;
+
+            if next > now {
+                // The event loop can wait until the next deadline
+                break;
+            }
+
+            // Past deadline: the event loop wakes up immediately
+            now += wakeup;
+        }
+
+        stamps
+    }
+
+    #[test]
+    fn quantize_is_identity_without_a_period() {
+        let now = Instant::now();
+        let clock = FrameClock {
+            anchor: now,
+            period: None,
+        };
+        let later = now + Duration::from_millis(10);
+
+        assert_eq!(clock.quantize(later), later);
+    }
+
+    #[test]
+    fn quantize_keeps_a_point_on_the_grid() {
+        let anchor = Instant::now();
+        let clock = clock(anchor);
+
+        for step in [0, 1, 42] {
+            let now = anchor + PERIOD * step;
+
+            assert_eq!(clock.quantize(now), now);
+        }
+    }
+
+    #[test]
+    fn quantize_rounds_up_to_the_next_point_of_the_grid() {
+        let anchor = Instant::now();
+        let clock = clock(anchor);
+
+        // A moment after a grid point snaps to the next point
+        let just_after = anchor + PERIOD + Duration::from_nanos(1);
+        assert_eq!(clock.quantize(just_after), anchor + PERIOD * 2);
+
+        // A moment before a grid point snaps to that point
+        let just_before = anchor + PERIOD * 4 - Duration::from_nanos(1);
+        assert_eq!(clock.quantize(just_before), anchor + PERIOD * 4);
+    }
+
+    /// A text input's cursor blink schedules a redraw exactly on a blink
+    /// boundary, and the event loop wakes up a little after that deadline.
+    ///
+    /// The frame drawn there must be stamped with a time not before the
+    /// boundary, so that:
+    ///
+    /// - the cursor is drawn with the new phase, and
+    /// - the next blink, scheduled from the stamp, is in the future, so the
+    ///   event loop can keep waiting instead of drawing redundant frames
+    ///   until the wall clock passes the boundary (the window "flashing"
+    ///   once per blink).
+    #[test]
+    fn blink_redraw_is_not_stamped_or_scheduled_in_the_past() {
+        let updated_at = Instant::now() + Duration::from_secs(10);
+        let boundary = updated_at + Duration::from_millis(BLINK as u64 * 2);
+
+        // Place a grid point 10 ms before the boundary, so the frame drawn
+        // at the boundary (plus wakeup latency) falls between grid points
+        let anchor = boundary - Duration::from_millis(10) - PERIOD;
+        let clock = clock(anchor);
+
+        let wake = boundary + Duration::from_millis(1);
+        let stamp = clock.quantize(wake);
+
+        assert!(
+            stamp >= boundary,
+            "the frame is stamped before the blink boundary"
+        );
+        assert_eq!(stamp, boundary - Duration::from_millis(10) + PERIOD);
+
+        let next = next_blink(updated_at, stamp);
+        assert!(
+            next > wake,
+            "the next redraw ({next:?}) is scheduled in the past (wake: {wake:?})"
+        );
+
+        // With the previous round-down, the frame was stamped 10 ms before
+        // the boundary and the next blink was scheduled right at it, i.e.
+        // before the event loop even woke up
+        let elapsed = (wake - anchor).as_nanos();
+        let steps = elapsed / PERIOD.as_nanos();
+        let floor_stamp = anchor + Duration::from_nanos_u128(steps * PERIOD.as_nanos());
+
+        assert!(floor_stamp < boundary);
+        assert!(next_blink(updated_at, floor_stamp) <= wake);
+    }
+
+    /// Settle the event loop around a cursor blink: with a round-up stamp
+    /// the loop draws a single frame and can wait again; a round-down stamp
+    /// schedules the next redraw in the past, so the loop settles only after
+    /// several redundant frames.
+    #[test]
+    fn blink_settles_in_a_single_frame() {
+        let updated_at = Instant::now() + Duration::from_secs(10);
+        let boundary = updated_at + Duration::from_millis(BLINK as u64 * 2);
+
+        let anchor = boundary - Duration::from_millis(10) - PERIOD;
+        let clock = clock(anchor);
+
+        let wakeup = Duration::from_millis(1);
+        let frame_cost = Duration::from_millis(4);
+
+        let stamps = settle(&clock, updated_at, boundary, wakeup, frame_cost);
+
+        assert_eq!(stamps.len(), 1, "a blink should settle in a single frame");
+        assert!(
+            stamps[0] >= boundary,
+            "the frame is stamped before the blink boundary"
+        );
     }
 }

@@ -7,6 +7,7 @@ use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 use std::panic;
+#[cfg(feature = "svg-text")]
 use std::sync::Arc;
 
 /// Entry in cache corresponding to an svg handle
@@ -39,6 +40,7 @@ pub struct Cache {
     svg_hits: FxHashSet<u64>,
     rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
     should_trim: bool,
+    #[cfg(feature = "svg-text")]
     fontdb: Option<Arc<usvg::fontdb::Database>>,
 }
 
@@ -52,6 +54,7 @@ impl Cache {
         }
 
         // TODO: Reuse `cosmic-text` font database
+        #[cfg(feature = "svg-text")]
         if self.fontdb.is_none() {
             let mut fontdb = usvg::fontdb::Database::new();
             fontdb.load_system_fonts();
@@ -60,6 +63,7 @@ impl Cache {
         }
 
         let options = usvg::Options {
+            #[cfg(feature = "svg-text")]
             fontdb: self
                 .fontdb
                 .as_ref()
@@ -154,13 +158,15 @@ impl Cache {
                 let mut rgba = img.take();
 
                 if let Some(color) = color {
-                    rgba.chunks_exact_mut(4).for_each(|rgba| {
-                        if rgba[3] > 0 {
-                            rgba[0] = color[0];
-                            rgba[1] = color[1];
-                            rgba[2] = color[2];
+                    let (chunks, _) = rgba.as_chunks_mut::<4>();
+
+                    for [r, g, b, a] in chunks {
+                        if *a > 0 {
+                            *r = color[0];
+                            *g = color[1];
+                            *b = color[2];
                         }
-                    });
+                    }
                 }
 
                 let allocation =

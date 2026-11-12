@@ -1,27 +1,24 @@
 //! Draw paragraphs.
 use crate::alignment;
 use crate::text::{
-    Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Text, Wrapping,
+    Alignment, Difference, Ellipsis, Hit, LineHeight, Shaping, Span, Target, Text, Wrapping,
 };
-use crate::{Pixels, Point, Rectangle, Size};
+use crate::{Font, Pixels, Point, Rectangle, Size};
 
 /// A text paragraph.
 pub trait Paragraph: Sized + Default {
-    /// The font of this [`Paragraph`].
-    type Font: Copy + PartialEq;
+    /// Creates a new [`Paragraph`] laid out with the given [`Text`].
+    fn with_text(text: Text<&str>) -> Self;
 
     /// Creates a new [`Paragraph`] laid out with the given [`Text`].
-    fn with_text(text: Text<&str, Self::Font>) -> Self;
-
-    /// Creates a new [`Paragraph`] laid out with the given [`Text`].
-    fn with_spans<Link>(text: Text<&[Span<'_, Link, Self::Font>], Self::Font>) -> Self;
+    fn with_spans<Link>(text: Text<&[Span<'_, Link>]>) -> Self;
 
     /// Lays out the [`Paragraph`] with some new boundaries.
     fn resize(&mut self, new_bounds: Size);
 
     /// Compares the [`Paragraph`] with some desired [`Text`] and returns the
     /// [`Difference`].
-    fn compare(&self, text: Text<(), Self::Font>) -> Difference;
+    fn compare(&self, text: Text<()>) -> Difference;
 
     /// Returns the text size of the [`Paragraph`] in [`Pixels`].
     fn size(&self) -> Pixels;
@@ -29,8 +26,8 @@ pub trait Paragraph: Sized + Default {
     /// Returns the hint factor of the [`Paragraph`].
     fn hint_factor(&self) -> Option<f32>;
 
-    /// Returns the font of the [`Paragraph`].
-    fn font(&self) -> Self::Font;
+    /// Returns the [`Font`] of the [`Paragraph`].
+    fn font(&self) -> Font;
 
     /// Returns the [`LineHeight`] of the [`Paragraph`].
     fn line_height(&self) -> LineHeight;
@@ -66,12 +63,39 @@ pub trait Paragraph: Sized + Default {
     /// that was hit.
     fn hit_span(&self, point: Point) -> Option<usize>;
 
+    /// Tests whether the provided point is inside the boundaries of a
+    /// glyph in the [`Paragraph`].
+    fn hit_glyph(&self, point: Point) -> bool {
+        self.hit_test(point).is_some()
+    }
+
     /// Returns all bounds for the provided [`Span`] index of the [`Paragraph`].
     /// A [`Span`] can have multiple bounds for each line it's on.
     fn span_bounds(&self, index: usize) -> Vec<Rectangle>;
 
-    /// Returns the distance to the given grapheme index in the [`Paragraph`].
-    fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
+    /// Selects the text between the given positions.
+    ///
+    /// The positions are relative to the origin of the [`Paragraph`].
+    /// `start` is the position where the selection began, while `end`
+    /// is its final position. The [`Target`] determines how the
+    /// selection is expanded around these positions.
+    fn select(&mut self, start: Point, end: Point, target: Target);
+
+    /// Selects all the text of the [`Paragraph`].
+    fn select_all(&mut self);
+
+    /// Deselects any selected text.
+    fn deselect(&mut self);
+
+    /// Returns the regions of the current selection of the [`Paragraph`].
+    ///
+    /// Each [`Rectangle`] corresponds to a line of the selection.
+    fn selection(&self) -> &[Rectangle];
+
+    /// Returns the current selected text of the [`Paragraph`].
+    ///
+    // TODO: Make immutable
+    fn copy(&mut self) -> Option<String>;
 
     /// Returns the minimum width that can fit the contents of the [`Paragraph`].
     fn min_width(&self) -> f32 {
@@ -93,7 +117,7 @@ pub struct Plain<P: Paragraph> {
 
 impl<P: Paragraph> Plain<P> {
     /// Creates a new [`Plain`] paragraph.
-    pub fn new(text: Text<String, P::Font>) -> Self {
+    pub fn new(text: Text<String>) -> Self {
         Self {
             raw: P::with_text(text.as_ref()),
             content: text.content,
@@ -103,7 +127,7 @@ impl<P: Paragraph> Plain<P> {
     /// Updates the plain [`Paragraph`] to match the given [`Text`], if needed.
     ///
     /// Returns true if the [`Paragraph`] changed.
-    pub fn update(&mut self, text: Text<&str, P::Font>) -> bool {
+    pub fn update(&mut self, text: Text<&str>) -> bool {
         if self.content != text.content {
             text.content.clone_into(&mut self.content);
             self.raw = P::with_text(text);
@@ -156,13 +180,18 @@ impl<P: Paragraph> Plain<P> {
         &self.raw
     }
 
+    /// Returns the cached [`Paragraph`], mutably.
+    pub fn raw_mut(&mut self) -> &mut P {
+        &mut self.raw
+    }
+
     /// Returns the current content of the plain [`Paragraph`].
     pub fn content(&self) -> &str {
         &self.content
     }
 
     /// Returns the [`Paragraph`] as a [`Text`] definition.
-    pub fn as_text(&self) -> Text<&str, P::Font> {
+    pub fn as_text(&self) -> Text<&str> {
         Text {
             content: &self.content,
             bounds: self.raw.bounds(),

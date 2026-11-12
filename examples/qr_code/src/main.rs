@@ -1,5 +1,5 @@
 use iced::widget::{center, column, pick_list, qr_code, row, slider, text, text_input, toggler};
-use iced::{Center, Element, Theme};
+use iced::{Center, Theme, Widget};
 
 use std::ops::RangeInclusive;
 
@@ -56,7 +56,7 @@ impl QRGenerator {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let title = text("QR Code Generator").size(70);
 
         let input = text_input("Type the data of your QR code here...", &self.data)
@@ -98,7 +98,7 @@ impl QRGenerator {
         .spacing(20)
         .align_x(Center);
 
-        center(content).padding(20).into()
+        center(content).padding(20)
     }
 
     fn theme(&self) -> Option<Theme> {

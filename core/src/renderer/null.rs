@@ -2,6 +2,7 @@ use crate::alignment;
 use crate::image::{self, Image};
 use crate::renderer::{self, Renderer};
 use crate::svg;
+use crate::text::highlighter;
 use crate::text::{self, Text};
 use crate::{Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation};
 
@@ -17,7 +18,7 @@ impl Renderer for () {
     fn fill_quad(&mut self, _quad: renderer::Quad, _background: impl Into<Background>) {}
 
     fn allocate_image(
-        &mut self,
+        &self,
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
@@ -25,17 +26,20 @@ impl Renderer for () {
         callback(Ok(unsafe { image::allocate(handle, Size::new(100, 100)) }));
     }
 
-    fn hint(&mut self, _scale_factor: f32) {}
+    fn hint(&mut self, _scale: renderer::Scale) {}
 
-    fn scale_factor(&self) -> Option<f32> {
+    fn scale(&self) -> Option<renderer::Scale> {
         None
     }
 
     fn reset(&mut self, _new_bounds: Rectangle) {}
+
+    fn settings(&self) -> renderer::Settings {
+        renderer::Settings::default()
+    }
 }
 
 impl text::Renderer for () {
-    type Font = Font;
     type Paragraph = ();
     type Editor = ();
 
@@ -47,14 +51,6 @@ impl text::Renderer for () {
     const SCROLL_LEFT_ICON: char = '0';
     const SCROLL_RIGHT_ICON: char = '0';
     const ICED_LOGO: char = '0';
-
-    fn default_font(&self) -> Self::Font {
-        Font::default()
-    }
-
-    fn default_size(&self) -> Pixels {
-        Pixels(16.0)
-    }
 
     fn fill_paragraph(
         &mut self,
@@ -85,11 +81,9 @@ impl text::Renderer for () {
 }
 
 impl text::Paragraph for () {
-    type Font = Font;
-
     fn with_text(_text: Text<&str>) -> Self {}
 
-    fn with_spans<Link>(_text: Text<&[text::Span<'_, Link, Self::Font>], Self::Font>) -> Self {}
+    fn with_spans<Link>(_text: Text<&[text::Span<'_, Link>]>) -> Self {}
 
     fn resize(&mut self, _new_bounds: Size) {}
 
@@ -133,10 +127,6 @@ impl text::Paragraph for () {
         text::Shaping::default()
     }
 
-    fn grapheme_position(&self, _line: usize, _index: usize) -> Option<Point> {
-        None
-    }
-
     fn bounds(&self) -> Size {
         Size::ZERO
     }
@@ -156,11 +146,21 @@ impl text::Paragraph for () {
     fn span_bounds(&self, _index: usize) -> Vec<Rectangle> {
         vec![]
     }
+
+    fn select(&mut self, _start: Point, _end: Point, _target: text::Target) {}
+    fn select_all(&mut self) {}
+    fn deselect(&mut self) {}
+
+    fn selection(&self) -> &[Rectangle] {
+        &[]
+    }
+
+    fn copy(&mut self) -> Option<String> {
+        None
+    }
 }
 
 impl text::Editor for () {
-    type Font = Font;
-
     fn with_text(_text: &str) -> Self {}
 
     fn is_empty(&self) -> bool {
@@ -169,13 +169,13 @@ impl text::Editor for () {
 
     fn cursor(&self) -> text::editor::Cursor {
         text::editor::Cursor {
-            position: text::editor::Position { line: 0, column: 0 },
+            position: text::Position { line: 0, index: 0 },
             selection: None,
         }
     }
 
-    fn selection(&self) -> text::editor::Selection {
-        text::editor::Selection::Caret(Point::ORIGIN)
+    fn selection(&self) -> Option<text::editor::Selection> {
+        None
     }
 
     fn copy(&self) -> Option<String> {
@@ -209,21 +209,36 @@ impl text::Editor for () {
     fn update(
         &mut self,
         _new_bounds: Size,
-        _new_font: Self::Font,
+        _new_font: Font,
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
         _new_wrapping: text::Wrapping,
+        _new_alignment: text::Alignment,
         _new_hint_factor: Option<f32>,
-        _new_highlighter: &mut impl text::Highlighter,
+        _new_parser: &mut impl text::Parser,
     ) {
     }
 
-    fn highlight<H: text::Highlighter>(
+    fn overwrite(&mut self, _new_text: &str) {}
+
+    fn highlight<P: text::Parser>(
         &mut self,
-        _font: Self::Font,
-        _highlighter: &mut H,
-        _format_highlight: impl Fn(&H::Highlight) -> text::highlighter::Format<Self::Font>,
+        _font: Font,
+        _parser: &mut P,
+        _highlighter: impl Fn(P::Output) -> highlighter::Style,
     ) {
+    }
+
+    fn text_size(&self) -> Pixels {
+        Pixels(0.0)
+    }
+
+    fn line_height(&self) -> text::LineHeight {
+        text::LineHeight::default()
+    }
+
+    fn font(&self) -> Font {
+        Font::default()
     }
 }
 

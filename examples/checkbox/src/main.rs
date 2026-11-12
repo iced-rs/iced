@@ -1,11 +1,11 @@
 use iced::widget::{center, checkbox, column, row, text};
-use iced::{Element, Font};
+use iced::{Font, Widget};
 
 const ICON_FONT: Font = Font::new("icons");
 
 pub fn main() -> iced::Result {
     iced::application(Example::default, Example::update, Example::view)
-        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .fonts([include_bytes!("../fonts/icons.ttf").as_slice()])
         .run()
 }
 
@@ -38,7 +38,7 @@ impl Example {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let default_checkbox = checkbox(self.default)
             .label("Default")
             .on_toggle(Message::DefaultToggled);
@@ -64,12 +64,12 @@ impl Example {
                 font: ICON_FONT,
                 code_point: '\u{e901}',
                 size: None,
-                line_height: text::LineHeight::Relative(1.0),
+                line_height: Some(text::LineHeight::Relative(1.0)),
                 shaping: text::Shaping::Basic,
             });
 
         let content = column![default_checkbox, checkboxes, custom_checkbox].spacing(20);
 
-        center(content).into()
+        center(content)
     }
 }

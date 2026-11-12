@@ -1,4 +1,4 @@
-use crate::{Length, Radians, Vector};
+use crate::{Alignment, Radians, Vector};
 
 /// An amount of space in 2 dimensions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -71,13 +71,23 @@ impl Size {
             height: (self.width / aspect_ratio).min(self.height),
         }
     }
-}
 
-impl Size<Length> {
-    /// Returns true if either `width` or `height` are 0-sized.
-    #[inline]
-    pub fn is_void(&self) -> bool {
-        matches!(self.width, Length::Fixed(0.0)) || matches!(self.height, Length::Fixed(0.0))
+    /// Returns the offset needed to align this [`Size`] within the given
+    /// `container` using the provided alignments.
+    pub fn align(self, container: Size, align_x: Alignment, align_y: Alignment) -> Vector {
+        let x = match align_x {
+            Alignment::Start => 0.0,
+            Alignment::Center => (container.width - self.width) / 2.0,
+            Alignment::End => container.width - self.width,
+        };
+
+        let y = match align_y {
+            Alignment::Start => 0.0,
+            Alignment::Center => (container.height - self.height) / 2.0,
+            Alignment::End => container.height - self.height,
+        };
+
+        Vector { x, y }
     }
 }
 

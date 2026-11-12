@@ -20,7 +20,7 @@ use crate::core::backend;
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
-use crate::core::{Background, Color, Font, Gradient, Pixels, Rectangle, Size, Transformation};
+use crate::core::{Background, Color, Font, Gradient, Rectangle, Size, Transformation};
 use crate::graphics::compositor;
 use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
@@ -38,7 +38,7 @@ pub struct Renderer {
     raster: raster::Pipeline,
     #[cfg(feature = "svg")]
     vector: vector::Pipeline,
-    scale_factor: Option<f32>,
+    scale: Option<renderer::Scale>,
 }
 
 impl Renderer {
@@ -51,7 +51,7 @@ impl Renderer {
             raster: raster::Pipeline::new(),
             #[cfg(feature = "svg")]
             vector: vector::Pipeline::new(),
-            scale_factor: None,
+            scale: None,
         }
     }
 
@@ -361,7 +361,7 @@ fn into_background(background: &Background, bounds: Rectangle) -> vello_cpu::Pai
         Background::Color(color) => vello_cpu::PaintType::Solid(into_color(*color)),
         Background::Gradient(gradient) => vello_cpu::PaintType::Gradient(match gradient {
             Gradient::Linear(gradient) => {
-                let (start, end) = gradient.angle.to_distance(&bounds);
+                let (start, end) = bounds.chord(gradient.angle);
 
                 vello_cpu::peniko::Gradient {
                     kind: vello_cpu::peniko::GradientKind::Linear(
@@ -445,7 +445,7 @@ impl core::Renderer for Renderer {
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         _handle: &image::Handle,
         _callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
@@ -454,21 +454,24 @@ impl core::Renderer for Renderer {
         _callback(self.raster.load(_handle));
     }
 
-    fn hint(&mut self, scale_factor: f32) {
-        self.scale_factor = Some(scale_factor);
+    fn hint(&mut self, scale: renderer::Scale) {
+        self.scale = Some(scale);
     }
 
-    fn scale_factor(&self) -> Option<f32> {
-        self.scale_factor
+    fn scale(&self) -> Option<renderer::Scale> {
+        self.scale
     }
 
     fn reset(&mut self, new_bounds: Rectangle) {
         self.layers.reset(new_bounds);
     }
+
+    fn settings(&self) -> renderer::Settings {
+        self.settings
+    }
 }
 
 impl core::text::Renderer for Renderer {
-    type Font = Font;
     type Paragraph = Paragraph;
     type Editor = Editor;
 
@@ -480,14 +483,6 @@ impl core::text::Renderer for Renderer {
     const SCROLL_DOWN_ICON: char = '\u{e803}';
     const SCROLL_LEFT_ICON: char = '\u{e804}';
     const SCROLL_RIGHT_ICON: char = '\u{e805}';
-
-    fn default_font(&self) -> Font {
-        self.settings.default_font
-    }
-
-    fn default_size(&self) -> Pixels {
-        self.settings.default_text_size
-    }
 
     fn fill_paragraph(
         &mut self,
@@ -513,7 +508,7 @@ impl core::text::Renderer for Renderer {
 
     fn fill_text(
         &mut self,
-        text: core::Text<String, Self::Font>,
+        text: core::Text<String>,
         position: core::Point,
         color: core::Color,
         clip_bounds: Rectangle,
@@ -650,26 +645,15 @@ impl graphics::Compositor for Compositor {
         Renderer::new(settings)
     }
 
-    fn create_surface(
-        &mut self,
-        window: impl compositor::Window + Clone,
-        width: u32,
-        height: u32,
-    ) -> Self::Surface {
+    fn create_surface(&mut self, window: impl compositor::Window + Clone) -> Self::Surface {
         let window = softbuffer::Surface::new(&self.context, Box::new(window.clone()) as _)
             .expect("Create softbuffer surface for window");
 
-        let mut surface = Surface {
+        Surface {
             window,
             renderer: vello_cpu::RenderContext::new(1, 1),
             resources: vello_cpu::Resources::new(),
-        };
-
-        if width > 0 && height > 0 {
-            self.configure_surface(&mut surface, width, height);
         }
-
-        surface
     }
 
     fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
@@ -755,7 +739,13 @@ impl renderer::Headless for Renderer {
     ) -> Vec<u8> {
         screenshot(
             self,
-            &Viewport::with_physical_size(size, scale_factor),
+            &Viewport::with_physical_size(
+                size,
+                renderer::Scale {
+                    window: 1.0,
+                    application: scale_factor,
+                },
+            ),
             background_color,
         )
     }

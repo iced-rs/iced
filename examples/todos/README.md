@@ -24,4 +24,4 @@ trunk serve
 
 [`main`]: src/main.rs
 [TodoMVC]: http://todomvc.com/
-[`trunk`]: https://trunkrs.dev/
+[`trunk`]: https://trunk-rs.github.io/trunk/

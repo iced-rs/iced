@@ -29,15 +29,16 @@ struct SolidVertexOutput {
 fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
     var out: SolidVertexOutput;
 
-    var pos: vec2<f32> = (input.pos + min(input.shadow_offset, vec2<f32>(0.0, 0.0)) - input.shadow_blur_radius) * globals.scale;
-    var scale: vec2<f32> = (input.scale + vec2<f32>(abs(input.shadow_offset.x), abs(input.shadow_offset.y)) + input.shadow_blur_radius * 2.0) * globals.scale;
+    var bounds = shadow_expanded_bounds(input.pos, input.scale, input.shadow_offset, input.shadow_blur_radius) * globals.scale;
+    var pos: vec2<f32> = bounds.xy;
+    var scale: vec2<f32> = bounds.zw;
 
     var pos_snap = vec2<f32>(0.0, 0.0);
     var scale_snap = vec2<f32>(0.0, 0.0);
 
     if bool(input.snap) {
-        pos_snap = round(pos + vec2(0.001, 0.001)) - pos;
-        scale_snap = round(pos + scale + vec2(0.001, 0.001)) - pos - pos_snap - scale;
+        pos_snap = round(pos + nudge) - pos;
+        scale_snap = round(pos + scale + nudge) - pos - pos_snap - scale;
     }
 
     let border_radius = min(input.border_radius, vec4(min(input.scale.x, input.scale.y) / 2.0));
@@ -88,15 +89,18 @@ fn solid_fs_main(
     let quad_color = mixed_color * quad_alpha;
 
     if input.shadow_color.a > 0.0 {
-        var shadow_dist: f32 = rounded_box_sdf(
-            -(input.position.xy - input.pos - input.shadow_offset - input.scale/2.0) * 2.0,
+        return mix_shadow(
+            quad_color,
+            quad_alpha,
+            input.position.xy,
+            input.pos,
             input.scale,
-            input.border_radius * 2.0
-        ) / 2.0;
-        let shadow_alpha = 1.0 - smoothstep(-input.shadow_blur_radius, input.shadow_blur_radius, max(shadow_dist, 0.0));
-
-        return mix(quad_color, input.shadow_color, (1.0 - quad_alpha) * shadow_alpha);
-    } else {
-        return quad_color;
+            input.border_radius,
+            input.shadow_color,
+            input.shadow_offset,
+            input.shadow_blur_radius
+        );
     }
+
+    return quad_color;
 }

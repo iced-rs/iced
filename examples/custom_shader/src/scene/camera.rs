@@ -17,7 +17,7 @@ impl Default for Camera {
             eye: vec3(0.0, 2.0, 3.0),
             target: glam::Vec3::ZERO,
             up: glam::Vec3::Y,
-            fov_y: 45.0,
+            fov_y: 45.0f32.to_radians(),
             near: 0.1,
             far: 100.0,
         }
@@ -34,8 +34,13 @@ pub const OPENGL_TO_WGPU_MATRIX: glam::Mat4 = mat4(
 impl Camera {
     pub fn build_view_proj_matrix(&self, bounds: Rectangle) -> glam::Mat4 {
         let aspect_ratio = bounds.width / bounds.height;
-        let view = glam::Mat4::look_at_rh(self.eye, self.target, self.up);
-        let proj = glam::Mat4::perspective_rh(self.fov_y, aspect_ratio, self.near, self.far);
+        let view = glam::camera::rh::view::look_at_mat4(self.eye, self.target, self.up);
+        let proj = glam::camera::rh::proj::directx::perspective(
+            self.fov_y,
+            aspect_ratio,
+            self.near,
+            self.far,
+        );
 
         OPENGL_TO_WGPU_MATRIX * proj * view
     }

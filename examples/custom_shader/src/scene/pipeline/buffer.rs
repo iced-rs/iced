@@ -4,7 +4,6 @@ use crate::wgpu;
 pub struct Buffer {
     pub raw: wgpu::Buffer,
     label: &'static str,
-    size: u64,
     usage: wgpu::BufferUsages,
 }
 
@@ -23,13 +22,12 @@ impl Buffer {
                 mapped_at_creation: false,
             }),
             label,
-            size,
             usage,
         }
     }
 
     pub fn resize(&mut self, device: &wgpu::Device, new_size: u64) {
-        if new_size > self.size {
+        if new_size > self.raw.size() {
             self.raw = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some(self.label),
                 size: new_size,

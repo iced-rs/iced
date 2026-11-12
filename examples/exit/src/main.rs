@@ -1,6 +1,6 @@
 use iced::widget::{button, center, column};
 use iced::window;
-use iced::{Center, Element, Task};
+use iced::{Center, Task, Widget};
 
 pub fn main() -> iced::Result {
     iced::run(Exit::update, Exit::view)
@@ -29,7 +29,7 @@ impl Exit {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let content = if self.show_confirm {
             column![
                 "Are you sure you want to exit?",
@@ -46,6 +46,6 @@ impl Exit {
         .spacing(10)
         .align_x(Center);
 
-        center(content).padding(20).into()
+        center(content).padding(20)
     }
 }

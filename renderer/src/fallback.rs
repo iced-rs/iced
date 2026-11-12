@@ -63,19 +63,19 @@ where
     }
 
     fn allocate_image(
-        &mut self,
+        &self,
         handle: &image::Handle,
         callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
     ) {
         delegate!(self, renderer, renderer.allocate_image(handle, callback));
     }
 
-    fn hint(&mut self, scale_factor: f32) {
-        delegate!(self, renderer, renderer.hint(scale_factor));
+    fn hint(&mut self, scale: renderer::Scale) {
+        delegate!(self, renderer, renderer.hint(scale));
     }
 
-    fn scale_factor(&self) -> Option<f32> {
-        delegate!(self, renderer, renderer.scale_factor())
+    fn scale(&self) -> Option<renderer::Scale> {
+        delegate!(self, renderer, renderer.scale())
     }
 
     fn tick(&mut self) {
@@ -85,18 +85,21 @@ where
     fn reset(&mut self, new_bounds: Rectangle) {
         delegate!(self, renderer, renderer.reset(new_bounds));
     }
+
+    fn settings(&self) -> renderer::Settings {
+        delegate!(self, renderer, renderer.settings())
+    }
 }
 
 impl<A, B> core::text::Renderer for Renderer<A, B>
 where
     A: core::text::Renderer,
-    B: core::text::Renderer<Font = A::Font, Paragraph = A::Paragraph, Editor = A::Editor>,
+    B: core::text::Renderer<Paragraph = A::Paragraph, Editor = A::Editor>,
 {
-    type Font = A::Font;
     type Paragraph = A::Paragraph;
     type Editor = A::Editor;
 
-    const ICON_FONT: Self::Font = A::ICON_FONT;
+    const ICON_FONT: core::Font = A::ICON_FONT;
     const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
     const SCROLL_UP_ICON: char = A::SCROLL_UP_ICON;
@@ -104,14 +107,6 @@ where
     const SCROLL_LEFT_ICON: char = A::SCROLL_LEFT_ICON;
     const SCROLL_RIGHT_ICON: char = A::SCROLL_RIGHT_ICON;
     const ICED_LOGO: char = A::ICED_LOGO;
-
-    fn default_font(&self) -> Self::Font {
-        delegate!(self, renderer, renderer.default_font())
-    }
-
-    fn default_size(&self) -> core::Pixels {
-        delegate!(self, renderer, renderer.default_size())
-    }
 
     fn fill_paragraph(
         &mut self,
@@ -143,7 +138,7 @@ where
 
     fn fill_text(
         &mut self,
-        text: core::Text<String, Self::Font>,
+        text: core::Text<String>,
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
@@ -300,19 +295,10 @@ where
         }
     }
 
-    fn create_surface(
-        &mut self,
-        window: impl compositor::Window + Clone,
-        width: u32,
-        height: u32,
-    ) -> Self::Surface {
+    fn create_surface(&mut self, window: impl compositor::Window + Clone) -> Self::Surface {
         match self {
-            Self::Primary(compositor) => {
-                Surface::Primary(compositor.create_surface(window, width, height))
-            }
-            Self::Secondary(compositor) => {
-                Surface::Secondary(compositor.create_surface(window, width, height))
-            }
+            Self::Primary(compositor) => Surface::Primary(compositor.create_surface(window)),
+            Self::Secondary(compositor) => Surface::Secondary(compositor.create_surface(window)),
         }
     }
 
@@ -582,7 +568,7 @@ mod geometry {
             delegate!(self, frame, frame.rotate(angle));
         }
 
-        fn scale(&mut self, scale: impl Into<f32>) {
+        fn scale(&mut self, scale: f32) {
             delegate!(self, frame, frame.scale(scale));
         }
 

@@ -19,7 +19,7 @@ pub struct Rectangle<T = f32> {
 
 impl<T> Rectangle<T>
 where
-    T: Default,
+    T: Default + Copy,
 {
     /// Creates a new [`Rectangle`] with its top-left corner at the origin
     /// and with the provided [`Size`].
@@ -30,6 +30,11 @@ where
             width: size.width,
             height: size.height,
         }
+    }
+
+    /// Returns the [`Size`] of the [`Rectangle`].
+    pub const fn size(&self) -> Size<T> {
+        Size::new(self.width, self.height)
     }
 }
 
@@ -125,11 +130,6 @@ impl Rectangle<f32> {
     /// Returns the position of the top left corner of the [`Rectangle`].
     pub fn position(&self) -> Point {
         Point::new(self.x, self.y)
-    }
-
-    /// Returns the [`Size`] of the [`Rectangle`].
-    pub fn size(&self) -> Size {
-        Size::new(self.width, self.height)
     }
 
     /// Returns the area of the [`Rectangle`].
@@ -267,6 +267,12 @@ impl Rectangle<f32> {
         })
     }
 
+    /// Computes the logical [`Rectangle`] that ends up rounded
+    /// after the given `scale_factor` is applied to it.
+    pub fn hint(self, scale_factor: f32) -> Self {
+        (self * scale_factor).round() / scale_factor
+    }
+
     /// Expands the [`Rectangle`] a given amount.
     pub fn expand(self, padding: impl Into<Padding>) -> Self {
         let padding = padding.into();
@@ -337,6 +343,30 @@ impl Rectangle<f32> {
 
         Point::new(x, y)
     }
+
+    /// Returns the two endpoints of a chord through the rectangle's center
+    /// at the given `angle`.
+    ///
+    /// The angle is measured clockwise from the negative y-axis, so `0`
+    /// produces a vertical chord and `π/2` a horizontal one. The returned
+    /// points are `(start, end)`, symmetric about [`Rectangle::center`].
+    pub fn chord(&self, angle: impl Into<Radians>) -> (Point, Point) {
+        use std::f32::consts::FRAC_PI_2;
+
+        let angle = angle.into().0 - FRAC_PI_2;
+        let r = Vector::new(f32::cos(angle), f32::sin(angle));
+
+        let distance_to_rect = f32::max(
+            f32::abs(r.x * self.width / 2.0),
+            f32::abs(r.y * self.height / 2.0),
+        );
+
+        let center = self.center();
+        let start = center - r * distance_to_rect;
+        let end = center + r * distance_to_rect;
+
+        (start, end)
+    }
 }
 
 impl std::ops::Mul<f32> for Rectangle<f32> {
@@ -352,6 +382,19 @@ impl std::ops::Mul<f32> for Rectangle<f32> {
     }
 }
 
+impl std::ops::Div<f32> for Rectangle<f32> {
+    type Output = Self;
+
+    fn div(self, scale: f32) -> Self {
+        Self {
+            x: self.x / scale,
+            y: self.y / scale,
+            width: self.width / scale,
+            height: self.height / scale,
+        }
+    }
+}
+
 impl From<Rectangle<u32>> for Rectangle<f32> {
     fn from(rectangle: Rectangle<u32>) -> Rectangle<f32> {
         Rectangle {
@@ -359,6 +402,15 @@ impl From<Rectangle<u32>> for Rectangle<f32> {
             y: rectangle.y as f32,
             width: rectangle.width as f32,
             height: rectangle.height as f32,
+        }
+    }
+}
+
+impl<T> From<Rectangle<T>> for Size<T> {
+    fn from(rectangle: Rectangle<T>) -> Size<T> {
+        Size {
+            width: rectangle.width,
+            height: rectangle.height,
         }
     }
 }

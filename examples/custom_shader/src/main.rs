@@ -6,7 +6,7 @@ use iced::time::Instant;
 use iced::wgpu;
 use iced::widget::{center, checkbox, column, row, shader, slider, text};
 use iced::window;
-use iced::{Center, Color, Element, Fill, Subscription};
+use iced::{Center, Color, Fill, Subscription, Widget};
 
 fn main() -> iced::Result {
     iced::application(IcedCubes::default, IcedCubes::update, IcedCubes::view)
@@ -56,7 +56,7 @@ impl IcedCubes {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let top_controls = row![
             control(
                 "Amount",
@@ -116,14 +116,14 @@ impl IcedCubes {
         ]
         .spacing(40);
 
-        let controls = column![top_controls, bottom_controls,]
+        let controls = column![top_controls, bottom_controls]
             .spacing(10)
             .padding(20)
             .align_x(Center);
 
         let shader = shader(&self.scene).width(Fill).height(Fill);
 
-        center(column![shader, controls].align_x(Center)).into()
+        center(column![shader, controls].align_x(Center))
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -139,7 +139,7 @@ impl Default for IcedCubes {
 
 fn control<'a>(
     label: &'static str,
-    control: impl Into<Element<'a, Message>>,
-) -> Element<'a, Message> {
-    row![text(label), control.into()].spacing(10).into()
+    control: impl Widget<Message> + 'a,
+) -> impl Widget<Message> + 'a {
+    row![text(label), control].spacing(10).align_y(Center)
 }

@@ -3,8 +3,6 @@ on: [push, pull_request]
 jobs:
   wasm:
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: --cfg=web_sys_unstable_apis
     steps:
     - uses: hecrj/setup-rust-action@v2
       with:

@@ -1,12 +1,13 @@
 //! Run your application in a headless runtime.
 use crate::core;
+use crate::core::font;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::shell;
 use crate::core::time::Instant;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Bytes, Element, Point, Size};
+use crate::core::{Bytes, Point, Size, Widget};
 use crate::instruction;
 use crate::program;
 use crate::program::Program;
@@ -21,6 +22,7 @@ use crate::runtime::user_interface;
 use crate::runtime::{Task, UserInterface};
 use crate::{Instruction, Selector};
 
+use std::borrow::Cow;
 use std::fmt;
 
 /// A headless runtime that can run iced applications and execute
@@ -87,11 +89,20 @@ impl<P: Program + 'static> Emulator<P> {
 
         let settings = program.settings();
 
+        for font in &settings.fonts {
+            load_font(font.clone()).expect("Font must be valid");
+        }
+
         // TODO: Error handling
         let executor = P::Executor::new().expect("Create emulator executor");
 
+        let backend = std::env::var("ICED_TEST_BACKEND").ok();
+
         let renderer = executor
-            .block_on(P::Renderer::new(renderer::Settings::from(&settings), None))
+            .block_on(P::Renderer::new(
+                renderer::Settings::from(&settings),
+                backend.as_deref(),
+            ))
             .expect("Create emulator renderer");
 
         let runtime = Runtime::new(executor, sender);
@@ -237,8 +248,18 @@ impl<P: Program + 'static> Emulator<P> {
                     dbg!(action);
                 }
                 runtime::Action::Font(action) => {
-                    // TODO
-                    dbg!(action);
+                    use crate::runtime::font;
+
+                    match action {
+                        font::Action::Load { bytes, channel } => {
+                            let result = load_font(bytes);
+                            let _ = channel.send(result);
+                        }
+                        _ => {
+                            // TODO
+                            dbg!(action);
+                        }
+                    }
                 }
                 runtime::Action::Image(action) => {
                     // TODO
@@ -279,7 +300,7 @@ impl<P: Program + 'static> Emulator<P> {
             &mut self.renderer,
         );
 
-        let mut messages = Vec::new();
+        let mut messages = shell::Bus::new();
 
         match instruction {
             Instruction::Interact(interaction) => {
@@ -432,7 +453,7 @@ impl<P: Program + 'static> Emulator<P> {
     }
 
     /// Returns the current view of the [`Emulator`].
-    pub fn view(&self, program: &P) -> Element<'_, P::Message, P::Theme, P::Renderer> {
+    pub fn view(&self, program: &P) -> impl Widget<P::Message, P::Theme, P::Renderer> + '_ {
         program.view(&self.state, self.window)
     }
 
@@ -468,7 +489,7 @@ impl<P: Program + 'static> Emulator<P> {
             ))],
             mouse::Cursor::Unavailable,
             &mut self.renderer,
-            &mut Vec::new(),
+            &mut shell::Bus::new(),
         );
 
         user_interface.draw(
@@ -479,6 +500,8 @@ impl<P: Program + 'static> Emulator<P> {
             },
             mouse::Cursor::Unavailable,
         );
+
+        self.cache = Some(user_interface.into_cache());
 
         let physical_size = Size::new(
             (self.size.width * scale_factor).round() as u32,
@@ -494,6 +517,11 @@ impl<P: Program + 'static> Emulator<P> {
             size: physical_size,
             scale_factor,
         }
+    }
+
+    /// Returns a reference to the state of the [`Emulator`].
+    pub fn state(&self) -> &P::State {
+        &self.state
     }
 
     /// Turns the [`Emulator`] into its internal state.
@@ -533,4 +561,13 @@ impl fmt::Display for Mode {
             Self::Immediate => "Immediate",
         })
     }
+}
+
+fn load_font(font: Cow<'static, [u8]>) -> Result<(), font::Error> {
+    crate::renderer::graphics::text::font_system()
+        .write()
+        .expect("Write to font system")
+        .load_font(font);
+
+    Ok(())
 }

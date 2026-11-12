@@ -35,12 +35,7 @@ pub trait Compositor: Sized {
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface(
-        &mut self,
-        window: impl Window + Clone,
-        width: u32,
-        height: u32,
-    ) -> Self::Surface;
+    fn create_surface(&mut self, window: impl Window + Clone) -> Self::Surface;
 
     /// Configures a new [`Surface`] with the given dimensions.
     ///
@@ -169,13 +164,7 @@ impl Compositor for () {
 
     fn create_renderer(&self, _settings: renderer::Settings) -> Self::Renderer {}
 
-    fn create_surface(
-        &mut self,
-        _window: impl Window + Clone,
-        _width: u32,
-        _height: u32,
-    ) -> Self::Surface {
-    }
+    fn create_surface(&mut self, _window: impl Window + Clone) -> Self::Surface {}
 
     fn configure_surface(&mut self, _surface: &mut Self::Surface, _width: u32, _height: u32) {}
 

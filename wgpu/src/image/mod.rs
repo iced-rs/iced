@@ -13,6 +13,7 @@ use crate::Buffer;
 use crate::core::border;
 use crate::core::{Rectangle, Size, Transformation};
 use crate::graphics::Shell;
+use crate::nudge;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -114,7 +115,7 @@ impl Pipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: mem::size_of::<Instance>() as u64,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &wgpu::vertex_attr_array!(
@@ -137,7 +138,7 @@ impl Pipeline {
                         // Layer
                         8 => Sint32,
                     ),
-                }],
+                })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
@@ -231,11 +232,14 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    let bounds = (*bounds * scale).round();
-                    let clip_bounds = (*clip_bounds * scale).round();
+                    // `bounds` and `clip_bounds` can have negative coordinates,
+                    // as content can be scrolled out of view; they are clipped
+                    // by the pass's scissor afterwards.
+                    let bounds = nudge::round(*bounds * scale);
+                    let clip_bounds = nudge::round(*clip_bounds * scale);
 
                     if bounds.width < 1.0 || bounds.height < 1.0 {
-                        return;
+                        continue;
                     }
 
                     if let Some((atlas_entry, bind_group)) =
@@ -280,11 +284,14 @@ impl State {
                     bounds,
                     clip_bounds,
                 } => {
-                    let bounds = (*bounds * scale).round();
-                    let clip_bounds = (*clip_bounds * scale).round();
+                    // `bounds` and `clip_bounds` can have negative coordinates,
+                    // as content can be scrolled out of view; they are clipped
+                    // by the pass's scissor afterwards.
+                    let bounds = nudge::round(*bounds * scale);
+                    let clip_bounds = nudge::round(*clip_bounds * scale);
 
                     if bounds.width < 1.0 || bounds.height < 1.0 {
-                        return;
+                        continue;
                     }
 
                     if let Some((atlas_entry, bind_group)) = cache.upload_vector(

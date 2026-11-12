@@ -1,10 +1,11 @@
 use iced::alignment;
 use iced::mouse;
 use iced::time::{self, milliseconds};
-use iced::widget::canvas::{Cache, Geometry, LineCap, Path, Stroke, stroke};
+use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container, text};
 use iced::{
-    Degrees, Element, Fill, Font, Point, Radians, Rectangle, Renderer, Size, Subscription, Theme,
+    Degrees, Fill, Font, Point, Radians, Rectangle, Renderer, Size, Subscription, Theme,
+    Widget,
 };
 
 pub fn main() -> iced::Result {
@@ -47,10 +48,10 @@ impl Clock {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let canvas = canvas(self as &Self).width(Fill).height(Fill);
 
-        container(canvas).padding(20).into()
+        container(canvas).padding(20)
     }
 
     fn subscription(&self) -> Subscription<Message> {

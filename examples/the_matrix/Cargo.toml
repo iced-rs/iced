@@ -9,5 +9,5 @@ publish = false
 iced.workspace = true
 iced.features = ["canvas", "tokio", "debug"]
 
-rand = "0.8"
+rand = "0.10"
 tracing-subscriber = "0.3"

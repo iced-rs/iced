@@ -26,6 +26,12 @@ impl Vector {
             y: self.y.round(),
         }
     }
+
+    /// Computes the logical [`Vector`] that ends up rounded
+    /// after the given `scale_factor` is applied to it.
+    pub fn hint(self, scale_factor: f32) -> Self {
+        (self * scale_factor).round() / scale_factor
+    }
 }
 
 impl<T> std::ops::Neg for Vector<T>

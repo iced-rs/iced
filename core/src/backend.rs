@@ -120,13 +120,34 @@ impl fmt::Display for Api {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Copy, Default)]
+/// The power-usage preference for graphics adapters.
+pub enum PowerPreference {
+    /// No power preference in which adapter should be chosen.
+    ///
+    /// This is the default.
+    #[default]
+    None,
+
+    /// The backend will prefer low power adapters over high performance ones.
+    LowPower,
+
+    /// The backend will prefer adapters that are high performance.
+    HighPerformance,
+}
+
 /// The settings usted to configure a [`Backend`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Settings {
     /// The graphical backend to use.
     ///
-    /// It defaults to [`Backend::Best`].
+    /// By default, it is [`Backend::Best`].
     pub backend: Backend,
+
+    /// The [`PowerPreference`] of the backend.
+    ///
+    /// By default, it is [`PowerPreference::None`].
+    pub power_preference: PowerPreference,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -149,6 +170,7 @@ impl Default for Settings {
             backend: Backend::Best,
             antialiasing: true,
             vsync: true,
+            power_preference: PowerPreference::None,
         }
     }
 }
@@ -159,6 +181,7 @@ impl From<&crate::Settings> for Settings {
             backend: settings.backend.clone(),
             antialiasing: settings.antialiasing,
             vsync: settings.vsync,
+            power_preference: settings.power_preference,
         }
     }
 }

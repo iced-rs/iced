@@ -64,7 +64,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                 let physical_size = window.inner_size();
                 let viewport = Viewport::with_physical_size(
                     Size::new(physical_size.width, physical_size.height),
-                    window.scale_factor() as f32,
+                    renderer::Scale {
+                        window: window.scale_factor() as f32,
+                        application: 1.0,
+                    },
                 );
 
                 let backend = wgpu::Backends::from_env().unwrap_or_default();
@@ -127,6 +130,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                         alpha_mode: wgpu::CompositeAlphaMode::Auto,
                         view_formats: vec![],
                         desired_maximum_frame_latency: 2,
+                        color_space: wgpu::SurfaceColorSpace::Auto,
                     },
                 );
 
@@ -208,7 +212,10 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
 
                         *viewport = Viewport::with_physical_size(
                             Size::new(size.width, size.height),
-                            window.scale_factor() as f32,
+                            renderer::Scale {
+                                window: window.scale_factor() as f32,
+                                application: 1.0,
+                            },
                         );
 
                         surface.configure(
@@ -222,6 +229,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                                 view_formats: vec![],
                                 desired_maximum_frame_latency: 2,
+                                color_space: wgpu::SurfaceColorSpace::Auto,
                             },
                         );
 
@@ -267,7 +275,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                                 )],
                                 *cursor,
                                 renderer,
-                                &mut Vec::new(),
+                                &mut shell::Bus::new(),
                             );
 
                             // Update the mouse cursor
@@ -298,7 +306,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                             renderer.present(None, frame.texture.format(), &view, viewport);
 
                             // Present the frame
-                            frame.present();
+                            queue.present(frame);
                         }
                         _ => {
                             // Try rendering again next frame.
@@ -341,7 +349,7 @@ pub fn main() -> Result<(), winit::error::EventLoopError> {
                     renderer,
                 );
 
-                let mut messages = Vec::new();
+                let mut messages = shell::Bus::new();
 
                 let _ = interface.update(window, &waker, events, *cursor, renderer, &mut messages);
 

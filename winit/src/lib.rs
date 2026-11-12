@@ -40,9 +40,10 @@ pub use proxy::Proxy;
 use crate::core::backend;
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::shell;
 use crate::core::theme;
-use crate::core::time::Instant;
-use crate::core::widget::operation;
+use crate::core::time::{Duration, Instant};
+use crate::core::widget::operation::{self, Operation};
 use crate::core::{Point, Renderer, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::channel::oneshot;
@@ -128,7 +129,7 @@ where
     let (control_sender, control_receiver) = mpsc::unbounded();
     let (system_theme_sender, system_theme_receiver) = oneshot::channel();
 
-    let instance = Box::pin(run_instance::<P>(
+    let instance: std::pin::Pin<Box<dyn Future<Output = ()>>> = Box::pin(run_instance::<P>(
         program,
         runtime,
         proxy.clone(),
@@ -144,8 +145,8 @@ where
 
     let context = task::Context::from_waker(task::noop_waker_ref());
 
-    struct Runner<Message: 'static, F> {
-        instance: std::pin::Pin<Box<F>>,
+    struct Runner<Message: 'static> {
+        instance: std::pin::Pin<Box<dyn Future<Output = ()>>>,
         context: task::Context<'static>,
         id: Option<String>,
         sender: mpsc::UnboundedSender<Event<Action<Message>>>,
@@ -172,10 +173,7 @@ where
 
     boot_span.finish();
 
-    impl<Message, F> winit::application::ApplicationHandler<Action<Message>> for Runner<Message, F>
-    where
-        F: Future<Output = ()>,
-    {
+    impl<Message> winit::application::ApplicationHandler<Action<Message>> for Runner<Message> {
         fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
             if let Some(sender) = self.system_theme.take() {
                 let _ = sender.send(
@@ -258,10 +256,7 @@ where
         }
     }
 
-    impl<Message, F> Runner<Message, F>
-    where
-        F: Future<Output = ()>,
-    {
+    impl<Message> Runner<Message> {
         fn process_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
@@ -286,9 +281,9 @@ where
                                     (
                                         ControlFlow::WaitUntil(current),
                                         ControlFlow::WaitUntil(new),
-                                    ) if current < new => {}
-                                    (ControlFlow::WaitUntil(target), ControlFlow::Wait)
-                                        if target > Instant::now() => {}
+                                    ) if current > Instant::now() && current < new => {}
+                                    (ControlFlow::WaitUntil(current), ControlFlow::Wait)
+                                        if current > Instant::now() => {}
                                     _ => {
                                         event_loop.set_control_flow(flow);
                                     }
@@ -492,7 +487,7 @@ async fn run_instance<P>(
 
     let mut compositor = None;
     let mut events = Vec::new();
-    let mut messages = Vec::new();
+    let mut messages = shell::Bus::new();
     let mut actions = 0;
 
     let mut ui_caches = FxHashMap::default();
@@ -653,8 +648,7 @@ async fn run_instance<P>(
 
                 let logical_size = window.state.logical_size();
 
-                #[cfg(feature = "hinting")]
-                window.renderer.hint(window.state.scale_factor());
+                window.renderer.hint(window.state.scale());
 
                 let _ = user_interfaces.insert(
                     id,
@@ -760,10 +754,12 @@ async fn run_instance<P>(
                             continue;
                         }
 
+                        let frame_time = Instant::now();
+
                         // Window was resized between redraws
                         if window.surface_version != window.state.surface_version() {
-                            #[cfg(feature = "hinting")]
-                            window.renderer.hint(window.state.scale_factor());
+                            window.configure_surface(current_compositor);
+                            window.reanchor(frame_time);
 
                             let ui = user_interfaces.remove(&id).expect("Remove user interface");
 
@@ -771,18 +767,11 @@ async fn run_instance<P>(
                             let _ = user_interfaces
                                 .insert(id, ui.relayout(logical_size, &mut window.renderer));
                             layout_span.finish();
-
-                            current_compositor.configure_surface(
-                                &mut window.surface,
-                                physical_size.width,
-                                physical_size.height,
-                            );
-
-                            window.surface_version = window.state.surface_version();
                         }
 
-                        let redraw_event =
-                            core::Event::Window(window::Event::RedrawRequested(Instant::now()));
+                        let redraw_event = core::Event::Window(window::Event::RedrawRequested(
+                            window.tick(frame_time),
+                        ));
 
                         let cursor = window.state.cursor();
 
@@ -803,22 +792,33 @@ async fn run_instance<P>(
                                 &mut messages,
                             );
 
-                            if message_count == messages.len() && !state.has_layout_changed() {
-                                break state;
-                            }
-
                             if redraw_count >= 2 {
                                 log::warn!(
-                                    "More than 3 consecutive RedrawRequested events \
-                                    produced layout invalidation"
+                                    "3 consecutive RedrawRequested events produced invalidation"
                                 );
 
                                 break state;
                             }
 
+                            if message_count == messages.len() {
+                                match state {
+                                    user_interface::State::Outdated => {}
+                                    user_interface::State::Updated { change, .. } => match change {
+                                        user_interface::Change::None => break state,
+                                        user_interface::Change::Overlay => {
+                                            redraw_count += 1;
+                                            continue;
+                                        }
+                                        user_interface::Change::Layout => {}
+                                    },
+                                }
+                            }
+
                             redraw_count += 1;
 
-                            if !messages.is_empty() {
+                            if !messages.is_empty()
+                                || matches!(state, user_interface::State::Outdated)
+                            {
                                 let caches: FxHashMap<_, _> =
                                     ManuallyDrop::into_inner(user_interfaces)
                                         .into_iter()
@@ -831,6 +831,7 @@ async fn run_instance<P>(
                                     &program,
                                     &mut window_manager,
                                     caches,
+                                    &mut proxy,
                                 ));
 
                                 for action in actions {
@@ -950,41 +951,41 @@ async fn run_instance<P>(
                                     // This is an unrecoverable error.
                                     panic!("{error:?}");
                                 }
-                                compositor::SurfaceError::Outdated
-                                | compositor::SurfaceError::Lost => {
-                                    present_span.finish();
-
-                                    // Reconfigure surface and try redrawing
-                                    let physical_size = window.state.physical_size();
-
-                                    if error == compositor::SurfaceError::Lost {
-                                        window.surface = current_compositor.create_surface(
-                                            window.raw.clone(),
-                                            physical_size.width,
-                                            physical_size.height,
-                                        );
-                                    } else {
-                                        current_compositor.configure_surface(
-                                            &mut window.surface,
-                                            physical_size.width,
-                                            physical_size.height,
-                                        );
-                                    }
-
-                                    window.raw.request_redraw();
-                                }
                                 compositor::SurfaceError::Occluded => {
                                     present_span.finish();
 
                                     // Do nothing and wait for window to become visible again
                                 }
-                                _ => {
+                                compositor::SurfaceError::Timeout => {
                                     present_span.finish();
 
-                                    log::error!("Error {error:?} when presenting surface.");
+                                    window.raw.request_redraw();
+                                }
+                                compositor::SurfaceError::Lost
+                                | compositor::SurfaceError::Outdated
+                                | compositor::SurfaceError::Other => {
+                                    present_span.finish();
 
-                                    // Try rendering all windows again next frame.
-                                    for (_id, window) in window_manager.iter_mut() {
+                                    // Recreate at most once a second, and do not request a redraw in
+                                    // between, so a surface that keeps failing cannot spin the loop.
+                                    let due = matches!(error, compositor::SurfaceError::Outdated)
+                                        || window
+                                            .surface_error_at
+                                            .is_none_or(|at| at.elapsed() > Duration::from_secs(1));
+
+                                    if due {
+                                        window.surface_error_at = Some(Instant::now());
+
+                                        log::warn!(
+                                            "Error {error:?} when presenting surface. Recovering it."
+                                        );
+
+                                        if matches!(error, compositor::SurfaceError::Lost) {
+                                            window.surface = current_compositor
+                                                .create_surface(window.raw.clone());
+                                        }
+
+                                        window.configure_surface(current_compositor);
                                         window.raw.request_redraw();
                                     }
                                 }
@@ -1161,6 +1162,7 @@ async fn run_instance<P>(
                                 &program,
                                 &mut window_manager,
                                 cached_interfaces,
+                                &mut proxy,
                             ));
 
                             for action in actions {
@@ -1231,7 +1233,7 @@ where
 fn update<P: Program, E: Executor>(
     program: &mut program::Instance<P>,
     runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
-    messages: &mut Vec<P::Message>,
+    messages: &mut shell::Bus<P::Message>,
 ) -> Vec<Action<P::Message>>
 where
     P::Theme: theme::Base,
@@ -1242,7 +1244,7 @@ where
     let mut outputs = Vec::new();
 
     while !messages.is_empty() {
-        for message in messages.drain(..) {
+        for (message, _receipt) in messages.drain() {
             let task = runtime.enter(|| program.update(message));
 
             if let Some(mut stream) = runtime::task::into_stream(task) {
@@ -1270,7 +1272,9 @@ where
             }
         }
 
-        messages.append(&mut outputs);
+        for output in outputs.drain(..) {
+            let _ = messages.push(output);
+        }
     }
 
     let subscription = runtime.enter(|| program.subscription());
@@ -1288,7 +1292,7 @@ fn run_action<'a, P, C>(
     runtime: &mut Runtime<P::Executor, Proxy<P::Message>, Action<P::Message>>,
     compositor: &mut Option<C>,
     events: &mut Vec<(window::Id, core::Event)>,
-    messages: &mut Vec<P::Message>,
+    messages: &mut shell::Bus<P::Message>,
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     interfaces: &mut FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>,
@@ -1309,7 +1313,7 @@ fn run_action<'a, P, C>(
 
     match action {
         Action::Output(message) => {
-            messages.push(message);
+            let _ = messages.push(message);
         }
         Action::Clipboard(action) => match action {
             clipboard::Action::Read { kind, channel } => {
@@ -1664,8 +1668,8 @@ fn run_action<'a, P, C>(
                 }
             }
             font::Action::SetDefaults { font, text_size } => {
-                renderer_settings.default_font = font;
-                renderer_settings.default_text_size = text_size;
+                renderer_settings.font = font;
+                renderer_settings.text_size = text_size;
 
                 let Some(compositor) = compositor else {
                     return;
@@ -1746,14 +1750,12 @@ fn run_action<'a, P, C>(
                 graphics::cache::invalidate_all();
 
                 window_manager.replace_with(|mut window| {
-                    let size = window.state.physical_size();
-
                     drop(window.renderer);
                     drop(window.surface);
 
                     window.renderer = new_compositor.create_renderer(*renderer_settings);
-                    window.surface =
-                        new_compositor.create_surface(window.raw.clone(), size.width, size.height);
+                    window.surface = new_compositor.create_surface(window.raw.clone());
+                    window.configure_surface(&mut new_compositor);
 
                     window
                 });
@@ -1803,16 +1805,27 @@ pub fn build_user_interfaces<'a, P: Program, C>(
     program: &'a program::Instance<P>,
     window_manager: &mut window::Manager<P, C>,
     mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
+    proxy: &mut Proxy<P::Message>,
 ) -> FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>
 where
     C: Compositor<Renderer = P::Renderer>,
     P::Theme: theme::Base,
 {
     for (id, window) in window_manager.iter_mut() {
+        let old_size = window.state.logical_size();
+
         window.state.synchronize(program, id, &window.raw);
 
-        #[cfg(feature = "hinting")]
-        window.renderer.hint(window.state.scale_factor());
+        let new_size = window.state.logical_size();
+
+        if old_size != new_size {
+            proxy.send_action(Action::Event {
+                window: id,
+                event: core::Event::Window(window::Event::Resized(new_size)),
+            });
+        }
+
+        window.renderer.hint(window.state.scale());
     }
 
     debug::theme_changed(|| {

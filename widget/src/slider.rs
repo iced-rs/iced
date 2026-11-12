@@ -3,7 +3,7 @@
 //! # Example
 //! ```no_run
 //! # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-//! # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+//! # use iced::widget::Widget;
 //! #
 //! use iced::widget::slider;
 //!
@@ -16,8 +16,8 @@
 //!     ValueChanged(f32),
 //! }
 //!
-//! fn view(state: &State) -> Element<'_, Message> {
-//!     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+//! fn view(state: &State) -> impl Widget<Message> {
+//!     slider(0.0..=100.0, state.value, Message::ValueChanged)
 //! }
 //!
 //! fn update(state: &mut State, message: Message) {
@@ -35,11 +35,12 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::touch;
+use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    self, Background, Color, Element, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Theme, Widget,
+    self, Background, Color, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Theme,
+    Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -52,10 +53,14 @@ use std::ops::RangeInclusive;
 /// The [`Slider`] range of numeric values is generic and its step size defaults
 /// to 1 unit.
 ///
+/// Note: Under the hood values are converted to/from f64 so only values representable exactly as an f64
+/// are possible to select via the slider. However it is likely that the precision of the slider at these
+/// scales is already less than the precision lost from the f64 representation.
+///
 /// # Example
 /// ```no_run
 /// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
-/// # pub type Element<'a, Message> = iced_widget::core::Element<'a, Message, iced_widget::Theme, iced_widget::Renderer>;
+/// # use iced::widget::Widget;
 /// #
 /// use iced::widget::slider;
 ///
@@ -68,8 +73,8 @@ use std::ops::RangeInclusive;
 ///     ValueChanged(f32),
 /// }
 ///
-/// fn view(state: &State) -> Element<'_, Message> {
-///     slider(0.0..=100.0, state.value, Message::ValueChanged).into()
+/// fn view(state: &State) -> impl Widget<Message> {
+///     slider(0.0..=100.0, state.value, Message::ValueChanged)
 /// }
 ///
 /// fn update(state: &mut State, message: Message) {
@@ -85,8 +90,8 @@ where
     Theme: Catalog,
 {
     range: RangeInclusive<T>,
-    step: T,
-    shift_step: Option<T>,
+    step: f64,
+    shift_step: Option<f64>,
     value: T,
     default: Option<T>,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
@@ -99,7 +104,7 @@ where
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
 where
-    T: Copy + From<u8> + PartialOrd,
+    T: Copy + PartialOrd,
     Message: Clone,
     Theme: Catalog,
 {
@@ -134,7 +139,7 @@ where
             value,
             default: None,
             range,
-            step: T::from(1),
+            step: 1.0,
             shift_step: None,
             on_change: Box::new(on_change),
             on_release: None,
@@ -177,16 +182,16 @@ where
     }
 
     /// Sets the step size of the [`Slider`].
-    pub fn step(mut self, step: impl Into<T>) -> Self {
-        self.step = step.into();
+    pub fn step(mut self, step: impl num_traits::AsPrimitive<f64>) -> Self {
+        self.step = step.as_();
         self
     }
 
     /// Sets the optional "shift" step for the [`Slider`].
     ///
     /// If set, this value is used as the step while the shift key is pressed.
-    pub fn shift_step(mut self, shift_step: impl Into<T>) -> Self {
-        self.shift_step = Some(shift_step.into());
+    pub fn shift_step(mut self, shift_step: impl num_traits::AsPrimitive<f64>) -> Self {
+        self.shift_step = Some(shift_step.as_());
         self
     }
 
@@ -209,9 +214,11 @@ where
     }
 }
 
+impl<T, Message, Theme> Meta for Slider<'_, T, Message, Theme> where Theme: Catalog {}
+
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Slider<'_, T, Message, Theme>
 where
-    T: Copy + Into<f64> + num_traits::FromPrimitive,
+    T: Copy + num_traits::AsPrimitive<f64> + num_traits::FromPrimitive,
     Message: Clone,
     Theme: Catalog,
     Renderer: core::Renderer,
@@ -227,24 +234,19 @@ where
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
-            height: Length::Shrink,
+            height: Length::Fit,
         }
     }
 
-    fn layout(
-        &mut self,
-        _tree: &mut Tree,
-        _renderer: &Renderer,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        layout::atomic(limits, self.width, self.height)
+    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+        tree.size = layout::atomic(limits, self.width, self.height);
     }
 
     fn update(
         &mut self,
         tree: &mut Tree,
         event: &Event,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         shell: &mut Shell<'_, Message>,
@@ -267,11 +269,10 @@ where
                         self.shift_step.unwrap_or(self.step)
                     } else {
                         self.step
-                    }
-                    .into();
+                    };
 
-                    let start = (*self.range.start()).into();
-                    let end = (*self.range.end()).into();
+                    let start = (*self.range.start()).as_();
+                    let end = (*self.range.end()).as_();
 
                     let percent = f64::from(cursor_position.x - bounds.x) / f64::from(bounds.width);
 
@@ -287,13 +288,12 @@ where
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
-                }
-                .into();
+                };
 
-                let steps = (value.into() / step).round();
+                let steps = (value.as_() / step).round();
                 let new_value = step * (steps + 1.0);
 
-                if new_value > (*self.range.end()).into() {
+                if new_value > (*self.range.end()).as_() {
                     return Some(*self.range.end());
                 }
 
@@ -305,13 +305,12 @@ where
                     self.shift_step.unwrap_or(self.step)
                 } else {
                     self.step
-                }
-                .into();
+                };
 
-                let steps = (value.into() / step).round();
+                let steps = (value.as_() / step).round();
                 let new_value = step * (steps - 1.0);
 
-                if new_value < (*self.range.start()).into() {
+                if new_value < (*self.range.start()).as_() {
                     return Some(*self.range.start());
                 }
 
@@ -319,7 +318,7 @@ where
             };
 
             let change = |new_value: T| {
-                if (self.value.into() - new_value.into()).abs() > f64::EPSILON {
+                if (self.value.as_() - new_value.as_()).abs() > f64::EPSILON {
                     shell.publish((self.on_change)(new_value));
 
                     self.value = new_value;
@@ -355,7 +354,7 @@ where
                 | Event::Touch(touch::Event::FingerMoved { .. })
                     if state.is_dragging =>
                 {
-                    let _ = cursor.land().position().and_then(locate).map(change);
+                    let _ = cursor.observe().position().and_then(locate).map(change);
 
                     shell.capture_event();
                 }
@@ -420,7 +419,7 @@ where
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
-        layout: Layout<'_>,
+        layout: Layout,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
@@ -436,11 +435,11 @@ where
             } => (f32::from(width), bounds.height, border_radius),
         };
 
-        let value = self.value.into() as f32;
+        let value = self.value.as_() as f32;
         let (range_start, range_end) = {
             let (start, end) = self.range.clone().into_inner();
 
-            (start.into() as f32, end.into() as f32)
+            (start.as_() as f32, end.as_() as f32)
         };
 
         let offset = if range_start >= range_end {
@@ -501,7 +500,7 @@ where
     fn mouse_interaction(
         &self,
         tree: &Tree,
-        layout: Layout<'_>,
+        layout: Layout,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
@@ -525,19 +524,6 @@ where
         } else {
             mouse::Interaction::default()
         }
-    }
-}
-
-impl<'a, T, Message, Theme, Renderer> From<Slider<'a, T, Message, Theme>>
-    for Element<'a, Message, Theme, Renderer>
-where
-    T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
-    Message: Clone + 'a,
-    Theme: Catalog + 'a,
-    Renderer: core::Renderer + 'a,
-{
-    fn from(slider: Slider<'a, T, Message, Theme>) -> Element<'a, Message, Theme, Renderer> {
-        Element::new(slider)
     }
 }
 

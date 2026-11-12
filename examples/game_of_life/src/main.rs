@@ -7,7 +7,7 @@ use preset::Preset;
 
 use iced::time::{self, milliseconds};
 use iced::widget::{button, checkbox, column, container, pick_list, row, slider, text};
-use iced::{Center, Element, Fill, Function, Subscription, Task, Theme};
+use iced::{Center, Fill, Function, Subscription, Task, Theme, Widget};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -108,7 +108,7 @@ impl GameOfLife {
         }
     }
 
-    fn view(&self) -> Element<'_, Message> {
+    fn view(&self) -> impl Widget<Message> {
         let version = self.version;
         let selected_speed = self.next_speed.unwrap_or(self.speed);
         let controls = view_controls(
@@ -119,9 +119,9 @@ impl GameOfLife {
         );
 
         let content =
-            column![self.grid.view().map(Message::Grid.with(version)), controls,].height(Fill);
+            column![self.grid.view().map(Message::Grid.with(version)), controls].height(Fill);
 
-        container(content).width(Fill).height(Fill).into()
+        container(content).width(Fill).height(Fill)
     }
 }
 
@@ -131,12 +131,12 @@ impl Default for GameOfLife {
     }
 }
 
-fn view_controls<'a>(
+fn view_controls(
     is_playing: bool,
     is_grid_enabled: bool,
     speed: usize,
     preset: Preset,
-) -> Element<'a, Message> {
+) -> impl Widget<Message> {
     let playback_controls = row![
         button(if is_playing { "Pause" } else { "Play" }).on_press(Message::TogglePlayback),
         button("Next")
@@ -171,7 +171,6 @@ fn view_controls<'a>(
     .padding(10)
     .spacing(20)
     .align_y(Center)
-    .into()
 }
 
 mod grid {
@@ -183,7 +182,7 @@ mod grid {
     use iced::widget::canvas;
     use iced::widget::canvas::{Cache, Canvas, Event, Frame, Geometry, Path, Text};
     use iced::widget::text;
-    use iced::{Color, Element, Fill, Point, Rectangle, Renderer, Size, Theme, Vector};
+    use iced::{Color, Fill, Point, Rectangle, Renderer, Size, Theme, Vector, Widget};
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::ops::RangeInclusive;
 
@@ -310,8 +309,8 @@ mod grid {
             }
         }
 
-        pub fn view(&self) -> Element<'_, Message> {
-            Canvas::new(self).width(Fill).height(Fill).into()
+        pub fn view(&self) -> impl Widget<Message> {
+            Canvas::new(self).width(Fill).height(Fill)
         }
 
         pub fn clear(&mut self) {
@@ -595,7 +594,7 @@ mod grid {
                     let columns = region.columns();
                     let (total_rows, total_columns) =
                         (rows.clone().count(), columns.clone().count());
-                    let width = 2.0 / Cell::SIZE as f32;
+                    let width = 2.0 / Cell::SIZE;
                     let color = Color::from_rgb8(70, 74, 83);
 
                     frame.translate(Vector::new(-width / 2.0, -width / 2.0));
@@ -791,11 +790,11 @@ mod grid {
     }
 
     impl Cell {
-        const SIZE: u16 = 20;
+        const SIZE: f32 = 20.0;
 
         fn at(position: Point) -> Cell {
-            let i = (position.y / Cell::SIZE as f32).ceil() as isize;
-            let j = (position.x / Cell::SIZE as f32).ceil() as isize;
+            let i = (position.y / Cell::SIZE).ceil() as isize;
+            let j = (position.x / Cell::SIZE).ceil() as isize;
 
             Cell {
                 i: i.saturating_sub(1),
@@ -826,17 +825,17 @@ mod grid {
 
     impl Region {
         fn rows(&self) -> RangeInclusive<isize> {
-            let first_row = (self.y / Cell::SIZE as f32).floor() as isize;
+            let first_row = (self.y / Cell::SIZE).floor() as isize;
 
-            let visible_rows = (self.height / Cell::SIZE as f32).ceil() as isize;
+            let visible_rows = (self.height / Cell::SIZE).ceil() as isize;
 
             first_row..=first_row + visible_rows
         }
 
         fn columns(&self) -> RangeInclusive<isize> {
-            let first_column = (self.x / Cell::SIZE as f32).floor() as isize;
+            let first_column = (self.x / Cell::SIZE).floor() as isize;
 
-            let visible_columns = (self.width / Cell::SIZE as f32).ceil() as isize;
+            let visible_columns = (self.width / Cell::SIZE).ceil() as isize;
 
             first_column..=first_column + visible_columns
         }

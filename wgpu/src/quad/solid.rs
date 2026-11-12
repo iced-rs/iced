@@ -71,11 +71,15 @@ impl Pipeline {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("iced_wgpu.quad.solid.shader"),
             source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(concat!(
+                include_str!("../shader/quad/snap.wgsl"),
+                "\n",
                 include_str!("../shader/color.wgsl"),
                 "\n",
                 include_str!("../shader/quad.wgsl"),
                 "\n",
                 include_str!("../shader/vertex.wgsl"),
+                "\n",
+                include_str!("../shader/quad/shadow.wgsl"),
                 "\n",
                 include_str!("../shader/quad/solid.wgsl"),
             ))),
@@ -87,7 +91,7 @@ impl Pipeline {
             vertex: wgpu::VertexState {
                 module: &shader,
                 entry_point: Some("solid_vs_main"),
-                buffers: &[wgpu::VertexBufferLayout {
+                buffers: &[Some(wgpu::VertexBufferLayout {
                     array_stride: std::mem::size_of::<Solid>() as u64,
                     step_mode: wgpu::VertexStepMode::Instance,
                     attributes: &wgpu::vertex_attr_array!(
@@ -112,7 +116,7 @@ impl Pipeline {
                         // Snap
                         9 => Uint32,
                     ),
-                }],
+                })],
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {

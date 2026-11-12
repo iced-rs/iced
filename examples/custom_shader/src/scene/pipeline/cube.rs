@@ -2,7 +2,6 @@ use crate::scene::pipeline::Vertex;
 use crate::wgpu;
 
 use glam::{Vec3, vec2, vec3};
-use rand::{Rng, thread_rng};
 
 /// A single instance of a cube.
 #[derive(Debug, Clone)]
@@ -28,7 +27,7 @@ impl Default for Cube {
 
 impl Cube {
     pub fn new(size: f32, origin: Vec3) -> Self {
-        let rnd = thread_rng().gen_range(0.0..=1.0f32);
+        let rnd = rand::random_range(0.0..=1.0f32);
 
         Self {
             rotation: glam::Quat::IDENTITY,
