@@ -528,10 +528,14 @@ where
 /// Wraps the given widget and captures any mouse button presses inside the bounds of
 /// the widget—effectively making it _opaque_.
 ///
-/// This helper is meant to be used to mark elements in a [`Stack`] to avoid mouse
-/// events from passing through layers.
+/// This helper is meant to be used to mark elements in a [`Stack`], or inside an
+/// overlay—like the popup of a [`Popover`]—to avoid mouse events from passing
+/// through to the elements below.
+///
+/// Use [`Opaque::capture_scroll`] to also capture scroll wheel events.
 ///
 /// [`Stack`]: crate::Stack
+/// [`Popover`]: crate::popover::Popover
 pub fn opaque<W>(content: W) -> Opaque<W> {
     Opaque::new(content)
 }

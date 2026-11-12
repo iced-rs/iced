@@ -6,13 +6,14 @@
 //! (closed), that the base is a plain element, and that the popover notifies
 //! the application through its `on_close` handler when the user clicks
 //! outside of its bounds.
+use iced_widget::core::event;
 use iced_widget::core::layout::{Layout, Limits};
 use iced_widget::core::mouse::{self, Button, Cursor};
 use iced_widget::core::shell;
 use iced_widget::core::widget::{Tree, Widget};
 use iced_widget::core::window::Headless;
 use iced_widget::core::{Event, Point, Rectangle, Size, Theme, Vector};
-use iced_widget::{button, popover, space};
+use iced_widget::{Opaque, Popover, Space, button, popover, space};
 
 type Message = u8;
 
@@ -33,9 +34,25 @@ fn press(position: Point) -> (Event, Cursor) {
     )
 }
 
+/// A scroll wheel event at the given position.
+fn scroll(position: Point) -> (Event, Cursor) {
+    (
+        Event::Mouse(mouse::Event::WheelScrolled {
+            delta: mouse::ScrollDelta::Lines { x: 0.0, y: 1.0 },
+        }),
+        Cursor::Available(position),
+    )
+}
+
 /// A popover with a 50x50 base and an 80x80 popup (when `open`), with an
 /// `on_close` handler.
 fn new_popover(open: bool) -> impl Widget<Message, Theme, ()> {
+    new_popover_element(open)
+}
+
+/// The same popover as a concrete type, so that its builder methods
+/// (e.g. `capture_scroll`) remain accessible.
+fn new_popover_element(open: bool) -> Popover<Space, Opaque<Space>, Message> {
     popover(
         space().width(50).height(50),
         open.then(|| space().width(80).height(80)),
@@ -77,14 +94,14 @@ where
 }
 
 /// Drives a single event through the (open) popover overlay and returns the
-/// bus of published messages.
+/// resulting event status and the bus of published messages.
 fn drive_overlay<W>(
     widget: &mut W,
     tree: &mut Tree,
     layout: Layout,
     event: &Event,
     cursor: Cursor,
-) -> shell::Bus<Message>
+) -> (event::Status, shell::Bus<Message>)
 where
     W: Widget<Message, Theme, ()>,
 {
@@ -103,7 +120,7 @@ where
         .as_overlay_mut()
         .update(event, cursor, &(), &mut shell);
 
-    bus
+    (shell.event_status(), bus)
 }
 
 /// Collects the messages published on the bus.
@@ -186,7 +203,7 @@ fn click_outside_requests_close() {
 
     // Press somewhere far away: outside both the base and the popover.
     let (event, cursor) = press(Point::new(900.0, 900.0));
-    let bus = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
+    let (_, bus) = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
 
     assert_eq!(
         messages(bus),
@@ -203,7 +220,7 @@ fn click_on_base_does_not_request_close() {
     // The base occupies (0, 0) .. (50, 50). Pressing it must not request a
     // close: the base is responsible for its own behavior.
     let (event, cursor) = press(Point::new(25.0, 25.0));
-    let bus = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
+    let (_, bus) = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
 
     assert!(
         messages(bus).is_empty(),
@@ -219,7 +236,7 @@ fn click_inside_does_not_request_close() {
     // The popover appears below the base (Position::Bottom), so it occupies
     // roughly (0, 50) .. (80, 130). Click a point that lies inside the popover.
     let (event, cursor) = press(Point::new(40.0, 95.0));
-    let bus = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
+    let (_, bus) = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
 
     assert!(
         messages(bus).is_empty(),
@@ -239,10 +256,56 @@ fn no_on_close_publishes_nothing() {
     let (mut tree, layout) = setup(&mut element);
 
     let (event, cursor) = press(Point::new(900.0, 900.0));
-    let bus = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
+    let (_, bus) = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
 
     assert!(
         messages(bus).is_empty(),
         "a popover without an on_close handler should publish nothing"
+    );
+}
+
+#[test]
+fn popup_button_press_is_captured_by_default() {
+    let mut element = new_popover_element(true);
+    let (mut tree, layout) = setup(&mut element);
+
+    // The popup occupies roughly (0, 50) .. (80, 130); press inside it.
+    let (event, cursor) = press(Point::new(40.0, 95.0));
+    let (status, _) = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
+
+    assert_eq!(
+        status,
+        event::Status::Captured,
+        "button presses inside the popup should be captured by default"
+    );
+}
+
+#[test]
+fn popup_wheel_scroll_is_not_captured_by_default() {
+    let mut element = new_popover_element(true);
+    let (mut tree, layout) = setup(&mut element);
+
+    let (event, cursor) = scroll(Point::new(40.0, 95.0));
+    let (status, _) = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
+
+    assert_eq!(
+        status,
+        event::Status::Ignored,
+        "scroll wheel events over the popup should not be captured by default"
+    );
+}
+
+#[test]
+fn popup_wheel_scroll_is_captured_when_capture_scroll_enabled() {
+    let mut element = new_popover_element(true).capture_scroll(true);
+    let (mut tree, layout) = setup(&mut element);
+
+    let (event, cursor) = scroll(Point::new(40.0, 95.0));
+    let (status, _) = drive_overlay(&mut element, &mut tree, layout, &event, cursor);
+
+    assert_eq!(
+        status,
+        event::Status::Captured,
+        "scroll wheel events over the popup should be captured when enabled"
     );
 }

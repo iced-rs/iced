@@ -1,10 +1,16 @@
 //! Wraps the given widget and captures any mouse button presses inside the bounds of
 //! the widget—effectively making it _opaque_.
 //!
-//! This widget is meant to be used to mark elements in a [`Stack`] to avoid mouse
-//! events from passing through layers.
+//! This widget is meant to be used to mark elements in a [`Stack`], or inside an
+//! overlay—like the popup of a [`Popover`]—to avoid mouse events from passing
+//! through to the elements below.
+//!
+//! By default, only mouse button presses are captured. Use
+//! [`Opaque::capture_scroll`] to also capture scroll wheel events, so that
+//! scrolling does not pass through to the elements below.
 //!
 //! [`Stack`]: crate::Stack
+//! [`Popover`]: crate::popover::Popover
 //!
 //! # Example
 //! ```no_run
@@ -38,10 +44,16 @@ use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector
 /// Wraps the given widget and captures any mouse button presses inside the bounds of
 /// the widget—effectively making it _opaque_.
 ///
-/// This widget is meant to be used to mark elements in a [`Stack`] to avoid mouse
-/// events from passing through layers.
+/// This widget is meant to be used to mark elements in a [`Stack`], or inside an
+/// overlay—like the popup of a [`Popover`]—to avoid mouse events from passing
+/// through to the elements below.
+///
+/// By default, only mouse button presses are captured. Use
+/// [`Self::capture_scroll`] to also capture scroll wheel events, so that
+/// scrolling does not pass through to the elements below.
 ///
 /// [`Stack`]: crate::Stack
+/// [`Popover`]: crate::popover::Popover
 ///
 /// # Example
 /// ```no_run
@@ -66,12 +78,27 @@ use crate::core::{Element, Event, Layout, Length, Rectangle, Shell, Size, Vector
 /// ```
 pub struct Opaque<W> {
     content: W,
+    capture_scroll: bool,
 }
 
 impl<W> Opaque<W> {
     /// Creates a new [`Opaque`].
     pub fn new(content: W) -> Self {
-        Opaque { content }
+        Opaque {
+            content,
+            capture_scroll: false,
+        }
+    }
+
+    /// Sets whether the scroll wheel should be captured when the cursor is
+    /// over the bounds of the [`Opaque`].
+    ///
+    /// By default, only mouse button presses are captured. Enabling this flag
+    /// also captures scroll wheel events, preventing them from passing through
+    /// to the elements below.
+    pub fn capture_scroll(mut self, capture: bool) -> Self {
+        self.capture_scroll = capture;
+        self
     }
 
     /// Returns the wrapped content.
@@ -151,11 +178,14 @@ where
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
         let is_mouse_press = matches!(event, Event::Mouse(mouse::Event::ButtonPressed(_)));
+        let is_wheel_scroll = matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }));
 
         self.content
             .update(tree, event, layout, cursor, renderer, shell, viewport);
 
-        if is_mouse_press && cursor.is_over(layout.bounds()) {
+        if (is_mouse_press || (self.capture_scroll && is_wheel_scroll))
+            && cursor.is_over(layout.bounds())
+        {
             shell.capture_event();
         }
     }

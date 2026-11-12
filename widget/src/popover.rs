@@ -10,12 +10,14 @@
 //! application decides to set the `popover` argument to `None` (i.e. to close
 //! it).
 //!
-//! The popover's overlay does not capture mouse events on its own: unless
-//! the popup's content handles them, events pass through the popup to the
-//! layers below. If you want to capture mouse button presses inside the
-//! popup's bounds, wrap the popup's content in [`opaque()`].
+//! The [`popover()`] helper wraps the popup in [`opaque()`], so mouse button
+//! presses inside the popup's bounds are captured and do not pass through to
+//! the elements below. Use [`Popover::passthrough`] to let them fall through
+//! to the base layer, and [`Popover::capture_scroll`] to also capture scroll
+//! wheel events over the popup.
 //!
 //! [`tooltip`]: crate::tooltip::Tooltip
+//! [`popover()`]: crate::popover()
 //! [`opaque()`]: crate::opaque()
 //!
 //! # Example
@@ -63,11 +65,13 @@ use crate::core::{Event, Length, Pixels, Point, Rectangle, Shell, Size, Vector};
 /// When the user clicks outside of the popover's bounds, the popover notifies
 /// the application through its `on_close` handler.
 ///
-/// The popover's overlay does not capture mouse events on its own: unless
-/// the popup's content handles them, events pass through the popup to the
-/// layers below. If you want to capture mouse button presses inside the
-/// popup's bounds, wrap the popup's content in [`opaque()`].
+/// The [`popover()`] helper wraps the popup in [`opaque()`], so mouse button
+/// presses inside the popup's bounds are captured and do not pass through to
+/// the elements below. Use [`Self::passthrough`] to let them fall through to
+/// the base layer, and [`Self::capture_scroll`] to also capture scroll wheel
+/// events over the popup.
 ///
+/// [`popover()`]: crate::popover()
 /// [`opaque()`]: crate::opaque()
 ///
 /// # Example
@@ -173,6 +177,20 @@ impl<W, V, Message> Popover<W, Opaque<V>, Message> {
             snap_within_viewport: self.snap_within_viewport,
             on_close: self.on_close,
         }
+    }
+
+    /// Sets whether the scroll wheel should be captured when the cursor is
+    /// over the bounds of the popup.
+    ///
+    /// By default, only mouse button presses are captured. Enabling this flag
+    /// also captures scroll wheel events, preventing them from passing through
+    /// to the elements below.
+    pub fn capture_scroll(mut self, capture: bool) -> Self {
+        self.popup = self
+            .popup
+            .take()
+            .map(|popup| Opaque::new(popup.into_inner()).capture_scroll(capture));
+        self
     }
 }
 
