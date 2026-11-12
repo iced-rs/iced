@@ -73,20 +73,6 @@ pub fn window_attributes(
         });
     }
 
-    #[cfg(any(
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd",
-        target_os = "openbsd"
-    ))]
-    {
-        use ::winit::platform::wayland::WindowAttributesExtWayland;
-
-        if let Some(id) = _id {
-            attributes = attributes.with_name(id.clone(), id);
-        }
-    }
-
     #[cfg(target_os = "windows")]
     {
         use window::settings::platform;
@@ -118,28 +104,41 @@ pub fn window_attributes(
             .with_fullsize_content_view(settings.platform_specific.fullsize_content_view);
     }
 
-    #[cfg(target_os = "linux")]
+    // Gates replicated from winit
+    #[cfg(all(
+        feature = "x11",
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten"),
+        not(target_os = "redox")
+    ))]
     {
-        #[cfg(feature = "x11")]
-        {
-            use winit::platform::x11::WindowAttributesExtX11;
+        use winit::platform::x11::WindowAttributesExtX11;
 
-            attributes = attributes
-                .with_override_redirect(settings.platform_specific.override_redirect)
-                .with_name(
-                    &settings.platform_specific.application_id,
-                    &settings.platform_specific.application_id,
-                );
-        }
-        #[cfg(feature = "wayland")]
-        {
-            use winit::platform::wayland::WindowAttributesExtWayland;
-
-            attributes = attributes.with_name(
+        attributes = attributes
+            .with_override_redirect(settings.platform_specific.override_redirect)
+            .with_name(
                 &settings.platform_specific.application_id,
                 &settings.platform_specific.application_id,
             );
-        }
+    }
+
+    #[cfg(all(
+        feature = "wayland",
+        unix,
+        not(target_vendor = "apple"),
+        not(target_os = "android"),
+        not(target_os = "emscripten"),
+        not(target_os = "redox")
+    ))]
+    {
+        use winit::platform::wayland::WindowAttributesExtWayland;
+
+        attributes = attributes.with_name(
+            &settings.platform_specific.application_id,
+            &settings.platform_specific.application_id,
+        );
     }
 
     attributes

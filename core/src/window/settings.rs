@@ -7,8 +7,18 @@ pub mod platform;
 #[path = "settings/macos.rs"]
 mod platform;
 
-#[cfg(target_os = "linux")]
-#[path = "settings/linux.rs"]
+#[cfg(all(
+    unix,
+    not(any(
+        target_arch = "wasm32",
+        target_os = "android",
+        target_os = "emscripten",
+        target_os = "macos",
+        target_os = "redox",
+        target_vendor = "apple"
+    )),
+))]
+#[path = "settings/unix.rs"]
 mod platform;
 
 #[cfg(target_arch = "wasm32")]
@@ -16,10 +26,18 @@ mod platform;
 mod platform;
 
 #[cfg(not(any(
-    target_os = "windows",
+    target_arch = "wasm32",
     target_os = "macos",
-    target_os = "linux",
-    target_arch = "wasm32"
+    target_os = "windows",
+    all(
+        unix,
+        not(any(
+            target_os = "android",
+            target_os = "emscripten",
+            target_os = "redox",
+            target_vendor = "apple",
+        ))
+    )
 )))]
 #[path = "settings/other.rs"]
 mod platform;
