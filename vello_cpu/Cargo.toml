@@ -34,7 +34,6 @@ log.workspace = true
 rustc-hash.workspace = true
 softbuffer.workspace = true
 vello_cpu.workspace = true
-vello_common.workspace = true
 
 resvg.workspace = true
 resvg.optional = true

@@ -82,13 +82,13 @@ impl Renderer {
 
                 if shadow.color.a > 0.0 {
                     renderer.set_filter_effect(
-                        vello_common::filter_effects::Filter::from_primitive(
-                            vello_common::filter_effects::FilterPrimitive::DropShadow {
+                        vello_cpu::filter_effects::Filter::from_primitive(
+                            vello_cpu::filter_effects::FilterPrimitive::DropShadow {
                                 dx: shadow.offset.x,
                                 dy: shadow.offset.y,
                                 std_deviation: shadow.blur_radius,
                                 color: into_color(shadow.color),
-                                edge_mode: vello_common::filter_effects::EdgeMode::None,
+                                edge_mode: vello_cpu::filter_effects::EdgeMode::None,
                             },
                         ),
                     );
@@ -169,7 +169,7 @@ impl Renderer {
                 }
 
                 renderer.reset_transform();
-                renderer.pop_clip_path();
+                renderer.pop_clip();
             }
 
             for image in &layer.images {
@@ -188,7 +188,7 @@ impl Renderer {
                         self.raster
                             .draw(image, *bounds, renderer, viewport.scale_factor());
 
-                        renderer.pop_clip_path();
+                        renderer.pop_clip();
                     }
                     #[cfg(feature = "svg")]
                     iced_graphics::Image::Vector {
@@ -203,7 +203,7 @@ impl Renderer {
                         self.vector
                             .draw(svg, *bounds, renderer, viewport.scale_factor());
 
-                        renderer.pop_clip_path();
+                        renderer.pop_clip();
                     }
                     #[cfg(not(feature = "image"))]
                     iced_graphics::Image::Raster { .. } => {}
@@ -237,7 +237,7 @@ impl Renderer {
                                 transformation,
                             );
 
-                            renderer.pop_clip_path();
+                            renderer.pop_clip();
                         }
                         Text::Editor {
                             editor,
@@ -261,7 +261,7 @@ impl Renderer {
                                 transformation,
                             );
 
-                            renderer.pop_clip_path();
+                            renderer.pop_clip();
                         }
                         Text::Cached {
                             content,
@@ -304,7 +304,7 @@ impl Renderer {
                                 transformation,
                             );
 
-                            renderer.pop_clip_path();
+                            renderer.pop_clip();
                         }
                         Text::Raw {
                             raw,
@@ -339,13 +339,13 @@ impl Renderer {
                                 transformation,
                             );
 
-                            renderer.pop_clip_path();
+                            renderer.pop_clip();
                         }
                     }
                 }
             }
 
-            renderer.pop_clip_path();
+            renderer.pop_clip();
         }
 
         self.text.trim_cache();
@@ -692,13 +692,14 @@ impl graphics::Compositor for Compositor {
         renderer.draw(&mut surface.renderer, viewport, background_color);
         surface.renderer.flush();
 
-        surface.renderer.render_to_buffer(
-            &mut surface.resources,
-            bytemuck::cast_slice_mut(&mut buffer),
+        let pixmap = vello_cpu::PixmapMut::new(
             surface.renderer.width(),
             surface.renderer.height(),
-            vello_cpu::RenderMode::OptimizeSpeed,
-        );
+            bytemuck::cast_slice_mut(&mut buffer),
+        )
+        .expect("Buffer size matches renderer dimensions");
+
+        surface.renderer.render(pixmap, &mut surface.resources);
 
         on_pre_present();
         buffer.present().map_err(|_| compositor::SurfaceError::Lost)
@@ -763,13 +764,14 @@ fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Co
     let mut screenshot =
         vec![0; (viewport.physical_width() * viewport.physical_height()) as usize * 4];
 
-    vello.render_to_buffer(
-        &mut vello_cpu::Resources::new(),
-        &mut screenshot,
+    let pixmap = vello_cpu::PixmapMut::new(
         viewport.physical_width() as u16,
         viewport.physical_height() as u16,
-        vello_cpu::RenderMode::OptimizeQuality,
-    );
+        &mut screenshot,
+    )
+    .expect("Screenshot buffer size matches viewport dimensions");
+
+    vello.render(pixmap, &mut vello_cpu::Resources::new());
 
     for i in 0..screenshot.len() / 4 {
         screenshot.swap(i * 4, i * 4 + 2);
