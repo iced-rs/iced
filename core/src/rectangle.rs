@@ -192,7 +192,7 @@ impl Rectangle<f32> {
     }
 
     /// Computes the intersection with the given [`Rectangle`].
-    pub fn intersection(&self, other: &Rectangle<f32>) -> Option<Rectangle<f32>> {
+    pub fn intersection(&self, other: &Rectangle) -> Option<Rectangle> {
         let x = self.x.max(other.x);
         let y = self.y.max(other.y);
 
@@ -255,15 +255,30 @@ impl Rectangle<f32> {
     pub fn snap(self) -> Option<Rectangle<u32>> {
         let rounded = self.round();
 
-        if rounded.width < 1.0 || rounded.height < 1.0 {
+        let x = rounded.x as u32;
+        let y = rounded.y as u32;
+
+        let width = if rounded.x < 0.0 {
+            rounded.width + rounded.x
+        } else {
+            rounded.width
+        } as u32;
+
+        let height = if rounded.y < 0.0 {
+            rounded.height + rounded.y
+        } else {
+            rounded.height
+        } as u32;
+
+        if width < 1 || height < 1 {
             return None;
         }
 
         Some(Rectangle {
-            x: rounded.x as u32,
-            y: rounded.y as u32,
-            width: rounded.width as u32,
-            height: rounded.height as u32,
+            x,
+            y,
+            width,
+            height,
         })
     }
 

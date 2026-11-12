@@ -714,9 +714,6 @@ impl graphics::Compositor for Compositor {
             .buffer_mut()
             .map_err(|_| compositor::SurfaceError::Lost)?;
 
-        // Identify the last frame drawn into this particular back buffer, if any.
-        // The buffer age tells us how many frames ago it was presented, so the
-        // matching history entry is `age - 1` frames back.
         let last_frame = {
             let age = buffer.age();
 
@@ -730,8 +727,6 @@ impl graphics::Compositor for Compositor {
             }
         };
 
-        // Determine the damage against that frame. Fall back to full damage when
-        // the background changed or there is no history for this buffer.
         let damage = last_frame
             .and_then(|last_frame| {
                 (last_frame.background == background_color).then(|| {
@@ -745,9 +740,6 @@ impl graphics::Compositor for Compositor {
             })
             .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
 
-        // Unchanged scene: skip scene construction and rasterization entirely
-        // and just re-present the existing buffer. The frame must still be
-        // re-pushed so queue indices stay aligned with buffer ages.
         if damage.is_empty() {
             if let Some(last_frame) = last_frame {
                 surface.frames.push_front(last_frame.clone());
@@ -779,10 +771,8 @@ impl graphics::Compositor for Compositor {
             return buffer.present().map_err(|_| compositor::SurfaceError::Lost);
         }
 
-        // Opaque window: clip the scene to the damaged regions and rasterize
-        // with `SrcOver` so undamaged pixels are preserved.
         let damage = graphics::damage::group(damage, Rectangle::with_size(viewport.logical_size()));
-        let physical = physical_damage(&damage, viewport);
+        let physical: Vec<_> = physical_damage(&damage, viewport).collect();
 
         draw_to_buffer(
             renderer,
@@ -796,7 +786,6 @@ impl graphics::Compositor for Compositor {
 
         on_pre_present();
 
-        // Report the actually-drawn (physical) regions to the compositor.
         buffer
             .present_with_damage(&physical)
             .map_err(|_| compositor::SurfaceError::Lost)
@@ -924,34 +913,33 @@ fn draw_to_buffer(
     }
 }
 
-/// Converts logical damage regions into the physical rectangles reported to the
-/// compositor, clamped to the viewport and with zero-area regions dropped.
-fn physical_damage(damage: &[Rectangle], viewport: &Viewport) -> Vec<softbuffer::Rect> {
+fn physical_damage(
+    damage: &[Rectangle],
+    viewport: &Viewport,
+) -> impl Iterator<Item = softbuffer::Rect> {
     let scale = viewport.scale_factor();
-    let width = viewport.physical_width() as f32;
-    let height = viewport.physical_height() as f32;
+    let Size { width, height } = viewport.physical_size();
 
     damage
         .iter()
-        .map(|region| *region * scale)
-        .filter_map(|region| {
-            let region = region.expand(2.0);
-            let x0 = region.x.round().clamp(0.0, width) as u32;
-            let y0 = region.y.round().clamp(0.0, height) as u32;
-            let x1 = (region.x + region.width).round().clamp(x0 as f32, width) as u32;
-            let y1 = (region.y + region.height).round().clamp(y0 as f32, height) as u32;
+        .map(move |region| *region * scale)
+        .filter_map(move |region| {
+            let region = region.expand(2).snap()?;
+            let left = region.x.min(width);
+            let top = region.y.min(height);
+            let right = (region.x + region.width).min(width);
+            let bottom = (region.y + region.height).min(height);
 
-            match (NonZeroU32::new(x1 - x0), NonZeroU32::new(y1 - y0)) {
+            match (NonZeroU32::new(right - left), NonZeroU32::new(bottom - top)) {
                 (Some(width), Some(height)) => Some(softbuffer::Rect {
-                    x: x0,
-                    y: y0,
+                    x: left,
+                    y: top,
                     width,
                     height,
                 }),
                 _ => None,
             }
         })
-        .collect()
 }
 
 fn screenshot(renderer: &mut Renderer, viewport: &Viewport, background_color: Color) -> Vec<u8> {
@@ -1075,7 +1063,7 @@ mod damage_clip {
             width: 50.0,
             height: 50.0,
         }];
-        let regions = physical_damage(&damage, &viewport);
+        let regions: Vec<_> = physical_damage(&damage, &viewport).collect();
 
         draw_to_buffer(
             &mut scene(),
@@ -1126,9 +1114,8 @@ mod damage_clip {
             },
         );
 
-        fn as_tuple(rects: &[softbuffer::Rect]) -> Vec<(u32, u32, u32, u32)> {
+        fn as_tuple(rects: impl Iterator<Item = softbuffer::Rect>) -> Vec<(u32, u32, u32, u32)> {
             rects
-                .iter()
                 .map(|r| (r.x, r.y, r.width.get(), r.height.get()))
                 .collect()
         }
@@ -1142,7 +1129,7 @@ mod damage_clip {
             height: 20.0,
         }];
         assert_eq!(
-            as_tuple(&physical_damage(&damage, &viewport)),
+            as_tuple(physical_damage(&damage, &viewport)),
             vec![(18, 18, 44, 44)]
         );
 
@@ -1155,7 +1142,7 @@ mod damage_clip {
             height: 5.0,
         }];
         assert_eq!(
-            as_tuple(&physical_damage(&damage, &viewport)),
+            as_tuple(physical_damage(&damage, &viewport)),
             vec![(0, 0, 12, 12)]
         );
 
@@ -1167,7 +1154,7 @@ mod damage_clip {
             height: 20.0,
         }];
         assert_eq!(
-            as_tuple(&physical_damage(&damage, &viewport)),
+            as_tuple(physical_damage(&damage, &viewport)),
             vec![(88, 88, 12, 12)]
         );
 
@@ -1178,6 +1165,6 @@ mod damage_clip {
             width: 10.0,
             height: 10.0,
         }];
-        assert!(physical_damage(&damage, &viewport).is_empty());
+        assert_eq!(physical_damage(&damage, &viewport).count(), 0);
     }
 }
