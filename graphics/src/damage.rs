@@ -1,5 +1,6 @@
 //! Compute the damage between frames.
-use crate::core::{Point, Rectangle};
+use crate::Viewport;
+use crate::core::{Point, Rectangle, Size};
 
 /// Diffs the damage regions given some previous and current primitives.
 pub fn diff<T>(
@@ -44,7 +45,7 @@ pub fn list<T>(
 
 /// Groups the given damage regions that are close together inside the given
 /// bounds.
-pub fn group(mut damage: Vec<Rectangle>, bounds: Rectangle) -> Vec<Rectangle> {
+pub fn group(mut damage: Vec<Rectangle>, bounds: Rectangle) -> impl Iterator<Item = Rectangle> {
     const AREA_THRESHOLD: f32 = 20_000.0;
 
     damage.sort_by(|a, b| {
@@ -53,26 +54,47 @@ pub fn group(mut damage: Vec<Rectangle>, bounds: Rectangle) -> Vec<Rectangle> {
             .total_cmp(&b.center().distance(Point::ORIGIN))
     });
 
-    let mut output = Vec::new();
     let mut scaled = damage
         .into_iter()
-        .filter_map(|region| region.intersection(&bounds))
-        .filter(|region| region.width >= 1.0 && region.height >= 1.0);
+        .filter_map(move |region| region.intersection(&bounds))
+        .filter(|region| region.width >= 1.0 && region.height >= 1.0)
+        .peekable();
 
-    if let Some(mut current) = scaled.next() {
-        for region in scaled {
+    let mut group = scaled.next();
+
+    std::iter::from_fn(move || {
+        loop {
+            let Some(region) = scaled.next() else {
+                return group.take();
+            };
+
+            let current = group?;
             let union = current.union(&region);
 
             if union.area() - current.area() - region.area() <= AREA_THRESHOLD {
-                current = union;
+                group = Some(union);
             } else {
-                output.push(current);
-                current = region;
+                group = Some(region);
+                return Some(current);
             }
         }
+    })
+}
 
-        output.push(current);
-    }
+/// Converts logical damage into physical screen damage.
+pub fn physical(
+    damage: impl IntoIterator<Item = Rectangle>,
+    viewport: &Viewport,
+) -> impl Iterator<Item = Rectangle<u32>> {
+    let scale = viewport.scale_factor();
+    let viewport = Rectangle::with_size(Size::new(
+        viewport.physical_width() as f32,
+        viewport.physical_width() as f32,
+    ));
 
-    output
+    damage
+        .into_iter()
+        .map(move |region| region * scale)
+        .filter_map(move |region| region.expand(2).intersection(&viewport))
+        .filter_map(Rectangle::snap)
 }
