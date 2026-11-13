@@ -12,7 +12,6 @@ pub struct Compositor {
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     format: wgpu::TextureFormat,
-    alpha_mode: wgpu::CompositeAlphaMode,
     engine: Engine,
     settings: Settings,
 }
@@ -102,7 +101,7 @@ impl Compositor {
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
-        let (format, alpha_mode) = compatible_surface
+        let format = compatible_surface
             .as_ref()
             .and_then(|surface| {
                 let capabilities = surface.get_capabilities(&adapter);
@@ -134,22 +133,13 @@ impl Compositor {
                     capabilities.formats.first().copied()
                 });
 
-                let alpha_modes = capabilities.alpha_modes;
+                log::info!("Available alpha modes: {:#?}", capabilities.alpha_modes);
 
-                log::info!("Available alpha modes: {alpha_modes:#?}");
-
-                let preferred_alpha =
-                    if alpha_modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
-                        wgpu::CompositeAlphaMode::PreMultiplied
-                    } else {
-                        wgpu::CompositeAlphaMode::Auto
-                    };
-
-                format.zip(Some(preferred_alpha))
+                format
             })
             .ok_or(Error::IncompatibleSurface)?;
 
-        log::info!("Selected format: {format:?} with alpha mode: {alpha_mode:?}");
+        log::info!("Selected format: {format:?}");
 
         #[cfg(target_arch = "wasm32")]
         let limits = [wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())];
@@ -201,7 +191,6 @@ impl Compositor {
                         instance,
                         adapter,
                         format,
-                        alpha_mode,
                         engine,
                         settings,
                     });
@@ -224,6 +213,19 @@ pub async fn new(
     shell: Shell,
 ) -> Result<Compositor, Error> {
     Compositor::request(settings, display, compatible_window, shell).await
+}
+
+/// Chooses the alpha mode for a surface out of the ones it supports right now.
+///
+/// The supported alpha modes of a surface can change during its lifetime (e.g. some
+/// Vulkan drivers on Windows stop offering `PreMultiplied` after the window is resized
+/// or restored), so this must be called every time the surface is configured.
+fn alpha_mode(supported: &[wgpu::CompositeAlphaMode]) -> wgpu::CompositeAlphaMode {
+    if supported.contains(&wgpu::CompositeAlphaMode::PreMultiplied) {
+        wgpu::CompositeAlphaMode::PreMultiplied
+    } else {
+        wgpu::CompositeAlphaMode::Auto
+    }
 }
 
 /// Presents the given primitives with the given [`Compositor`].
@@ -306,6 +308,11 @@ impl graphics::Compositor for Compositor {
     }
 
     fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
+        let capabilities = surface.get_capabilities(&self.adapter);
+        let alpha_mode = alpha_mode(&capabilities.alpha_modes);
+
+        log::debug!("Configuring surface ({width}x{height}) with alpha mode: {alpha_mode:?}");
+
         surface.configure(
             &self.engine.device,
             &wgpu::SurfaceConfiguration {
@@ -314,7 +321,7 @@ impl graphics::Compositor for Compositor {
                 present_mode: self.settings.present_mode,
                 width,
                 height,
-                alpha_mode: self.alpha_mode,
+                alpha_mode,
                 view_formats: vec![],
                 desired_maximum_frame_latency: 1,
                 color_space: wgpu::SurfaceColorSpace::Auto,
