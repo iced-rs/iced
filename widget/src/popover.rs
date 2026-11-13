@@ -218,24 +218,15 @@ where
         // (if any) is no longer valid
         tree.state.downcast_mut::<State>().needs_relayout = true;
 
-        match self.popup.as_mut() {
-            Some(popup) => {
-                if tree.children.len() != 2 {
-                    tree.children =
-                        vec![widget::Tree::new(&self.content), widget::Tree::new(popup)];
-                }
-
-                tree.children[0].diff(&mut self.content);
-                tree.children[1].diff(popup);
-            }
-            None => {
-                if tree.children.len() != 1 {
-                    tree.children = vec![widget::Tree::new(&self.content)];
-                }
-
-                tree.children[0].diff(&mut self.content);
-            }
+        if tree.children.len() != 2 {
+            tree.children = vec![
+                widget::Tree::new(&self.content),
+                widget::Tree::new(&self.popup),
+            ];
         }
+
+        tree.children[0].diff(&mut self.content);
+        tree.children[1].diff(&mut self.popup);
     }
 
     fn size(&self) -> Size<Length> {
