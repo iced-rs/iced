@@ -600,18 +600,25 @@ where
             };
 
             if is_selected {
-                renderer.fill_quad(
-                    renderer::Quad {
-                        bounds: Rectangle {
-                            x: bounds.x + style.border.width,
-                            width: bounds.width - style.border.width * 2.0,
-                            ..bounds
+                let highlight = Rectangle {
+                    x: bounds.x + style.border.width,
+                    width: bounds.width - style.border.width * 2.0,
+                    ..bounds
+                };
+
+                // Keep the highlight inside the top and bottom borders of the menu
+                let inner = viewport.shrink(Padding::ZERO.vertical(style.border.width));
+
+                if let Some(highlight) = highlight.intersection(&inner) {
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: highlight,
+                            border: border::rounded(style.border.radius),
+                            ..renderer::Quad::default()
                         },
-                        border: border::rounded(style.border.radius),
-                        ..renderer::Quad::default()
-                    },
-                    style.selected_background,
-                );
+                        style.selected_background,
+                    );
+                }
             }
 
             renderer.fill_text(
