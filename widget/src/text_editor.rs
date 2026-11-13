@@ -409,11 +409,13 @@ where
         ) {
             match update {
                 editor::Update::Action(action) => {
+                    shell.capture_event();
                     shell.publish(on_edit(action));
                     shell.capture_event();
                 }
                 editor::Update::Release => {}
                 editor::Update::Custom(message) => {
+                    shell.capture_event();
                     shell.publish(message);
                     shell.capture_event();
                 }
@@ -423,17 +425,23 @@ where
                     }
                 }
                 editor::Update::Copy(content) => {
+                    shell.capture_event();
                     shell.write_clipboard(clipboard::Content::Text(content));
                     shell.capture_event();
                 }
                 editor::Update::Paste => {
+                    shell.capture_event();
                     shell.read_clipboard(clipboard::Kind::Text);
                     shell.capture_event();
                 }
                 editor::Update::RedrawAt(at) => {
                     shell.request_redraw_at(at);
                 }
-                editor::Update::Focus | editor::Update::Unfocus | editor::Update::InputMethod => {
+                editor::Update::Focus | editor::Update::InputMethod => {
+                    shell.capture_event();
+                    shell.request_redraw();
+                }
+                editor::Update::Unfocus => {
                     shell.request_redraw();
                 }
             }
