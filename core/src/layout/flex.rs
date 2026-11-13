@@ -19,7 +19,7 @@
 use crate::layout::{Limits, Vector};
 use crate::length;
 use crate::widget;
-use crate::{Alignment, Length, Padding, Size, Widget};
+use crate::{Alignment, Direction, Length, Padding, Size, Widget};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -103,6 +103,7 @@ pub fn resolve<Message, Theme, Renderer>(
     children: &mut [widget::Tree],
     items: &mut [impl Widget<Message, Theme, Renderer>],
     cache: &mut Cache,
+    direction: Direction,
 ) -> Size {
     let limits = limits.width(width).height(height).shrink(padding);
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;
@@ -213,7 +214,7 @@ pub fn resolve<Message, Theme, Renderer>(
             infinite,
         );
 
-        child.layout(&mut children[i], renderer, &child_limits);
+        child.layout(&mut children[i], renderer, &child_limits, direction);
 
         let size = children[i].size;
 
@@ -249,7 +250,7 @@ pub fn resolve<Message, Theme, Renderer>(
                 cross_infinite,
             );
 
-            child.layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits, direction);
 
             let size = children[i].size;
 
@@ -363,7 +364,7 @@ pub fn resolve<Message, Theme, Renderer>(
                 infinite,
             );
 
-            child.layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits, direction);
 
             let size = children[i].size;
 
@@ -426,7 +427,7 @@ pub fn resolve<Message, Theme, Renderer>(
                 infinite,
             );
 
-            child.layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits, direction);
 
             let size = children[i].size;
             cross = cross.max(axis.cross(size));
@@ -454,7 +455,7 @@ pub fn resolve<Message, Theme, Renderer>(
                 cross_infinite,
             );
 
-            child.layout(&mut children[i], renderer, &child_limits);
+            child.layout(&mut children[i], renderer, &child_limits, direction);
 
             let size = children[i].size;
             cross = cross.max(axis.cross(size));
@@ -502,5 +503,16 @@ pub fn resolve<Message, Theme, Renderer>(
         Axis::Vertical => limits.resolve_height(height, main - pad.0),
     };
 
-    Size::from(axis.pack(main, cross)).expand(padding)
+    let size = Size::from(axis.pack(main, cross)).expand(padding);
+
+    // Mirror child positions horizontally for RTL layouts.
+    // For Row (Horizontal): reverses visual order of children.
+    // For Column (Vertical): right-aligns all children.
+    if direction == Direction::RightToLeft {
+        for tree in children.iter_mut() {
+            tree.translation.x = size.width - tree.translation.x - tree.size.width;
+        }
+    }
+
+    size
 }

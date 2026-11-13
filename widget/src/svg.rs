@@ -15,6 +15,7 @@
 //!     svg("tiger.svg")
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -164,7 +165,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         // The raw w/h of the underlying image
         let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);

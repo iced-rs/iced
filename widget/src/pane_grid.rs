@@ -397,7 +397,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: crate::core::Direction,
+    ) {
         let bounds = limits.resolve(self.width, self.height, Size::ZERO);
         let regions = self
             .internal
@@ -426,7 +432,7 @@ where
 
             let size = Size::new(region.width, region.height);
 
-            content.layout(child, renderer, &layout::Limits::new(size, size));
+            content.layout(child, renderer, &layout::Limits::new(size, size), direction);
 
             child.translation = Vector::new(region.x, region.y);
         }
@@ -891,6 +897,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: crate::core::Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<Memory>();
         let picked_pane = state.action.picked_pane();
@@ -920,7 +927,15 @@ where
                     }))];
                 }
 
-                content.overlay(tree, layout, renderer, viewport, translation, window)
+                content.overlay(
+                    tree,
+                    layout,
+                    renderer,
+                    viewport,
+                    translation,
+                    window,
+                    direction,
+                )
             })
             .collect()
     }

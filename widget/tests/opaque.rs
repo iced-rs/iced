@@ -60,7 +60,12 @@ where
     let mut tree = Tree::new(widget);
 
     widget.diff(&mut tree);
-    widget.layout(&mut tree, &(), &Limits::new(Size::ZERO, VIEWPORT));
+    widget.layout(
+        &mut tree,
+        &(),
+        &Limits::new(Size::ZERO, VIEWPORT),
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     let layout = Layout::new(tree.size);
 
@@ -105,7 +110,13 @@ impl Widget<Message, Theme, ()> for WheelSpy {
         Size::new(Length::Fixed(50.0), Length::Fixed(50.0))
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &(), limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &(),
+        limits: &layout::Limits,
+        _direction: iced_widget::core::Direction,
+    ) {
         tree.size = layout::atomic(limits, 50, 50);
     }
 

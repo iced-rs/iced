@@ -19,6 +19,7 @@
 //!     progress_bar(0.0..=100.0, state.progress)
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
@@ -58,6 +59,7 @@ where
     length: Length,
     girth: Length,
     is_vertical: bool,
+    direction: Direction,
     class: Theme::Class<'a>,
 }
 
@@ -80,6 +82,7 @@ where
             length: Length::Fill,
             girth: Length::from(Self::DEFAULT_GIRTH),
             is_vertical: false,
+            direction: Direction::default(),
             class: Theme::default(),
         }
     }
@@ -153,7 +156,14 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.direction = direction;
         tree.size = layout::atomic(limits, self.width(), self.height());
     }
 
@@ -198,6 +208,12 @@ where
                 Rectangle {
                     y: bounds.y + bounds.height - active_progress_length,
                     height: active_progress_length,
+                    ..bounds
+                }
+            } else if matches!(self.direction, Direction::RightToLeft) {
+                Rectangle {
+                    x: bounds.x + bounds.width - active_progress_length,
+                    width: active_progress_length,
                     ..bounds
                 }
             } else {

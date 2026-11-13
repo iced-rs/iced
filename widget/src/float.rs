@@ -1,5 +1,6 @@
 //! Make elements float!
 use crate::core;
+use crate::core::Direction;
 use crate::core::border;
 use crate::core::layout;
 use crate::core::mouse;
@@ -103,8 +104,14 @@ where
         self.content.size()
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.layout(tree, renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.content.layout(tree, renderer, limits, direction);
     }
 
     fn update(
@@ -195,6 +202,7 @@ where
         viewport: &Rectangle,
         offset: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         let bounds = layout.bounds();
 
@@ -222,11 +230,12 @@ where
                 layout,
                 viewport: *viewport + offset,
                 window,
+                direction,
                 transformation,
             }))]
         } else {
             self.content
-                .overlay(state, layout, renderer, viewport, offset, window)
+                .overlay(state, layout, renderer, viewport, offset, window, direction)
         }
     }
 }
@@ -240,6 +249,7 @@ where
     layout: Layout,
     viewport: Rectangle,
     window: Size,
+    direction: Direction,
     transformation: Transformation,
 }
 
@@ -344,6 +354,7 @@ where
             &(self.viewport * self.transformation.inverse()),
             self.transformation.translation(),
             self.window,
+            self.direction,
         )
     }
 }

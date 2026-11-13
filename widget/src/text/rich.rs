@@ -1,3 +1,4 @@
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::border;
 use crate::core::layout;
@@ -241,7 +242,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = layout(
             tree.state
                 .downcast_mut::<State<Link, Renderer::Paragraph>>(),

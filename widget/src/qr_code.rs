@@ -22,6 +22,7 @@
 //! ```
 use crate::Renderer;
 use crate::canvas;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
@@ -133,7 +134,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, _limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        _limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let side_length = (self.data.width + 2 * QUIET_ZONE) as f32 * self.cell_size;
 
         tree.size = Size::new(side_length, side_length);

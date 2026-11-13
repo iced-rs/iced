@@ -1,4 +1,5 @@
 //! Distribute content on a grid.
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -157,7 +158,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let size = self.size();
         let limits = limits.width(size.width).height(size.height);
         let available = limits.max;
@@ -204,7 +211,7 @@ where
         let mut row_height = 0.0f32;
 
         for (i, (child, tree)) in self.children.iter_mut().zip(&mut tree.children).enumerate() {
-            child.layout(tree, renderer, &cell_limits);
+            child.layout(tree, renderer, &cell_limits, direction);
 
             let size = tree.size;
 
@@ -315,6 +322,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
@@ -324,6 +332,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         )
     }
 }

@@ -17,7 +17,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::shell;
-use crate::{Event, Length, Rectangle, Shell, Size, Vector};
+use crate::{Direction, Event, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
 ///
@@ -64,7 +64,13 @@ pub trait Widget<Message, Theme, Renderer>: Meta {
     ///
     /// This computes the [`Layout`] of the [`Widget`] and stores the result
     /// in the provided [`Tree`].
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits);
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    );
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
@@ -127,6 +133,7 @@ pub trait Widget<Message, Theme, Renderer>: Meta {
         _viewport: &Rectangle,
         _translation: Vector,
         _window: Size,
+        _direction: Direction,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         Vec::new()
     }
@@ -194,8 +201,14 @@ where
         T::diff(self, tree);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        T::layout(self, tree, renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        T::layout(self, tree, renderer, limits, direction);
     }
 
     fn draw(
@@ -254,8 +267,18 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
-        T::overlay(self, tree, layout, renderer, viewport, translation, window)
+        T::overlay(
+            self,
+            tree,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        )
     }
 }
 
@@ -276,7 +299,14 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Void {
         }
     }
 
-    fn layout(&mut self, _tree: &mut Tree, _renderer: &Renderer, _limits: &layout::Limits) {}
+    fn layout(
+        &mut self,
+        _tree: &mut Tree,
+        _renderer: &Renderer,
+        _limits: &layout::Limits,
+        _direction: Direction,
+    ) {
+    }
 
     fn draw(
         &self,
@@ -333,8 +363,14 @@ where
         self.widget.diff(tree);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.widget.layout(tree, renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.widget.layout(tree, renderer, limits, direction);
     }
 
     fn operate(
@@ -409,11 +445,20 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, B, Theme, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
-            .overlay(tree, layout, renderer, viewport, translation, window)
+            .overlay(
+                tree,
+                layout,
+                renderer,
+                viewport,
+                translation,
+                window,
+                direction,
+            )
             .into_iter()
             .map(move |overlay| overlay.map(mapper))
             .collect()
@@ -469,12 +514,18 @@ where
         widget.diff(tree);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let Some(widget) = self else {
             return;
         };
 
-        widget.layout(tree, renderer, limits);
+        widget.layout(tree, renderer, limits, direction);
     }
 
     fn draw(
@@ -549,11 +600,20 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         let Some(widget) = self else {
             return Vec::new();
         };
 
-        widget.overlay(tree, layout, renderer, viewport, translation, window)
+        widget.overlay(
+            tree,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        )
     }
 }

@@ -1,4 +1,5 @@
 //! Display content on top of other content.
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -138,7 +139,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let limits = limits.width(self.width).height(self.height);
 
         if self.children.len() <= self.base_layer {
@@ -150,6 +157,7 @@ where
             &mut tree.children[self.base_layer],
             renderer,
             &limits,
+            direction,
         );
 
         let size = limits.resolve(self.width, self.height, tree.children[self.base_layer].size);
@@ -159,13 +167,13 @@ where
         let (tree_under, tree_above) = tree.children.split_at_mut(self.base_layer);
 
         under.iter_mut().zip(tree_under).for_each(|(layer, tree)| {
-            layer.layout(tree, renderer, &limits);
+            layer.layout(tree, renderer, &limits, direction);
         });
 
         above[1..]
             .iter_mut()
             .zip(&mut tree_above[1..])
-            .for_each(|(layer, tree)| layer.layout(tree, renderer, &limits));
+            .for_each(|(layer, tree)| layer.layout(tree, renderer, &limits, direction));
 
         tree.size = size;
     }
@@ -318,6 +326,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
@@ -327,6 +336,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         )
     }
 }
