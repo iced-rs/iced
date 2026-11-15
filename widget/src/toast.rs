@@ -163,3 +163,14 @@ impl<'a, Message> Toast<'a, Message> {
         ._boxed()
     }
 }
+
+impl<'a, Message, Renderer> From<Toast<'a, Message>>
+    for Element<'a, Message, crate::Theme, Renderer>
+where
+    Renderer: crate::core::Renderer + crate::core::text::Renderer + 'a,
+    Message: Clone + 'a,
+{
+    fn from(toast: Toast<'a, Message>) -> Self {
+        toast.view()
+    }
+}
