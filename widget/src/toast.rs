@@ -10,6 +10,7 @@
 //! # use iced::widget::Widget;
 //! use iced::widget::{stack, toast};
 //!
+//! #[derive(Clone)]
 //! enum Message {
 //!     Close,
 //! }
