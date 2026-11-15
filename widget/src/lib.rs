@@ -45,6 +45,7 @@ pub mod table;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
+pub mod toast;
 pub mod toggler;
 pub mod tooltip;
 pub mod transition;
@@ -116,6 +117,8 @@ pub use text_editor::TextEditor;
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use themer::Themer;
+#[doc(no_inline)]
+pub use toast::Toast;
 #[doc(no_inline)]
 pub use toggler::Toggler;
 #[doc(no_inline)]
