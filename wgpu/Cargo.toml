@@ -27,6 +27,7 @@ svg-raster-images = ["svg", "resvg/raster-images"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]
 strict-assertions = []
+software-fallback = []
 
 [dependencies]
 iced_debug.workspace = true
