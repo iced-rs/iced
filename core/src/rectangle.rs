@@ -356,10 +356,10 @@ impl Rectangle<f32> {
         let angle = angle.into().0 - FRAC_PI_2;
         let r = Vector::new(f32::cos(angle), f32::sin(angle));
 
-        let distance_to_rect = f32::max(
-            f32::abs(r.x * self.width / 2.0),
-            f32::abs(r.y * self.height / 2.0),
-        );
+        let half_width = self.width / 2.0;
+        let half_height = self.height / 2.0;
+
+        let distance_to_rect = f32::min(half_width / f32::abs(r.x), half_height / f32::abs(r.y));
 
         let center = self.center();
         let start = center - r * distance_to_rect;
@@ -462,5 +462,53 @@ where
     fn sub_assign(&mut self, translation: Vector<T>) {
         self.x -= translation.x;
         self.y -= translation.y;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn chord_endpoints_lie_on_boundary() {
+        use std::f32::consts::{FRAC_PI_2, FRAC_PI_4};
+
+        let square = Rectangle::new(Point::new(0.0, 0.0), Size::new(100.0, 100.0));
+        let wide = Rectangle::new(Point::new(0.0, 0.0), Size::new(100.0, 20.0));
+
+        let cases = [
+            (
+                square,
+                Radians(0.0),
+                (Point::new(50.0, 100.0), Point::new(50.0, 0.0)),
+            ),
+            (
+                square,
+                Radians(FRAC_PI_2),
+                (Point::new(0.0, 50.0), Point::new(100.0, 50.0)),
+            ),
+            (
+                square,
+                Radians(FRAC_PI_4),
+                (Point::new(0.0, 100.0), Point::new(100.0, 0.0)),
+            ),
+            (
+                wide,
+                Radians(FRAC_PI_4),
+                (Point::new(40.0, 20.0), Point::new(60.0, 0.0)),
+            ),
+        ];
+
+        for (rectangle, angle, (expected_start, expected_end)) in cases {
+            let (start, end) = rectangle.chord(angle);
+
+            assert!(
+                (start.x - expected_start.x).abs() < 1e-2
+                    && (start.y - expected_start.y).abs() < 1e-2
+                    && (end.x - expected_end.x).abs() < 1e-2
+                    && (end.y - expected_end.y).abs() < 1e-2,
+                "{start:?} -> {end:?} != {expected_start:?} -> {expected_end:?}"
+            );
+        }
     }
 }
