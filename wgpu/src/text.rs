@@ -443,6 +443,7 @@ fn prepare(
     layer_transformation: Transformation,
 ) -> Result<(), cryoglyph::PrepareError> {
     let mut font_system = font_system().write().expect("Write font system");
+    let version = font_system.version();
     let font_system = font_system.raw();
 
     enum Allocation {
@@ -485,6 +486,7 @@ fn prepare(
                         wrapping: *wrapping,
                         ellipsis: *ellipsis,
                     },
+                    version,
                 );
 
                 Some(Allocation::Cache(key))

@@ -12,6 +12,7 @@ pub struct Cache {
     entries: FxHashMap<KeyHash, Entry>,
     aliases: FxHashMap<KeyHash, KeyHash>,
     recently_used: FxHashSet<KeyHash>,
+    version: text::Version,
 }
 
 impl Cache {
@@ -30,7 +31,15 @@ impl Cache {
         &mut self,
         font_system: &mut cosmic_text::FontSystem,
         key: Key<'_>,
+        version: text::Version,
     ) -> (KeyHash, &mut Entry) {
+        if version != self.version {
+            self.entries.clear();
+            self.aliases.clear();
+            self.recently_used.clear();
+            self.version = version;
+        }
+
         let hash = key.hash(FxHasher::default());
 
         if let Some(hash) = self.aliases.get(&hash) {
@@ -148,4 +157,71 @@ pub struct Entry {
     pub buffer: cosmic_text::Buffer,
     /// The minimum bounds of the text.
     pub min_bounds: Size,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::text::{Alignment, Ellipsis, Shaping, Wrapping};
+
+    use std::sync::Arc;
+
+    // The icon font is loaded up front so the font system can always shape.
+    const ICED_ICONS: &[u8] = include_bytes!("../../fonts/Iced-Icons.ttf");
+    // Fira Sans is the font the text asks for, loaded only later.
+    const FIRA_SANS: &[u8] = include_bytes!("../../fonts/FiraSans-Regular.ttf");
+
+    fn key() -> Key<'static> {
+        Key {
+            content: "Hello, world!",
+            size: 16.0,
+            line_height: 20.0,
+            font: Font::new("Fira Sans"),
+            bounds: Size::new(1000.0, 1000.0),
+            shaping: Shaping::Advanced,
+            align_x: Alignment::default(),
+            wrapping: Wrapping::default(),
+            ellipsis: Ellipsis::default(),
+        }
+    }
+
+    #[test]
+    fn reshapes_text_when_its_font_is_loaded() {
+        // A font system that can shape, but does not yet know about Fira Sans.
+        let mut db = cosmic_text::fontdb::Database::new();
+        let _ = db.load_font_source(cosmic_text::fontdb::Source::Binary(Arc::new(
+            ICED_ICONS.to_vec(),
+        )));
+        let mut font_system =
+            cosmic_text::FontSystem::new_with_locale_and_db("en-US".to_owned(), db);
+        let mut cache = Cache::new();
+        let version = text::Version::default();
+
+        // Its font missing, the text falls back to whatever is available.
+        let (_, entry) = cache.allocate(&mut font_system, key(), version);
+        let unshaped = entry.min_bounds;
+
+        // Re-requesting the same text without loading a font returns the same
+        // buffer. Nothing changed, so neither did its shape.
+        let (_, entry) = cache.allocate(&mut font_system, key(), version);
+        assert_eq!(
+            entry.min_bounds, unshaped,
+            "text was reshaped without a font being loaded"
+        );
+
+        // Loading Fira Sans advances the font system version.
+        let _ = font_system
+            .db_mut()
+            .load_font_source(cosmic_text::fontdb::Source::Binary(Arc::new(
+                FIRA_SANS.to_vec(),
+            )));
+        let version = text::Version(version.0 + 1);
+
+        // The text is now reshaped against Fira Sans, so its buffer changes.
+        let (_, entry) = cache.allocate(&mut font_system, key(), version);
+        assert_ne!(
+            entry.min_bounds, unshaped,
+            "text was not reshaped after its font was loaded"
+        );
+    }
 }
