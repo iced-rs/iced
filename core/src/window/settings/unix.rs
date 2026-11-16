@@ -1,4 +1,4 @@
-//! Platform specific settings for Linux.
+//! Platform specific settings for Unix.
 
 /// The platform specific window settings of an application.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
