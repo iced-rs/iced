@@ -821,6 +821,13 @@ impl editor::Editor for Editor {
 
         internal.editor.shape_as_needed(font_system.raw(), false);
 
+        // The line layouts changed, so any cached selection is stale.
+        let _ = internal
+            .selection
+            .write()
+            .expect("Write to cursor cache")
+            .take();
+
         self.0 = Some(Arc::new(internal));
     }
 
