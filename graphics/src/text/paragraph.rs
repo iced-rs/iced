@@ -29,6 +29,7 @@ struct Internal {
     hint: bool,
     hint_factor: f32,
     selection: Option<Selection>,
+    last_click: Option<Point>,
 }
 
 #[derive(Clone)]
@@ -128,6 +129,7 @@ impl core::text::Paragraph for Paragraph {
             min_bounds,
             version: font_system.version(),
             selection: None,
+            last_click: None,
         }))
     }
 
@@ -216,6 +218,7 @@ impl core::text::Paragraph for Paragraph {
             min_bounds,
             version: font_system.version(),
             selection: None,
+            last_click: None,
         }))
     }
 
@@ -469,6 +472,12 @@ impl core::text::Paragraph for Paragraph {
         let mut editor =
             cosmic_text::Editor::new(cosmic_text::BufferRef::Borrowed(&mut paragraph.buffer));
 
+        if start == end {
+            paragraph.last_click = Some(start);
+        }
+
+        let start = paragraph.last_click.unwrap_or(start);
+
         editor.action(&mut font_system.raw, {
             let x = start.x as i32;
             let y = start.y as i32;
@@ -627,6 +636,7 @@ impl Default for Internal {
             hint: false,
             hint_factor: 1.0,
             selection: None,
+            last_click: None,
         }
     }
 }

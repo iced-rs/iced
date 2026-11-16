@@ -431,7 +431,10 @@ where
         if let Some((start, end)) = self.selection.as_mut()
             && let Some(click) = self.last_click
             && let Some(position) = cursor.position()
-            && position != *end
+            && (position != *end
+                || events.iter().any(|event| {
+                    matches!(event, Event::Window(window::Event::RedrawRequested { .. }))
+                }))
         {
             *end = position;
 
