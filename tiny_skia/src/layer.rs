@@ -109,8 +109,11 @@ impl Layer {
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
-        self.text
-            .push(Item::Group(text, clip_bounds, transformation));
+        self.text.push(Item::Group(
+            text,
+            clip_bounds * transformation,
+            transformation,
+        ));
     }
 
     pub fn draw_text_cache(
@@ -119,8 +122,11 @@ impl Layer {
         clip_bounds: Rectangle,
         transformation: Transformation,
     ) {
-        self.text
-            .push(Item::Cached(text, clip_bounds, transformation));
+        self.text.push(Item::Cached(
+            text,
+            clip_bounds * transformation,
+            transformation,
+        ));
     }
 
     pub fn draw_image(&mut self, image: Image, transformation: Transformation) {
