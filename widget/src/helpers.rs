@@ -1028,7 +1028,6 @@ pub fn text_input<'a, Message, Theme>(
     value: impl text::IntoFragment<'a>,
 ) -> TextInput<'a, Message, Theme>
 where
-    Message: Clone,
     Theme: text_input::Catalog + 'a,
 {
     TextInput::new(placeholder, value)
@@ -1072,7 +1071,6 @@ pub fn text_editor<'a, Message, Theme, Renderer>(
     content: &'a text_editor::Content<Renderer>,
 ) -> TextEditor<'a, core::text::parser::PlainText, Message, Theme, Renderer>
 where
-    Message: Clone,
     Theme: text_editor::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
@@ -1118,7 +1116,6 @@ pub fn slider<'a, T, Message, Theme>(
 ) -> Slider<'a, T, Message, Theme>
 where
     T: Copy + std::cmp::PartialOrd,
-    Message: Clone,
     Theme: slider::Catalog + 'a,
 {
     Slider::new(range, value, on_change)
@@ -1163,7 +1160,6 @@ pub fn vertical_slider<'a, T, Message, Theme>(
 ) -> VerticalSlider<'a, T, Message, Theme>
 where
     T: Copy + std::cmp::PartialOrd,
-    Message: Clone,
     Theme: vertical_slider::Catalog + 'a,
 {
     VerticalSlider::new(range, value, on_change)
@@ -1242,7 +1238,6 @@ where
     T: PartialEq + Clone + 'a,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
-    Message: Clone,
     Theme: pick_list::Catalog + overlay::menu::Catalog,
 {
     PickList::new(selected, options, to_string)
