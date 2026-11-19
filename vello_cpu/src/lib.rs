@@ -20,7 +20,7 @@ use crate::core::backend;
 use crate::core::border;
 use crate::core::image;
 use crate::core::renderer;
-use crate::core::{Background, Color, Font, Gradient, Rectangle, Size, Transformation};
+use crate::core::{Background, Color, Font, Gradient, Rectangle, Size, Transformation, Vector};
 use crate::graphics::compositor;
 use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
@@ -82,26 +82,24 @@ impl Renderer {
             renderer.push_clip_path(&into_rect(layer.bounds).to_path(ACCURACY));
 
             for (quad, background) in &layer.quads {
-                renderer.set_paint(into_background(background, quad.bounds));
+                let shadow = quad.shadow;
 
-                #[cfg(not(feature = "multithreading"))]
-                {
-                    let shadow = quad.shadow;
+                if shadow.color.a > 0.0 {
+                    let bounds = into_rect(quad.bounds) + into_vec2(shadow.offset);
 
-                    if shadow.color.a > 0.0 {
-                        renderer.set_filter_effect(
-                            vello_cpu::filter_effects::Filter::from_primitive(
-                                vello_cpu::filter_effects::FilterPrimitive::DropShadow {
-                                    dx: shadow.offset.x,
-                                    dy: shadow.offset.y,
-                                    std_deviation: shadow.blur_radius,
-                                    color: into_color(shadow.color),
-                                    edge_mode: vello_cpu::filter_effects::EdgeMode::None,
-                                },
-                            ),
-                        );
-                    }
+                    let border_radius = quad
+                        .border
+                        .radius
+                        .top_left
+                        .max(quad.border.radius.top_right)
+                        .max(quad.border.radius.bottom_right)
+                        .max(quad.border.radius.bottom_left);
+
+                    renderer.set_paint(into_color(shadow.color));
+                    renderer.fill_blurred_rounded_rect(&bounds, border_radius, shadow.blur_radius);
                 }
+
+                renderer.set_paint(into_background(background, quad.bounds));
 
                 if quad.border.radius == border::Radius::default() {
                     renderer.fill_rect(&into_rect(quad.bounds));
@@ -132,9 +130,6 @@ impl Renderer {
                         renderer.stroke_path(&border_rect);
                     }
                 }
-
-                #[cfg(not(feature = "multithreading"))]
-                renderer.reset_filter_effect();
             }
 
             renderer.reset_transform();
@@ -419,6 +414,10 @@ fn into_rect(rectangle: Rectangle) -> vello_cpu::kurbo::Rect {
     }
 }
 
+fn into_vec2(vector: Vector) -> vello_cpu::kurbo::Vec2 {
+    vello_cpu::kurbo::Vec2::new(f64::from(vector.x), f64::from(vector.y))
+}
+
 fn into_rounded_rect(rectangle: Rectangle, radius: border::Radius) -> vello_cpu::kurbo::BezPath {
     use vello_cpu::kurbo::Shape;
 
@@ -640,9 +639,7 @@ pub struct Surface {
     window: softbuffer::Surface<Box<dyn compositor::Display>, Box<dyn compositor::Window>>,
     renderer: vello_cpu::RenderContext,
     resources: vello_cpu::Resources,
-    /// The frames drawn into the back buffers, indexed by buffer age.
     frames: VecDeque<Frame>,
-    /// The maximum buffer age seen so far; the history is truncated to this bound.
     max_age: u8,
 }
 
@@ -858,13 +855,6 @@ impl renderer::Headless for Renderer {
     }
 }
 
-/// Draws the scene into `buffer`, optionally clipping it to the given damage
-/// regions (logical coordinates).
-///
-/// When `damage` is `None` the whole scene is rendered and the target is
-/// cleared first. When it is `Some` the scene is clipped to the union of the
-/// regions and rasterized with `SrcOver`, so that pixels outside the damaged
-/// regions are preserved.
 fn draw_to_buffer(
     renderer: &mut Renderer,
     vello: &mut vello_cpu::RenderContext,
@@ -1173,5 +1163,93 @@ mod damage_clip {
             height: 10.0,
         }];
         assert_eq!(physical_damage(damage, &viewport).count(), 0);
+    }
+}
+
+#[cfg(test)]
+mod shadow {
+    use super::*;
+    use iced_graphics::core::Renderer as _;
+    use iced_graphics::core::renderer::Quad;
+
+    fn shadowed_scene() -> Renderer {
+        let mut renderer = Renderer::new(renderer::Settings::default());
+
+        renderer.start_layer(Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: 100.0,
+            height: 100.0,
+        });
+
+        renderer.fill_quad(
+            Quad {
+                bounds: Rectangle {
+                    x: 10.0,
+                    y: 10.0,
+                    width: 20.0,
+                    height: 20.0,
+                },
+                shadow: core::Shadow {
+                    color: Color::from_rgba(0.0, 0.0, 0.0, 0.8),
+                    offset: core::Vector::new(5.0, 5.0),
+                    blur_radius: 4.0,
+                },
+                ..Default::default()
+            },
+            Background::Color(Color::from_rgb(1.0, 1.0, 1.0)),
+        );
+
+        renderer.end_layer();
+        renderer
+    }
+
+    fn pixel(buffer: &[u8], width: u32, x: u32, y: u32) -> [u8; 4] {
+        let i = ((y * width + x) as usize) * 4;
+        [buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]]
+    }
+
+    fn assert_shadow(scale: f32) {
+        let physical = (100.0 * scale) as u32;
+        let viewport = Viewport::with_physical_size(
+            Size::new(physical, physical),
+            renderer::Scale {
+                window: 1.0,
+                application: scale,
+            },
+        );
+        let background = Color::from_rgb(0.1, 0.1, 0.1);
+
+        let mut vello = vello_cpu::RenderContext::new(physical as u16, physical as u16);
+        let mut buffer = vec![0; (physical * physical) as usize * 4];
+
+        draw_to_buffer(
+            &mut shadowed_scene(),
+            &mut vello,
+            &mut vello_cpu::Resources::new(),
+            &viewport,
+            background,
+            &mut buffer,
+            &[],
+        );
+
+        let at = |x: f32, y: f32| pixel(&buffer, physical, (x * scale) as u32, (y * scale) as u32);
+
+        // The quad is drawn on top of its shadow.
+        assert!(at(20.0, 20.0)[0] > 200);
+
+        // The shadow extends past the quad, offset towards the bottom-right.
+        let background_pixel = at(3.0, 8.0);
+        let shadow_pixel = at(37.0, 37.0);
+        assert!(shadow_pixel[0] < background_pixel[0]);
+
+        // Far away from the shadow, the background is untouched.
+        assert_eq!(at(90.0, 90.0), background_pixel);
+    }
+
+    #[test]
+    fn shadow_is_rendered() {
+        assert_shadow(1.0);
+        assert_shadow(2.0);
     }
 }

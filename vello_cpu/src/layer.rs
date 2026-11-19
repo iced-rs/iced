@@ -224,9 +224,14 @@ impl Layer {
                 };
 
                 vec![if quad.shadow.color.a > 0.0 {
+                    // The shadow is drawn as a blurred, rounded rectangle,
+                    // and its blur is cut off at 2.5 times the blur radius
+                    //
+                    // Source: `vello_cpu::RenderContext::fill_blurred_rounded_rect`,
+                    // which inflates the rect by `2.5 * std_dev` before filling.
                     bounds.expand(
                         quad.shadow.offset.x.abs().max(quad.shadow.offset.y.abs())
-                            + quad.shadow.blur_radius,
+                            + 2.5 * quad.shadow.blur_radius,
                     )
                 } else {
                     bounds
@@ -617,10 +622,10 @@ mod tests {
                     height: 12.0
                 },
                 Rectangle {
-                    x: -8.0,
-                    y: -8.0,
-                    width: 26.0,
-                    height: 26.0
+                    x: -11.0,
+                    y: -11.0,
+                    width: 32.0,
+                    height: 32.0
                 },
             ],
         );
