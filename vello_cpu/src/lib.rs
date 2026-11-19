@@ -357,6 +357,12 @@ impl Renderer {
         }
 
         self.text.trim_cache();
+
+        #[cfg(feature = "image")]
+        self.raster.trim_cache();
+
+        #[cfg(feature = "svg")]
+        self.vector.trim_cache();
     }
 }
 
