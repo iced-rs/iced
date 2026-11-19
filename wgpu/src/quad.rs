@@ -5,7 +5,6 @@ use gradient::Gradient;
 use solid::Solid;
 
 use crate::core::{Background, Rectangle, Transformation};
-use crate::graphics;
 use crate::graphics::color;
 
 use bytemuck::{Pod, Zeroable};
@@ -75,8 +74,7 @@ impl State {
         scale: f32,
     ) {
         if self.layers.len() <= self.prepare_layer {
-            self.layers
-                .push(Layer::new(device, &pipeline.constant_layout));
+            self.layers.push(Layer::new(device, pipeline));
         }
 
         let layer = &mut self.layers[self.prepare_layer];
@@ -166,7 +164,7 @@ pub struct Layer {
 }
 
 impl Layer {
-    pub fn new(device: &wgpu::Device, constant_layout: &wgpu::BindGroupLayout) -> Self {
+    pub fn new(device: &wgpu::Device, pipeline: &Pipeline) -> Self {
         let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("iced_wgpu::quad uniforms buffer"),
             size: mem::size_of::<Uniforms>() as wgpu::BufferAddress,
@@ -176,7 +174,7 @@ impl Layer {
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu::quad uniforms bind group"),
-            layout: constant_layout,
+            layout: &pipeline.constant_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: constants_buffer.as_entire_binding(),
@@ -187,7 +185,7 @@ impl Layer {
             constants,
             constants_buffer,
             solid: solid::Layer::new(device),
-            gradient: gradient::Layer::new(device),
+            gradient: gradient::Layer::new(device, &pipeline.gradient.stops_layout),
         }
     }
 
@@ -267,10 +265,7 @@ impl Batch {
             }
             Background::Gradient(gradient) => {
                 self.gradients.push(Gradient {
-                    gradient: graphics::gradient::pack(
-                        gradient,
-                        Rectangle::new(quad.position.into(), quad.size.into()),
-                    ),
+                    gradient: *gradient,
                     quad,
                 });
 

@@ -5,7 +5,7 @@ use crate::graphics::cache::{self, Cached};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{self, LineCap, LineDash, LineJoin, Path, Stroke, Style};
-use crate::graphics::gradient::{self, Gradient};
+use crate::graphics::gradient::Gradient;
 use crate::graphics::mesh::{self, Mesh};
 use crate::graphics::{Image, Text};
 use crate::text;
@@ -415,7 +415,10 @@ impl geometry::frame::Backend for Frame {
 
 enum Buffer {
     Solid(tessellation::VertexBuffers<mesh::SolidVertex2D, u32>),
-    Gradient(tessellation::VertexBuffers<mesh::GradientVertex2D, u32>),
+    Gradient(
+        tessellation::VertexBuffers<mesh::GradientVertex2D, u32>,
+        Gradient,
+    ),
 }
 
 struct BufferStack {
@@ -436,11 +439,14 @@ impl BufferStack {
                         .push(Buffer::Solid(tessellation::VertexBuffers::new()));
                 }
             },
-            Style::Gradient(_) => match self.stack.last() {
-                Some(Buffer::Gradient(_)) => {}
+            // every gradient mesh has a gradient
+            Style::Gradient(gradient) => match self.stack.last() {
+                Some(Buffer::Gradient(_, last)) if last == gradient => {}
                 _ => {
-                    self.stack
-                        .push(Buffer::Gradient(tessellation::VertexBuffers::new()));
+                    self.stack.push(Buffer::Gradient(
+                        tessellation::VertexBuffers::new(),
+                        *gradient,
+                    ));
                 }
             },
         }
@@ -459,14 +465,9 @@ impl BufferStack {
                     TriangleVertex2DBuilder(color::pack(*color)),
                 ))
             }
-            (Style::Gradient(gradient), Buffer::Gradient(buffer)) => {
-                Box::new(tessellation::BuffersBuilder::new(
-                    buffer,
-                    GradientVertex2DBuilder {
-                        gradient: gradient.pack(),
-                    },
-                ))
-            }
+            (Style::Gradient(_), Buffer::Gradient(buffer, _)) => Box::new(
+                tessellation::BuffersBuilder::new(buffer, GradientVertex2DBuilder),
+            ),
             _ => unreachable!(),
         }
     }
@@ -482,14 +483,9 @@ impl BufferStack {
                     TriangleVertex2DBuilder(color::pack(*color)),
                 ))
             }
-            (Style::Gradient(gradient), Buffer::Gradient(buffer)) => {
-                Box::new(tessellation::BuffersBuilder::new(
-                    buffer,
-                    GradientVertex2DBuilder {
-                        gradient: gradient.pack(),
-                    },
-                ))
-            }
+            (Style::Gradient(_), Buffer::Gradient(buffer, _)) => Box::new(
+                tessellation::BuffersBuilder::new(buffer, GradientVertex2DBuilder),
+            ),
             _ => unreachable!(),
         }
     }
@@ -506,14 +502,17 @@ impl BufferStack {
                     clip_bounds,
                     transformation: Transformation::IDENTITY,
                 }),
-                Buffer::Gradient(buffer) if !buffer.indices.is_empty() => Some(Mesh::Gradient {
-                    buffers: mesh::Indexed {
-                        vertices: buffer.vertices,
-                        indices: buffer.indices,
-                    },
-                    clip_bounds,
-                    transformation: Transformation::IDENTITY,
-                }),
+                Buffer::Gradient(buffer, gradient) if !buffer.indices.is_empty() => {
+                    Some(Mesh::Gradient {
+                        buffers: mesh::Indexed {
+                            vertices: buffer.vertices,
+                            indices: buffer.indices,
+                        },
+                        gradient,
+                        clip_bounds,
+                        transformation: Transformation::IDENTITY,
+                    })
+                }
                 _ => None,
             })
     }
@@ -580,9 +579,7 @@ impl Transform {
         Rectangle::with_vertices(top_left, top_right, bottom_left)
     }
 }
-struct GradientVertex2DBuilder {
-    gradient: gradient::Packed,
-}
+struct GradientVertex2DBuilder;
 
 impl tessellation::FillVertexConstructor<mesh::GradientVertex2D> for GradientVertex2DBuilder {
     fn new_vertex(&mut self, vertex: tessellation::FillVertex<'_>) -> mesh::GradientVertex2D {
@@ -590,7 +587,6 @@ impl tessellation::FillVertexConstructor<mesh::GradientVertex2D> for GradientVer
 
         mesh::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient,
         }
     }
 }
@@ -601,7 +597,6 @@ impl tessellation::StrokeVertexConstructor<mesh::GradientVertex2D> for GradientV
 
         mesh::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient,
         }
     }
 }

@@ -3,8 +3,8 @@ mod msaa;
 
 use crate::Buffer;
 use crate::core::{Point, Rectangle, Size, Transformation, Vector};
-use crate::graphics::Antialiasing;
 use crate::graphics::mesh::{self, Mesh};
+use crate::graphics::{self, Antialiasing};
 use crate::nudge;
 
 use rustc_hash::FxHashMap;
@@ -347,7 +347,11 @@ impl Layer {
                 wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             ),
             solid: solid::Layer::new(device, &solid.constants_layout),
-            gradient: gradient::Layer::new(device, &gradient.constants_layout),
+            gradient: gradient::Layer::new(
+                device,
+                &gradient.constants_layout,
+                &gradient.stops_layout,
+            ),
         }
     }
 
@@ -394,6 +398,8 @@ impl Layer {
         let mut gradient_uniform_offset = 0;
         let mut index_offset = 0;
 
+        self.gradient.stops.clear();
+
         for mesh in meshes {
             let clip_bounds = mesh.clip_bounds() * transformation;
             let snap_distance = nudge::snap(clip_bounds)
@@ -429,13 +435,17 @@ impl Layer {
                             .uniforms
                             .write(encoder, belt, solid_uniform_offset, &[uniforms]);
                 }
-                Mesh::Gradient { buffers, .. } => {
+                Mesh::Gradient {
+                    buffers, gradient, ..
+                } => {
                     gradient_vertex_offset += self.gradient.vertices.write(
                         encoder,
                         belt,
                         gradient_vertex_offset,
                         &buffers.vertices,
                     );
+
+                    let uniforms = uniforms.with_gradient(gradient, &mut self.gradient.stops);
 
                     gradient_uniform_offset += self.gradient.uniforms.write(
                         encoder,
@@ -446,6 +456,8 @@ impl Layer {
                 }
             }
         }
+
+        self.gradient.stops.upload(device, encoder, belt);
     }
 
     fn render<'a>(
@@ -517,6 +529,7 @@ impl Layer {
                 Mesh::Gradient { buffers, .. } => {
                     if last_is_solid.unwrap_or(true) {
                         render_pass.set_pipeline(&gradient.pipeline);
+                        render_pass.set_bind_group(1, self.gradient.stops.bind_group(), &[]);
 
                         last_is_solid = Some(false);
                     }
@@ -580,16 +593,43 @@ fn multisample_state(antialiasing: Option<Antialiasing>) -> wgpu::MultisampleSta
 #[repr(C)]
 pub struct Uniforms {
     transform: [f32; 16],
+    gradient_direction: [f32; 4],
+    gradient_stops: [u32; 4],
     /// Uniform values must be 256-aligned;
     /// see: [`wgpu::Limits`] `min_uniform_buffer_offset_alignment`.
-    _padding: [f32; 48],
+    _padding: [f32; 40],
 }
 
 impl Uniforms {
     pub fn new(transform: Transformation) -> Self {
         Self {
             transform: transform.into(),
-            _padding: [0.0; 48],
+            gradient_direction: [0.0; 4],
+            gradient_stops: [0; 4],
+            _padding: [0.0; 40],
+        }
+    }
+
+    pub fn with_gradient(
+        self,
+        gradient: &graphics::Gradient,
+        storage: &mut crate::gradient::Storage,
+    ) -> Self {
+        match gradient {
+            graphics::Gradient::Linear(linear) => {
+                let [base, count] = storage.push(&linear.stops);
+
+                Self {
+                    gradient_direction: [
+                        linear.start.x,
+                        linear.start.y,
+                        linear.end.x,
+                        linear.end.y,
+                    ],
+                    gradient_stops: [base, count, 0, 0],
+                    ..self
+                }
+            }
         }
     }
 
@@ -745,6 +785,7 @@ mod solid {
 
 mod gradient {
     use crate::Buffer;
+    use crate::gradient;
     use crate::graphics::Antialiasing;
     use crate::graphics::mesh;
     use crate::triangle;
@@ -753,6 +794,7 @@ mod gradient {
     pub struct Pipeline {
         pub pipeline: wgpu::RenderPipeline,
         pub constants_layout: wgpu::BindGroupLayout,
+        pub stops_layout: wgpu::BindGroupLayout,
     }
 
     #[derive(Debug)]
@@ -760,10 +802,15 @@ mod gradient {
         pub vertices: Buffer<mesh::GradientVertex2D>,
         pub uniforms: Buffer<triangle::Uniforms>,
         pub constants: wgpu::BindGroup,
+        pub stops: gradient::Storage,
     }
 
     impl Layer {
-        pub fn new(device: &wgpu::Device, constants_layout: &wgpu::BindGroupLayout) -> Self {
+        pub fn new(
+            device: &wgpu::Device,
+            constants_layout: &wgpu::BindGroupLayout,
+            stops_layout: &wgpu::BindGroupLayout,
+        ) -> Self {
             let vertices = Buffer::new(
                 device,
                 "iced_wgpu.triangle.gradient.vertex_buffer",
@@ -784,6 +831,7 @@ mod gradient {
                 vertices,
                 uniforms,
                 constants,
+                stops: gradient::Storage::new(device, stops_layout),
             }
         }
 
@@ -819,9 +867,11 @@ mod gradient {
                     entries: &[triangle::Uniforms::entry()],
                 });
 
+            let stops_layout = gradient::bind_group_layout(device);
+
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("iced_wgpu.triangle.gradient.pipeline_layout"),
-                bind_group_layouts: &[Some(&constants_layout)],
+                bind_group_layouts: &[Some(&constants_layout), Some(&stops_layout)],
                 immediate_size: 0,
             });
 
@@ -831,6 +881,8 @@ mod gradient {
                     include_str!("shader/triangle.wgsl"),
                     "\n",
                     include_str!("shader/triangle/gradient.wgsl"),
+                    "\n",
+                    include_str!("shader/gradient.wgsl"),
                     "\n",
                     include_str!("shader/color.wgsl"),
                     "\n",
@@ -850,18 +902,6 @@ mod gradient {
                         attributes: &wgpu::vertex_attr_array!(
                             // Position
                             0 => Float32x2,
-                            // Colors 1-2
-                            1 => Uint32x4,
-                            // Colors 3-4
-                            2 => Uint32x4,
-                            // Colors 5-6
-                            3 => Uint32x4,
-                            // Colors 7-8
-                            4 => Uint32x4,
-                            // Offsets
-                            5 => Uint32x4,
-                            // Direction
-                            6 => Float32x4
                         ),
                     })],
                     compilation_options: wgpu::PipelineCompilationOptions::default(),
@@ -882,6 +922,7 @@ mod gradient {
             Self {
                 pipeline,
                 constants_layout,
+                stops_layout,
             }
         }
     }

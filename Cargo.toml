@@ -208,7 +208,6 @@ cryoglyph = { git = "https://github.com/iced-rs/cryoglyph.git", rev = "cf38ed5ea
 futures = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 glam = "0.33.2"
 guillotiere = "0.6"
-half = "2.2"
 image = { version = "0.25", default-features = false }
 kamadak-exif = "0.6"
 kurbo = "0.13"
