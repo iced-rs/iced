@@ -1,7 +1,7 @@
 //! Draw triangles!
 use crate::color;
 use crate::core::{Rectangle, Transformation};
-use crate::gradient;
+use crate::gradient::Gradient;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -26,6 +26,9 @@ pub enum Mesh {
     Gradient {
         /// The vertices and indices of the mesh.
         buffers: Indexed<GradientVertex2D>,
+
+        /// The [`Gradient`] that fills the [`Mesh`].
+        gradient: Gradient,
 
         /// The [`Transformation`] for the vertices of the [`Mesh`].
         transformation: Transformation,
@@ -93,15 +96,12 @@ pub struct SolidVertex2D {
     pub color: color::Packed,
 }
 
-/// A vertex which contains 2D position & packed gradient data.
+/// A two-dimensional vertex of a [`Mesh::Gradient`].
 #[derive(Copy, Clone, Debug, PartialEq, Zeroable, Pod)]
 #[repr(C)]
 pub struct GradientVertex2D {
     /// The vertex position in 2D space.
     pub position: [f32; 2],
-
-    /// The packed vertex data of the gradient.
-    pub gradient: gradient::Packed,
 }
 
 /// The result of counting the attributes of a set of meshes.

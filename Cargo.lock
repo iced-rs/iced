@@ -2333,7 +2333,6 @@ dependencies = [
  "bitflags",
  "bytemuck",
  "cosmic-text",
- "half",
  "iced_core",
  "iced_futures",
  "image",

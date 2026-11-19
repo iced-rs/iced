@@ -32,6 +32,7 @@ pub mod geometry;
 mod buffer;
 mod color;
 mod engine;
+mod gradient;
 mod nudge;
 mod quad;
 mod text;
