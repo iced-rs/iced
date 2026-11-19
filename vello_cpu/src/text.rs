@@ -219,7 +219,8 @@ fn draw(
                     x: physical_glyph.x as f32 + placement.left as f32,
                     y: physical_glyph.y as f32 - placement.top as f32
                         + run.line_y * transformation.scale_factor(),
-                };
+                }
+                .round();
 
                 renderer.set_transform(vello_cpu::kurbo::Affine::translate((
                     f64::from(position.x),
@@ -270,8 +271,10 @@ impl GlyphCache {
         font_system: &mut cosmic_text::FontSystem,
         swash: &mut cosmic_text::SwashCache,
     ) -> Option<(&Arc<vello_cpu::Pixmap>, cosmic_text::Placement)> {
-        let color = crate::into_color(color);
-        let vello_cpu::color::Rgba8 { r, g, b, .. } = color.to_rgba8();
+        // The pixmap is baked at full opacity; translucency is
+        // applied downstream during sampling
+        let color = crate::into_color(color).with_alpha(1.0).premultiply();
+        let vello_cpu::color::PremulRgba8 { r, g, b, .. } = color.to_rgba8();
         let key = (cache_key, [r, g, b]);
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(key) {
@@ -284,10 +287,6 @@ impl GlyphCache {
             if width == 0 || height == 0 {
                 return None;
             }
-
-            // The pixmap is baked at full opacity; translucency is
-            // applied downstream during sampling
-            let color = color.with_alpha(1.0).premultiply();
 
             let mut buffer = vello_cpu::Pixmap::new(width, height);
 
