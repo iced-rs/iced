@@ -203,15 +203,14 @@ fn draw(
                 font_system,
                 &mut swash,
             ) {
-                // TODO
-                let _opacity =
+                let opacity =
                     color.a * glyph.color_opt.map(|c| c.a() as f32 / 255.0).unwrap_or(1.0);
 
                 renderer.set_paint(vello_cpu::peniko::Brush::Image(
                     vello_cpu::peniko::ImageBrush {
                         image: vello_cpu::ImageSource::Pixmap(pixmap.clone()),
                         sampler: vello_cpu::peniko::ImageSampler::new()
-                            // .with_alpha(opacity) // TODO: Uncomment once vello_cpu supports it
+                            .with_alpha(opacity)
                             .with_quality(vello_cpu::peniko::ImageQuality::Low),
                     },
                 ));
@@ -271,8 +270,8 @@ impl GlyphCache {
         font_system: &mut cosmic_text::FontSystem,
         swash: &mut cosmic_text::SwashCache,
     ) -> Option<(&Arc<vello_cpu::Pixmap>, cosmic_text::Placement)> {
-        let color = crate::into_color(color).premultiply();
-        let vello_cpu::color::PremulRgba8 { r, g, b, .. } = color.to_rgba8();
+        let color = crate::into_color(color);
+        let vello_cpu::color::Rgba8 { r, g, b, .. } = color.to_rgba8();
         let key = (cache_key, [r, g, b]);
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(key) {
@@ -286,11 +285,14 @@ impl GlyphCache {
                 return None;
             }
 
+            // The pixmap is baked at full opacity; translucency is
+            // applied downstream during sampling
+            let color = color.with_alpha(1.0).premultiply();
+
             let mut buffer = vello_cpu::Pixmap::new(width, height);
 
             match image.content {
                 cosmic_text::SwashContent::Mask => {
-                    // TODO: Blend alpha
                     let mut i = 0;
 
                     for y in 0..height {
@@ -312,7 +314,6 @@ impl GlyphCache {
 
                     for y in 0..height {
                         for x in 0..width {
-                            // TODO: Blend alpha
                             buffer.set_pixel(
                                 x,
                                 y,

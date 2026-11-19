@@ -75,8 +75,8 @@ impl Pipeline {
             vello_cpu::peniko::ImageBrush {
                 image: vello_cpu::ImageSource::Pixmap(raster),
                 sampler: vello_cpu::peniko::ImageSampler::new()
-                    .with_quality(vello_cpu::peniko::ImageQuality::Low),
-                // .with_alpha(image.opacity), TODO: Enable once `vello_cpu` supports it
+                    .with_quality(vello_cpu::peniko::ImageQuality::Low)
+                    .with_alpha(svg.opacity),
             },
         ));
 
