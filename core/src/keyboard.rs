@@ -8,4 +8,4 @@ mod modifiers;
 pub use event::Event;
 pub use key::Key;
 pub use location::Location;
-pub use modifiers::Modifiers;
+pub use modifiers::{Modifiers, set_runtime_macos};
