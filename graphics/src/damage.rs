@@ -87,9 +87,10 @@ pub fn physical(
     viewport: &Viewport,
 ) -> impl Iterator<Item = Rectangle<u32>> {
     let scale = viewport.scale_factor();
+
     let viewport = Rectangle::with_size(Size::new(
         viewport.physical_width() as f32,
-        viewport.physical_width() as f32,
+        viewport.physical_height() as f32,
     ));
 
     damage
