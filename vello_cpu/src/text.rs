@@ -308,6 +308,26 @@ impl GlyphCache {
                         }
                     }
                 }
+                cosmic_text::SwashContent::SubpixelMask => {
+                    let mut i = 0;
+
+                    for y in 0..height {
+                        for x in 0..width {
+                            let r = u32::from(image.data[i]);
+                            let g = u32::from(image.data[i + 1]);
+                            let b = u32::from(image.data[i + 2]);
+                            let coverage = (r + g + b) / 3;
+
+                            buffer.set_pixel(
+                                x,
+                                y,
+                                color.multiply_alpha(coverage as f32 / 255.0).to_rgba8(),
+                            );
+
+                            i += 4;
+                        }
+                    }
+                }
                 cosmic_text::SwashContent::Color => {
                     let mut i = 0;
 
@@ -329,9 +349,6 @@ impl GlyphCache {
                             i += 4;
                         }
                     }
-                }
-                cosmic_text::SwashContent::SubpixelMask => {
-                    // TODO
                 }
             }
 
