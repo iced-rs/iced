@@ -2,7 +2,6 @@
 use crate::core::border;
 use crate::core::image::{self, FilterMethod};
 use crate::core::layout;
-use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Meta;
 use crate::core::widget::tree::{self, Tree};
@@ -10,6 +9,7 @@ use crate::core::{
     ContentFit, Event, Image, Layout, Length, Pixels, Point, Radians, Rectangle, Shell, Size,
     Vector, Widget,
 };
+use crate::core::{keyboard, mouse};
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
 pub struct Viewer<Handle> {
@@ -158,6 +158,15 @@ where
         let bounds = layout.bounds();
 
         match event {
+            Event::Keyboard(keyboard::Event::KeyReleased {
+                key: keyboard::Key::Named(keyboard::key::Named::Escape),
+                ..
+            }) => {
+                let state = tree.state.downcast_mut::<State>();
+                *state = State::new();
+                shell.request_redraw();
+                shell.capture_event();
+            }
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
                 let Some(cursor_position) = cursor.position_over(bounds) else {
                     return;
