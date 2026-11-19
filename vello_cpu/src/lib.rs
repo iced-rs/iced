@@ -725,7 +725,7 @@ impl graphics::Compositor for Compositor {
         if background_color.a < 1.0 {
             // Transparent window: incremental rendering can't preserve
             // history, so render the whole scene and present it in full.
-            // TODO: Clear damage regions manually
+            // TODO: Clear damage regions manually (?)
             surface.frames.clear();
 
             draw_to_buffer(
@@ -735,7 +735,7 @@ impl graphics::Compositor for Compositor {
                 viewport,
                 background_color,
                 bytemuck::cast_slice_mut(&mut buffer),
-                &[],
+                Damage::Full,
             );
 
             on_pre_present();
@@ -799,7 +799,7 @@ impl graphics::Compositor for Compositor {
             viewport,
             background_color,
             bytemuck::cast_slice_mut(&mut buffer),
-            &buffer_damage,
+            Damage::Partial(&buffer_damage),
         );
 
         on_pre_present();
@@ -855,6 +855,11 @@ impl renderer::Headless for Renderer {
     }
 }
 
+enum Damage<'a> {
+    Full,
+    Partial(&'a [softbuffer::Rect]),
+}
+
 fn draw_to_buffer(
     renderer: &mut Renderer,
     vello: &mut vello_cpu::RenderContext,
@@ -862,13 +867,17 @@ fn draw_to_buffer(
     viewport: &Viewport,
     background_color: Color,
     buffer: &mut [u8],
-    damage: &[softbuffer::Rect],
+    damage: Damage<'_>,
 ) {
     use vello_cpu::kurbo::Shape;
 
     vello.reset();
 
-    if !damage.is_empty() {
+    if let Damage::Partial(damage) = damage {
+        if damage.is_empty() {
+            return;
+        }
+
         let mut clip = vello_cpu::kurbo::BezPath::new();
 
         for region in damage {
@@ -891,7 +900,7 @@ fn draw_to_buffer(
 
     renderer.draw(vello, viewport, background_color);
 
-    if !damage.is_empty() {
+    if matches!(damage, Damage::Partial(_)) {
         vello.pop_clip();
     }
     vello.flush();
@@ -903,9 +912,7 @@ fn draw_to_buffer(
     )
     .expect("Buffer size matches renderer dimensions");
 
-    // Undamaged pixels are only preserved when rasterizing with `SrcOver`; a
-    // full render clears the target first.
-    if damage.is_empty() {
+    if matches!(damage, Damage::Full) {
         vello.render(pixmap, resources);
     } else {
         vello.render_with(
@@ -1042,7 +1049,7 @@ mod damage_clip {
             &viewport,
             background,
             &mut full,
-            &[],
+            Damage::Full,
         );
 
         // Back buffer holding a distinct previous frame.
@@ -1069,7 +1076,7 @@ mod damage_clip {
             &viewport,
             background,
             &mut back,
-            &regions,
+            Damage::Partial(&regions),
         );
 
         // Sample points, in physical coordinates.
@@ -1096,8 +1103,101 @@ mod damage_clip {
 
     #[test]
     fn incremental_render_preserves_undamaged_pixels() {
+        // Note: an incremental render can only be tested with an opaque
+        // background: with a translucent one, the old buffer contents
+        // would show through the new background, so the compositor
+        // renders the whole scene instead (see `Compositor::present`).
         assert_incremental(1.0);
         assert_incremental(2.0);
+    }
+
+    #[test]
+    fn translucent_background_full_render_clears_old_contents() {
+        // `Compositor::present` renders translucent windows in full, so the
+        // old buffer contents must not bleed through the new background.
+        let physical = 100u32;
+        let viewport = Viewport::with_physical_size(
+            Size::new(physical, physical),
+            renderer::Scale {
+                window: 1.0,
+                application: 1.0,
+            },
+        );
+        let background = Color::from_rgba(0.1, 0.1, 0.1, 0.5);
+
+        let mut vello = vello_cpu::RenderContext::new(physical as u16, physical as u16);
+
+        // Ground truth: a full render into a fresh (zeroed) buffer.
+        let mut full = vec![0; (physical * physical) as usize * 4];
+        draw_to_buffer(
+            &mut scene(),
+            &mut vello,
+            &mut vello_cpu::Resources::new(),
+            &viewport,
+            background,
+            &mut full,
+            Damage::Full,
+        );
+
+        // Back buffer holding a distinct, opaque previous frame.
+        let mut back = vec![0; (physical * physical) as usize * 4];
+        for chunk in back.as_chunks_mut::<4>().0 {
+            *chunk = [0, 0, 255, 255];
+        }
+
+        // Render the same scene in full over the stale back buffer.
+        draw_to_buffer(
+            &mut scene(),
+            &mut vello,
+            &mut vello_cpu::Resources::new(),
+            &viewport,
+            background,
+            &mut back,
+            Damage::Full,
+        );
+
+        // A plain background point must match the clean full render, i.e. the
+        // stale opaque contents were cleared rather than blended through.
+        let background_point = 8u32;
+        assert_eq!(
+            pixel(&back, physical, background_point, background_point),
+            pixel(&full, physical, background_point, background_point),
+        );
+    }
+
+    #[test]
+    fn empty_partial_damage_is_a_no_op() {
+        // A `Partial` with no regions must leave the buffer untouched, as
+        // `Compositor::present` relies on it to skip re-rendering a buffer
+        // that already holds the current scene!
+        let physical = 100u32;
+        let viewport = Viewport::with_physical_size(
+            Size::new(physical, physical),
+            renderer::Scale {
+                window: 1.0,
+                application: 1.0,
+            },
+        );
+
+        let mut vello = vello_cpu::RenderContext::new(physical as u16, physical as u16);
+        let mut buffer = vec![0; (physical * physical) as usize * 4];
+        for chunk in buffer.as_chunks_mut::<4>().0 {
+            *chunk = [9, 9, 9, 255];
+        }
+
+        draw_to_buffer(
+            &mut scene(),
+            &mut vello,
+            &mut vello_cpu::Resources::new(),
+            &viewport,
+            Color::from_rgb(0.1, 0.1, 0.1),
+            &mut buffer,
+            Damage::Partial(&[]),
+        );
+
+        // The buffer is untouched.
+        assert_eq!(pixel(&buffer, physical, 0, 0), [9, 9, 9, 255]);
+        assert_eq!(pixel(&buffer, physical, 50, 50), [9, 9, 9, 255]);
     }
 
     #[test]
@@ -1230,7 +1330,7 @@ mod shadow {
             &viewport,
             background,
             &mut buffer,
-            &[],
+            Damage::Full,
         );
 
         let at = |x: f32, y: f32| pixel(&buffer, physical, (x * scale) as u32, (y * scale) as u32);
