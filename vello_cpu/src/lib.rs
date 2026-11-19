@@ -18,9 +18,12 @@ mod geometry;
 
 use crate::core::backend;
 use crate::core::border;
+use crate::core::gradient;
 use crate::core::image;
 use crate::core::renderer;
-use crate::core::{Background, Color, Font, Gradient, Rectangle, Size, Transformation, Vector};
+use crate::core::{
+    Background, Color, Font, Gradient, Point, Rectangle, Size, Transformation, Vector,
+};
 use crate::graphics::compositor;
 use crate::graphics::mesh;
 use crate::graphics::text::{Editor, Paragraph};
@@ -358,6 +361,7 @@ impl Renderer {
 }
 
 fn into_color(Color { r, g, b, a }: Color) -> vello_cpu::color::AlphaColor<vello_cpu::color::Srgb> {
+    // `softbuffer` expects BGRA
     vello_cpu::color::AlphaColor::<vello_cpu::color::Srgb>::new([b, g, r, a])
 }
 
@@ -368,40 +372,40 @@ fn into_background(background: &Background, bounds: Rectangle) -> vello_cpu::Pai
             Gradient::Linear(gradient) => {
                 let (start, end) = bounds.chord(gradient.angle);
 
-                vello_cpu::peniko::Gradient {
-                    kind: vello_cpu::peniko::GradientKind::Linear(
-                        vello_cpu::peniko::LinearGradientPosition::new(
-                            (start.x, start.y),
-                            (end.x, end.y),
-                        ),
-                    ),
-                    stops: vello_cpu::peniko::ColorStops(
-                        gradient
-                            .stops
-                            .into_iter()
-                            .filter_map(|stop| {
-                                let stop = stop?;
-
-                                Some(vello_cpu::peniko::ColorStop {
-                                    offset: stop.offset,
-                                    color: vello_cpu::color::DynamicColor {
-                                        cs: vello_cpu::color::ColorSpaceTag::Srgb,
-                                        flags: vello_cpu::color::Flags::default(),
-                                        components: [
-                                            stop.color.b,
-                                            stop.color.g,
-                                            stop.color.r,
-                                            stop.color.a,
-                                        ],
-                                    },
-                                })
-                            })
-                            .collect(),
-                    ),
-                    ..vello_cpu::peniko::Gradient::default()
-                }
+                into_gradient(start, end, &gradient.stops)
             }
         }),
+    }
+}
+
+fn into_gradient(
+    start: Point,
+    end: Point,
+    stops: &[Option<gradient::ColorStop>],
+) -> vello_cpu::peniko::Gradient {
+    vello_cpu::peniko::Gradient {
+        kind: vello_cpu::peniko::GradientKind::Linear(
+            vello_cpu::peniko::LinearGradientPosition::new((start.x, start.y), (end.x, end.y)),
+        ),
+        stops: vello_cpu::peniko::ColorStops(
+            stops
+                .iter()
+                .copied()
+                .filter_map(|stop| {
+                    let stop = stop?;
+
+                    Some(vello_cpu::peniko::ColorStop {
+                        offset: stop.offset,
+                        color: vello_cpu::color::DynamicColor {
+                            cs: vello_cpu::color::ColorSpaceTag::Srgb,
+                            flags: vello_cpu::color::Flags::default(),
+                            components: [stop.color.b, stop.color.g, stop.color.r, stop.color.a],
+                        },
+                    })
+                })
+                .collect(),
+        ),
+        ..vello_cpu::peniko::Gradient::default()
     }
 }
 
@@ -412,6 +416,10 @@ fn into_rect(rectangle: Rectangle) -> vello_cpu::kurbo::Rect {
         x1: f64::from(rectangle.x + rectangle.width),
         y1: f64::from(rectangle.y + rectangle.height),
     }
+}
+
+fn into_point(point: Point) -> vello_cpu::kurbo::Point {
+    vello_cpu::kurbo::Point::new(f64::from(point.x), f64::from(point.y))
 }
 
 fn into_vec2(vector: Vector) -> vello_cpu::kurbo::Vec2 {

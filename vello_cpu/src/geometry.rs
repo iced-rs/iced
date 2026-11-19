@@ -385,76 +385,19 @@ fn convert_path(path: &Path) -> kurbo::BezPath {
     builder
 }
 
-pub fn into_paint(style: Style, _transform: kurbo::Affine) -> vello_cpu::PaintType {
+pub fn into_paint(style: Style, transform: kurbo::Affine) -> vello_cpu::PaintType {
     match style {
         Style::Solid(color) => vello_cpu::PaintType::Solid(crate::into_color(color)),
         Style::Gradient(gradient) => match gradient {
-            Gradient::Linear(_linear) => {
-                // let stops: Vec<tiny_skia::GradientStop> = linear
-                //     .stops
-                //     .into_iter()
-                //     .flatten()
-                //     .map(|stop| {
-                //         tiny_skia::GradientStop::new(
-                //             stop.offset,
-                //             tiny_skia::Color::from_rgba(
-                //                 stop.color.b,
-                //                 stop.color.g,
-                //                 stop.color.r,
-                //                 stop.color.a,
-                //             )
-                //             .expect("Create color"),
-                //         )
-                //     })
-                //     .collect();
+            Gradient::Linear(linear) => {
+                let start = transform * crate::into_point(linear.start);
+                let end = transform * crate::into_point(linear.end);
 
-                // tiny_skia::LinearGradient::new(
-                //     tiny_skia::Point {
-                //         x: linear.start.x,
-                //         y: linear.start.y,
-                //     },
-                //     tiny_skia::Point {
-                //         x: linear.end.x,
-                //         y: linear.end.y,
-                //     },
-                //     if stops.is_empty() {
-                //         vec![tiny_skia::GradientStop::new(0.0, tiny_skia::Color::BLACK)]
-                //     } else {
-                //         stops
-                //     },
-                //     tiny_skia::SpreadMode::Pad,
-                //     tiny_skia::Transform::identity(),
-                // )
-                // .expect("Create linear gradient")
-                //
-                // if let vello_cpu::PaintType::Gradient(gradient) = &mut paint {
-                //     gradient.kind = match gradient.kind {
-                //         peniko::GradientKind::Linear(position) => {
-                //             peniko::GradientKind::Linear(peniko::LinearGradientPosition {
-                //                 start: self.transform * position.start,
-                //                 end: self.transform * position.end,
-                //             })
-                //         }
-                //         peniko::GradientKind::Radial(position) => {
-                //             let scale = self.transform.as_coeffs()[0] as f32;
-
-                //             peniko::GradientKind::Radial(peniko::RadialGradientPosition {
-                //                 start_center: self.transform * position.start_center,
-                //                 start_radius: scale * position.start_radius,
-                //                 end_center: self.transform * position.end_center,
-                //                 end_radius: scale * position.end_radius,
-                //             })
-                //         }
-                //         peniko::GradientKind::Sweep(position) => {
-                //             peniko::GradientKind::Sweep(peniko::SweepGradientPosition {
-                //                 center: self.transform * position.center,
-                //                 start_angle: position.start_angle,
-                //                 end_angle: position.end_angle,
-                //             })
-                //         }
-                //     };
-                // }
-                todo!()
+                vello_cpu::PaintType::Gradient(crate::into_gradient(
+                    Point::new(start.x as f32, start.y as f32),
+                    Point::new(end.x as f32, end.y as f32),
+                    &linear.stops,
+                ))
             }
         },
     }
