@@ -3,12 +3,11 @@ use iced::keyboard;
 use iced::keyboard::key;
 use iced::time::seconds;
 use iced::widget::{
-    Id, button, center, column, container, operation, pick_list, right, row, rule, slider, space,
-    stack, text, text_input,
+    Id, button, center, column, operation, pick_list, right, row, slider, stack, text, text_input,
 };
 use iced::{Center, Fill, Fit, Subscription, Task, Widget};
 
-use toast::{Status, Toast};
+use iced::widget::toast::{self, Status, Toast};
 
 pub fn main() -> iced::Result {
     iced::application(App::new, App::update, App::view)
@@ -17,9 +16,16 @@ pub fn main() -> iced::Result {
 }
 
 struct App {
-    toasts: Vec<(Id, Toast)>,
-    editing: Toast,
+    toasts: Vec<(Id, Draft)>,
+    editing: Draft,
     timeout_secs: u64,
+}
+
+#[derive(Debug, Clone, Default)]
+struct Draft {
+    title: String,
+    body: String,
+    status: Status,
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +42,7 @@ enum Message {
 
 impl App {
     fn new() -> (Self, Task<Message>) {
-        let toast = Toast {
+        let toast = Draft {
             title: "Example Toast".into(),
             body: "Add more toasts in the form below!".into(),
             status: Status::Primary,
@@ -48,7 +54,7 @@ impl App {
         (
             Self {
                 toasts: vec![(id.clone(), toast)],
-                editing: Toast::default(),
+                editing: Draft::default(),
                 timeout_secs,
             },
             Self::expire(id, timeout_secs),
@@ -164,84 +170,14 @@ impl App {
             .width(Fit.max(200)),
         );
 
-        let toasts = self.toasts.iter().map(|(id, toast)| {
-            container(
-                column![
-                    container(
-                        row![
-                            text(toast.title.as_str()),
-                            space::horizontal(),
-                            button("X")
-                                .on_press_with(|| Message::Close(id.clone()))
-                                .padding(5),
-                        ]
-                        .align_y(Center)
-                    )
-                    .width(Fill)
-                    .padding(10)
-                    .style(match toast.status {
-                        Status::Primary => container::primary,
-                        Status::Secondary => container::secondary,
-                        Status::Success => container::success,
-                        Status::Danger => container::danger,
-                        Status::Warning => container::warning,
-                    }),
-                    rule::horizontal(1),
-                    text(toast.body.as_str())
-                ]
-                .spacing(10)
-                .padding(10),
-            )
-            .style(container::rounded_box)
-            .width(Fit.max(200))
+        let toasts = self.toasts.iter().map(|(id, draft)| {
+            Toast::new(draft.title.as_str(), draft.body.as_str())
+                .status(draft.status)
+                .on_close(Message::Close(id.clone()))
+                .width(Fit.max(200))
+                .view()
         });
 
         stack![content, right(column(toasts).spacing(10))]
-    }
-}
-
-mod toast {
-    use std::fmt;
-
-    pub const DEFAULT_TIMEOUT: u64 = 5;
-
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-    pub enum Status {
-        #[default]
-        Primary,
-        Secondary,
-        Success,
-        Danger,
-        Warning,
-    }
-
-    impl Status {
-        pub const ALL: &'static [Self] = &[
-            Self::Primary,
-            Self::Secondary,
-            Self::Success,
-            Self::Danger,
-            Self::Warning,
-        ];
-    }
-
-    impl fmt::Display for Status {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            match self {
-                Status::Primary => "Primary",
-                Status::Secondary => "Secondary",
-                Status::Success => "Success",
-                Status::Danger => "Danger",
-                Status::Warning => "Warning",
-            }
-            .fmt(f)
-        }
-    }
-
-    #[derive(Debug, Clone, Default)]
-    pub struct Toast {
-        pub title: String,
-        pub body: String,
-        pub status: Status,
     }
 }
