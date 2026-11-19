@@ -911,10 +911,19 @@ impl renderer::Headless for Renderer {
             .await
             .ok()?;
 
+        // Request optional features only when supported by the adapter.
+        let required_features = adapter.features()
+            & (wgpu::Features::TEXTURE_FORMAT_16BIT_NORM
+                | wgpu::Features::TEXTURE_FORMAT_NV12
+                | wgpu::Features::TEXTURE_FORMAT_P010
+                | wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF
+                | wgpu::Features::VULKAN_EXTERNAL_MEMORY_FD
+                | wgpu::Features::VULKAN_EXTERNAL_MEMORY_WIN32);
+
         let (device, queue) = adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: Some("iced_wgpu [headless]"),
-                required_features: wgpu::Features::empty(),
+                required_features,
                 required_limits: wgpu::Limits {
                     max_bind_groups: 2,
                     ..wgpu::Limits::default()

@@ -165,12 +165,15 @@ impl Compositor {
             ..limits
         });
 
-        // Request SHADER_F16 only if the adapter supports it (e.g., not available in WebGL2)
-        let required_features = if adapter.features().contains(wgpu::Features::SHADER_F16) {
-            wgpu::Features::SHADER_F16
-        } else {
-            wgpu::Features::empty()
-        };
+        // Request optional features only when supported by the adapter (e.g., not available in WebGL2).
+        let required_features = adapter.features()
+            & (wgpu::Features::SHADER_F16
+                | wgpu::Features::TEXTURE_FORMAT_16BIT_NORM
+                | wgpu::Features::TEXTURE_FORMAT_NV12
+                | wgpu::Features::TEXTURE_FORMAT_P010
+                | wgpu::Features::VULKAN_EXTERNAL_MEMORY_DMA_BUF
+                | wgpu::Features::VULKAN_EXTERNAL_MEMORY_FD
+                | wgpu::Features::VULKAN_EXTERNAL_MEMORY_WIN32);
 
         let mut errors = Vec::new();
 
