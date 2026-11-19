@@ -50,7 +50,7 @@ iced_highlighter.optional = true
 iced_test.workspace = true
 
 iced_renderer.workspace = true
-iced_renderer.features = ["tiny-skia", "x11", "wayland"]
+iced_renderer.features = ["vello-cpu", "x11", "wayland"]
 
 iced_widget.workspace = true
 iced_widget.features = ["markdown"]
