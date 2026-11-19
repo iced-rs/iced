@@ -59,117 +59,108 @@ impl Layer {
 
 #[derive(Debug, Clone)]
 pub struct Pipeline {
-    #[cfg(not(target_arch = "wasm32"))]
     pipeline: wgpu::RenderPipeline,
 }
 
 impl Pipeline {
-    #[allow(unused_variables)]
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
         constants_layout: &wgpu::BindGroupLayout,
     ) -> Self {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("iced_wgpu.quad.gradient.pipeline"),
-                bind_group_layouts: &[Some(constants_layout)],
-                immediate_size: 0,
-            });
+        let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("iced_wgpu.quad.gradient.pipeline"),
+            bind_group_layouts: &[Some(constants_layout)],
+            immediate_size: 0,
+        });
 
-            let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu.quad.gradient.shader"),
-                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(concat!(
-                    include_str!("../shader/quad/snap.wgsl"),
-                    "\n",
-                    include_str!("../shader/quad.wgsl"),
-                    "\n",
-                    include_str!("../shader/vertex.wgsl"),
-                    "\n",
-                    include_str!("../shader/quad/shadow.wgsl"),
-                    "\n",
-                    include_str!("../shader/quad/gradient.wgsl"),
-                    "\n",
-                    include_str!("../shader/color.wgsl"),
-                    "\n",
-                    include_str!("../shader/color/linear_rgb.wgsl")
-                ))),
-            });
+        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("iced_wgpu.quad.gradient.shader"),
+            source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(concat!(
+                include_str!("../shader/quad/snap.wgsl"),
+                "\n",
+                include_str!("../shader/quad.wgsl"),
+                "\n",
+                include_str!("../shader/vertex.wgsl"),
+                "\n",
+                include_str!("../shader/quad/shadow.wgsl"),
+                "\n",
+                include_str!("../shader/quad/gradient.wgsl"),
+                "\n",
+                include_str!("../shader/color.wgsl"),
+                "\n",
+                include_str!("../shader/color/linear_rgb.wgsl")
+            ))),
+        });
 
-            let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("iced_wgpu.quad.gradient.pipeline"),
-                layout: Some(&layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: Some("gradient_vs_main"),
-                    buffers: &[Some(wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<Gradient>() as u64,
-                        step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &wgpu::vertex_attr_array!(
-                            // Colors 1-2
-                            0 => Uint32x4,
-                            // Colors 3-4
-                            1 => Uint32x4,
-                            // Colors 5-6
-                            2 => Uint32x4,
-                            // Colors 7-8
-                            3 => Uint32x4,
-                            // Offsets 1-8
-                            4 => Uint32x4,
-                            // Direction
-                            5 => Float32x4,
-                            // Position
-                            6 => Float32x2,
-                            // Scale
-                            7 => Float32x2,
-                            // Border color
-                            8 => Float32x4,
-                            // Border radius
-                            9 => Float32x4,
-                            // Border width
-                            10 => Float32,
-                            // Shadow color
-                            11 => Float32x4,
-                            // Shadow offset
-                            12 => Float32x2,
-                            // Shadow blur radius
-                            13 => Float32,
-                            // Snap
-                            14 => Uint32,
-                        ),
-                    })],
-                    compilation_options: wgpu::PipelineCompilationOptions::default(),
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader,
-                    entry_point: Some("gradient_fs_main"),
-                    targets: &quad::color_target_state(format),
-                    compilation_options: wgpu::PipelineCompilationOptions::default(),
-                }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    front_face: wgpu::FrontFace::Cw,
-                    ..Default::default()
-                },
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
-                multiview_mask: None,
-                cache: None,
-            });
+        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("iced_wgpu.quad.gradient.pipeline"),
+            layout: Some(&layout),
+            vertex: wgpu::VertexState {
+                module: &shader,
+                entry_point: Some("gradient_vs_main"),
+                buffers: &[Some(wgpu::VertexBufferLayout {
+                    array_stride: std::mem::size_of::<Gradient>() as u64,
+                    step_mode: wgpu::VertexStepMode::Instance,
+                    attributes: &wgpu::vertex_attr_array!(
+                        // Colors 1-2
+                        0 => Uint32x4,
+                        // Colors 3-4
+                        1 => Uint32x4,
+                        // Colors 5-6
+                        2 => Uint32x4,
+                        // Colors 7-8
+                        3 => Uint32x4,
+                        // Offsets 1-8
+                        4 => Uint32x4,
+                        // Direction
+                        5 => Float32x4,
+                        // Position
+                        6 => Float32x2,
+                        // Scale
+                        7 => Float32x2,
+                        // Border color
+                        8 => Float32x4,
+                        // Border radius
+                        9 => Float32x4,
+                        // Border width
+                        10 => Float32,
+                        // Shadow color
+                        11 => Float32x4,
+                        // Shadow offset
+                        12 => Float32x2,
+                        // Shadow blur radius
+                        13 => Float32,
+                        // Snap
+                        14 => Uint32,
+                    ),
+                })],
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &shader,
+                entry_point: Some("gradient_fs_main"),
+                targets: &quad::color_target_state(format),
+                compilation_options: wgpu::PipelineCompilationOptions::default(),
+            }),
+            primitive: wgpu::PrimitiveState {
+                topology: wgpu::PrimitiveTopology::TriangleList,
+                front_face: wgpu::FrontFace::Cw,
+                ..Default::default()
+            },
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState {
+                count: 1,
+                mask: !0,
+                alpha_to_coverage_enabled: false,
+            },
+            multiview_mask: None,
+            cache: None,
+        });
 
-            Self { pipeline }
-        }
-
-        #[cfg(target_arch = "wasm32")]
-        Self {}
+        Self { pipeline }
     }
 
-    #[allow(unused_variables)]
     pub fn render<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
@@ -177,13 +168,10 @@ impl Pipeline {
         layer: &'a Layer,
         range: Range<usize>,
     ) {
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_bind_group(0, constants, &[]);
-            render_pass.set_vertex_buffer(0, layer.instances.slice(..));
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_bind_group(0, constants, &[]);
+        render_pass.set_vertex_buffer(0, layer.instances.slice(..));
 
-            render_pass.draw(0..6, range.start as u32..range.end as u32);
-        }
+        render_pass.draw(0..6, range.start as u32..range.end as u32);
     }
 }
