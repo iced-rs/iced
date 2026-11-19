@@ -389,6 +389,85 @@ where
     }
 }
 
+impl widget::Meta for String {}
+
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for String
+where
+    Theme: Catalog,
+    Renderer: text::Renderer,
+{
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fit,
+            height: Length::Fit,
+        }
+    }
+
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::<Renderer::Paragraph>::default())
+    }
+
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+        tree.size = layout(
+            &mut state.paragraph,
+            renderer,
+            limits,
+            self,
+            Format::default(),
+        );
+    }
+
+    fn draw(
+        &self,
+        tree: &Tree,
+        renderer: &mut Renderer,
+        theme: &Theme,
+        defaults: &renderer::Style,
+        layout: Layout,
+        _cursor_position: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+        let style = theme.style(&Theme::default());
+
+        draw(
+            renderer,
+            defaults,
+            layout.bounds(),
+            state.paragraph.raw(),
+            style,
+            theme.selection(),
+            viewport,
+        );
+    }
+
+    fn operate(
+        &mut self,
+        tree: &mut Tree,
+        layout: Layout,
+        _viewport: &Rectangle,
+        _renderer: &Renderer,
+        operation: &mut dyn super::Operation,
+    ) {
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+        operation.text(
+            None,
+            layout.bounds(),
+            &mut Operand {
+                paragraph: &mut state.paragraph,
+                layout,
+                selectable: false,
+            },
+        );
+    }
+}
+
 #[derive(Default)]
 struct State<P: Paragraph> {
     paragraph: paragraph::Plain<P>,
@@ -596,6 +675,15 @@ where
     Theme: Catalog + 'a,
 {
     fn from(content: &'a str) -> Self {
+        Self::new(content)
+    }
+}
+
+impl<'a, Theme> From<String> for Text<'a, Theme>
+where
+    Theme: Catalog + 'a,
+{
+    fn from(content: String) -> Self {
         Self::new(content)
     }
 }
