@@ -211,7 +211,6 @@ impl geometry::frame::Backend for Frame {
                 )
             };
 
-            // TODO: Honor layering!
             self.text.push(Text::Cached {
                 content: text.content,
                 bounds,
@@ -224,7 +223,7 @@ impl geometry::frame::Backend for Frame {
                 shaping: text.shaping,
                 wrapping: text.wrapping,
                 ellipsis: text.ellipsis,
-                clip_bounds: Rectangle::with_size(Size::INFINITE),
+                clip_bounds: self.clip_bounds,
             });
         } else {
             text.draw_with(|path, color| self.fill(&path, color));
