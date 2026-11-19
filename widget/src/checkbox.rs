@@ -484,8 +484,7 @@ where
             .state
             .downcast_mut::<text::paragraph::Plain<Renderer::Paragraph>>();
 
-        let mut children = layout.iter(&tree.children);
-        let (layout, _) = children.next().unwrap();
+        let (layout, _) = layout.iter(&tree.children).nth(1).unwrap();
 
         operation.text(
             None,
