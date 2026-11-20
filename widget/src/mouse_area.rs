@@ -153,7 +153,6 @@ impl<Message, W> Meta for MouseArea<'_, Message, W> {}
 
 impl<Message, W, Theme, Renderer> Widget<Message, Theme, Renderer> for MouseArea<'_, Message, W>
 where
-    Renderer: renderer::Renderer,
     Message: Clone,
     W: Widget<Message, Theme, Renderer>,
 {

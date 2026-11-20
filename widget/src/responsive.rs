@@ -4,7 +4,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::Tree;
-use crate::core::{self, Event, Length, Rectangle, Shell, Size, Vector, Widget};
+use crate::core::{Event, Length, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that is aware of its dimensions.
 ///
@@ -50,7 +50,6 @@ impl<W> widget::Meta for Responsive<'_, W> {}
 
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Responsive<'_, W>
 where
-    Renderer: core::Renderer,
     W: Widget<Message, Theme, Renderer>,
 {
     fn diff(&mut self, _tree: &mut Tree) {

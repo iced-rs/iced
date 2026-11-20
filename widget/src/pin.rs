@@ -23,9 +23,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::{
-    self, Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
-};
+use crate::core::{Event, Layout, Length, Pixels, Point, Rectangle, Shell, Size, Vector, Widget};
 
 /// A widget that positions its contents at some fixed coordinates inside of its boundaries.
 ///
@@ -103,7 +101,6 @@ impl<W> widget::Meta for Pin<W> {}
 impl<W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Pin<W>
 where
     W: Widget<Message, Theme, Renderer>,
-    Renderer: core::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
         self.content.tag()

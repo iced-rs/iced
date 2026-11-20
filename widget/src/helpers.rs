@@ -7,14 +7,15 @@ use crate::core;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::Meta;
-use crate::core::widget::operation;
-use crate::core::{Element, Length, Size, Widget};
+use crate::core::{Length, Size, Widget};
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::lazy::Lazy;
+use crate::opaque::Opaque;
 use crate::overlay;
 use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
+use crate::popover::Popover;
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
 use crate::scrollable::{self, Scrollable};
@@ -24,7 +25,7 @@ use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
-use crate::tooltip::{self, Tooltip};
+use crate::tooltip::Tooltip;
 use crate::transition::{self, Transition};
 use crate::vertical_slider::{self, VerticalSlider};
 use crate::{Column, Grid, Hover, MouseArea, Pin, Responsive, Row, Sensor, Space, Stack, Themer};
@@ -527,138 +528,16 @@ where
 /// Wraps the given widget and captures any mouse button presses inside the bounds of
 /// the widget—effectively making it _opaque_.
 ///
-/// This helper is meant to be used to mark elements in a [`Stack`] to avoid mouse
-/// events from passing through layers.
+/// This helper is meant to be used to mark elements in a [`Stack`], or inside an
+/// overlay—like the popup of a [`Popover`]—to avoid mouse events from passing
+/// through to the elements below.
+///
+/// Use [`Opaque::capture_scroll`] to also capture scroll wheel events.
 ///
 /// [`Stack`]: crate::Stack
-pub fn opaque<'a, Message, Theme, Renderer>(
-    content: impl Widget<Message, Theme, Renderer> + 'a,
-) -> impl Widget<Message, Theme, Renderer> + 'a
-where
-    Message: 'a,
-    Theme: 'a,
-    Renderer: core::Renderer + 'a,
-{
-    use crate::core::layout::{self, Layout};
-    use crate::core::mouse;
-    use crate::core::renderer;
-    use crate::core::widget::tree::{self, Tree};
-    use crate::core::{Event, Rectangle, Shell, Size};
-
-    struct Opaque<'a, Message, Theme, Renderer> {
-        content: Element<'a, Message, Theme, Renderer>,
-    }
-
-    impl<Message, Theme, Renderer> Meta for Opaque<'_, Message, Theme, Renderer> {}
-
-    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-        for Opaque<'_, Message, Theme, Renderer>
-    where
-        Renderer: core::Renderer,
-    {
-        fn tag(&self) -> tree::Tag {
-            self.content.tag()
-        }
-
-        fn state(&self) -> tree::State {
-            self.content.state()
-        }
-
-        fn diff(&mut self, tree: &mut Tree) {
-            self.content.diff(tree);
-        }
-
-        fn size(&self) -> Size<Length> {
-            self.content.size()
-        }
-
-        fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-            self.content.layout(tree, renderer, limits);
-        }
-
-        fn draw(
-            &self,
-            tree: &Tree,
-            renderer: &mut Renderer,
-            theme: &Theme,
-            style: &renderer::Style,
-            layout: Layout,
-            cursor: mouse::Cursor,
-            viewport: &Rectangle,
-        ) {
-            self.content
-                .draw(tree, renderer, theme, style, layout, cursor, viewport);
-        }
-
-        fn operate(
-            &mut self,
-            tree: &mut Tree,
-            layout: Layout,
-            viewport: &Rectangle,
-            renderer: &Renderer,
-            operation: &mut dyn operation::Operation,
-        ) {
-            self.content
-                .operate(tree, layout, viewport, renderer, operation);
-        }
-
-        fn update(
-            &mut self,
-            tree: &mut Tree,
-            event: &Event,
-            layout: Layout,
-            cursor: mouse::Cursor,
-            renderer: &Renderer,
-            shell: &mut Shell<'_, Message>,
-            viewport: &Rectangle,
-        ) {
-            let is_mouse_press =
-                matches!(event, core::Event::Mouse(mouse::Event::ButtonPressed(_)));
-
-            self.content
-                .update(tree, event, layout, cursor, renderer, shell, viewport);
-
-            if is_mouse_press && cursor.is_over(layout.bounds()) {
-                shell.capture_event();
-            }
-        }
-
-        fn mouse_interaction(
-            &self,
-            state: &core::widget::Tree,
-            layout: core::Layout,
-            cursor: core::mouse::Cursor,
-            viewport: &core::Rectangle,
-            renderer: &Renderer,
-        ) -> core::mouse::Interaction {
-            let interaction = self
-                .content
-                .mouse_interaction(state, layout, cursor, viewport, renderer);
-
-            if interaction == mouse::Interaction::None && cursor.is_over(layout.bounds()) {
-                mouse::Interaction::Idle
-            } else {
-                interaction
-            }
-        }
-
-        fn overlay<'b>(
-            &'b mut self,
-            state: &'b mut core::widget::Tree,
-            layout: core::Layout,
-            renderer: &Renderer,
-            viewport: &Rectangle,
-            translation: core::Vector,
-            window: core::Size,
-        ) -> Vec<core::overlay::Element<'b, Message, Theme, Renderer>> {
-            self.content
-                .overlay(state, layout, renderer, viewport, translation, window)
-        }
-    }
-
-    Opaque {
-        content: content._boxed(),
-    }
+/// [`Popover`]: crate::popover::Popover
+pub fn opaque<W>(content: W) -> Opaque<W> {
+    Opaque::new(content)
 }
 
 /// Displays a widget on top of another one, only when the base widget is hovered.
@@ -764,10 +643,57 @@ where
     Button::new(content)
 }
 
+/// Creates a new [`Popover`] for the provided content with the given [`Widget`].
+///
+/// Popovers display a floating piece of content over some element. The `popover`
+/// argument is an `Option`: `Some` displays the overlay (open), and `None`
+/// hides it (closed). The base is always present. By default, the popover is
+/// positioned [`crate::popover::Position::Auto`]; use the [`Popover::position`]
+/// method to set a specific position. When the user clicks outside of its
+/// bounds, the popover notifies the application through its `on_close` handler.
+///
+/// # Example
+/// ```no_run
+/// # mod iced { pub mod widget { pub use iced_widget::*; } pub use iced_widget::Renderer; pub use iced_widget::core::*; }
+/// # use iced::widget::Widget;
+/// use iced::widget::{button, container, popover, text};
+///
+/// #[derive(Clone)]
+/// enum Message {
+///     Close,
+/// }
+///
+/// struct State {
+///     is_open: bool,
+/// }
+///
+/// fn view(state: &State) -> impl Widget<Message> {
+///     // The base is always present. The `popover` argument is `Some` when the
+///     // popover is open and `None` when it is closed.
+///     popover(
+///         button(text("Click me!")).on_press(Message::Close),
+///         state.is_open.then(|| {
+///             container(text("This is the popover contents!")).padding(10)
+///         }),
+///     )
+///     .position(popover::Position::Bottom)
+///     .on_close(Message::Close)
+/// }
+/// ```
+pub fn popover<W, V, Message>(
+    content: W,
+    popover: Option<V>,
+) -> crate::Popover<W, Opaque<V>, Message> {
+    Popover::new(content, popover.map(opaque))
+}
+
 /// Creates a new [`Tooltip`] for the provided content with the given
-/// [`Widget`] and [`tooltip::Position`].
+/// [`Widget`].
 ///
 /// Tooltips display a hint of information over some element when hovered.
+///
+/// By default, the tooltip is positioned [`crate::tooltip::Position::Auto`];
+/// use the [`Tooltip::position`] method to set a specific position.
 ///
 /// # Example
 /// ```no_run
@@ -786,19 +712,12 @@ where
 ///         container("This is the tooltip contents!")
 ///             .padding(10)
 ///             .style(container::rounded_box),
-///         tooltip::Position::Bottom,
 ///     )
+///     .position(tooltip::Position::Bottom)
 /// }
 /// ```
-pub fn tooltip<'a, W, V, Theme>(
-    content: W,
-    tooltip: V,
-    position: tooltip::Position,
-) -> crate::Tooltip<'a, W, V, Theme>
-where
-    Theme: container::Catalog + 'a,
-{
-    Tooltip::new(content, tooltip, position)
+pub fn tooltip<W, V>(content: W, tooltip: V) -> crate::Tooltip<W, V> {
+    Tooltip::new(content, tooltip)
 }
 
 /// Creates a new [`Text`] widget with the provided content.
@@ -1498,7 +1417,8 @@ where
     crate::Svg::new(handle)
 }
 
-/// Creates an [`Element`] that displays the iced logo with the given `text_size`.
+/// Creates an [`Element`](crate::Element) that displays the iced logo with
+/// the given `text_size`.
 ///
 /// Useful for showing some love to your favorite GUI library in your "About" screen,
 /// for instance.
@@ -1665,7 +1585,6 @@ pub fn themer<'a, Message, Theme, Renderer>(
 ) -> Themer<'a, Message, Theme, Renderer>
 where
     Theme: theme::Base,
-    Renderer: core::Renderer,
 {
     Themer::new(theme, content)
 }
@@ -1716,7 +1635,6 @@ pub fn pane_grid<'a, T, Message, Title, W, Theme, Renderer>(
 ) -> PaneGrid<'a, Message, Title, W, Theme, Renderer>
 where
     Theme: pane_grid::Catalog,
-    Renderer: core::Renderer,
 {
     PaneGrid::new(state, view)
 }

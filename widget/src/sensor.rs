@@ -141,7 +141,6 @@ impl<Key, Message, W, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Sensor<'_, Key, Message, W>
 where
     Key: self::Key,
-    Renderer: core::Renderer,
     W: Widget<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {

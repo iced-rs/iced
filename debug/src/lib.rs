@@ -194,31 +194,37 @@ mod internal {
     }
 
     pub fn update(message: &impl std::fmt::Debug) -> Span {
+        use std::fmt::Write as _;
+
         let span = span(span::Stage::Update);
 
         let number = LAST_UPDATE.fetch_add(1, atomic::Ordering::Relaxed);
 
-        let start = Instant::now();
-        let message = format!("{message:#?}");
-        let elapsed = start.elapsed();
-
-        if elapsed.as_millis() >= 1 {
-            log::warn!("Slow `Debug` implementation of `Message` (took {elapsed:?})!");
-        }
-
         const MAX_MESSAGE_LENGTH: usize = 10_000;
 
-        let message = if message.len() > MAX_MESSAGE_LENGTH {
-            message
-                .chars()
-                .take(MAX_MESSAGE_LENGTH)
-                .chain("...".chars())
-                .collect::<String>()
-        } else {
-            message
-        };
+        struct Message {
+            raw: String,
+        }
 
-        log(client::Event::MessageLogged { number, message });
+        impl std::fmt::Write for Message {
+            fn write_str(&mut self, s: &str) -> std::fmt::Result {
+                if self.raw.len() < MAX_MESSAGE_LENGTH {
+                    self.raw
+                        .push_str(&s[..s.floor_char_boundary(MAX_MESSAGE_LENGTH - self.raw.len())]);
+                }
+
+                Ok(())
+            }
+        }
+
+        let mut writer = Message { raw: String::new() };
+
+        if let Ok(()) = write!(&mut writer, "{message:#?}") {
+            log(client::Event::MessageLogged {
+                number,
+                message: writer.raw,
+            });
+        }
 
         span
     }

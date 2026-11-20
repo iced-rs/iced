@@ -677,10 +677,7 @@ where
 ///
 /// This trait allows the [`application`] builder to take any closure that
 /// returns any widget.
-pub trait ViewFn<'a, State, Message, Theme, Renderer>
-where
-    Renderer: crate::core::Renderer,
-{
+pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Application`].
     fn view(&self, state: &'a State) -> impl Widget<Message, Theme, Renderer> + 'a;
 }
@@ -693,7 +690,6 @@ where
     Theme: 'static,
     Renderer: 'static,
     W: Widget<Message, Theme, Renderer> + 'a,
-    Renderer: crate::core::Renderer,
 {
     #[inline]
     fn view(&self, state: &'a State) -> impl Widget<Message, Theme, Renderer> + 'a {

@@ -148,7 +148,6 @@ const THICKNESS_RATIO: f32 = 25.0;
 pub struct PaneGrid<'a, Message, T, W, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     internal: &'a state::Internal,
     panes: Vec<Pane>,
@@ -167,7 +166,6 @@ where
 impl<'a, Message, T, W, Theme, Renderer> PaneGrid<'a, Message, T, W, Theme, Renderer>
 where
     Theme: Catalog,
-    Renderer: core::Renderer,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -339,10 +337,8 @@ struct Memory {
     order: Vec<Pane>,
 }
 
-impl<Message, T, W, Theme, Renderer> widget::Meta for PaneGrid<'_, Message, T, W, Theme, Renderer>
-where
-    Theme: Catalog,
-    Renderer: core::Renderer,
+impl<Message, T, W, Theme, Renderer> widget::Meta for PaneGrid<'_, Message, T, W, Theme, Renderer> where
+    Theme: Catalog
 {
 }
 
@@ -933,7 +929,6 @@ where
 struct PickedPane<'a, 'b, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     content: &'a Content<'b, Message, T, W, Theme, Renderer>,
     origin: Point,
@@ -944,7 +939,6 @@ where
 impl<'a, 'b, Message, T, W, Theme, Renderer> PickedPane<'a, 'b, Message, T, W, Theme, Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     fn bounds(&self) -> Rectangle {
         // TODO: Mouse translation

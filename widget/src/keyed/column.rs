@@ -119,12 +119,10 @@ where
     }
 
     /// Adds an element to the [`Column`].
-    pub fn push(mut self, key: Key, child: impl Into<W>) -> Self
+    pub fn push(mut self, key: Key, child: W) -> Self
     where
         W: Meta,
     {
-        let child = child.into();
-
         if !child.is_void() {
             self.keys.push(key);
             self.children.push(child);
@@ -134,7 +132,7 @@ where
     }
 
     /// Adds an element to the [`Column`], if `Some`.
-    pub fn push_maybe(self, key: Key, child: Option<impl Into<W>>) -> Self
+    pub fn push_maybe(self, key: Key, child: Option<W>) -> Self
     where
         W: Meta,
     {
@@ -177,7 +175,6 @@ impl<Key, W> Meta for Column<Key, W> where Key: Copy + PartialEq {}
 
 impl<Key, W, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Column<Key, W>
 where
-    Renderer: crate::core::Renderer,
     Key: Copy + PartialEq + 'static,
     W: Widget<Message, Theme, Renderer>,
 {

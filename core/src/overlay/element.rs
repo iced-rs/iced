@@ -11,10 +11,7 @@ pub struct Element<'a, Message, Theme, Renderer> {
     overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>,
 }
 
-impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer>
-where
-    Renderer: crate::Renderer,
-{
+impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// Creates a new [`Element`] containing the given [`Overlay`].
     pub fn new(overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>) -> Self {
         Self { overlay }
@@ -58,10 +55,7 @@ impl<'a, A, B, Theme, Renderer> Map<'a, A, B, Theme, Renderer> {
     }
 }
 
-impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer> for Map<'_, A, B, Theme, Renderer>
-where
-    Renderer: crate::Renderer,
-{
+impl<A, B, Theme, Renderer> Overlay<B, Theme, Renderer> for Map<'_, A, B, Theme, Renderer> {
     fn operate(&mut self, renderer: &Renderer, operation: &mut dyn widget::Operation) {
         self.content.operate(renderer, operation);
     }

@@ -178,9 +178,23 @@ impl<P: Program> Daemon<P> {
         }
     }
 
-    /// Adds a font to the list of fonts that will be loaded at the start of the [`Daemon`].
-    pub fn font(mut self, font: impl Into<Cow<'static, [u8]>>) -> Self {
-        self.settings.fonts.push(font.into());
+    /// Sets the default [`Font`] of the [`Daemon`].
+    pub fn font(self, font: Font) -> Self {
+        Self {
+            settings: Settings {
+                font,
+                ..self.settings
+            },
+            ..self
+        }
+    }
+
+    /// Adds a set of fonts to the list of fonts that will be loaded at the start of the [`Daemon`].
+    pub fn fonts(mut self, fonts: impl IntoIterator<Item = impl Into<Cow<'static, [u8]>>>) -> Self {
+        self.settings
+            .fonts
+            .extend(fonts.into_iter().map(Into::into));
+
         self
     }
 
@@ -377,10 +391,7 @@ where
 ///
 /// This trait allows the [`daemon`] builder to take any closure that
 /// returns any widget.
-pub trait ViewFn<'a, State, Message, Theme, Renderer>
-where
-    Renderer: core::Renderer,
-{
+pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Daemon`].
     fn view(
         &self,
@@ -394,7 +405,6 @@ where
     T: Fn(&'a State, window::Id) -> W,
     State: 'static,
     W: core::Widget<Message, Theme, Renderer> + 'a,
-    Renderer: core::Renderer,
 {
     #[inline]
     fn view(

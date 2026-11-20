@@ -719,7 +719,7 @@ impl editor::Editor for Editor {
 
             buffer.set_text(
                 new_text,
-                &cosmic_text::Attrs::new(),
+                &text::to_attributes(internal.font),
                 cosmic_text::Shaping::Advanced,
                 text::to_align(internal.alignment),
             );

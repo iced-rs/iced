@@ -24,7 +24,7 @@ jobs:
           -p iced_highlighter \
           -p iced_renderer \
           -p iced_runtime \
-          -p iced_tiny_skia \
+          -p iced_vello_cpu \
           -p iced_wgpu \
           -p iced_widget \
           -p iced_winit \

@@ -38,10 +38,7 @@ impl Tree {
     }
 
     /// Creates a new [`Tree`] for the provided [`Widget`].
-    pub fn new<Message, Theme, Renderer>(widget: &impl Widget<Message, Theme, Renderer>) -> Self
-    where
-        Renderer: crate::Renderer,
-    {
+    pub fn new<Message, Theme, Renderer>(widget: &impl Widget<Message, Theme, Renderer>) -> Self {
         Self {
             tag: widget.tag(),
             state: widget.state(),
@@ -62,9 +59,7 @@ impl Tree {
     pub fn diff<Message, Theme, Renderer>(
         &mut self,
         new: &mut impl Widget<Message, Theme, Renderer>,
-    ) where
-        Renderer: crate::Renderer,
-    {
+    ) {
         if self.tag != new.tag() {
             *self = Self::new(new);
         }
@@ -76,9 +71,7 @@ impl Tree {
     pub fn diff_children<Message, Theme, Renderer>(
         &mut self,
         new_children: &mut [impl Widget<Message, Theme, Renderer>],
-    ) where
-        Renderer: crate::Renderer,
-    {
+    ) {
         diff_children(&mut self.children, new_children);
     }
 
@@ -98,9 +91,7 @@ impl Tree {
 pub fn diff_children<Message, Theme, Renderer>(
     old_children: &mut Vec<Tree>,
     new_children: &mut [impl Widget<Message, Theme, Renderer>],
-) where
-    Renderer: crate::Renderer,
-{
+) {
     diff_children_custom(old_children, new_children, Tree::diff, |widget| {
         Tree::new(widget)
     });

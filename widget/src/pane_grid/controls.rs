@@ -7,7 +7,6 @@ use crate::core::{self, Element, Widget};
 pub struct Controls<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     pub(super) full: Element<'a, Message, Theme, Renderer>,
     pub(super) compact: Option<Element<'a, Message, Theme, Renderer>>,
@@ -16,7 +15,6 @@ where
 impl<'a, Message, Theme, Renderer> Controls<'a, Message, Theme, Renderer>
 where
     Theme: container::Catalog,
-    Renderer: core::Renderer,
 {
     /// Creates a new [`Controls`] with the given content.
     pub fn new(content: impl Widget<Message, Theme, Renderer> + 'a) -> Self {

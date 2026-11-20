@@ -176,7 +176,6 @@ where
 
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for &mut T
 where
-    Renderer: crate::Renderer,
     T: Widget<Message, Theme, Renderer>,
 {
     fn size(&self) -> Size<Length> {
@@ -316,7 +315,7 @@ where
     B: 'static,
     F: Fn(A) -> B,
     Theme: 'static,
-    Renderer: crate::Renderer + 'static,
+    Renderer: 'static,
 {
     fn size(&self) -> Size<Length> {
         self.widget.size()
@@ -433,7 +432,6 @@ where
 impl<T, Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Option<T>
 where
     T: Widget<Message, Theme, Renderer>,
-    Renderer: crate::Renderer,
 {
     fn size(&self) -> Size<Length> {
         let Some(widget) = self else {
