@@ -172,7 +172,7 @@ pub fn diff_children_custom_with_search<T>(
         let first_maybe_changed = maybe_changed(0);
         let last_maybe_changed = maybe_changed(current_children.len() - 1);
 
-        if !first_maybe_changed && last_maybe_changed {
+        if !last_maybe_changed {
             current_children.extend(new_children[current_children.len()..].iter().map(new_state));
         } else {
             let difference_index = if first_maybe_changed {
@@ -271,5 +271,68 @@ impl fmt::Debug for State {
             Self::None => write!(f, "State::None"),
             Self::Some(_) => write!(f, "State::Some"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Diffs a list of trees keyed by `old` against the keys in `new`, the same
+    /// way `keyed::Column` does, and returns the resulting keys.
+    ///
+    /// Trees that were kept are returned in lowercase, while trees that had to
+    /// be created are returned in uppercase.
+    fn diff_keys(old: &str, new: &str) -> String {
+        let old_keys: Vec<char> = old.chars().collect();
+        let new_keys: Vec<char> = new.chars().collect();
+
+        let tree = |key: char| Tree {
+            state: State::new(key),
+            ..Tree::empty()
+        };
+
+        let mut children: Vec<Tree> = old_keys.iter().copied().map(tree).collect();
+
+        diff_children_custom_with_search(
+            &mut children,
+            &mut new_keys.clone(),
+            |_tree, _key| {},
+            |index| new_keys.get(index).or_else(|| new_keys.last()) != old_keys.get(index),
+            |key| tree(key.to_ascii_uppercase()),
+        );
+
+        children
+            .iter()
+            .map(|child| *child.state.downcast_ref::<char>())
+            .collect()
+    }
+
+    #[test]
+    fn diff_with_search_appends() {
+        assert_eq!(diff_keys("a", "ab"), "aB");
+        assert_eq!(diff_keys("ab", "abc"), "abC");
+        assert_eq!(diff_keys("ab", "abcd"), "abCD");
+    }
+
+    #[test]
+    fn diff_with_search_prepends() {
+        assert_eq!(diff_keys("b", "ab"), "Ab");
+        assert_eq!(diff_keys("bc", "abc"), "Abc");
+    }
+
+    #[test]
+    fn diff_with_search_inserts_in_the_middle() {
+        assert_eq!(diff_keys("ac", "abc"), "aBc");
+        assert_eq!(diff_keys("abd", "abcd"), "abCd");
+        assert_eq!(diff_keys("ad", "abcd"), "aBCd");
+    }
+
+    #[test]
+    fn diff_with_search_removes() {
+        assert_eq!(diff_keys("abc", "ab"), "ab");
+        assert_eq!(diff_keys("abc", "ac"), "ac");
+        assert_eq!(diff_keys("abc", "bc"), "bc");
+        assert_eq!(diff_keys("abcd", "ad"), "ad");
     }
 }
