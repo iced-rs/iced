@@ -22,6 +22,7 @@
 use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
+use crate::core::padding;
 use crate::core::renderer;
 use crate::core::widget::{Meta, Tree};
 use crate::core::{self, Background, Color, Layout, Length, Rectangle, Size, Theme, Widget};
@@ -194,17 +195,25 @@ where
         );
 
         if active_progress_length > 0.0 {
+            let radius = style.border.radius;
+            let max_radius = bounds.width.min(bounds.height) / 2.0;
+
+            let inset =
+                |corner: f32| (corner.min(max_radius) - active_progress_length / 2.0).max(0.0);
+
             let bounds = if self.is_vertical {
                 Rectangle {
                     y: bounds.y + bounds.height - active_progress_length,
                     height: active_progress_length,
                     ..bounds
                 }
+                .shrink(padding::left(inset(radius.bottom_left)).right(inset(radius.bottom_right)))
             } else {
                 Rectangle {
                     width: active_progress_length,
                     ..bounds
                 }
+                .shrink(padding::top(inset(radius.top_left)).bottom(inset(radius.bottom_left)))
             };
 
             renderer.fill_quad(
