@@ -31,6 +31,7 @@ mod rainbow {
             tree: &mut widget::Tree,
             _renderer: &Renderer,
             limits: &layout::Limits,
+            _direction: iced::Direction,
         ) {
             let width = limits.max.width;
 

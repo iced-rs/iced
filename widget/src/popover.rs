@@ -48,6 +48,7 @@
 //! }
 //! ```
 use crate::Opaque;
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -233,8 +234,15 @@ where
         self.content.size()
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.layout(&mut tree.children[0], renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.content
+            .layout(&mut tree.children[0], renderer, limits, direction);
 
         tree.size = tree.children[0].size;
     }
@@ -316,15 +324,22 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = tree.children.iter_mut();
 
         let base = children.next().unwrap();
         let popup_tree = children.next();
 
-        let mut overlays =
-            self.content
-                .overlay(base, layout, renderer, viewport, translation, window);
+        let mut overlays = self.content.overlay(
+            base,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        );
 
         let viewport = *viewport + translation;
 
@@ -345,6 +360,7 @@ where
                             Size::INFINITE
                         },
                     ),
+                    direction,
                 );
 
                 state.needs_relayout = false;
@@ -371,6 +387,7 @@ where
                 on_close: self.on_close.clone(),
                 viewport,
                 window,
+                direction,
             })));
         }
 
@@ -421,6 +438,7 @@ struct Overlay<'b, V, Message> {
     on_close: Option<Message>,
     viewport: Rectangle,
     window: Size,
+    direction: Direction,
 }
 
 impl<V, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
@@ -521,6 +539,7 @@ where
             &self.viewport,
             Vector::ZERO,
             self.window,
+            self.direction,
         )
     }
 

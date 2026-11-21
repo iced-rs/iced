@@ -53,6 +53,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::keyboard;
 use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
@@ -415,7 +416,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<Internal<T, Renderer>>();
 
         tree.size = state.editor.input.layout(
@@ -430,6 +437,7 @@ where
                 size: self.size,
                 line_height: self.line_height,
                 alignment: text::Alignment::Default,
+                direction,
                 multiline: None,
                 is_secure: false,
             },
@@ -689,6 +697,7 @@ where
         _viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let internal = tree.state.downcast_mut::<Internal<T, Renderer>>();
         let is_focused = internal.editor.input.is_focused();
@@ -729,7 +738,7 @@ where
                     menu = menu.text_size(size);
                 }
 
-                vec![menu.overlay(renderer, position, window, bounds.height)]
+                vec![menu.overlay(renderer, position, window, bounds.height, direction)]
             }
         } else {
             Vec::new()
@@ -777,7 +786,8 @@ where
 {
     let query: Vec<String> = query
         .to_lowercase()
-        .split(|c: char| !c.is_ascii_alphanumeric())
+        .split(char::is_whitespace)
+        .filter(|s| !s.is_empty())
         .map(String::from)
         .collect();
 
@@ -805,7 +815,21 @@ fn build_matcher<T>(option: T) -> String
 where
     T: Display,
 {
-    let mut matcher = option.to_string();
-    matcher.retain(|c| c.is_ascii_alphanumeric());
-    matcher.to_lowercase()
+    option.to_string().to_lowercase()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{build_matchers, search};
+
+    #[test]
+    fn search_matches_non_ascii_options() {
+        let options = ["English", "فارسی", "Español"];
+        let matchers = build_matchers(options);
+        let find = |query| search(options, &matchers, query).collect::<Vec<_>>();
+
+        assert_eq!(find("فار"), ["فارسی"]);
+        assert_eq!(find("españ"), ["Español"]);
+        assert_eq!(find("eng"), ["English"]);
+    }
 }

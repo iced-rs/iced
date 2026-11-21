@@ -210,7 +210,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: iced::Direction,
+    ) {
         tree.size = layout::atomic(limits, self.size, self.size);
     }
 

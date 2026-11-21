@@ -1,5 +1,6 @@
 //! Build and reuse custom widgets using The Elm Architecture.
 use crate::Action;
+use crate::core::Direction;
 use crate::core::event;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -123,6 +124,7 @@ where
         component,
         view: crate::space()._boxed(),
         limits: layout::Limits::new(Size::ZERO, Size::INFINITE),
+        direction: Direction::default(),
         is_outdated: Cell::new(true),
         has_overlay: false,
     }
@@ -135,6 +137,7 @@ where
     component: C,
     view: Element<'a, C::Event, Theme, Renderer>,
     limits: layout::Limits,
+    direction: Direction,
     is_outdated: Cell<bool>,
     has_overlay: bool,
 }
@@ -188,10 +191,18 @@ where
         self.view.size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        if &self.limits != limits {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        if &self.limits != limits || self.direction != direction {
             self.limits = *limits;
-            self.view.layout(&mut tree.children[0], renderer, limits);
+            self.direction = direction;
+            self.view
+                .layout(&mut tree.children[0], renderer, limits, direction);
         }
 
         tree.size = tree.children[0].size;
@@ -275,8 +286,12 @@ where
 
         let previous_size = tree.size;
 
-        self.view
-            .layout(&mut tree.children[0], renderer, &self.limits);
+        self.view.layout(
+            &mut tree.children[0],
+            renderer,
+            &self.limits,
+            self.direction,
+        );
 
         tree.size = tree.children[0].size;
 
@@ -402,6 +417,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let overlays = self.view.overlay(
             &mut tree.children[0],
@@ -410,6 +426,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         );
 
         self.has_overlay = !overlays.is_empty();

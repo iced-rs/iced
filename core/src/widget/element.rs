@@ -1,3 +1,4 @@
+use crate::Direction;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -51,8 +52,14 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
         self.widget.diff(tree);
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.widget.layout(tree, renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.widget.layout(tree, renderer, limits, direction);
     }
 
     fn draw(
@@ -115,9 +122,17 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.widget
-            .overlay(tree, layout, renderer, viewport, translation, window)
+        self.widget.overlay(
+            tree,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        )
     }
 
     fn _boxed<'b>(self) -> Element<'b, Message, Theme, Renderer>

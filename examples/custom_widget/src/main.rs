@@ -39,6 +39,7 @@ mod circle {
             tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
+            _direction: iced::Direction,
         ) {
             tree.size = Size::new(self.radius * 2.0, self.radius * 2.0);
         }

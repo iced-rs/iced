@@ -509,7 +509,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        layout_direction: crate::core::Direction,
+    ) {
         let mut layout = |tree: &mut Tree, right_padding: f32, bottom_padding: f32| {
             let is_horizontal = self.direction.horizontal().is_some();
             let is_vertical = self.direction.vertical().is_some();
@@ -535,7 +541,8 @@ where
                         ),
                     );
 
-                    self.content.layout(tree, renderer, &child_limits);
+                    self.content
+                        .layout(tree, renderer, &child_limits, layout_direction);
 
                     tree.size
                 },
@@ -978,6 +985,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: crate::core::Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
@@ -994,6 +1002,7 @@ where
             &(viewport + offset),
             translation - offset,
             window,
+            direction,
         );
 
         let icon = if let Interaction::AutoScrolling { origin, .. } = state.interaction {

@@ -1,4 +1,5 @@
 //! A widget to make animated views.
+use crate::core::Direction;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::core::animation::{Animation, Float};
@@ -50,6 +51,7 @@ where
     element: Option<W>,
     next_element: Option<W>,
     last_limits: layout::Limits,
+    last_direction: Direction,
     key: Key,
     id: Option<widget::Id>,
     value: P::Value,
@@ -77,6 +79,7 @@ where
             element: None,
             next_element: None,
             last_limits: layout::Limits::new(Size::ZERO, Size::ZERO),
+            last_direction: Direction::default(),
             key: Key::default(),
             id: None,
             value,
@@ -189,11 +192,18 @@ where
         tree.diff_children(std::slice::from_mut(&mut self.element));
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         self.last_limits = *limits;
+        self.last_direction = direction;
 
         self.element
-            .layout(&mut tree.children[0], renderer, &limits.loose());
+            .layout(&mut tree.children[0], renderer, &limits.loose(), direction);
 
         tree.size = tree.children[0].size;
     }
@@ -249,8 +259,12 @@ where
                         state.size = Some(new_size);
                     } else {
                         self.element = Some(new);
-                        self.element
-                            .layout(&mut tree.children[0], renderer, &self.last_limits);
+                        self.element.layout(
+                            &mut tree.children[0],
+                            renderer,
+                            &self.last_limits,
+                            self.last_direction,
+                        );
                     }
 
                     shell.request_redraw();
@@ -333,6 +347,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'a, Message, Theme, Renderer>> {
         self.element.overlay(
             &mut tree.children[0],
@@ -341,6 +356,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         )
     }
 }

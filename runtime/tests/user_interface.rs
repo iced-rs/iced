@@ -1,5 +1,6 @@
 //! Integration tests for the [`UserInterface`].
 use iced_runtime::core;
+use iced_runtime::core::Direction;
 use iced_runtime::core::layout;
 use iced_runtime::core::overlay;
 use iced_runtime::core::renderer;
@@ -20,7 +21,13 @@ impl Widget<(), core::Theme, Renderer> for Root {
         Size::new(Length::Shrink, Length::Shrink)
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, _renderer: &Renderer, _limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        _renderer: &Renderer,
+        _limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = Size::ZERO;
     }
 
@@ -59,6 +66,7 @@ impl Widget<(), core::Theme, Renderer> for Root {
         _viewport: &Rectangle,
         _translation: core::Vector,
         _window: core::Size,
+        _direction: Direction,
     ) -> Vec<overlay::Element<'a, (), core::Theme, Renderer>> {
         if self.overlay_visible {
             vec![overlay::Element::new(Box::new(HidingOverlay {
@@ -111,6 +119,7 @@ fn events_after_an_overlay_disappears_reach_the_base_widget() {
         window::Settings::default().size,
         Cache::default(),
         &mut renderer,
+        Direction::LeftToRight,
     );
 
     let mut messages = shell::Bus::new();
@@ -149,7 +158,13 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         Size::new(Length::Fill, Length::Fill)
     }
 
-    fn layout(&mut self, tree: &mut widget::Tree, _renderer: &Renderer, _limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut widget::Tree,
+        _renderer: &Renderer,
+        _limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = Size::new(100.0, 100.0);
     }
 
@@ -185,6 +200,7 @@ impl widget::Widget<OverlayMessage, core::Theme, Renderer> for MultiOverlayRoot 
         _viewport: &Rectangle,
         _translation: core::Vector,
         _window: core::Size,
+        _direction: Direction,
     ) -> Vec<overlay::Element<'a, OverlayMessage, core::Theme, Renderer>> {
         vec![
             overlay::Element::new(Box::new(TopOverlay)),
@@ -319,6 +335,7 @@ fn multiple_overlays_are_handled_by_index_order_and_nested_overlays_capture_even
         Size::new(100.0, 100.0),
         Cache::default(),
         &mut renderer,
+        Direction::LeftToRight,
     );
 
     let mut messages = shell::Bus::new();

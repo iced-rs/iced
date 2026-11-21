@@ -769,7 +769,13 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Recorder {
         Size::new(Length::Fill, Length::Fill)
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: iced_widget::core::Direction,
+    ) {
         tree.size = layout::atomic(limits, Length::Fill, Length::Fixed(1000.0));
     }
 

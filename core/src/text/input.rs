@@ -8,7 +8,8 @@ use crate::text::paragraph;
 use crate::text::{self, Alignment, Editor, LineHeight, Position, Text, Wrapping};
 use crate::widget::operation::{Focusable, TextInput};
 use crate::{
-    Color, Event, Font, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
+    Color, Direction, Event, Font, InputMethod, Length, Padding, Pixels, Point, Rectangle, Shell,
+    Size,
 };
 
 use unicode_segmentation::UnicodeSegmentation;
@@ -35,6 +36,7 @@ pub struct Layout<'a> {
     pub size: Option<Pixels>,
     pub line_height: Option<LineHeight>,
     pub alignment: Alignment,
+    pub direction: Direction,
     pub multiline: Option<Wrapping>,
     pub is_secure: bool,
 }
@@ -86,6 +88,13 @@ impl<R: text::Renderer> Input<R> {
         let line_height = layout.line_height.unwrap_or_else(|| renderer.line_height());
         let hint_factor = renderer.hint_factor();
 
+        // An unaligned field belongs to its container, not to its contents: an
+        // empty or Latin-only field in an RTL layout must still start at the right.
+        let alignment = match (layout.alignment, layout.direction) {
+            (Alignment::Default, Direction::RightToLeft) => Alignment::Right,
+            (alignment, _) => alignment,
+        };
+
         if layout.is_secure {
             if self.secure.is_none() {
                 let value = self.value();
@@ -105,7 +114,7 @@ impl<R: text::Renderer> Input<R> {
             size,
             line_height,
             layout.multiline.unwrap_or(text::Wrapping::None),
-            layout.alignment,
+            alignment,
             hint_factor,
             &mut text::parser::PlainText,
         );
@@ -118,7 +127,7 @@ impl<R: text::Renderer> Input<R> {
             line_height,
             bounds,
             size,
-            align_x: layout.alignment,
+            align_x: alignment,
             align_y: alignment::Vertical::Top,
             shaping: text::Shaping::Advanced,
             wrapping: text::Wrapping::None,

@@ -6,7 +6,7 @@ pub mod flex;
 pub use limits::Limits;
 
 use crate::widget;
-use crate::{Length, Padding, Point, Rectangle, Size, Vector};
+use crate::{Direction, Length, Padding, Point, Rectangle, Size, Vector};
 
 /// The bounds of a widget and its children, using absolute coordinates.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -89,11 +89,18 @@ impl Layout {
 ///
 /// The tree must have exactly two children. The first is placed at the left
 /// edge, and the second to its right after `spacing`, both vertically
-/// centered with respect to each other.
+/// centered with respect to each other. With [`Direction::RightToLeft`],
+/// the horizontal order is mirrored.
 ///
 /// The resulting size is stored in the tree, along with the children's
 /// sizes and translations.
-pub fn next_to_each_other(tree: &mut widget::Tree, left: Size, right: Size, spacing: f32) {
+pub fn next_to_each_other(
+    tree: &mut widget::Tree,
+    left: Size,
+    right: Size,
+    spacing: f32,
+    direction: Direction,
+) {
     let (left_y, right_y) = if left.height > right.height {
         (0.0, (left.height - right.height) / 2.0)
     } else {
@@ -105,11 +112,16 @@ pub fn next_to_each_other(tree: &mut widget::Tree, left: Size, right: Size, spac
         left.height.max(right.height),
     );
 
+    let (left_x, right_x) = match direction {
+        Direction::LeftToRight => (0.0, left.width + spacing),
+        Direction::RightToLeft => (right.width + spacing, 0.0),
+    };
+
     tree.children[0].size = left;
-    tree.children[0].translation = Vector::new(0.0, left_y);
+    tree.children[0].translation = Vector::new(left_x, left_y);
 
     tree.children[1].size = right;
-    tree.children[1].translation = Vector::new(left.width + spacing, right_y);
+    tree.children[1].translation = Vector::new(right_x, right_y);
 }
 
 /// Computes the resulting [`Size`] that fits the [`Limits`] given

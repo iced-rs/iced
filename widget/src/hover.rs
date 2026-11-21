@@ -2,6 +2,7 @@
 //! hovered.
 
 use crate::core;
+use crate::core::Direction;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -64,8 +65,15 @@ where
         self.base.size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.base.layout(&mut tree.children[0], renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.base
+            .layout(&mut tree.children[0], renderer, limits, direction);
 
         let base_size = tree.children[0].size;
 
@@ -73,6 +81,7 @@ where
             &mut tree.children[1],
             renderer,
             &layout::Limits::new(Size::ZERO, base_size),
+            direction,
         );
 
         tree.size = base_size;
@@ -239,6 +248,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.iter_mut(&mut tree.children);
 
@@ -252,6 +262,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         );
         let top_overlays = self.top.overlay(
             top_tree,
@@ -260,6 +271,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         );
 
         self.is_top_overlay_active = !top_overlays.is_empty();

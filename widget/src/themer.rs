@@ -1,4 +1,5 @@
 use crate::container;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -71,8 +72,14 @@ where
         self.content.size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
-        self.content.layout(tree, renderer, limits);
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
+        self.content.layout(tree, renderer, limits, direction);
     }
 
     fn operate(
@@ -157,6 +164,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, AnyTheme, Renderer>> {
         struct Overlay<'a, Message, Theme, Renderer> {
             theme: &'a Option<Theme>,
@@ -230,7 +238,15 @@ where
         }
 
         self.content
-            .overlay(tree, layout, renderer, viewport, translation, window)
+            .overlay(
+                tree,
+                layout,
+                renderer,
+                viewport,
+                translation,
+                window,
+                direction,
+            )
             .into_iter()
             .map(|content| {
                 overlay::Element::new(Box::new(Overlay {

@@ -60,6 +60,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::keyboard;
 use crate::core::layout;
@@ -354,8 +355,15 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+        state.direction = direction;
 
         let font = self.font.unwrap_or_else(|| renderer.font());
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
@@ -640,6 +648,7 @@ where
         if let Some((font, code_point, size, line_height, shaping)) = handle {
             let size = size.unwrap_or_else(|| renderer.text_size());
             let line_height = line_height.unwrap_or_else(|| renderer.line_height());
+            let is_rtl = matches!(state.direction, Direction::RightToLeft);
 
             renderer.fill_text(
                 Text {
@@ -648,7 +657,11 @@ where
                     line_height,
                     font,
                     bounds: Size::new(bounds.width, f32::from(line_height.to_absolute(size))),
-                    align_x: text::Alignment::Right,
+                    align_x: if is_rtl {
+                        text::Alignment::Left
+                    } else {
+                        text::Alignment::Right
+                    },
                     align_y: alignment::Vertical::Center,
                     shaping,
                     wrapping: text::Wrapping::None,
@@ -656,7 +669,11 @@ where
                     hint_factor: None,
                 },
                 Point::new(
-                    bounds.x + bounds.width - self.padding.right,
+                    if is_rtl {
+                        bounds.x + self.padding.left
+                    } else {
+                        bounds.x + bounds.width - self.padding.right
+                    },
                     bounds.center_y(),
                 ),
                 style.handle_color,
@@ -669,6 +686,7 @@ where
         if let Some(label) = label.or_else(|| self.placeholder.clone()) {
             let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
             let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
+            let is_rtl = matches!(state.direction, Direction::RightToLeft);
 
             renderer.fill_text(
                 Text {
@@ -680,14 +698,25 @@ where
                         bounds.width - self.padding.x(),
                         f32::from(line_height.to_absolute(text_size)),
                     ),
-                    align_x: text::Alignment::Default,
+                    align_x: if is_rtl {
+                        text::Alignment::Right
+                    } else {
+                        text::Alignment::Default
+                    },
                     align_y: alignment::Vertical::Center,
                     shaping: self.shaping,
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
                     hint_factor: renderer.hint_factor(),
                 },
-                Point::new(bounds.x + self.padding.left, bounds.center_y()),
+                Point::new(
+                    if is_rtl {
+                        bounds.x + bounds.width - self.padding.right
+                    } else {
+                        bounds.x + self.padding.left
+                    },
+                    bounds.center_y(),
+                ),
                 if selected.is_some() {
                     style.text_color
                 } else {
@@ -722,6 +751,7 @@ where
         _viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let Some(on_select) = &self.on_select else {
             return Vec::new();
@@ -758,7 +788,7 @@ where
                 menu = menu.text_size(text_size);
             }
 
-            vec![menu.overlay(renderer, position, window, bounds.height)]
+            vec![menu.overlay(renderer, position, window, bounds.height, direction)]
         } else {
             Vec::new()
         }
@@ -769,6 +799,7 @@ where
 struct State<P: text::Paragraph> {
     menu: menu::State,
     keyboard_modifiers: keyboard::Modifiers,
+    direction: Direction,
     is_open: bool,
     hovered_option: Option<usize>,
     options: Vec<paragraph::Plain<P>>,
@@ -781,6 +812,7 @@ impl<P: text::Paragraph> State<P> {
         Self {
             menu: menu::State::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
+            direction: Direction::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
             options: Vec::new(),
@@ -795,7 +827,7 @@ impl<P: text::Paragraph> Default for State<P> {
     }
 }
 
-/// The handle to the right side of the [`PickList`].
+/// The handle to the end side of the [`PickList`].
 #[derive(Debug, Clone, PartialEq)]
 pub enum Handle {
     /// Displays an arrow icon (▼).

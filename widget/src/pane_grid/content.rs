@@ -1,4 +1,5 @@
 use crate::container;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -161,7 +162,13 @@ where
         }
     }
 
-    pub(crate) fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    pub(crate) fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         if let Some(title_bar) = &mut self.title_bar {
             let max_size = limits.max;
 
@@ -169,6 +176,7 @@ where
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
+                direction,
             );
 
             let title_bar_size = tree.children[1].size;
@@ -180,6 +188,7 @@ where
                     Size::ZERO,
                     Size::new(max_size.width, max_size.height - title_bar_size.height),
                 ),
+                direction,
             );
 
             tree.children[1].translation = Vector::ZERO;
@@ -187,7 +196,8 @@ where
 
             tree.size = max_size;
         } else {
-            self.body.layout(&mut tree.children[0], renderer, limits);
+            self.body
+                .layout(&mut tree.children[0], renderer, limits, direction);
 
             tree.size = tree.children[0].size;
         }
@@ -343,6 +353,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.iter_mut(&mut tree.children);
@@ -356,6 +367,7 @@ where
                 viewport,
                 translation,
                 window,
+                direction,
             );
 
             let body_overlays = self.body.overlay(
@@ -365,6 +377,7 @@ where
                 viewport,
                 translation,
                 window,
+                direction,
             );
 
             title_bar_overlays
@@ -374,8 +387,15 @@ where
         } else {
             let (layout, body_tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-            self.body
-                .overlay(body_tree, layout, renderer, viewport, translation, window)
+            self.body.overlay(
+                body_tree,
+                layout,
+                renderer,
+                viewport,
+                translation,
+                window,
+                direction,
+            )
         }
     }
 }

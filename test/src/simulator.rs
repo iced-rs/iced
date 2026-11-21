@@ -1,5 +1,6 @@
 //! Run a simulation of your application without side effects.
 use crate::core;
+use crate::core::Direction;
 use crate::core::event;
 use crate::core::font;
 use crate::core::keyboard;
@@ -83,6 +84,7 @@ where
             size,
             user_interface::Cache::default(),
             &mut renderer,
+            Direction::LeftToRight,
         );
 
         Simulator {
@@ -138,7 +140,13 @@ where
         let cache = self.raw.into_cache();
 
         Self {
-            raw: UserInterface::build(element, self.size, cache, &mut self.renderer),
+            raw: UserInterface::build(
+                element,
+                self.size,
+                cache,
+                &mut self.renderer,
+                Direction::LeftToRight,
+            ),
             renderer: self.renderer,
             size: self.size,
             cursor: self.cursor,

@@ -1,4 +1,5 @@
 use crate::container;
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -249,7 +250,13 @@ where
         }
     }
 
-    pub(crate) fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    pub(crate) fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let limits = limits.shrink(self.padding);
         let max_size = limits.max;
 
@@ -257,6 +264,7 @@ where
             &mut tree.children[0],
             renderer,
             &layout::Limits::new(Size::ZERO, max_size),
+            direction,
         );
 
         let title_size = tree.children[0].size;
@@ -266,6 +274,7 @@ where
                 &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
+                direction,
             );
 
             let controls_size = tree.children[1].size;
@@ -276,6 +285,7 @@ where
                         &mut tree.children[2],
                         renderer,
                         &layout::Limits::new(Size::ZERO, max_size),
+                        direction,
                     );
 
                     let compact_size = tree.children[2].size;
@@ -484,6 +494,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.iter_mut(&mut tree.children);
         let (title_layout, title_tree) = children.next().unwrap();
@@ -502,6 +513,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         );
 
         if let Some(controls) = controls {
@@ -514,6 +526,7 @@ where
                         viewport,
                         translation,
                         window,
+                        direction,
                     ));
                 } else {
                     overlays.extend(controls.full.overlay(
@@ -523,6 +536,7 @@ where
                         viewport,
                         translation,
                         window,
+                        direction,
                     ));
                 }
             } else {
@@ -533,6 +547,7 @@ where
                     viewport,
                     translation,
                     window,
+                    direction,
                 ));
             }
         }

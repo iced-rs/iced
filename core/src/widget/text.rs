@@ -20,6 +20,7 @@
 //!         .color(color!(0x0000ff))
 //! }
 //! ```
+use crate::Direction;
 use crate::alignment;
 use crate::layout;
 use crate::mouse;
@@ -221,7 +222,13 @@ where
         tree::State::new(State::<Renderer::Paragraph>::default())
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         tree.size = layout(
@@ -332,7 +339,13 @@ where
         tree::State::new(State::<Renderer::Paragraph>::default())
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         tree.size = layout(

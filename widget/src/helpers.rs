@@ -7,7 +7,8 @@ use crate::core;
 use crate::core::theme;
 use crate::core::time::Instant;
 use crate::core::widget::Meta;
-use crate::core::{Length, Size, Widget};
+use crate::core::{Direction, Length, Size, Widget};
+use crate::directional::Directional;
 use crate::float::{self, Float};
 use crate::keyed;
 use crate::lazy::Lazy;
@@ -538,6 +539,15 @@ where
 /// [`Popover`]: crate::popover::Popover
 pub fn opaque<W>(content: W) -> Opaque<W> {
     Opaque::new(content)
+}
+
+/// Creates a new [`Directional`] widget that lays out the given content
+/// using the provided [`Direction`].
+///
+/// This is useful to embed a subtree with a reading direction different
+/// from the rest of the application.
+pub fn directional<W>(direction: Direction, content: W) -> Directional<W> {
+    Directional::new(direction, content)
 }
 
 /// Displays a widget on top of another one, only when the base widget is hovered.

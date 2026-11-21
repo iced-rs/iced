@@ -1,4 +1,5 @@
 //! Add some explicit spacing between elements.
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -68,7 +69,13 @@ impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space {
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = layout::atomic(limits, self.width, self.height);
     }
 

@@ -1,5 +1,6 @@
 #![allow(missing_docs)]
 use criterion::{Bencher, Criterion, criterion_group, criterion_main};
+use iced::Direction;
 
 use iced::alignment;
 use iced::mouse;
@@ -130,6 +131,7 @@ fn benchmark<W>(
             viewport.logical_size(),
             cache.take().unwrap(),
             &mut renderer,
+            Direction::LeftToRight,
         );
 
         user_interface.draw(

@@ -28,6 +28,7 @@
 //!     }
 //! }
 //! ```
+use crate::core::Direction;
 use std::ops::RangeInclusive;
 
 pub use crate::slider::{Catalog, Handle, HandleShape, Status, Style, StyleFn, default};
@@ -238,7 +239,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, _renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = layout::atomic(limits, self.width, self.height);
     }
 

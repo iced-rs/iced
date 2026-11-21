@@ -1,4 +1,5 @@
 //! Distribute content horizontally.
+use crate::core::Direction;
 use crate::core::alignment::{self, Alignment};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
@@ -201,7 +202,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let cache = tree.state.downcast_mut::<layout::flex::Cache>();
 
         tree.size = layout::flex::resolve(
@@ -216,6 +223,7 @@ where
             &mut tree.children,
             &mut self.children,
             cache,
+            direction,
         );
     }
 
@@ -311,6 +319,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
@@ -320,6 +329,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         )
     }
 }
@@ -364,7 +374,13 @@ where
         self.row.size()
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let limits = limits
             .width(self.row.width)
             .height(self.row.height)
@@ -399,7 +415,7 @@ where
             };
 
         for (i, child) in self.row.children.iter_mut().enumerate() {
-            child.layout(&mut tree.children[i], renderer, &child_limits);
+            child.layout(&mut tree.children[i], renderer, &child_limits, direction);
 
             let child_size = tree.children[i].size;
 
@@ -468,6 +484,14 @@ where
         let size = limits.resolve(self.row.width, self.row.height, intrinsic_size);
 
         tree.size = size.expand(self.row.padding);
+
+        if direction == Direction::RightToLeft {
+            let container_width = tree.size.width;
+
+            for child in &mut tree.children {
+                child.translation.x = container_width - child.translation.x - child.size.width;
+            }
+        }
     }
 
     fn operate(
@@ -530,8 +554,16 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.row
-            .overlay(tree, layout, renderer, viewport, translation, window)
+        self.row.overlay(
+            tree,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        )
     }
 }

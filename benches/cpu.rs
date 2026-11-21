@@ -1,5 +1,6 @@
 #![allow(missing_docs)]
 use criterion::{Bencher, Criterion, criterion_group, criterion_main};
+use iced::Direction;
 
 use iced::border;
 use iced::mouse;
@@ -39,7 +40,13 @@ fn draw(
     renderer: &mut Renderer,
     view: impl Widget<Never, Theme, Renderer>,
 ) {
-    let mut ui = UserInterface::build(view, VIEWPORT, user_interface::Cache::new(), renderer);
+    let mut ui = UserInterface::build(
+        view,
+        VIEWPORT,
+        user_interface::Cache::new(),
+        renderer,
+        Direction::LeftToRight,
+    );
 
     bencher.iter(|| {
         ui.draw(

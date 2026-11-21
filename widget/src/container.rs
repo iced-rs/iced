@@ -18,6 +18,7 @@
 //!         .style(container::rounded_box)
 //! }
 //! ```
+use crate::core::Direction;
 use crate::core::alignment::{self, Alignment};
 use crate::core::border::{self, Border};
 use crate::core::gradient::{self, Gradient};
@@ -62,6 +63,7 @@ where
     width: Length,
     height: Length,
     horizontal_alignment: alignment::Horizontal,
+    horizontal_alignment_set: bool,
     vertical_alignment: alignment::Vertical,
     clip: bool,
     content: W,
@@ -80,6 +82,7 @@ where
             width: Length::Fit,
             height: Length::Fit,
             horizontal_alignment: alignment::Horizontal::Left,
+            horizontal_alignment_set: false,
             vertical_alignment: alignment::Vertical::Top,
             clip: false,
             class: Theme::default(),
@@ -157,6 +160,7 @@ where
     /// Sets the content alignment for the horizontal axis of the [`Container`].
     pub fn align_x(mut self, alignment: impl Into<alignment::Horizontal>) -> Self {
         self.horizontal_alignment = alignment.into();
+        self.horizontal_alignment_set = true;
         self
     }
 
@@ -164,6 +168,16 @@ where
     pub fn align_y(mut self, alignment: impl Into<alignment::Vertical>) -> Self {
         self.vertical_alignment = alignment.into();
         self
+    }
+
+    fn effective_horizontal_alignment(&self, direction: Direction) -> alignment::Horizontal {
+        if self.horizontal_alignment_set {
+            self.horizontal_alignment
+        } else if matches!(direction, Direction::RightToLeft) {
+            alignment::Horizontal::Right
+        } else {
+            alignment::Horizontal::Left
+        }
     }
 
     /// Sets whether the contents of the [`Container`] should be clipped on
@@ -222,17 +236,23 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         layout(
             tree,
             limits,
             self.width,
             self.height,
             self.padding,
-            self.horizontal_alignment,
+            self.effective_horizontal_alignment(direction),
             self.vertical_alignment,
             |tree, limits| {
-                self.content.layout(tree, renderer, limits);
+                self.content.layout(tree, renderer, limits, direction);
                 tree.size
             },
         );
@@ -335,11 +355,19 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         let (layout, tree) = layout.iter_mut(&mut tree.children).next().unwrap();
 
-        self.content
-            .overlay(tree, layout, renderer, viewport, translation, window)
+        self.content.overlay(
+            tree,
+            layout,
+            renderer,
+            viewport,
+            translation,
+            window,
+            direction,
+        )
     }
 }
 

@@ -1,4 +1,5 @@
 //! Build and show dropdown menus.
+use crate::core::Direction;
 use crate::core::alignment;
 use crate::core::border::{self, Border};
 use crate::core::layout;
@@ -134,12 +135,15 @@ where
     /// The `target_height` will be used to display the menu either on top
     /// of the target or under it, depending on the screen position and the
     /// dimensions of the [`Menu`].
+    ///
+    /// The `direction` is used to lay out the contents of the [`Menu`].
     pub fn overlay<Renderer>(
         self,
         renderer: &Renderer,
         position: Point,
         window: Size,
         target_height: f32,
+        direction: Direction,
     ) -> overlay::Element<'a, Message, Theme, Renderer>
     where
         Renderer: text::Renderer + 'a,
@@ -150,6 +154,7 @@ where
             self,
             target_height,
             renderer,
+            direction,
         )))
     }
 }
@@ -199,6 +204,7 @@ where
         menu: Menu<'a, 'b, T, Message, Theme>,
         target_height: f32,
         renderer: &Renderer,
+        direction: Direction,
     ) -> Self
     where
         Renderer: text::Renderer + 'a,
@@ -254,7 +260,7 @@ where
         .width(width);
 
         state.tree.diff::<_, _, Renderer>(&mut list);
-        list.layout(&mut state.tree, renderer, &limits);
+        list.layout(&mut state.tree, renderer, &limits, direction);
 
         let layout = Layout::new(state.tree.size).move_to(if space_below > space_above {
             position + Vector::new(0.0, target_height)
@@ -378,6 +384,7 @@ where
 
 struct ListState {
     is_hovered: Option<bool>,
+    direction: Direction,
 }
 
 impl<T, Message, Theme> Meta for List<'_, '_, T, Message, Theme> where Theme: Catalog {}
@@ -394,7 +401,10 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(ListState { is_hovered: None })
+        tree::State::new(ListState {
+            is_hovered: None,
+            direction: Direction::default(),
+        })
     }
 
     fn size(&self) -> Size<Length> {
@@ -404,8 +414,16 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         use std::f32;
+
+        tree.state.downcast_mut::<ListState>().direction = direction;
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
         let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
@@ -564,7 +582,7 @@ where
 
     fn draw(
         &self,
-        _tree: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -574,6 +592,10 @@ where
     ) {
         let style = Catalog::style(theme, self.class);
         let bounds = layout.bounds();
+        let is_rtl = matches!(
+            tree.state.downcast_ref::<ListState>().direction,
+            Direction::RightToLeft
+        );
 
         let text_size = self.text_size.unwrap_or_else(|| renderer.text_size());
         let line_height = self.line_height.unwrap_or_else(|| renderer.line_height());
@@ -621,14 +643,25 @@ where
                     size: text_size,
                     line_height,
                     font: self.font.unwrap_or_else(|| renderer.font()),
-                    align_x: text::Alignment::Default,
+                    align_x: if is_rtl {
+                        text::Alignment::Right
+                    } else {
+                        text::Alignment::Default
+                    },
                     align_y: alignment::Vertical::Center,
                     shaping: self.shaping,
                     wrapping: text::Wrapping::None,
                     ellipsis: self.ellipsis,
                     hint_factor: renderer.hint_factor(),
                 },
-                Point::new(bounds.x + self.padding.left, bounds.center_y()),
+                Point::new(
+                    if is_rtl {
+                        bounds.x + bounds.width - self.padding.right
+                    } else {
+                        bounds.x + self.padding.left
+                    },
+                    bounds.center_y(),
+                ),
                 if is_selected {
                     style.selected_text_color
                 } else {

@@ -177,6 +177,7 @@ mod quad {
             tree: &mut widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
+            _direction: iced::Direction,
         ) {
             tree.size = Size::new(self.size, self.size);
         }

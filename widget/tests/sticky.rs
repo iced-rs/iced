@@ -93,6 +93,7 @@ fn assert_overlay_bounds(
         &VIEWPORT,
         Vector::ZERO,
         VIEWPORT.size(),
+        iced_widget::core::Direction::LeftToRight,
     );
 
     let Some(bounds) = expected else {
@@ -135,7 +136,12 @@ fn sticky_in_view() {
     let mut element = vertical_view();
     let mut tree = build(&mut element);
 
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(
+        &mut tree,
+        &(),
+        &DEFAULT_LIMITS,
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     // The sticky contents are in view, so they are not displayed on an
     // overlay.
@@ -147,7 +153,12 @@ fn sticky_partially_out_of_view() {
     let mut element = vertical_view();
     let mut tree = build(&mut element);
 
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(
+        &mut tree,
+        &(),
+        &DEFAULT_LIMITS,
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     // Scroll down a little: the sticky contents are partially out of the
     // visible bounds, so they are displayed on an overlay, inside them.
@@ -164,7 +175,12 @@ fn sticky_out_of_view() {
     let mut element = vertical_view();
     let mut tree = build(&mut element);
 
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(
+        &mut tree,
+        &(),
+        &DEFAULT_LIMITS,
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     // Scroll down, so that the sticky contents go out of view: they are
     // displayed on an overlay, inside the visible bounds.
@@ -188,7 +204,12 @@ fn sticky_pinned_to_nearest_edge() {
     .id("scrollable");
     let mut tree = build(&mut element);
 
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(
+        &mut tree,
+        &(),
+        &DEFAULT_LIMITS,
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     // Scroll a little: the sticky contents are out of the visible bounds on
     // the bottom edge, so they are displayed on an overlay, pinned to it.
@@ -232,7 +253,12 @@ fn sticky_clamped_to_visible_bounds() {
     .id("scrollable");
     let mut tree = build(&mut element);
 
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(
+        &mut tree,
+        &(),
+        &DEFAULT_LIMITS,
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     // Scroll down, so that the sticky contents go out of the visible bounds:
     // the overlay is clamped, and the 2000px-wide contents are displayed
@@ -257,7 +283,12 @@ fn sticky_stays_attached_to_parent_bounds() {
     .id("scrollable");
     let mut tree = build(&mut element);
 
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(
+        &mut tree,
+        &(),
+        &DEFAULT_LIMITS,
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     // Scroll down: the sticky contents are out of the visible bounds, but
     // their parent is still visible, so they are displayed on an overlay,
@@ -299,7 +330,12 @@ fn sticky_out_of_view_horizontally() {
     let mut element = horizontal_view();
     let mut tree = build(&mut element);
 
-    element.layout(&mut tree, &(), &DEFAULT_LIMITS);
+    element.layout(
+        &mut tree,
+        &(),
+        &DEFAULT_LIMITS,
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     // Scroll to the right, so that the sticky contents go out of view: they
     // are displayed on an overlay, inside the visible bounds.

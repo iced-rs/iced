@@ -98,8 +98,9 @@ mod loupe {
             tree: &mut widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
+            direction: iced::Direction,
         ) {
-            self.content.layout(tree, renderer, limits);
+            self.content.layout(tree, renderer, limits, direction);
         }
 
         fn update(

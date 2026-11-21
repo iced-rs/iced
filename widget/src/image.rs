@@ -19,6 +19,7 @@
 pub mod viewer;
 pub use viewer::Viewer;
 
+use crate::core::Direction;
 use crate::core::border;
 use crate::core::image;
 use crate::core::layout;
@@ -346,7 +347,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        _direction: Direction,
+    ) {
         tree.size = layout(
             renderer,
             limits,

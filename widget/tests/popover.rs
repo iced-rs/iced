@@ -69,7 +69,12 @@ where
     let mut tree = Tree::new(widget);
 
     widget.diff(&mut tree);
-    widget.layout(&mut tree, &(), &Limits::new(Size::ZERO, VIEWPORT));
+    widget.layout(
+        &mut tree,
+        &(),
+        &Limits::new(Size::ZERO, VIEWPORT),
+        iced_widget::core::Direction::LeftToRight,
+    );
 
     let layout = Layout::new(tree.size);
 
@@ -89,6 +94,7 @@ where
             &Rectangle::with_size(VIEWPORT),
             Vector::ZERO,
             WINDOW,
+            iced_widget::core::Direction::LeftToRight,
         )
         .is_empty()
 }
@@ -108,7 +114,15 @@ where
     let viewport = Rectangle::with_size(VIEWPORT);
 
     let mut overlay = widget
-        .overlay(tree, layout, &(), &viewport, Vector::ZERO, WINDOW)
+        .overlay(
+            tree,
+            layout,
+            &(),
+            &viewport,
+            Vector::ZERO,
+            WINDOW,
+            iced_widget::core::Direction::LeftToRight,
+        )
         .into_iter()
         .next()
         .expect("popover overlay should exist");

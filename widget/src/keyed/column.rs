@@ -1,4 +1,5 @@
 //! Keyed columns distribute content vertically while keeping continuity.
+use crate::core::Direction;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -228,7 +229,13 @@ where
         }
     }
 
-    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer, limits: &layout::Limits) {
+    fn layout(
+        &mut self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        direction: Direction,
+    ) {
         let state = tree.state.downcast_mut::<State<Key>>();
 
         tree.size = layout::flex::resolve(
@@ -243,6 +250,7 @@ where
             &mut tree.children,
             &mut self.children,
             &mut state.cache,
+            direction,
         );
     }
 
@@ -325,6 +333,7 @@ where
         viewport: &Rectangle,
         translation: Vector,
         window: Size,
+        direction: Direction,
     ) -> Vec<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(
             &mut self.children,
@@ -334,6 +343,7 @@ where
             viewport,
             translation,
             window,
+            direction,
         )
     }
 }
