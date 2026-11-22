@@ -418,7 +418,7 @@ where
                     return;
                 };
 
-                let was_hovered = self.hovered_link.is_some();
+                let was_hovered = self.hovered_link;
 
                 self.hovered_link = state.paragraph.hit_span(position).and_then(|span| {
                     if self.spans.as_ref().as_ref().get(span)?.link.is_some() {
@@ -428,8 +428,11 @@ where
                     }
                 });
 
-                if was_hovered != self.hovered_link.is_some() && !matches!(event, Event::Window(_))
-                {
+                // Request a redraw whenever the hovered link changes, not
+                // only when hover begins or ends: moving the cursor directly
+                // from one link to an adjacent one would otherwise keep the
+                // stale underline on the previously hovered link.
+                if was_hovered != self.hovered_link && !matches!(event, Event::Window(_)) {
                     shell.request_redraw();
                 }
             }
