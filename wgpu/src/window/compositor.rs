@@ -7,6 +7,36 @@ use crate::graphics::compositor;
 use crate::graphics::{self, Antialiasing, Shell, Viewport};
 use crate::{Engine, Renderer};
 
+#[cfg(all(target_arch = "wasm32", not(target_feature = "atomics")))]
+mod wasm_window {
+    use super::*;
+
+    pub struct SendSyncWindow<W>(pub W);
+
+    // SAFETY: On single-threaded Wasm (`not(target_feature = "atomics")`), there is only one
+    // execution thread, so DOM/canvas window handles cannot be sent or shared across threads.
+    #[allow(unsafe_code)]
+    unsafe impl<W> Send for SendSyncWindow<W> {}
+
+    // SAFETY: Same as `Send` above; single-threaded Wasm cannot access `W` concurrently.
+    #[allow(unsafe_code)]
+    unsafe impl<W> Sync for SendSyncWindow<W> {}
+
+    impl<W: compositor::Window> wgpu::rwh::HasWindowHandle for SendSyncWindow<W> {
+        fn window_handle(&self) -> Result<wgpu::rwh::WindowHandle<'_>, wgpu::rwh::HandleError> {
+            self.0.window_handle()
+        }
+    }
+
+    impl<W: compositor::Window + wgpu::rwh::HasDisplayHandle> wgpu::rwh::HasDisplayHandle
+        for SendSyncWindow<W>
+    {
+        fn display_handle(&self) -> Result<wgpu::rwh::DisplayHandle<'_>, wgpu::rwh::HandleError> {
+            self.0.display_handle()
+        }
+    }
+}
+
 /// A window graphics backend for iced powered by `wgpu`.
 pub struct Compositor {
     instance: wgpu::Instance,
@@ -76,6 +106,9 @@ impl Compositor {
                 .collect();
             log::info!("Available adapters: {available_adapters:#?}");
         }
+
+        #[cfg(all(target_arch = "wasm32", not(target_feature = "atomics")))]
+        let compatible_window = wasm_window::SendSyncWindow(compatible_window);
 
         #[allow(unsafe_code)]
         let compatible_surface = instance
@@ -300,6 +333,9 @@ impl graphics::Compositor for Compositor {
     }
 
     fn create_surface(&mut self, window: impl compositor::Window) -> Self::Surface {
+        #[cfg(all(target_arch = "wasm32", not(target_feature = "atomics")))]
+        let window = wasm_window::SendSyncWindow(window);
+
         self.instance
             .create_surface(wgpu::SurfaceTarget::Window(Box::new(window)))
             .expect("Create surface")
