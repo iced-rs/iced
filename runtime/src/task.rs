@@ -96,11 +96,14 @@ impl<T> Task<T> {
     where
         T: 'static,
     {
+        let mut last_stream = None;
         let mut select_all = stream::SelectAll::new();
         let mut units = 0;
 
         for task in tasks.into_iter() {
-            if let Some(stream) = task.stream {
+            if let Some(stream) = task.stream
+                && let Some(stream) = last_stream.replace(stream)
+            {
                 select_all.push(stream);
             }
 
@@ -108,7 +111,12 @@ impl<T> Task<T> {
         }
 
         Self {
-            stream: Some(boxed_stream(select_all)),
+            stream: if select_all.is_empty() {
+                last_stream
+            } else {
+                select_all.extend(last_stream);
+                Some(boxed_stream(select_all))
+            },
             units,
         }
     }
