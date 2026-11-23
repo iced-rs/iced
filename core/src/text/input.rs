@@ -359,6 +359,10 @@ impl<R: text::Renderer> Focusable for Input<R> {
 
     fn focus(&mut self) {
         self.state.focus();
+
+        if self.multiline.is_none() {
+            self.editor.move_cursor_to_end();
+        }
     }
 
     fn unfocus(&mut self) {
