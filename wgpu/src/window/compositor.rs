@@ -306,6 +306,14 @@ impl graphics::Compositor for Compositor {
     }
 
     fn configure_surface(&mut self, surface: &mut Self::Surface, width: u32, height: u32) {
+        // `wgpu` waits for the queue to be empty and then fails if another
+        // thread, like the one that uploads images, has submitted more work
+        let _submissions = self
+            .engine
+            .submissions
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+
         surface.configure(
             &self.engine.device,
             &wgpu::SurfaceConfiguration {
