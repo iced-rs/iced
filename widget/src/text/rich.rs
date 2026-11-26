@@ -295,10 +295,14 @@ where
                     let left = if starts { span.padding.left } else { 0.0 };
                     let right = if ends { span.padding.right } else { 0.0 };
 
-                    let bounds = Rectangle::new(
-                        bounds.position() - Vector::new(left, span.padding.top),
+                    let highlight_bounds = Rectangle::new(
+                        bounds.position() + translation - Vector::new(left, span.padding.top),
                         bounds.size() + Size::new(left + right, span.padding.y()),
                     );
+
+                    let Some(clipped_bounds) = highlight_bounds.intersection(viewport) else {
+                        continue;
+                    };
 
                     let radius = border::Radius {
                         top_left: highlight.border.radius.top_left * f32::from(starts),
@@ -307,17 +311,29 @@ where
                         bottom_right: highlight.border.radius.bottom_right * f32::from(ends),
                     };
 
-                    renderer.fill_quad(
-                        renderer::Quad {
-                            bounds: bounds + translation,
-                            border: Border {
-                                radius,
-                                ..highlight.border
+                    let draw_highlight = |renderer: &mut Renderer, quad_bounds| {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: quad_bounds,
+                                border: Border {
+                                    radius,
+                                    ..highlight.border
+                                },
+                                ..Default::default()
                             },
-                            ..Default::default()
-                        },
-                        highlight.background,
-                    );
+                            highlight.background,
+                        );
+                    };
+
+                    if clipped_bounds == highlight_bounds
+                        || (highlight.border.width == 0.0 && radius == border::Radius::default())
+                    {
+                        draw_highlight(renderer, clipped_bounds);
+                    } else {
+                        renderer.with_layer(*viewport, |renderer| {
+                            draw_highlight(renderer, highlight_bounds);
+                        });
+                    }
                 }
             }
 
@@ -356,32 +372,38 @@ where
                 let baseline =
                     translation + Vector::new(0.0, size.0 + (line_height.0 - size.0) / 2.0);
 
-                if span.underline || is_hovered_link {
-                    for bounds in &regions {
+                let fill_decoration = |renderer: &mut Renderer, bounds: Rectangle| {
+                    if let Some(clipped) = bounds.intersection(viewport) {
                         renderer.fill_quad(
                             renderer::Quad {
-                                bounds: Rectangle::new(
-                                    bounds.position() + baseline,
-                                    Size::new(bounds.width, 1.0),
-                                ),
+                                bounds: clipped,
                                 ..Default::default()
                             },
                             color,
+                        );
+                    }
+                };
+
+                if span.underline || is_hovered_link {
+                    for bounds in &regions {
+                        fill_decoration(
+                            renderer,
+                            Rectangle::new(
+                                bounds.position() + baseline,
+                                Size::new(bounds.width, 1.0),
+                            ),
                         );
                     }
                 }
 
                 if span.strikethrough {
                     for bounds in &regions {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: Rectangle::new(
-                                    bounds.position() + baseline - Vector::new(0.0, size.0 / 2.0),
-                                    Size::new(bounds.width, 1.0),
-                                ),
-                                ..Default::default()
-                            },
-                            color,
+                        fill_decoration(
+                            renderer,
+                            Rectangle::new(
+                                bounds.position() + baseline - Vector::new(0.0, size.0 / 2.0),
+                                Size::new(bounds.width, 1.0),
+                            ),
                         );
                     }
                 }
@@ -635,5 +657,332 @@ where
 {
     fn from_iter<T: IntoIterator<Item = Span<'a, Link>>>(spans: T) -> Self {
         Self::with_spans(spans.into_iter().collect::<Vec<_>>())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::alignment;
+    use crate::core::image;
+    use crate::core::layout;
+    use crate::core::mouse;
+    use crate::core::renderer;
+    use crate::core::text::{self, Text};
+    use crate::core::widget::Tree;
+    use crate::core::{
+        Background, Border, Color, Font, Layout, Pixels, Point, Rectangle, Size, Transformation,
+        Widget,
+    };
+
+    #[derive(Debug, PartialEq)]
+    enum DrawOp {
+        StartLayer(Rectangle),
+        EndLayer,
+        Quad(Rectangle),
+        ParagraphClip(Rectangle),
+    }
+
+    #[derive(Default)]
+    struct RecordingRenderer {
+        ops: Vec<DrawOp>,
+    }
+
+    impl core::Renderer for RecordingRenderer {
+        fn start_layer(&mut self, bounds: Rectangle) {
+            self.ops.push(DrawOp::StartLayer(bounds));
+        }
+
+        fn end_layer(&mut self) {
+            self.ops.push(DrawOp::EndLayer);
+        }
+
+        fn start_transformation(&mut self, _transformation: Transformation) {}
+
+        fn end_transformation(&mut self) {}
+
+        fn fill_quad(&mut self, quad: renderer::Quad, _background: impl Into<Background>) {
+            self.ops.push(DrawOp::Quad(quad.bounds));
+        }
+
+        fn allocate_image(
+            &self,
+            _handle: &image::Handle,
+            _callback: impl FnOnce(Result<image::Allocation, image::Error>) + Send + 'static,
+        ) {
+        }
+
+        fn hint(&mut self, _scale: renderer::Scale) {}
+
+        fn scale(&self) -> Option<renderer::Scale> {
+            None
+        }
+
+        fn reset(&mut self, _new_bounds: Rectangle) {
+            self.ops.clear();
+        }
+
+        fn settings(&self) -> renderer::Settings {
+            renderer::Settings::default()
+        }
+    }
+
+    impl core::text::Renderer for RecordingRenderer {
+        type Paragraph = MockParagraph;
+        type Editor = ();
+
+        const ICON_FONT: Font = Font::DEFAULT;
+        const CHECKMARK_ICON: char = '0';
+        const ARROW_DOWN_ICON: char = '0';
+        const SCROLL_UP_ICON: char = '0';
+        const SCROLL_DOWN_ICON: char = '0';
+        const SCROLL_LEFT_ICON: char = '0';
+        const SCROLL_RIGHT_ICON: char = '0';
+        const ICED_LOGO: char = '0';
+
+        fn fill_paragraph(
+            &mut self,
+            _text: &Self::Paragraph,
+            _position: Point,
+            _color: Color,
+            clip_bounds: Rectangle,
+        ) {
+            self.ops.push(DrawOp::ParagraphClip(clip_bounds));
+        }
+
+        fn fill_editor(
+            &mut self,
+            _editor: &Self::Editor,
+            _position: Point,
+            _color: Color,
+            _clip_bounds: Rectangle,
+        ) {
+        }
+
+        fn fill_text(
+            &mut self,
+            _text: Text<String>,
+            _position: Point,
+            _color: Color,
+            _clip_bounds: Rectangle,
+        ) {
+        }
+    }
+
+    #[derive(Debug, Clone, Default)]
+    struct MockParagraph {
+        span_bounds: Vec<Vec<Rectangle>>,
+        bounds: Size,
+    }
+
+    impl text::Paragraph for MockParagraph {
+        fn with_text(_text: Text<&str>) -> Self {
+            Self::default()
+        }
+
+        fn with_spans<Link>(text: Text<&[Span<'_, Link>]>) -> Self {
+            let mut x = 0.0;
+            let mut span_bounds = Vec::with_capacity(text.content.len());
+
+            for span in text.content {
+                let width = span.text.len() as f32 * 10.0;
+                span_bounds.push(vec![Rectangle::new(
+                    Point::new(x, 0.0),
+                    Size::new(width, 20.0),
+                )]);
+                x += width;
+            }
+
+            Self {
+                span_bounds,
+                bounds: Size::new(x, 20.0),
+            }
+        }
+
+        fn resize(&mut self, _new_bounds: Size) {}
+
+        fn compare(&self, _text: Text<()>) -> text::Difference {
+            text::Difference::Shape
+        }
+
+        fn hint_factor(&self) -> Option<f32> {
+            None
+        }
+
+        fn size(&self) -> Pixels {
+            Pixels(16.0)
+        }
+
+        fn font(&self) -> Font {
+            Font::DEFAULT
+        }
+
+        fn line_height(&self) -> LineHeight {
+            LineHeight::default()
+        }
+
+        fn align_x(&self) -> Alignment {
+            Alignment::Default
+        }
+
+        fn align_y(&self) -> alignment::Vertical {
+            alignment::Vertical::Top
+        }
+
+        fn wrapping(&self) -> Wrapping {
+            Wrapping::default()
+        }
+
+        fn ellipsis(&self) -> Ellipsis {
+            Ellipsis::default()
+        }
+
+        fn shaping(&self) -> Shaping {
+            Shaping::default()
+        }
+
+        fn bounds(&self) -> Size {
+            self.bounds
+        }
+
+        fn min_bounds(&self) -> Size {
+            self.bounds
+        }
+
+        fn hit_test(&self, _point: Point) -> Option<text::Hit> {
+            None
+        }
+
+        fn hit_span(&self, _point: Point) -> Option<usize> {
+            None
+        }
+
+        fn span_bounds(&self, index: usize) -> Vec<Rectangle> {
+            self.span_bounds.get(index).cloned().unwrap_or_default()
+        }
+
+        fn select(&mut self, _start: Point, _end: Point, _target: text::Target) {}
+        fn select_all(&mut self) {}
+        fn deselect(&mut self) {}
+
+        fn selection(&self) -> &[Rectangle] {
+            &[]
+        }
+
+        fn copy(&mut self) -> Option<String> {
+            None
+        }
+    }
+
+    fn draw_rich<Link: Clone + 'static>(
+        mut rich: Rich<'_, Link, (), crate::Theme>,
+        viewport: Rectangle,
+    ) -> Vec<DrawOp> {
+        let mut renderer = RecordingRenderer::default();
+        let theme = crate::Theme::Dark;
+        let mut tree = Tree::new::<(), crate::Theme, RecordingRenderer>(&rich);
+
+        <Rich<'_, Link, (), crate::Theme> as Widget<(), crate::Theme, RecordingRenderer>>::layout(
+            &mut rich,
+            &mut tree,
+            &renderer,
+            &layout::Limits::new(Size::ZERO, Size::new(500.0, 500.0)),
+        );
+
+        let layout = Layout::new(Size::new(500.0, 20.0));
+
+        <Rich<'_, Link, (), crate::Theme> as Widget<(), crate::Theme, RecordingRenderer>>::draw(
+            &rich,
+            &tree,
+            &mut renderer,
+            &theme,
+            &renderer::Style::default(),
+            layout,
+            mouse::Cursor::Unavailable,
+            &viewport,
+        );
+
+        renderer.ops
+    }
+
+    #[test]
+    fn draw_clips_underlines_and_strikethroughs_to_viewport() {
+        let spans = [
+            Span::<()>::new("12345").underline(true).strikethrough(true), // x: 0..50
+            Span::new("123456").underline(true).strikethrough(true), // x: 50..110 (partially clipped)
+            Span::new("12345").underline(true).strikethrough(true), // x: 110..160 (outside viewport)
+        ];
+
+        let viewport = Rectangle::new(Point::ORIGIN, Size::new(80.0, 25.0));
+        let ops = draw_rich(Rich::with_spans(spans), viewport);
+
+        assert_eq!(ops[0], DrawOp::ParagraphClip(viewport));
+
+        let quads: Vec<Rectangle> = ops
+            .into_iter()
+            .filter_map(|op| match op {
+                DrawOp::Quad(bounds) => Some(bounds),
+                _ => None,
+            })
+            .collect();
+
+        // Span 0: underline (0..50), strikethrough (0..50)
+        // Span 1: underline clipped (50..80), strikethrough clipped (50..80)
+        // Span 2: outside viewport -> skipped
+        assert_eq!(quads.len(), 4);
+        assert_eq!(quads[0].x, 0.0);
+        assert_eq!(quads[0].width, 50.0);
+        assert_eq!(quads[1].x, 0.0);
+        assert_eq!(quads[1].width, 50.0);
+        assert_eq!(quads[2].x, 50.0);
+        assert_eq!(quads[2].width, 30.0);
+        assert_eq!(quads[3].x, 50.0);
+        assert_eq!(quads[3].width, 30.0);
+
+        for quad in quads {
+            assert!(quad.x >= viewport.x);
+            assert!(quad.x + quad.width <= viewport.x + viewport.width);
+            assert!(quad.y >= viewport.y);
+            assert!(quad.y + quad.height <= viewport.y + viewport.height);
+        }
+    }
+
+    #[test]
+    fn draw_clips_hovered_link_underline_vertically() {
+        let mut rich: Rich<'_, (), (), crate::Theme> =
+            Rich::with_spans([Span::new("12345678").link(())]).on_link_click(|()| ());
+        rich.hovered_link = Some(0);
+
+        // Viewport ends at y=18.0, above the underline at baseline y=18.4..19.4
+        let viewport = Rectangle::new(Point::ORIGIN, Size::new(100.0, 18.0));
+        let ops = draw_rich(rich, viewport);
+
+        assert!(!ops.iter().any(|op| matches!(op, DrawOp::Quad(_))));
+    }
+
+    #[test]
+    fn draw_clips_highlights_with_and_without_borders() {
+        let flat_highlight = Span::<()>::new("12345678").background(Color::WHITE); // x: 0..80
+        let rounded_highlight = Span::<()>::new("123456") // x: 80..140
+            .background(Color::BLACK)
+            .border(Border::default().rounded(4.0));
+        let outside_highlight = Span::<()>::new("12345").background(Color::WHITE); // x: 140..190
+
+        let viewport = Rectangle::new(Point::ORIGIN, Size::new(100.0, 20.0));
+        let ops = draw_rich(
+            Rich::with_spans([flat_highlight, rounded_highlight, outside_highlight]),
+            viewport,
+        );
+
+        assert_eq!(
+            ops,
+            vec![
+                DrawOp::Quad(Rectangle::new(Point::ORIGIN, Size::new(80.0, 20.0))),
+                DrawOp::StartLayer(viewport),
+                DrawOp::Quad(Rectangle::new(Point::new(80.0, 0.0), Size::new(60.0, 20.0))),
+                DrawOp::EndLayer,
+                DrawOp::ParagraphClip(viewport),
+            ]
+        );
     }
 }
