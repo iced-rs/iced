@@ -8,7 +8,7 @@ use worker::Worker;
 #[cfg(feature = "image")]
 use std::collections::HashMap;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 pub struct Cache {
     atlas: Atlas,
@@ -24,12 +24,20 @@ impl Cache {
     pub fn new(
         device: &wgpu::Device,
         _queue: &wgpu::Queue,
+        _submissions: &Arc<Mutex<()>>,
         backend: wgpu::Backend,
         layout: wgpu::BindGroupLayout,
         _shell: &Shell,
     ) -> Self {
         #[cfg(all(feature = "image", not(target_arch = "wasm32")))]
-        let worker = Worker::new(device, _queue, backend, layout.clone(), _shell);
+        let worker = Worker::new(
+            device,
+            _queue,
+            _submissions,
+            backend,
+            layout.clone(),
+            _shell,
+        );
 
         Self {
             atlas: Atlas::new(device, backend, layout),
@@ -386,8 +394,8 @@ mod worker {
     use crate::image::atlas::{self, Atlas};
     use crate::image::raster;
 
-    use std::sync::Arc;
     use std::sync::mpsc;
+    use std::sync::{Arc, Mutex, PoisonError};
     use std::thread;
 
     pub struct Worker {
@@ -401,6 +409,7 @@ mod worker {
         pub fn new(
             device: &wgpu::Device,
             queue: &wgpu::Queue,
+            submissions: &Arc<Mutex<()>>,
             backend: wgpu::Backend,
             texture_layout: wgpu::BindGroupLayout,
             shell: &Shell,
@@ -412,6 +421,7 @@ mod worker {
             let instance = Instance {
                 device: device.clone(),
                 queue: queue.clone(),
+                submissions: submissions.clone(),
                 backend,
                 texture_layout,
                 shell: shell.clone(),
@@ -465,6 +475,7 @@ mod worker {
     pub struct Instance {
         device: wgpu::Device,
         queue: wgpu::Queue,
+        submissions: Arc<Mutex<()>>,
         backend: wgpu::Backend,
         texture_layout: wgpu::BindGroupLayout,
         shell: Shell,
@@ -585,6 +596,14 @@ mod worker {
             let shell = self.shell.clone();
 
             self.belt.finish();
+
+            // A surface can't be configured while another thread submits
+            // work, so the compositor waits for this upload to be done
+            let submissions = self
+                .submissions
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner);
+
             let submission = self.queue.submit([encoder.finish()]);
             self.belt.recall();
 
@@ -604,6 +623,8 @@ mod worker {
                 submission_index: Some(submission),
                 timeout: None,
             });
+
+            drop(submissions);
         }
     }
 }

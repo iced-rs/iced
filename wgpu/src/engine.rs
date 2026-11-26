@@ -4,7 +4,7 @@ use crate::quad;
 use crate::text;
 use crate::triangle;
 
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Clone)]
 pub struct Engine {
@@ -18,6 +18,7 @@ pub struct Engine {
     #[cfg(any(feature = "image", feature = "svg"))]
     pub(crate) image_pipeline: crate::image::Pipeline,
     pub(crate) primitive_storage: Arc<RwLock<primitive::Storage>>,
+    pub(crate) submissions: Arc<Mutex<()>>,
     _shell: Shell,
 }
 
@@ -45,6 +46,7 @@ impl Engine {
             },
 
             primitive_storage: Arc::new(RwLock::new(primitive::Storage::default())),
+            submissions: Arc::new(Mutex::new(())),
 
             device,
             queue,
@@ -55,7 +57,7 @@ impl Engine {
     #[cfg(any(feature = "image", feature = "svg"))]
     pub fn create_image_cache(&self) -> crate::image::Cache {
         self.image_pipeline
-            .create_cache(&self.device, &self.queue, &self._shell)
+            .create_cache(&self.device, &self.queue, &self.submissions, &self._shell)
     }
 
     pub fn trim(&mut self) {
