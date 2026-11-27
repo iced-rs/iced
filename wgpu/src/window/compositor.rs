@@ -151,13 +151,12 @@ impl Compositor {
 
         log::info!("Selected format: {format:?} with alpha mode: {alpha_mode:?}");
 
-        #[cfg(target_arch = "wasm32")]
-        let limits = [wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits())];
-
-        #[cfg(not(target_arch = "wasm32"))]
         let limits = [
+            #[cfg(not(target_arch = "wasm32"))]
             wgpu::Limits::default().using_resolution(adapter.limits()),
+            #[cfg(not(target_arch = "wasm32"))]
             wgpu::Limits::downlevel_defaults().using_resolution(adapter.limits()),
+            wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
         ];
 
         let limits = limits.into_iter().map(|limits| wgpu::Limits {
