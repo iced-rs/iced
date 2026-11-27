@@ -21,11 +21,13 @@ unconditional-rendering = []
 linux-theme-detection = ["dep:mundy", "mundy/async-io", "mundy/color-scheme"]
 image = ["iced_runtime/image", "arboard/image-data"]
 x11 = ["winit/x11"]
+gamepad = ["dep:gilrs", "iced_core/gamepad"]
 wayland = ["winit/wayland", "arboard/wayland-data-control"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-decorations = ["winit/wayland-csd-adwaita"]
 
 [dependencies]
+iced_core.workspace = true
 iced_debug.workspace = true
 iced_program.workspace = true
 iced_runtime.workspace = true
@@ -35,6 +37,9 @@ rustc-hash.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 winit.workspace = true
+
+gilrs.workspace = true
+gilrs.optional = true
 
 sysinfo.workspace = true
 sysinfo.optional = true
